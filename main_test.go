@@ -1,0 +1,215 @@
+package pg_test
+
+import (
+	"math"
+	"strconv"
+	"testing"
+
+	"github.com/vmihailenco/pg"
+
+	. "launchpad.net/gocheck"
+)
+
+func Test(t *testing.T) { TestingT(t) }
+
+var _ = Suite(&DBTest{})
+
+type DBTest struct {
+	db *pg.DB
+}
+
+func (t *DBTest) SetUpTest(c *C) {
+	connector := &pg.Connector{
+		User:     "test",
+		Database: "test",
+		PoolSize: 1,
+	}
+	t.db = connector.Connect()
+}
+
+func (t *DBTest) TearDownTest(c *C) {
+	c.Assert(t.db.Close(), IsNil)
+}
+
+type Ids []int64
+
+func (ids *Ids) New() interface{} {
+	return ids
+}
+
+func (ids *Ids) Load(i int, b []byte) error {
+	n, err := strconv.ParseInt(string(b), 10, 64)
+	if err != nil {
+		return err
+	}
+	*ids = append(*ids, n)
+	return nil
+}
+
+type Dst struct {
+	Num int
+}
+
+func (d *Dst) New() interface{} {
+	return d
+}
+
+type Example struct {
+	Id     uint64
+	Names  []string
+	Values map[string]string
+	Data   []byte
+}
+
+type ExampleFabric struct{}
+
+func (ExampleFabric) New() interface{} {
+	return &Example{}
+}
+
+func (t *DBTest) TestQuery(c *C) {
+	dst, err := t.db.Query(&Dst{}, "SELECT 1 AS num")
+	c.Assert(err, IsNil)
+	c.Assert(dst, HasLen, 1)
+	c.Assert(dst[0].(*Dst).Num, Equals, 1)
+}
+
+func (t *DBTest) TestQueryOne(c *C) {
+	dst, err := t.db.QueryOne(&Dst{}, "SELECT 1 AS num")
+	c.Assert(err, IsNil)
+	c.Assert(dst.(*Dst).Num, Equals, 1)
+}
+
+func (t *DBTest) TestQueryOneValue(c *C) {
+	var v int
+	_, err := t.db.QueryOne(pg.LoadInto(&v), "SELECT 1 AS num")
+	c.Assert(err, IsNil)
+	c.Assert(v, Equals, 1)
+}
+
+func (t *DBTest) TestQueryOneErrNoRows(c *C) {
+	dst, err := t.db.QueryOne(&Dst{}, "SELECT s.num AS num FROM generate_series(0, -1) AS s(num)")
+	c.Assert(dst, IsNil)
+	c.Assert(err, Equals, pg.ErrNoRows)
+}
+
+func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
+	dst, err := t.db.QueryOne(&Dst{}, "SELECT s.num AS num FROM generate_series(0, 10) AS s(num)")
+	c.Assert(err, Equals, pg.ErrMultiRows)
+	c.Assert(dst, IsNil)
+}
+
+func (t *DBTest) TestDataType(c *C) {
+	dst, err := t.db.Query(
+		ExampleFabric{},
+		"SELECT ? AS id, ? AS names, ? AS values, ? as data",
+		uint64(math.MaxUint64),
+		[]string{"foo", "bar"},
+		map[string]string{"foo": "bar", "hello": "world"},
+		[]byte("hello world"),
+	)
+	c.Assert(err, IsNil)
+	c.Assert(dst, HasLen, 1)
+	ex := dst[0].(*Example)
+	c.Assert(ex.Id, Equals, uint64(math.MaxUint64))
+	c.Assert(ex.Names, DeepEquals, []string{"foo", "bar"})
+	c.Assert(ex.Values, DeepEquals, map[string]string{"foo": "bar", "hello": "world"})
+	c.Assert(ex.Data, DeepEquals, []byte("hello world"))
+}
+
+func (t *DBTest) TestQueryIds(c *C) {
+	var ids Ids
+	_, err := t.db.Query(&ids, "SELECT s.num AS num FROM generate_series(0, 10) AS s(num)")
+	c.Assert(err, IsNil)
+	c.Assert(ids, DeepEquals, Ids{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+}
+
+func (t *DBTest) TestExec(c *C) {
+	res, err := t.db.Exec("CREATE TEMP TABLE test(id serial PRIMARY KEY)")
+	c.Assert(err, IsNil)
+	c.Assert(res.Affected(), Equals, int64(0))
+
+	res, err = t.db.Exec("INSERT INTO test VALUES (1)")
+	c.Assert(err, IsNil)
+	c.Assert(res.Affected(), Equals, int64(1))
+}
+
+func (t *DBTest) TestStatementExec(c *C) {
+	res, err := t.db.Exec("CREATE TEMP TABLE test(id serial PRIMARY KEY)")
+	c.Assert(err, IsNil)
+	c.Assert(res.Affected(), Equals, int64(0))
+
+	stmt, err := t.db.Prepare("INSERT INTO test VALUES($1)")
+	c.Assert(err, IsNil)
+	defer stmt.Close()
+
+	res, err = stmt.Exec(1)
+	c.Assert(err, IsNil)
+	c.Assert(res.Affected(), Equals, int64(1))
+}
+
+func (t *DBTest) TestStatementQuery(c *C) {
+	stmt, err := t.db.Prepare("SELECT 1 AS num")
+	c.Assert(err, IsNil)
+	defer stmt.Close()
+
+	dst, err := stmt.Query(&Dst{})
+	c.Assert(err, IsNil)
+	c.Assert(dst, HasLen, 1)
+	c.Assert(dst[0].(*Dst).Num, Equals, 1)
+}
+
+func (t *DBTest) BenchmarkQueryRow(c *C) {
+	dst := &Dst{}
+	for i := 0; i < c.N; i++ {
+		_, err := t.db.Query(dst, "SELECT 1 AS num")
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (t *DBTest) BenchmarkExec(c *C) {
+	_, err := t.db.Exec("CREATE TEMP TABLE test(id bigint)")
+	if err != nil {
+		panic(err)
+	}
+
+	for i := 0; i < c.N; i++ {
+		_, err := t.db.Exec("INSERT INTO test VALUES(?)", 1)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (t *DBTest) BenchmarkStatementExec(c *C) {
+	_, err := t.db.Exec("CREATE TEMP TABLE test(id bigint)")
+	if err != nil {
+		panic(err)
+	}
+
+	stmt, err := t.db.Prepare("INSERT INTO test VALUES($1)")
+	c.Assert(err, IsNil)
+	defer stmt.Close()
+
+	for i := 0; i < c.N; i++ {
+		_, err = stmt.Exec(1)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (t *DBTest) BenchmarkStatementQuery(c *C) {
+	stmt, err := t.db.Prepare("SELECT 1 AS num")
+	c.Assert(err, IsNil)
+	defer stmt.Close()
+
+	for i := 0; i < c.N; i++ {
+		_, err := stmt.Query(&Dst{})
+		if err != nil {
+			panic(err)
+		}
+	}
+}
