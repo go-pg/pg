@@ -6,6 +6,7 @@ type Connector struct {
 	User     string
 	Password string
 	Database string
+	SSL      bool
 
 	PoolSize int
 }
@@ -50,6 +51,13 @@ func (conn *Connector) getPoolSize() int {
 		return 10
 	}
 	return conn.PoolSize
+}
+
+func (conn *Connector) getSSL() bool {
+	if conn == nil {
+		return true
+	}
+	return conn.SSL
 }
 
 func (connector *Connector) Connect() *DB {

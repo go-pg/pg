@@ -33,7 +33,7 @@ func (cn *conn) Close() error {
 	return cn.c.Close()
 }
 
-func (cn *conn) Startup() error {
+func (cn *conn) ssl() error {
 	cn.buf.StartMsg(0)
 	cn.buf.WriteInt32(80877103)
 	cn.buf.EndMsg()
@@ -55,6 +55,18 @@ func (cn *conn) Startup() error {
 	}
 	cn.c = tls.Client(cn.c, tlsConf)
 	cn.br = bufio.NewReader(cn.c)
+
+	return nil
+}
+
+func (cn *conn) Startup() error {
+	if cn.connector.getSSL() {
+		if err := cn.ssl(); err != nil {
+			return err
+		}
+	} else {
+		cn.br = bufio.NewReader(cn.c)
+	}
 
 	cn.buf.StartMsg(0)
 	cn.buf.WriteInt32(196608)
