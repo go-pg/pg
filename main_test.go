@@ -1,13 +1,16 @@
 package pg_test
 
 import (
+	"database/sql"
 	"math"
 	"strconv"
 	"testing"
+	"time"
+
+	_ "github.com/lib/pq"
+	. "launchpad.net/gocheck"
 
 	"github.com/vmihailenco/pg"
-
-	. "launchpad.net/gocheck"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -15,16 +18,21 @@ func Test(t *testing.T) { TestingT(t) }
 var _ = Suite(&DBTest{})
 
 type DBTest struct {
-	db *pg.DB
+	db   *pg.DB
+	godb *sql.DB
 }
 
 func (t *DBTest) SetUpTest(c *C) {
 	connector := &pg.Connector{
 		User:     "test",
 		Database: "test",
-		PoolSize: 1,
+		PoolSize: 2,
 	}
 	t.db = connector.Connect()
+
+	db, err := sql.Open("postgres", "user=test dbname=test")
+	c.Assert(err, IsNil)
+	t.godb = db
 }
 
 func (t *DBTest) TearDownTest(c *C) {
@@ -159,12 +167,47 @@ func (t *DBTest) TestStatementQuery(c *C) {
 	c.Assert(dst[0].(*Dst).Num, Equals, 1)
 }
 
+func (t *DBTest) TestListenNotify(c *C) {
+	listener, err := t.db.NewListener()
+	c.Assert(err, IsNil)
+	defer listener.Close()
+
+	c.Assert(listener.Listen("test_channel"), IsNil)
+
+	_, err = t.db.Exec("NOTIFY test_channel")
+	c.Assert(err, IsNil)
+
+	select {
+	case notif := <-listener.Chan:
+		c.Assert(notif.Err, IsNil)
+		c.Assert(notif.Channel, Equals, "test_channel")
+	case <-time.After(1 * time.Second):
+		c.Fail()
+	}
+}
+
 func (t *DBTest) BenchmarkQueryRow(c *C) {
 	dst := &Dst{}
 	for i := 0; i < c.N; i++ {
-		_, err := t.db.Query(dst, "SELECT 1 AS num")
+		_, err := t.db.QueryOne(dst, "SELECT ?::bigint AS num", 1)
 		if err != nil {
 			panic(err)
+		}
+		if dst.Num != 1 {
+			panic("dst.Num != 1")
+		}
+	}
+}
+
+func (t *DBTest) BenchmarkGoQueryRow(c *C) {
+	var n int64
+	for i := 0; i < c.N; i++ {
+		r := t.godb.QueryRow("SELECT $1::bigint AS num", 1)
+		if err := r.Scan(&n); err != nil {
+			panic(err)
+		}
+		if n != 1 {
+			panic("n != 1")
 		}
 	}
 }

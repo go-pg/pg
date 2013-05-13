@@ -175,3 +175,11 @@ func (db *DB) QueryOne(model interface{}, q string, args ...interface{}) (interf
 	}
 	return res[0], nil
 }
+
+func (db *DB) NewListener() (*Listener, error) {
+	cn, err := db.conn()
+	if err != nil {
+		return nil, err
+	}
+	return newListener(db.pool, cn), nil
+}

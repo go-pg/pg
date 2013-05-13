@@ -46,7 +46,7 @@ func (cn *conn) ssl() error {
 	if err != nil {
 		return err
 	}
-	if b[0] != 'S' { // TODO: msgtype
+	if b[0] != 'S' {
 		return ErrSSLNotSupported
 	}
 

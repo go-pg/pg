@@ -18,6 +18,8 @@ const (
 	msgNoData           = msgType('n')
 	msgPasswordMessage  = msgType('p')
 
+	msgNotificationResponse = msgType('A')
+
 	msgDescribe             = msgType('D')
 	msgParameterDescription = msgType('t')
 
