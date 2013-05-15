@@ -71,8 +71,7 @@ func writeParseDescribeSyncMsg(cn *conn, q string) error {
 	return cn.Flush()
 }
 
-func readParseDescribeSync(cn *conn) ([]string, error) {
-	var columns []string
+func readParseDescribeSync(cn *conn) (columns []string, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -99,18 +98,18 @@ func readParseDescribeSync(cn *conn) ([]string, error) {
 			if err != nil {
 				return nil, err
 			}
-		case msgReadyForQuery: // Response to the SYNC message.
+		case msgReadyForQuery:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
-			return columns, nil
+			return
 		case msgErrorResponse:
-			e, err := cn.ReadError()
+			var err error
+			e, err = cn.ReadError()
 			if err != nil {
 				return nil, err
 			}
-			return nil, e
 		case msgNoticeResponse:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
@@ -149,7 +148,7 @@ func writeBindExecuteMsg(cn *conn, args ...interface{}) error {
 	return cn.Flush()
 }
 
-func readBindMsg(cn *conn) error {
+func readBindMsg(cn *conn) (e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -166,13 +165,13 @@ func readBindMsg(cn *conn) error {
 			if err != nil {
 				return err
 			}
-			return nil
+			return
 		case msgErrorResponse:
-			e, err := cn.ReadError()
+			var err error
+			e, err = cn.ReadError()
 			if err != nil {
 				return err
 			}
-			return e
 		case msgNoticeResponse:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
@@ -184,8 +183,7 @@ func readBindMsg(cn *conn) error {
 	}
 }
 
-func readSimpleQueryResult(cn *conn) (*Result, error) {
-	var res *Result
+func readSimpleQueryResult(cn *conn) (res *Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -205,18 +203,18 @@ func readSimpleQueryResult(cn *conn) (*Result, error) {
 			if err != nil {
 				return nil, err
 			}
-			return res, nil
+			return
 		case msgRowDescription, msgDataRow:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
 		case msgErrorResponse:
-			e, err := cn.ReadError()
+			var err error
+			e, err = cn.ReadError()
 			if err != nil {
 				return nil, err
 			}
-			return nil, e
 		case msgNoticeResponse:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
@@ -228,8 +226,7 @@ func readSimpleQueryResult(cn *conn) (*Result, error) {
 	}
 }
 
-func readExtQueryResult(cn *conn) (*Result, error) {
-	var res *Result
+func readExtQueryResult(cn *conn) (res *Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -254,13 +251,13 @@ func readExtQueryResult(cn *conn) (*Result, error) {
 			if err != nil {
 				return nil, err
 			}
-			return res, nil
+			return
 		case msgErrorResponse:
-			e, err := cn.ReadError()
+			var err error
+			e, err = cn.ReadError()
 			if err != nil {
 				return nil, err
 			}
-			return nil, e
 		case msgNoticeResponse:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
@@ -325,8 +322,7 @@ func readDataRow(cn *conn, f Fabric, columns []string) (interface{}, error) {
 	return dst, nil
 }
 
-func readSimpleQueryData(cn *conn, f Fabric) ([]interface{}, error) {
-	var res []interface{}
+func readSimpleQueryData(cn *conn, f Fabric) (res []interface{}, e error) {
 	var columns []string
 	for {
 		c, msgLen, err := cn.ReadMsgType()
@@ -355,13 +351,13 @@ func readSimpleQueryData(cn *conn, f Fabric) ([]interface{}, error) {
 			if err != nil {
 				return nil, err
 			}
-			return res, nil
+			return
 		case msgErrorResponse:
-			e, err := cn.ReadError()
+			var err error
+			e, err = cn.ReadError()
 			if err != nil {
 				return nil, err
 			}
-			return nil, e
 		case msgNoticeResponse:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
@@ -373,8 +369,7 @@ func readSimpleQueryData(cn *conn, f Fabric) ([]interface{}, error) {
 	}
 }
 
-func readExtQueryData(cn *conn, f Fabric, columns []string) ([]interface{}, error) {
-	var res []interface{}
+func readExtQueryData(cn *conn, f Fabric, columns []string) (res []interface{}, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -402,13 +397,13 @@ func readExtQueryData(cn *conn, f Fabric, columns []string) ([]interface{}, erro
 			if err != nil {
 				return nil, err
 			}
-			return res, nil
+			return
 		case msgErrorResponse:
-			e, err := cn.ReadError()
+			var err error
+			e, err = cn.ReadError()
 			if err != nil {
 				return nil, err
 			}
-			return nil, e
 		case msgNoticeResponse:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {

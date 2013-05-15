@@ -216,7 +216,7 @@ func (cn *conn) ReadString() (string, error) {
 }
 
 func (cn *conn) ReadError() (error, error) {
-	e := &DBError{make(map[byte]string)}
+	e := &pgError{make(map[byte]string)}
 	for {
 		c, err := cn.br.ReadByte()
 		if err != nil {
@@ -232,9 +232,9 @@ func (cn *conn) ReadError() (error, error) {
 		e.c[c] = s
 	}
 
-	switch e.Get('C') {
+	switch e.GetField('C') {
 	case "23000", "23001", "23502", "23503", "23505", "23514", "23P01":
-		return &IntegrityError{DBError: e}, nil
+		return &IntegrityError{pgError: e}, nil
 	}
 	return e, nil
 }

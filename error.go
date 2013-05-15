@@ -7,23 +7,51 @@ import (
 
 var (
 	ErrSSLNotSupported = errors.New("pg: SSL is not enabled on the server")
-	ErrBadConn         = errors.New("pg: bad connection")
-	ErrNoRows          = errors.New("pg: no rows in result set")
-	ErrMultiRows       = errors.New("pg: multiple rows in result set")
+
+	ErrNoRows    = &dbError{"pg: no rows in result set"}
+	ErrMultiRows = &dbError{"pg: multiple rows in result set"}
 )
 
-type DBError struct {
+var (
+	_ Error = &dbError{}
+	_ Error = &pgError{}
+	_ Error = &IntegrityError{}
+)
+
+type Error interface {
+	error
+
+	// Marker.
+	DBError()
+}
+
+type dbError struct {
+	s string
+}
+
+func (err *dbError) Error() string {
+	return err.s
+}
+
+func (err *dbError) DBError() {}
+
+type pgError struct {
 	c map[byte]string
 }
 
-func (err *DBError) Get(k byte) string {
+func (err *pgError) DBError() {}
+
+func (err *pgError) GetField(k byte) string {
 	return err.c[k]
 }
 
-func (err *DBError) Error() string {
-	return fmt.Sprintf("%s #%s %s: %s", err.Get('S'), err.Get('C'), err.Get('M'), err.Get('D'))
+func (err *pgError) Error() string {
+	return fmt.Sprintf(
+		"%s #%s %s: %s",
+		err.GetField('S'), err.GetField('C'), err.GetField('M'), err.GetField('D'),
+	)
 }
 
 type IntegrityError struct {
-	*DBError
+	*pgError
 }

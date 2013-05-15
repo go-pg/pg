@@ -55,7 +55,7 @@ func (conn *Connector) getPoolSize() int {
 
 func (conn *Connector) getSSL() bool {
 	if conn == nil {
-		return true
+		return false
 	}
 	return conn.SSL
 }
@@ -85,7 +85,7 @@ type DB struct {
 }
 
 func (db *DB) Close() error {
-	return nil
+	return db.pool.Close()
 }
 
 func (db *DB) conn() (*conn, error) {
@@ -96,6 +96,14 @@ func (db *DB) conn() (*conn, error) {
 	return i.(*conn), nil
 }
 
+func (db *DB) freeConn(cn *conn, e error) {
+	if _, ok := e.(Error); ok {
+		db.pool.Put(cn)
+	} else {
+		db.pool.Remove(cn)
+	}
+}
+
 func (db *DB) Prepare(q string) (*Stmt, error) {
 	cn, err := db.conn()
 	if err != nil {
@@ -103,13 +111,13 @@ func (db *DB) Prepare(q string) (*Stmt, error) {
 	}
 
 	if err := writeParseDescribeSyncMsg(cn, q); err != nil {
-		db.pool.Remove(cn)
+		db.freeConn(cn, err)
 		return nil, err
 	}
 
 	columns, err := readParseDescribeSync(cn)
 	if err != nil {
-		db.pool.Remove(cn)
+		db.freeConn(cn, err)
 		return nil, err
 	}
 
@@ -128,15 +136,16 @@ func (db *DB) Exec(q string, args ...interface{}) (*Result, error) {
 	}
 
 	if err := writeQueryMsg(cn, q, args...); err != nil {
-		db.pool.Remove(cn)
+		db.freeConn(cn, err)
 		return nil, err
 	}
 
 	res, err := readSimpleQueryResult(cn)
 	if err != nil {
-		db.pool.Remove(cn)
+		db.freeConn(cn, err)
 		return nil, err
 	}
+
 	db.pool.Put(cn)
 	return res, nil
 }
@@ -148,13 +157,13 @@ func (db *DB) Query(f Fabric, q string, args ...interface{}) ([]interface{}, err
 	}
 
 	if err := writeQueryMsg(cn, q, args...); err != nil {
-		db.pool.Remove(cn)
+		db.freeConn(cn, err)
 		return nil, err
 	}
 
 	res, err := readSimpleQueryData(cn, f)
 	if err != nil {
-		db.pool.Remove(cn)
+		db.freeConn(cn, err)
 		return nil, err
 	}
 

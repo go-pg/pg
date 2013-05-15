@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
 	. "launchpad.net/gocheck"
 
@@ -18,8 +19,8 @@ func Test(t *testing.T) { TestingT(t) }
 var _ = Suite(&DBTest{})
 
 type DBTest struct {
-	db   *pg.DB
-	godb *sql.DB
+	db            *pg.DB
+	pgdb, mysqldb *sql.DB
 }
 
 func (t *DBTest) SetUpTest(c *C) {
@@ -30,9 +31,13 @@ func (t *DBTest) SetUpTest(c *C) {
 	}
 	t.db = connector.Connect()
 
-	db, err := sql.Open("postgres", "user=test dbname=test")
+	pgdb, err := sql.Open("postgres", "user=test dbname=test")
 	c.Assert(err, IsNil)
-	t.godb = db
+	t.pgdb = pgdb
+
+	mysqldb, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/test")
+	c.Assert(err, IsNil)
+	t.mysqldb = mysqldb
 }
 
 func (t *DBTest) TearDownTest(c *C) {
@@ -228,10 +233,23 @@ func (t *DBTest) BenchmarkQueryRow(c *C) {
 	}
 }
 
-func (t *DBTest) BenchmarkGoQueryRow(c *C) {
+func (t *DBTest) BenchmarkStdlibPostgresQueryRow(c *C) {
 	var n int64
 	for i := 0; i < c.N; i++ {
-		r := t.godb.QueryRow("SELECT $1::bigint AS num", 1)
+		r := t.pgdb.QueryRow("SELECT $1::bigint AS num", 1)
+		if err := r.Scan(&n); err != nil {
+			panic(err)
+		}
+		if n != 1 {
+			panic("n != 1")
+		}
+	}
+}
+
+func (t *DBTest) BenchmarkStdlibMysqlQueryRow(c *C) {
+	var n int64
+	for i := 0; i < c.N; i++ {
+		r := t.mysqldb.QueryRow("SELECT ? AS num", 1)
 		if err := r.Scan(&n); err != nil {
 			panic(err)
 		}
@@ -242,15 +260,38 @@ func (t *DBTest) BenchmarkGoQueryRow(c *C) {
 }
 
 func (t *DBTest) BenchmarkExec(c *C) {
-	_, err := t.db.Exec("CREATE TEMP TABLE test(id bigint)")
+	_, err := t.db.Exec("CREATE TEMP TABLE exec_test(id bigint)")
 	if err != nil {
 		panic(err)
 	}
 
 	for i := 0; i < c.N; i++ {
-		_, err := t.db.Exec("INSERT INTO test VALUES(?)", 1)
+		res, err := t.db.Exec("INSERT INTO exec_test(id) VALUES(?)", 1)
 		if err != nil {
 			panic(err)
+		}
+		if res.Affected() != 1 {
+			panic("res.Affected() != 1")
+		}
+	}
+
+}
+
+func (t *DBTest) BenchmarkExecWithError(c *C) {
+	_, err := t.db.Exec("CREATE TEMP TABLE exec_with_error_test(id bigint PRIMARY KEY)")
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = t.db.Exec("INSERT INTO exec_with_error_test(id) VALUES(?)", 1)
+	if err != nil {
+		panic(err)
+	}
+
+	for i := 0; i < c.N; i++ {
+		_, err := t.db.Exec("INSERT INTO exec_with_error_test(id) VALUES(?)", 1)
+		if _, ok := err.(*pg.IntegrityError); !ok {
+			panic("expected IntegrityError")
 		}
 	}
 }
@@ -273,7 +314,7 @@ func (t *DBTest) BenchmarkStatementExec(c *C) {
 	}
 }
 
-func (t *DBTest) BenchmarkStatementQuery(c *C) {
+func (t *DBTest) BenchmarkStatementQueryRow(c *C) {
 	stmt, err := t.db.Prepare("SELECT 1 AS num")
 	c.Assert(err, IsNil)
 	defer stmt.Close()
