@@ -107,22 +107,51 @@ func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
 	c.Assert(dst, IsNil)
 }
 
-func (t *DBTest) TestDataType(c *C) {
-	dst, err := t.db.Query(
-		ExampleFabric{},
-		"SELECT ? AS id, ? AS names, ? AS values, ? as data",
-		uint64(math.MaxUint64),
-		[]string{"foo", "bar"},
-		map[string]string{"foo": "bar", "hello": "world"},
-		[]byte("hello world"),
+func (t *DBTest) TestTypeUint64(c *C) {
+	var dst uint64
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::bigint", uint64(math.MaxUint64))
+	c.Assert(err, IsNil)
+	c.Assert(dst, Equals, uint64(math.MaxUint64))
+}
+
+func (t *DBTest) TestTypeBytes(c *C) {
+	var dst []byte
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::bytea", []byte("hello world"))
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, []byte("hello world"))
+}
+
+func (t *DBTest) TestTypeStringArray(c *C) {
+	var dst []string
+	_, err := t.db.QueryOne(
+		pg.LoadInto(&dst),
+		"SELECT ?::text[]",
+		[]string{"foo \n", "bar", "hello {}", "'\\\""},
 	)
 	c.Assert(err, IsNil)
-	c.Assert(dst, HasLen, 1)
-	ex := dst[0].(*Example)
-	c.Assert(ex.Id, Equals, uint64(math.MaxUint64))
-	c.Assert(ex.Names, DeepEquals, []string{"foo", "bar"})
-	c.Assert(ex.Values, DeepEquals, map[string]string{"foo": "bar", "hello": "world"})
-	c.Assert(ex.Data, DeepEquals, []byte("hello world"))
+	c.Assert(dst, DeepEquals, []string{"foo \n", "bar", "hello {}", "'\\\""})
+}
+
+func (t *DBTest) TestTypeIntArray(c *C) {
+	var dst []int
+	_, err := t.db.QueryOne(
+		pg.LoadInto(&dst),
+		"SELECT ?::int[]",
+		[]int{1, 2, 3},
+	)
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, []int{1, 2, 3})
+}
+
+func (t *DBTest) TestTypeHstore(c *C) {
+	dst := make(map[string]string)
+	_, err := t.db.QueryOne(
+		pg.LoadInto(&dst),
+		"SELECT ?",
+		map[string]string{"foo =>": "bar =>", "hello": "world", "'\\\"": "'\\\""},
+	)
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, map[string]string{"foo =>": "bar =>", "hello": "world", "'\\\"": "'\\\""})
 }
 
 func (t *DBTest) TestQueryIds(c *C) {
