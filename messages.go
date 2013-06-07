@@ -48,7 +48,7 @@ func writeQueryMsg(cn *conn, q string, args ...interface{}) error {
 	if err != nil {
 		return err
 	}
-	cn.buf.WriteByte(0)
+	cn.buf.WriteByte(0x0)
 	cn.buf.EndMsg()
 	return cn.Flush()
 }
