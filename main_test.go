@@ -67,17 +67,11 @@ func (d *Dst) New() interface{} {
 	return d
 }
 
-type Example struct {
-	Id     uint64
-	Names  []string
-	Values map[string]string
-	Data   []byte
-}
-
-type ExampleFabric struct{}
-
-func (ExampleFabric) New() interface{} {
-	return &Example{}
+// Postgres does not support null byte in strings.
+func (t *DBTest) TestQueryWithNullByte(c *C) {
+	var s string
+	_, err := t.db.QueryOne(pg.LoadInto(&s), "SELECT ?", "\000")
+	c.Assert(err, Not(IsNil))
 }
 
 func (t *DBTest) TestQuery(c *C) {
@@ -85,6 +79,12 @@ func (t *DBTest) TestQuery(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(dst, HasLen, 1)
 	c.Assert(dst[0].(*Dst).Num, Equals, 1)
+}
+
+func (t *DBTest) TestQueryZeroRows(c *C) {
+	dst, err := t.db.Query(&Dst{}, "SELECT s.num AS num FROM generate_series(0, -1) AS s(num)")
+	c.Assert(err, IsNil)
+	c.Assert(len(dst), Equals, 0)
 }
 
 func (t *DBTest) TestQueryOne(c *C) {
@@ -112,6 +112,13 @@ func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
 	c.Assert(dst, IsNil)
 }
 
+func (t *DBTest) TestTypeTime(c *C) {
+	var dst time.Time
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT now()::timestamp")
+	c.Assert(err, IsNil)
+	c.Assert(dst.Location(), Equals, time.UTC)
+}
+
 func (t *DBTest) TestTypeUint64(c *C) {
 	var dst uint64
 	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::bigint", uint64(math.MaxUint64))
@@ -137,6 +144,17 @@ func (t *DBTest) TestTypeStringArray(c *C) {
 	c.Assert(dst, DeepEquals, []string{"foo \n", "bar", "hello {}", "'\\\""})
 }
 
+func (t *DBTest) TestTypeEmptyStringArray(c *C) {
+	var dst []string
+	_, err := t.db.QueryOne(
+		pg.LoadInto(&dst),
+		"SELECT ?::text[]",
+		[]string{},
+	)
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, []string{})
+}
+
 func (t *DBTest) TestTypeIntArray(c *C) {
 	var dst []int
 	_, err := t.db.QueryOne(
@@ -146,6 +164,17 @@ func (t *DBTest) TestTypeIntArray(c *C) {
 	)
 	c.Assert(err, IsNil)
 	c.Assert(dst, DeepEquals, []int{1, 2, 3})
+}
+
+func (t *DBTest) TestTypeEmptyIntArray(c *C) {
+	var dst []int
+	_, err := t.db.QueryOne(
+		pg.LoadInto(&dst),
+		"SELECT ?::int[]",
+		[]int{},
+	)
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, []int{})
 }
 
 func (t *DBTest) TestTypeHstore(c *C) {

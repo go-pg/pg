@@ -99,11 +99,14 @@ func decode(dst interface{}, f []byte) error {
 		*v = d
 		return nil
 	case *time.Time:
-		var err error
 		if len(f) > 0 {
-			*v, err = time.Parse(timeFormat, string(f))
+			tm, err := time.Parse(timeFormat, string(f))
+			if err != nil {
+				return err
+			}
+			*v = tm.UTC()
 		}
-		return err
+		return nil
 	case *[]string:
 		p := newArrayParser(f[1 : len(f)-1])
 		vv := make([]string, 0)
@@ -197,4 +200,17 @@ func LoadInto(values ...interface{}) Loader {
 
 func (l *valuesLoader) Load(i int, b []byte) error {
 	return decode(l.values[i], b)
+}
+
+type StringSliceLoader struct {
+	Slice []string
+}
+
+func (l *StringSliceLoader) New() interface{} {
+	return l
+}
+
+func (l *StringSliceLoader) Load(i int, b []byte) error {
+	l.Slice = append(l.Slice, string(b))
+	return nil
 }
