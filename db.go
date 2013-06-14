@@ -48,7 +48,7 @@ func (conn *Connector) getDatabase() string {
 
 func (conn *Connector) getPoolSize() int {
 	if conn == nil || conn.PoolSize == 0 {
-		return 10
+		return 5
 	}
 	return conn.PoolSize
 }

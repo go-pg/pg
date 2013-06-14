@@ -10,6 +10,9 @@ var (
 
 	ErrNoRows    = &dbError{"pg: no rows in result set"}
 	ErrMultiRows = &dbError{"pg: multiple rows in result set"}
+
+	errExpectedPlaceholder   = &dbError{"pg: expected placeholder"}
+	errUnexpectedPlaceholder = &dbError{"pg: unexpected placeholder"}
 )
 
 var (

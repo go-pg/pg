@@ -202,15 +202,54 @@ func (l *valuesLoader) Load(i int, b []byte) error {
 	return decode(l.values[i], b)
 }
 
-type StringSliceLoader struct {
-	Slice []string
+type Strings []string
+
+func (strings *Strings) New() interface{} {
+	return strings
 }
 
-func (l *StringSliceLoader) New() interface{} {
-	return l
-}
-
-func (l *StringSliceLoader) Load(i int, b []byte) error {
-	l.Slice = append(l.Slice, string(b))
+func (strings *Strings) Load(i int, b []byte) error {
+	*strings = append(*strings, string(b))
 	return nil
+}
+
+func (strings *Strings) Append(dst []byte) []byte {
+	if len(*strings) <= 0 {
+		return dst
+	}
+
+	for _, s := range *strings {
+		dst = appendPgString(dst, s)
+		dst = append(dst, ',')
+	}
+	dst = dst[:len(dst)-1]
+	return dst
+}
+
+type Ints []int64
+
+func (ints *Ints) New() interface{} {
+	return ints
+}
+
+func (ints *Ints) Load(i int, b []byte) error {
+	n, err := strconv.ParseInt(string(b), 10, 64)
+	if err != nil {
+		return err
+	}
+	*ints = append(*ints, n)
+	return nil
+}
+
+func (ints *Ints) Append(dst []byte) []byte {
+	if len(*ints) <= 0 {
+		return dst
+	}
+
+	for _, v := range *ints {
+		dst = strconv.AppendInt(dst, v, 10)
+		dst = append(dst, ',')
+	}
+	dst = dst[:len(dst)-1]
+	return dst
 }

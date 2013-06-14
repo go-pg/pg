@@ -2,7 +2,6 @@ package pg
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -185,28 +184,28 @@ func newQueryFormatter(dst, src []byte) *queryFormatter {
 	}
 }
 
-func (p *queryFormatter) Format(v interface{}) (err error) {
-	for p.Valid() {
-		c := p.Next()
+func (f *queryFormatter) Format(v interface{}) (err error) {
+	for f.Valid() {
+		c := f.Next()
 		if c == '?' {
-			p.dst = appendValue(p.dst, v)
+			f.dst = appendValue(f.dst, v)
 			return nil
 		}
-		p.dst = append(p.dst, c)
+		f.dst = append(f.dst, c)
 	}
 	if err != nil {
 		return err
 	}
-	return errors.New("pg: expected placeholder")
+	return errExpectedPlaceholder
 }
 
-func (p *queryFormatter) Value() ([]byte, error) {
-	for p.Valid() {
-		c := p.Next()
+func (f *queryFormatter) Value() ([]byte, error) {
+	for f.Valid() {
+		c := f.Next()
 		if c == '?' {
-			return nil, errors.New("pg: unexpected placeholder")
+			return nil, errUnexpectedPlaceholder
 		}
-		p.dst = append(p.dst, c)
+		f.dst = append(f.dst, c)
 	}
-	return p.dst, nil
+	return f.dst, nil
 }

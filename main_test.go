@@ -3,7 +3,6 @@ package pg_test
 import (
 	"database/sql"
 	"math"
-	"strconv"
 	"testing"
 	"time"
 
@@ -44,19 +43,16 @@ func (t *DBTest) TearDownTest(c *C) {
 	c.Assert(t.db.Close(), IsNil)
 }
 
-type Ids []int64
-
-func (ids *Ids) New() interface{} {
-	return ids
+func (t *DBTest) TestFormatInts(c *C) {
+	b, err := pg.FormatQuery(nil, []byte("?"), &pg.Ints{1, 2, 3})
+	c.Assert(err, IsNil)
+	c.Assert(string(b), Equals, "1,2,3")
 }
 
-func (ids *Ids) Load(i int, b []byte) error {
-	n, err := strconv.ParseInt(string(b), 10, 64)
-	if err != nil {
-		return err
-	}
-	*ids = append(*ids, n)
-	return nil
+func (t *DBTest) TestFormatStrings(c *C) {
+	b, err := pg.FormatQuery(nil, []byte("?"), &pg.Strings{"hello", "world"})
+	c.Assert(err, IsNil)
+	c.Assert(string(b), Equals, "'hello','world'")
 }
 
 type Dst struct {
@@ -112,7 +108,7 @@ func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
 	c.Assert(dst, IsNil)
 }
 
-func (t *DBTest) TestTypeTime(c *C) {
+func (t *DBTest) TestTypeTimeIsInUTCTimezone(c *C) {
 	var dst time.Time
 	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT now()::timestamp")
 	c.Assert(err, IsNil)
@@ -188,11 +184,18 @@ func (t *DBTest) TestTypeHstore(c *C) {
 	c.Assert(dst, DeepEquals, map[string]string{"foo =>": "bar =>", "hello": "world", "'\\\"": "'\\\""})
 }
 
-func (t *DBTest) TestQueryIds(c *C) {
-	var ids Ids
+func (t *DBTest) TestQueryInts(c *C) {
+	var ids pg.Ints
 	_, err := t.db.Query(&ids, "SELECT s.num AS num FROM generate_series(0, 10) AS s(num)")
 	c.Assert(err, IsNil)
-	c.Assert(ids, DeepEquals, Ids{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+	c.Assert(ids, DeepEquals, pg.Ints{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
+}
+
+func (t *DBTest) TestQueryStrings(c *C) {
+	var strings pg.Strings
+	_, err := t.db.Query(&strings, "SELECT 'hello'")
+	c.Assert(err, IsNil)
+	c.Assert(strings, DeepEquals, pg.Strings{"hello"})
 }
 
 func (t *DBTest) TestExec(c *C) {
