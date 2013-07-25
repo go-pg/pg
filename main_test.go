@@ -44,15 +44,15 @@ func (t *DBTest) TearDownTest(c *C) {
 }
 
 func (t *DBTest) TestFormatInts(c *C) {
-	b, err := pg.FormatQuery(nil, []byte("?"), &pg.Ints{1, 2, 3})
+	q, err := pg.FormatQ("?", &pg.Ints{1, 2, 3})
 	c.Assert(err, IsNil)
-	c.Assert(string(b), Equals, "1,2,3")
+	c.Assert(q, Equals, pg.Q("1,2,3"))
 }
 
 func (t *DBTest) TestFormatStrings(c *C) {
-	b, err := pg.FormatQuery(nil, []byte("?"), &pg.Strings{"hello", "world"})
+	q, err := pg.FormatQ("?", &pg.Strings{"hello", "world"})
 	c.Assert(err, IsNil)
-	c.Assert(string(b), Equals, "'hello','world'")
+	c.Assert(q, Equals, pg.Q("'hello','world'"))
 }
 
 type Dst struct {

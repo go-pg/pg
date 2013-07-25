@@ -27,34 +27,25 @@ type Appender interface {
 	Append([]byte) []byte
 }
 
-// Raw query.
-type Q struct {
-	b   []byte
-	err error
-}
+type Q string
 
-func NewQ(q string, args ...interface{}) *Q {
-	b, err := FormatQuery(nil, []byte(q), args...)
-	return &Q{
-		b:   b,
-		err: err,
-	}
-}
-
-func (q *Q) Append(dst []byte) []byte {
-	if q == nil {
-		return dst
-	}
-	if q.err != nil {
-		panic(q.err)
-	}
-	dst = append(dst, q.b...)
+func (q Q) Append(dst []byte) []byte {
+	dst = append(dst, string(q)...)
 	return dst
 }
 
 // SQL field.
-type F []byte
+type F string
 
 func (f F) Append(dst []byte) []byte {
-	return appendPgField(dst, f)
+	dst = append(dst, '"')
+	for _, c := range []byte(f) {
+		if c == '"' {
+			dst = append(dst, '"', '"')
+		} else {
+			dst = append(dst, c)
+		}
+	}
+	dst = append(dst, '"')
+	return dst
 }

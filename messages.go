@@ -44,7 +44,7 @@ func writeQueryMsg(cn *conn, q string, args ...interface{}) error {
 	var err error
 
 	cn.buf.StartMsg(msgQuery)
-	cn.buf.B, err = FormatQuery(cn.buf.B, []byte(q), args...)
+	cn.buf.B, err = AppendQ(cn.buf.B, q, args...)
 	if err != nil {
 		return err
 	}

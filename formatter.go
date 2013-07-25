@@ -11,7 +11,7 @@ const (
 	timeFormat = "2006-01-02 15:04:05.999999999"
 )
 
-func FormatQuery(dst, src []byte, args ...interface{}) ([]byte, error) {
+func AppendQ(dst []byte, src string, args ...interface{}) ([]byte, error) {
 	p := newQueryFormatter(dst, src)
 	for _, arg := range args {
 		if err := p.Format(arg); err != nil {
@@ -21,17 +21,20 @@ func FormatQuery(dst, src []byte, args ...interface{}) ([]byte, error) {
 	return p.Value()
 }
 
-func appendPgField(dst []byte, src F) []byte {
-	dst = append(dst, '"')
-	for _, c := range src {
-		if c == '"' {
-			dst = append(dst, '"', '"')
-		} else {
-			dst = append(dst, c)
-		}
+func FormatQ(src string, args ...interface{}) (Q, error) {
+	b, err := AppendQ(nil, src, args...)
+	if err != nil {
+		return "", err
 	}
-	dst = append(dst, '"')
-	return dst
+	return Q(b), nil
+}
+
+func MustFormatQ(src string, args ...interface{}) Q {
+	q, err := FormatQ(src, args...)
+	if err != nil {
+		panic(err)
+	}
+	return q
 }
 
 func appendPgString(dst []byte, src string) []byte {
@@ -177,9 +180,9 @@ type queryFormatter struct {
 	dst []byte
 }
 
-func newQueryFormatter(dst, src []byte) *queryFormatter {
+func newQueryFormatter(dst []byte, src string) *queryFormatter {
 	return &queryFormatter{
-		parser: &parser{b: src},
+		parser: &parser{b: []byte(src)},
 		dst:    dst,
 	}
 }
