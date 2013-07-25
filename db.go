@@ -1,5 +1,9 @@
 package pg
 
+import (
+	"time"
+)
+
 type Connector struct {
 	Host     string
 	Port     string
@@ -8,7 +12,8 @@ type Connector struct {
 	Database string
 	SSL      bool
 
-	PoolSize int
+	PoolSize    int
+	IdleTimeout time.Duration
 }
 
 func (conn *Connector) getHost() string {
@@ -53,6 +58,10 @@ func (conn *Connector) getPoolSize() int {
 	return conn.PoolSize
 }
 
+func (conn *Connector) getIdleTimeout() time.Duration {
+	return conn.IdleTimeout
+}
+
 func (conn *Connector) getSSL() bool {
 	if conn == nil {
 		return false
@@ -61,7 +70,7 @@ func (conn *Connector) getSSL() bool {
 }
 
 func (connector *Connector) Connect() *DB {
-	open := func() (interface{}, error) {
+	dial := func() (*conn, error) {
 		conn, err := connect(connector)
 		if err != nil {
 			return nil, err
@@ -71,12 +80,11 @@ func (connector *Connector) Connect() *DB {
 		}
 		return conn, nil
 	}
-	close := func(i interface{}) error {
-		conn := i.(*conn)
-		return conn.Close()
+	close := func(cn *conn) error {
+		return cn.Close()
 	}
 	return &DB{
-		pool: newDefaultPool(open, close, connector.getPoolSize()),
+		pool: newDefaultPool(dial, close, connector.getPoolSize(), connector.getIdleTimeout()),
 	}
 }
 
@@ -89,11 +97,11 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) conn() (*conn, error) {
-	i, _, err := db.pool.Get()
+	cn, _, err := db.pool.Get()
 	if err != nil {
 		return nil, err
 	}
-	return i.(*conn), nil
+	return cn, nil
 }
 
 func (db *DB) freeConn(cn *conn, e error) {

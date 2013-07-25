@@ -6,31 +6,34 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"time"
 
 	"github.com/vmihailenco/bufio"
 )
 
 type conn struct {
 	connector *Connector
-	c         net.Conn
+	cn        net.Conn
 	br        *bufio.Reader
 	buf       *buffer
+
+	LastActivity time.Time
 }
 
 func connect(connector *Connector) (*conn, error) {
-	c, err := net.Dial("tcp", net.JoinHostPort(connector.getHost(), connector.getPort()))
+	cn, err := net.Dial("tcp", net.JoinHostPort(connector.getHost(), connector.getPort()))
 	if err != nil {
 		return nil, err
 	}
 	return &conn{
 		connector: connector,
-		c:         c,
+		cn:        cn,
 		buf:       newBuffer(),
 	}, nil
 }
 
 func (cn *conn) Close() error {
-	return cn.c.Close()
+	return cn.cn.Close()
 }
 
 func (cn *conn) ssl() error {
@@ -42,7 +45,7 @@ func (cn *conn) ssl() error {
 	}
 
 	b := make([]byte, 1)
-	_, err := io.ReadFull(cn.c, b)
+	_, err := io.ReadFull(cn.cn, b)
 	if err != nil {
 		return err
 	}
@@ -53,8 +56,8 @@ func (cn *conn) ssl() error {
 	tlsConf := &tls.Config{
 		InsecureSkipVerify: true,
 	}
-	cn.c = tls.Client(cn.c, tlsConf)
-	cn.br = bufio.NewReader(cn.c)
+	cn.cn = tls.Client(cn.cn, tlsConf)
+	cn.br = bufio.NewReader(cn.cn)
 
 	return nil
 }
@@ -65,7 +68,7 @@ func (cn *conn) Startup() error {
 			return err
 		}
 	} else {
-		cn.br = bufio.NewReader(cn.c)
+		cn.br = bufio.NewReader(cn.cn)
 	}
 
 	cn.buf.StartMsg(0)
@@ -241,7 +244,7 @@ func (cn *conn) ReadError() (error, error) {
 
 func (cn *conn) Flush() error {
 	b := cn.buf.Flush()
-	n, err := cn.c.Write(b)
+	n, err := cn.cn.Write(b)
 	if n == len(b) {
 		return nil
 	}

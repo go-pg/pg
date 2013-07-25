@@ -1,74 +1,95 @@
 package pg
 
 import (
+	"container/list"
 	"sync"
+	"time"
 )
 
 type defaultPool struct {
+	dial  func() (*conn, error)
+	close func(*conn) error
+
 	cond  *sync.Cond
-	pool  []interface{}
-	new   func() (interface{}, error)
-	close func(interface{}) error
+	conns *list.List
 
 	size, maxSize int
+	idleTimeout   time.Duration
 }
 
 func newDefaultPool(
-	newf func() (interface{}, error), closef func(interface{}) error, maxSize int,
+	dial func() (*conn, error),
+	close func(*conn) error,
+	maxSize int, idleTimeout time.Duration,
 ) *defaultPool {
 	return &defaultPool{
-		cond:    sync.NewCond(&sync.Mutex{}),
-		pool:    make([]interface{}, 0, maxSize),
-		new:     newf,
-		close:   closef,
-		maxSize: maxSize,
+		dial:  dial,
+		close: close,
+
+		cond:  sync.NewCond(&sync.Mutex{}),
+		conns: list.New(),
+
+		maxSize:     maxSize,
+		idleTimeout: idleTimeout,
 	}
 }
 
-func (p *defaultPool) Get() (interface{}, bool, error) {
+func (p *defaultPool) Get() (*conn, bool, error) {
 	defer p.cond.L.Unlock()
 	p.cond.L.Lock()
 
-	for len(p.pool) == 0 && p.size >= p.maxSize {
+	for p.conns.Len() == 0 && p.size >= p.maxSize {
 		p.cond.Wait()
 	}
 
-	if len(p.pool) == 0 {
-		res, err := p.new()
+	if p.idleTimeout > 0 {
+		for e := p.conns.Front(); e != nil; e = e.Next() {
+			cn := e.Value.(*conn)
+			if time.Since(cn.LastActivity) > p.idleTimeout {
+				p.conns.Remove(e)
+			}
+		}
+	}
+
+	if p.conns.Len() == 0 {
+		cn, err := p.dial()
 		if err != nil {
 			return nil, false, err
 		}
 		p.size++
-		return res, true, nil
+		return cn, true, nil
 	}
 
-	last := len(p.pool) - 1
-	res := p.pool[last]
-	p.pool[last] = nil
-	p.pool = p.pool[:last]
-
-	return res, false, nil
+	elem := p.conns.Front()
+	p.conns.Remove(elem)
+	return elem.Value.(*conn), false, nil
 }
 
-func (p *defaultPool) Put(res interface{}) error {
+func (p *defaultPool) Put(cn *conn) error {
 	defer p.cond.L.Unlock()
 	p.cond.L.Lock()
-	p.pool = append(p.pool, res)
+	cn.LastActivity = time.Now()
+	p.conns.PushFront(cn)
 	p.cond.Signal()
 	return nil
 }
 
-func (p *defaultPool) Remove(res interface{}) error {
-	defer func() {
-		p.cond.L.Lock()
-		p.size--
-		p.cond.Signal()
-		p.cond.L.Unlock()
-	}()
-	if res != nil {
-		return p.close(res)
+func (p *defaultPool) Remove(cn *conn) error {
+	var err error
+	if cn != nil {
+		err = p.close(cn)
 	}
-	return nil
+	p.cond.L.Lock()
+	p.size--
+	p.cond.Signal()
+	p.cond.L.Unlock()
+	return err
+}
+
+func (p *defaultPool) Len() int {
+	defer p.cond.L.Unlock()
+	p.cond.L.Lock()
+	return p.conns.Len()
 }
 
 func (p *defaultPool) Size() int {
@@ -77,21 +98,17 @@ func (p *defaultPool) Size() int {
 	return p.size
 }
 
-func (p *defaultPool) Available() int {
-	defer p.cond.L.Unlock()
-	p.cond.L.Lock()
-	return len(p.pool)
-}
-
 func (p *defaultPool) Close() error {
 	defer p.cond.L.Unlock()
 	p.cond.L.Lock()
-	for _, res := range p.pool {
-		if err := p.close(res); err != nil {
+
+	for e := p.conns.Front(); e != nil; e = e.Next() {
+		if err := p.close(e.Value.(*conn)); err != nil {
 			return err
 		}
 	}
-	p.pool = p.pool[:0]
+	p.conns.Init()
 	p.size = 0
+
 	return nil
 }

@@ -27,6 +27,7 @@ type Appender interface {
 	Append([]byte) []byte
 }
 
+// Raw query.
 type Q struct {
 	b   []byte
 	err error
@@ -51,6 +52,7 @@ func (q *Q) Append(dst []byte) []byte {
 	return dst
 }
 
+// SQL field.
 type F []byte
 
 func (f F) Append(dst []byte) []byte {
