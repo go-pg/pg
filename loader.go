@@ -10,6 +10,11 @@ import (
 )
 
 func decode(dst interface{}, f []byte) error {
+	// NULL.
+	if f == nil {
+		return nil
+	}
+
 	switch v := dst.(type) {
 	case *bool:
 		if string(f) == "t" {
