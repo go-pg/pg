@@ -42,6 +42,8 @@ const (
 	msgSync = msgType('S')
 )
 
+var resultSep = []byte{' '}
+
 func logNotice(cn *conn, msgLen int) error {
 	if !glog.V(2) {
 		_, err := cn.br.ReadN(msgLen)
@@ -238,7 +240,7 @@ func readSimpleQueryResult(cn *conn) (res *Result, e error) {
 				return nil, err
 			}
 			res = &Result{
-				tags: bytes.Split(b[:len(b)-1], []byte{' '}),
+				tags: bytes.Split(b[:len(b)-1], resultSep),
 			}
 		case msgReadyForQuery:
 			_, err := cn.br.ReadN(msgLen)
@@ -343,7 +345,7 @@ func readDataRow(cn *conn, f Fabric, columns []string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := int16(0); i < colNum; i++ {
+	for i := 0; i < int(colNum); i++ {
 		colLen, err := cn.ReadInt32()
 		if err != nil {
 			return nil, err
@@ -355,7 +357,7 @@ func readDataRow(cn *conn, f Fabric, columns []string) (interface{}, error) {
 				return nil, err
 			}
 		}
-		if err := loader.Load(int(i), b); err != nil {
+		if err := loader.Load(i, b); err != nil {
 			return nil, err
 		}
 	}

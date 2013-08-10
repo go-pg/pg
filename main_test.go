@@ -252,6 +252,15 @@ func (t *DBTest) TestListenNotify(c *C) {
 	}
 }
 
+func (t *DBTest) BenchmarkFormat(c *C) {
+	for i := 0; i < c.N; i++ {
+		_, err := pg.FormatQ("select 1, 2, 3")
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
 func (t *DBTest) BenchmarkQueryRow(c *C) {
 	dst := &Dst{}
 	for i := 0; i < c.N; i++ {
