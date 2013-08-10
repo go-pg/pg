@@ -66,11 +66,15 @@ func (p *defaultPool) Get() (*conn, bool, error) {
 }
 
 func (p *defaultPool) Put(cn *conn) error {
-	defer p.cond.L.Unlock()
+	if p.idleTimeout > 0 {
+		cn.LastActivity = time.Now()
+	}
+
 	p.cond.L.Lock()
-	cn.LastActivity = time.Now()
 	p.conns.PushFront(cn)
 	p.cond.Signal()
+	p.cond.L.Unlock()
+
 	return nil
 }
 
