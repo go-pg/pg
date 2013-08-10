@@ -11,35 +11,35 @@ import (
 type msgType byte
 
 const (
-	msgCommandComplete  = msgType('C')
-	msgErrorResponse    = msgType('E')
-	msgNoticeResponse   = msgType('N')
-	msgParameterStatus  = msgType('S')
-	msgAuthenticationOK = msgType('R')
-	msgBackendKeyData   = msgType('K')
-	msgNoData           = msgType('n')
-	msgPasswordMessage  = msgType('p')
+	commandCompleteMsg  = msgType('C')
+	errorResponseMsg    = msgType('E')
+	noticeResponseMsg   = msgType('N')
+	parameterStatusMsg  = msgType('S')
+	authenticationOKMsg = msgType('R')
+	backendKeyDataMsg   = msgType('K')
+	noDataMsg           = msgType('n')
+	passwordMessageMsg  = msgType('p')
 
-	msgNotificationResponse = msgType('A')
+	notificationResponseMsg = msgType('A')
 
-	msgDescribe             = msgType('D')
-	msgParameterDescription = msgType('t')
+	describeMsg             = msgType('D')
+	parameterDescriptionMsg = msgType('t')
 
-	msgQuery              = msgType('Q')
-	msgReadyForQuery      = msgType('Z')
-	msgEmptyQueryResponse = msgType('I')
-	msgRowDescription     = msgType('T')
-	msgDataRow            = msgType('D')
+	queryMsg              = msgType('Q')
+	readyForQueryMsg      = msgType('Z')
+	emptyQueryResponseMsg = msgType('I')
+	rowDescriptionMsg     = msgType('T')
+	dataRowMsg            = msgType('D')
 
-	msgParse         = msgType('P')
-	msgParseComplete = msgType('1')
+	parseMsg         = msgType('P')
+	parseCompleteMsg = msgType('1')
 
-	msgBind         = msgType('B')
-	msgBindComplete = msgType('2')
+	bindMsg         = msgType('B')
+	bindCompleteMsg = msgType('2')
 
-	msgExecute = msgType('E')
+	executeMsg = msgType('E')
 
-	msgSync = msgType('S')
+	syncMsg = msgType('S')
 )
 
 var resultSep = []byte{' '}
@@ -86,10 +86,8 @@ func logNotice(cn *conn, msgLen int) error {
 	return nil
 }
 
-func writeQueryMsg(cn *conn, q string, args ...interface{}) error {
-	var err error
-
-	cn.buf.StartMsg(msgQuery)
+func writeQueryMsg(cn *conn, q string, args ...interface{}) (err error) {
+	cn.buf.StartMsg(queryMsg)
 	cn.buf.B, err = AppendQ(cn.buf.B, q, args...)
 	if err != nil {
 		return err
@@ -100,18 +98,18 @@ func writeQueryMsg(cn *conn, q string, args ...interface{}) error {
 }
 
 func writeParseDescribeSyncMsg(cn *conn, q string) error {
-	cn.buf.StartMsg(msgParse)
+	cn.buf.StartMsg(parseMsg)
 	cn.buf.WriteString("")
 	cn.buf.WriteString(q)
 	cn.buf.WriteInt16(0)
 	cn.buf.EndMsg()
 
-	cn.buf.StartMsg(msgDescribe)
+	cn.buf.StartMsg(describeMsg)
 	cn.buf.WriteByte('S')
 	cn.buf.WriteString("")
 	cn.buf.EndMsg()
 
-	cn.buf.StartMsg(msgSync)
+	cn.buf.StartMsg(syncMsg)
 	cn.buf.EndMsg()
 
 	return cn.Flush()
@@ -124,39 +122,39 @@ func readParseDescribeSync(cn *conn) (columns []string, e error) {
 			return nil, err
 		}
 		switch c {
-		case msgParseComplete:
+		case parseCompleteMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
-		case msgRowDescription: // Response to the DESCRIBE message.
+		case rowDescriptionMsg: // Response to the DESCRIBE message.
 			columns, err = readRowDescription(cn)
 			if err != nil {
 				return nil, err
 			}
-		case msgParameterDescription: // Response to the DESCRIBE message.
+		case parameterDescriptionMsg: // Response to the DESCRIBE message.
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
-		case msgNoData: // Response to the DESCRIBE message.
+		case noDataMsg: // Response to the DESCRIBE message.
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
-		case msgReadyForQuery:
+		case readyForQueryMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
 			return
-		case msgErrorResponse:
+		case errorResponseMsg:
 			var err error
 			e, err = cn.ReadError()
 			if err != nil {
 				return nil, err
 			}
-		case msgNoticeResponse:
+		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
@@ -168,7 +166,7 @@ func readParseDescribeSync(cn *conn) (columns []string, e error) {
 
 // Writes BIND, EXECUTE and SYNC messages.
 func writeBindExecuteMsg(cn *conn, args ...interface{}) error {
-	cn.buf.StartMsg(msgBind)
+	cn.buf.StartMsg(bindMsg)
 	cn.buf.WriteString("")
 	cn.buf.WriteString("")
 	cn.buf.WriteInt16(0)
@@ -182,12 +180,12 @@ func writeBindExecuteMsg(cn *conn, args ...interface{}) error {
 	cn.buf.WriteInt16(0)
 	cn.buf.EndMsg()
 
-	cn.buf.StartMsg(msgExecute)
+	cn.buf.StartMsg(executeMsg)
 	cn.buf.WriteString("")
 	cn.buf.WriteInt32(0)
 	cn.buf.EndMsg()
 
-	cn.buf.StartMsg(msgSync)
+	cn.buf.StartMsg(syncMsg)
 	cn.buf.EndMsg()
 
 	return cn.Flush()
@@ -200,24 +198,24 @@ func readBindMsg(cn *conn) (e error) {
 			return err
 		}
 		switch c {
-		case msgBindComplete:
+		case bindCompleteMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return err
 			}
-		case msgReadyForQuery: // This is response to the SYNC message.
+		case readyForQueryMsg: // This is response to the SYNC message.
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return err
 			}
 			return
-		case msgErrorResponse:
+		case errorResponseMsg:
 			var err error
 			e, err = cn.ReadError()
 			if err != nil {
 				return err
 			}
-		case msgNoticeResponse:
+		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
 				return err
 			}
@@ -234,7 +232,7 @@ func readSimpleQueryResult(cn *conn) (res *Result, e error) {
 			return nil, err
 		}
 		switch c {
-		case msgCommandComplete:
+		case commandCompleteMsg:
 			b, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
@@ -242,24 +240,24 @@ func readSimpleQueryResult(cn *conn) (res *Result, e error) {
 			res = &Result{
 				tags: bytes.Split(b[:len(b)-1], resultSep),
 			}
-		case msgReadyForQuery:
+		case readyForQueryMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
 			return
-		case msgRowDescription, msgDataRow:
+		case rowDescriptionMsg, dataRowMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
-		case msgErrorResponse:
+		case errorResponseMsg:
 			var err error
 			e, err = cn.ReadError()
 			if err != nil {
 				return nil, err
 			}
-		case msgNoticeResponse:
+		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
@@ -276,12 +274,12 @@ func readExtQueryResult(cn *conn) (res *Result, e error) {
 			return nil, err
 		}
 		switch c {
-		case msgBindComplete:
+		case bindCompleteMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
-		case msgCommandComplete: // Response to the EXECUTE message.
+		case commandCompleteMsg: // Response to the EXECUTE message.
 			b, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
@@ -289,19 +287,19 @@ func readExtQueryResult(cn *conn) (res *Result, e error) {
 			res = &Result{
 				tags: bytes.Split(b[:len(b)-1], []byte{' '}),
 			}
-		case msgReadyForQuery: // Response to the SYNC message.
+		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
 			return
-		case msgErrorResponse:
+		case errorResponseMsg:
 			var err error
 			e, err = cn.ReadError()
 			if err != nil {
 				return nil, err
 			}
-		case msgNoticeResponse:
+		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
@@ -316,18 +314,18 @@ func readRowDescription(cn *conn) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	columns := make([]string, colNum)
+	cols := make([]string, colNum)
 	for i := int16(0); i < colNum; i++ {
 		col, err := cn.ReadString()
 		if err != nil {
 			return nil, err
 		}
-		columns[i] = col
+		cols[i] = col
 		if _, err := cn.br.ReadN(18); err != nil {
 			return nil, err
 		}
 	}
-	return columns, nil
+	return cols, nil
 }
 
 func readDataRow(cn *conn, f Fabric, columns []string) (interface{}, error) {
@@ -372,35 +370,35 @@ func readSimpleQueryData(cn *conn, f Fabric) (res []interface{}, e error) {
 			return nil, err
 		}
 		switch c {
-		case msgRowDescription:
+		case rowDescriptionMsg:
 			columns, err = readRowDescription(cn)
 			if err != nil {
 				return nil, err
 			}
-		case msgDataRow:
-			dst, err := readDataRow(cn, f, columns)
+		case dataRowMsg:
+			row, err := readDataRow(cn, f, columns)
 			if err != nil {
 				return nil, err
 			}
-			res = append(res, dst)
-		case msgCommandComplete:
+			res = append(res, row)
+		case commandCompleteMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
-		case msgReadyForQuery:
+		case readyForQueryMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
 			return
-		case msgErrorResponse:
+		case errorResponseMsg:
 			var err error
 			e, err = cn.ReadError()
 			if err != nil {
 				return nil, err
 			}
-		case msgNoticeResponse:
+		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
@@ -417,35 +415,35 @@ func readExtQueryData(cn *conn, f Fabric, columns []string) (res []interface{}, 
 			return nil, err
 		}
 		switch c {
-		case msgBindComplete:
+		case bindCompleteMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
-		case msgDataRow:
+		case dataRowMsg:
 			dst, err := readDataRow(cn, f, columns)
 			if err != nil {
 				return nil, err
 			}
 			res = append(res, dst)
-		case msgCommandComplete: // Response to the EXECUTE message.
+		case commandCompleteMsg: // Response to the EXECUTE message.
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
-		case msgReadyForQuery: // Response to the SYNC message.
+		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
 			return
-		case msgErrorResponse:
+		case errorResponseMsg:
 			var err error
 			e, err = cn.ReadError()
 			if err != nil {
 				return nil, err
 			}
-		case msgNoticeResponse:
+		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}

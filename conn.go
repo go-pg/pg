@@ -89,22 +89,22 @@ func (cn *conn) Startup() error {
 			return err
 		}
 		switch c {
-		case msgBackendKeyData, msgParameterStatus:
+		case backendKeyDataMsg, parameterStatusMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return err
 			}
-		case msgAuthenticationOK:
+		case authenticationOKMsg:
 			if err := cn.auth(); err != nil {
 				return err
 			}
-		case msgReadyForQuery:
+		case readyForQueryMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return err
 			}
 			return nil
-		case msgErrorResponse:
+		case errorResponseMsg:
 			e, err := cn.ReadError()
 			if err != nil {
 				return err
@@ -125,7 +125,7 @@ func (cn *conn) auth() error {
 	case 0:
 		return nil
 	case 3:
-		cn.buf.StartMsg(msgPasswordMessage)
+		cn.buf.StartMsg(passwordMessageMsg)
 		cn.buf.WriteString(cn.connector.getPassword())
 		cn.buf.EndMsg()
 		if err := cn.Flush(); err != nil {
@@ -136,7 +136,7 @@ func (cn *conn) auth() error {
 		if err != nil {
 			return err
 		}
-		if c != msgAuthenticationOK {
+		if c != authenticationOKMsg {
 			return fmt.Errorf("pg: unexpected password response: %q", c)
 		}
 		num, err := cn.ReadInt32()
@@ -155,7 +155,7 @@ func (cn *conn) auth() error {
 		s := string(b)
 
 		secret := "md5" + md5s(md5s(cn.connector.getPassword()+cn.connector.getUser())+s)
-		cn.buf.StartMsg(msgPasswordMessage)
+		cn.buf.StartMsg(passwordMessageMsg)
 		cn.buf.WriteString(secret)
 		cn.buf.EndMsg()
 		if err := cn.Flush(); err != nil {
@@ -166,7 +166,7 @@ func (cn *conn) auth() error {
 		if err != nil {
 			return err
 		}
-		if c != msgAuthenticationOK {
+		if c != authenticationOKMsg {
 			return fmt.Errorf("pg: unexpected password response: %q", c)
 		}
 		num, err := cn.ReadInt32()

@@ -310,13 +310,14 @@ func (t *DBTest) BenchmarkStdlibMysqlQueryRow(c *C) {
 }
 
 func (t *DBTest) BenchmarkExec(c *C) {
-	_, err := t.db.Exec("CREATE TEMP TABLE exec_test(id bigint)")
+	_, err := t.db.Exec(
+		"CREATE TEMP TABLE exec_test(id bigint, name varchar(500))")
 	if err != nil {
 		panic(err)
 	}
 
 	for i := 0; i < c.N; i++ {
-		res, err := t.db.Exec("INSERT INTO exec_test(id) VALUES(?)", 1)
+		res, err := t.db.Exec("INSERT INTO exec_test(id, name) VALUES(?, ?)", 1, "hello world")
 		if err != nil {
 			panic(err)
 		}
@@ -324,16 +325,16 @@ func (t *DBTest) BenchmarkExec(c *C) {
 			panic("res.Affected() != 1")
 		}
 	}
-
 }
 
 func (t *DBTest) BenchmarkExecWithError(c *C) {
-	_, err := t.db.Exec("CREATE TEMP TABLE exec_with_error_test(id bigint PRIMARY KEY)")
+	_, err := t.db.Exec(
+		"CREATE TEMP TABLE exec_with_error_test(id bigint PRIMARY KEY, name varchar(500))")
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = t.db.Exec("INSERT INTO exec_with_error_test(id) VALUES(?)", 1)
+	_, err = t.db.Exec("INSERT INTO exec_with_error_test(id, name) VALUES(?, ?)", 1, "hello world")
 	if err != nil {
 		panic(err)
 	}
@@ -347,17 +348,17 @@ func (t *DBTest) BenchmarkExecWithError(c *C) {
 }
 
 func (t *DBTest) BenchmarkStatementExec(c *C) {
-	_, err := t.db.Exec("CREATE TEMP TABLE test(id bigint)")
+	_, err := t.db.Exec("CREATE TEMP TABLE statement_exec(id bigint, name varchar(500))")
 	if err != nil {
 		panic(err)
 	}
 
-	stmt, err := t.db.Prepare("INSERT INTO test VALUES($1)")
+	stmt, err := t.db.Prepare("INSERT INTO statement_exec(id, name) VALUES($1, $2)")
 	c.Assert(err, IsNil)
 	defer stmt.Close()
 
 	for i := 0; i < c.N; i++ {
-		_, err = stmt.Exec(1)
+		_, err = stmt.Exec(1, "hello world")
 		if err != nil {
 			panic(err)
 		}

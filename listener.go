@@ -48,19 +48,19 @@ func (l *Listener) listen() {
 		}
 
 		switch c {
-		case msgCommandComplete:
+		case commandCompleteMsg:
 			_, notif.Err = l.cn.br.ReadN(msgLen)
 			if err != nil {
 				l.Chan <- notif
 				break
 			}
-		case msgReadyForQuery:
+		case readyForQueryMsg:
 			_, notif.Err = l.cn.br.ReadN(msgLen)
 			if err != nil {
 				l.Chan <- notif
 				break
 			}
-		case msgNotificationResponse:
+		case notificationResponseMsg:
 			_, notif.Err = l.cn.ReadInt32()
 			if notif.Err != nil {
 				l.Chan <- notif
