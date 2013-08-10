@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
+
+	"github.com/golang/glog"
 )
 
 type msgType byte
@@ -39,6 +41,48 @@ const (
 
 	msgSync = msgType('S')
 )
+
+func logNotice(cn *conn, msgLen int) error {
+	if !glog.V(2) {
+		_, err := cn.br.ReadN(msgLen)
+		return err
+	}
+
+	var level string
+	var logger func(string, ...interface{})
+	for {
+		c, err := cn.br.ReadByte()
+		if err != nil {
+			return err
+		}
+		if c == 0 {
+			break
+		}
+		s, err := cn.ReadString()
+		if err != nil {
+			return err
+		}
+
+		switch c {
+		case 'S':
+			level = s
+			switch level {
+			case "DEBUG", "LOG", "INFO", "NOTICE":
+				logger = glog.Infof
+			case "WARNING":
+				logger = glog.Warningf
+			case "EXCEPTION":
+				logger = glog.Errorf
+			default:
+				logger = glog.Fatalf
+			}
+		case 'M':
+			logger("pg %s message: %s", level, s)
+		}
+	}
+
+	return nil
+}
 
 func writeQueryMsg(cn *conn, q string, args ...interface{}) error {
 	var err error
@@ -111,8 +155,7 @@ func readParseDescribeSync(cn *conn) (columns []string, e error) {
 				return nil, err
 			}
 		case msgNoticeResponse:
-			_, err := cn.br.ReadN(msgLen)
-			if err != nil {
+			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
 		default:
@@ -173,8 +216,7 @@ func readBindMsg(cn *conn) (e error) {
 				return err
 			}
 		case msgNoticeResponse:
-			_, err := cn.br.ReadN(msgLen)
-			if err != nil {
+			if err := logNotice(cn, msgLen); err != nil {
 				return err
 			}
 		default:
@@ -216,8 +258,7 @@ func readSimpleQueryResult(cn *conn) (res *Result, e error) {
 				return nil, err
 			}
 		case msgNoticeResponse:
-			_, err := cn.br.ReadN(msgLen)
-			if err != nil {
+			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
 		default:
@@ -259,8 +300,7 @@ func readExtQueryResult(cn *conn) (res *Result, e error) {
 				return nil, err
 			}
 		case msgNoticeResponse:
-			_, err := cn.br.ReadN(msgLen)
-			if err != nil {
+			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
 		default:
@@ -359,8 +399,7 @@ func readSimpleQueryData(cn *conn, f Fabric) (res []interface{}, e error) {
 				return nil, err
 			}
 		case msgNoticeResponse:
-			_, err := cn.br.ReadN(msgLen)
-			if err != nil {
+			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
 		default:
@@ -405,8 +444,7 @@ func readExtQueryData(cn *conn, f Fabric, columns []string) (res []interface{}, 
 				return nil, err
 			}
 		case msgNoticeResponse:
-			_, err := cn.br.ReadN(msgLen)
-			if err != nil {
+			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
 		default:
