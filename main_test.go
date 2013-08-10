@@ -252,9 +252,18 @@ func (t *DBTest) TestListenNotify(c *C) {
 	}
 }
 
-func (t *DBTest) BenchmarkFormat(c *C) {
+func (t *DBTest) BenchmarkFormatWithoutArgs(c *C) {
 	for i := 0; i < c.N; i++ {
-		_, err := pg.FormatQ("select 1, 2, 3")
+		_, err := pg.FormatQ("SELECT 'hello', 'world' WHERE 1=1 AND 2=2")
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (t *DBTest) BenchmarkFormatWithArgs(c *C) {
+	for i := 0; i < c.N; i++ {
+		_, err := pg.FormatQ("SELECT ?, ? WHERE 1=1 AND 2=2", "hello", "world")
 		if err != nil {
 			panic(err)
 		}
