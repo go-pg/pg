@@ -176,7 +176,7 @@ func (db *DB) Query(f Fabric, q string, args ...interface{}) ([]interface{}, err
 	}
 
 	db.pool.Put(cn)
-	return res, err
+	return res, nil
 }
 
 func (db *DB) QueryOne(model interface{}, q string, args ...interface{}) (interface{}, error) {

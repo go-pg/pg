@@ -44,13 +44,13 @@ func (t *DBTest) TearDownTest(c *C) {
 }
 
 func (t *DBTest) TestFormatInts(c *C) {
-	q, err := pg.FormatQ("?", &pg.Ints{1, 2, 3})
+	q, err := pg.FormatQ("?", pg.Ints{1, 2, 3})
 	c.Assert(err, IsNil)
 	c.Assert(q, Equals, pg.Q("1,2,3"))
 }
 
 func (t *DBTest) TestFormatStrings(c *C) {
-	q, err := pg.FormatQ("?", &pg.Strings{"hello", "world"})
+	q, err := pg.FormatQ("?", pg.Strings{"hello", "world"})
 	c.Assert(err, IsNil)
 	c.Assert(q, Equals, pg.Q("'hello','world'"))
 }

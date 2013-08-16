@@ -140,6 +140,22 @@ func decode(dst interface{}, f []byte) error {
 		}
 		*v = vv
 		return p.Err()
+	case *[]int64:
+		p := newArrayParser(f[1 : len(f)-1])
+		vv := make([]int64, 0)
+		for p.Valid() {
+			elem := p.NextElem()
+			if elem == nil {
+				return fmt.Errorf("pg: unexpected NULL: %q", f)
+			}
+			n, err := strconv.ParseInt(string(elem), 10, 64)
+			if err != nil {
+				return err
+			}
+			vv = append(vv, n)
+		}
+		*v = vv
+		return p.Err()
 	case *map[string]string:
 		p := newHstoreParser(f)
 		vv := make(map[string]string)
@@ -218,12 +234,12 @@ func (strings *Strings) Load(i int, b []byte) error {
 	return nil
 }
 
-func (strings *Strings) Append(dst []byte) []byte {
-	if len(*strings) <= 0 {
+func (strings Strings) Append(dst []byte) []byte {
+	if len(strings) <= 0 {
 		return dst
 	}
 
-	for _, s := range *strings {
+	for _, s := range strings {
 		dst = appendPgString(dst, s)
 		dst = append(dst, ',')
 	}
@@ -246,12 +262,12 @@ func (ints *Ints) Load(i int, b []byte) error {
 	return nil
 }
 
-func (ints *Ints) Append(dst []byte) []byte {
-	if len(*ints) <= 0 {
+func (ints Ints) Append(dst []byte) []byte {
+	if len(ints) <= 0 {
 		return dst
 	}
 
-	for _, v := range *ints {
+	for _, v := range ints {
 		dst = strconv.AppendInt(dst, v, 10)
 		dst = append(dst, ',')
 	}
