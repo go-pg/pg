@@ -4,85 +4,64 @@ import (
 	"fmt"
 )
 
-type Notification struct {
-	Channel string
-	Payload string
-	Err     error
-}
-
 type Listener struct {
 	pool *defaultPool
 	cn   *conn
-
-	Chan chan *Notification
 }
 
-func newListener(pool *defaultPool, cn *conn) *Listener {
-	l := &Listener{
-		pool: pool,
-		cn:   cn,
-		Chan: make(chan *Notification),
+func (l *Listener) Listen(channels ...string) error {
+	for _, name := range channels {
+		if err := writeQueryMsg(l.cn.buf, "LISTEN ?", F(name)); err != nil {
+			return err
+		}
 	}
-	go l.listen()
-	return l
-}
-
-func (l *Listener) Listen(channel string) error {
-	return writeQueryMsg(l.cn, "LISTEN ?", F(channel))
+	return l.cn.Flush()
 }
 
 func (l *Listener) Close() error {
 	return l.pool.Remove(l.cn)
 }
 
-func (l *Listener) listen() {
+func (l *Listener) Read() (string, string, error) {
 	for {
-		notif := &Notification{}
-
 		c, msgLen, err := l.cn.ReadMsgType()
-		_ = msgLen
 		if err != nil {
-			notif.Err = err
-			l.Chan <- notif
-			break
+			return "", "", err
 		}
 
 		switch c {
 		case commandCompleteMsg:
-			_, notif.Err = l.cn.br.ReadN(msgLen)
+			_, err := l.cn.br.ReadN(msgLen)
 			if err != nil {
-				l.Chan <- notif
-				break
+				return "", "", err
 			}
 		case readyForQueryMsg:
-			_, notif.Err = l.cn.br.ReadN(msgLen)
+			_, err := l.cn.br.ReadN(msgLen)
 			if err != nil {
-				l.Chan <- notif
-				break
+				return "", "", err
 			}
+		case errorResponseMsg:
+			e, err := l.cn.ReadError()
+			if err != nil {
+				return "", "", err
+			}
+			return "", "", e
 		case notificationResponseMsg:
-			_, notif.Err = l.cn.ReadInt32()
-			if notif.Err != nil {
-				l.Chan <- notif
-				break
+			_, err := l.cn.ReadInt32()
+			if err != nil {
+				return "", "", err
 			}
-			notif.Channel, notif.Err = l.cn.ReadString()
-			if notif.Err != nil {
-				l.Chan <- notif
-				break
+			channel, err := l.cn.ReadString()
+			if err != nil {
+				return "", "", err
 			}
-			notif.Payload, notif.Err = l.cn.ReadString()
-			if notif.Err != nil {
-				l.Chan <- notif
-				break
+			payload, err := l.cn.ReadString()
+			if err != nil {
+				return "", "", err
 			}
-			l.Chan <- notif
+			return channel, payload, nil
 		default:
-			notif.Err = fmt.Errorf("pg: unexpected message %q", c)
-			l.Chan <- notif
-			break
+			return "", "", fmt.Errorf("pg: unexpected message %q", c)
 		}
 	}
-
-	close(l.Chan)
 }

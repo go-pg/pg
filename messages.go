@@ -86,33 +86,33 @@ func logNotice(cn *conn, msgLen int) error {
 	return nil
 }
 
-func writeQueryMsg(cn *conn, q string, args ...interface{}) (err error) {
-	cn.buf.StartMsg(queryMsg)
-	cn.buf.B, err = AppendQ(cn.buf.B, q, args...)
+func writeQueryMsg(buf *buffer, q string, args ...interface{}) (err error) {
+	buf.StartMsg(queryMsg)
+	buf.B, err = AppendQ(buf.B, q, args...)
 	if err != nil {
 		return err
 	}
-	cn.buf.WriteByte(0x0)
-	cn.buf.EndMsg()
-	return cn.Flush()
+	buf.WriteByte(0x0)
+	buf.EndMsg()
+	return nil
 }
 
-func writeParseDescribeSyncMsg(cn *conn, q string) error {
-	cn.buf.StartMsg(parseMsg)
-	cn.buf.WriteString("")
-	cn.buf.WriteString(q)
-	cn.buf.WriteInt16(0)
-	cn.buf.EndMsg()
+func writeParseDescribeSyncMsg(buf *buffer, q string) error {
+	buf.StartMsg(parseMsg)
+	buf.WriteString("")
+	buf.WriteString(q)
+	buf.WriteInt16(0)
+	buf.EndMsg()
 
-	cn.buf.StartMsg(describeMsg)
-	cn.buf.WriteByte('S')
-	cn.buf.WriteString("")
-	cn.buf.EndMsg()
+	buf.StartMsg(describeMsg)
+	buf.WriteByte('S')
+	buf.WriteString("")
+	buf.EndMsg()
 
-	cn.buf.StartMsg(syncMsg)
-	cn.buf.EndMsg()
+	buf.StartMsg(syncMsg)
+	buf.EndMsg()
 
-	return cn.Flush()
+	return nil
 }
 
 func readParseDescribeSync(cn *conn) (columns []string, e error) {
@@ -165,30 +165,30 @@ func readParseDescribeSync(cn *conn) (columns []string, e error) {
 }
 
 // Writes BIND, EXECUTE and SYNC messages.
-func writeBindExecuteMsg(cn *conn, args ...interface{}) error {
-	cn.buf.StartMsg(bindMsg)
-	cn.buf.WriteString("")
-	cn.buf.WriteString("")
-	cn.buf.WriteInt16(0)
-	cn.buf.WriteInt16(int16(len(args)))
+func writeBindExecuteMsg(buf *buffer, args ...interface{}) error {
+	buf.StartMsg(bindMsg)
+	buf.WriteString("")
+	buf.WriteString("")
+	buf.WriteInt16(0)
+	buf.WriteInt16(int16(len(args)))
 	for i := 0; i < len(args); i++ {
-		pos := len(cn.buf.B)
-		cn.buf.Grow(4)
-		cn.buf.B = appendValue(cn.buf.B, args[i])
-		binary.BigEndian.PutUint32(cn.buf.B[pos:], uint32(len(cn.buf.B)-pos-4))
+		pos := len(buf.B)
+		buf.Grow(4)
+		buf.B = appendValue(buf.B, args[i])
+		binary.BigEndian.PutUint32(buf.B[pos:], uint32(len(buf.B)-pos-4))
 	}
-	cn.buf.WriteInt16(0)
-	cn.buf.EndMsg()
+	buf.WriteInt16(0)
+	buf.EndMsg()
 
-	cn.buf.StartMsg(executeMsg)
-	cn.buf.WriteString("")
-	cn.buf.WriteInt32(0)
-	cn.buf.EndMsg()
+	buf.StartMsg(executeMsg)
+	buf.WriteString("")
+	buf.WriteInt32(0)
+	buf.EndMsg()
 
-	cn.buf.StartMsg(syncMsg)
-	cn.buf.EndMsg()
+	buf.StartMsg(syncMsg)
+	buf.EndMsg()
 
-	return cn.Flush()
+	return nil
 }
 
 func readBindMsg(cn *conn) (e error) {
@@ -285,7 +285,7 @@ func readExtQueryResult(cn *conn) (res *Result, e error) {
 				return nil, err
 			}
 			res = &Result{
-				tags: bytes.Split(b[:len(b)-1], []byte{' '}),
+				tags: bytes.Split(b[:len(b)-1], resultSep),
 			}
 		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.br.ReadN(msgLen)

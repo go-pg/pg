@@ -7,9 +7,14 @@ type Stmt struct {
 }
 
 func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
-	if err := writeBindExecuteMsg(stmt.cn, args...); err != nil {
+	if err := writeBindExecuteMsg(stmt.cn.buf, args...); err != nil {
 		return nil, err
 	}
+
+	if err := stmt.cn.Flush(); err != nil {
+		return nil, err
+	}
+
 	res, err := readExtQueryResult(stmt.cn)
 	if err != nil {
 		return nil, err
@@ -19,9 +24,14 @@ func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
 }
 
 func (stmt *Stmt) Query(f Fabric, args ...interface{}) ([]interface{}, error) {
-	if err := writeBindExecuteMsg(stmt.cn, args...); err != nil {
+	if err := writeBindExecuteMsg(stmt.cn.buf, args...); err != nil {
 		return nil, err
 	}
+
+	if err := stmt.cn.Flush(); err != nil {
+		return nil, err
+	}
+
 	res, err := readExtQueryData(stmt.cn, f, stmt.columns)
 	if err != nil {
 		return nil, err

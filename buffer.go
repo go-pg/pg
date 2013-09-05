@@ -64,3 +64,7 @@ func (buf *buffer) Flush() []byte {
 	buf.B = buf.B[:0]
 	return b
 }
+
+func (buf *buffer) Reset() {
+	buf.B = buf.B[:0]
+}

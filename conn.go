@@ -12,23 +12,23 @@ import (
 )
 
 type conn struct {
-	connector *Connector
-	cn        net.Conn
-	br        *bufio.Reader
-	buf       *buffer
+	opt *Options
+	cn  net.Conn
+	br  *bufio.Reader
+	buf *buffer
 
 	LastActivity time.Time
 }
 
-func connect(connector *Connector) (*conn, error) {
-	cn, err := net.Dial("tcp", net.JoinHostPort(connector.getHost(), connector.getPort()))
+func dial(opt *Options) (*conn, error) {
+	cn, err := net.Dial("tcp", net.JoinHostPort(opt.getHost(), opt.getPort()))
 	if err != nil {
 		return nil, err
 	}
 	return &conn{
-		connector: connector,
-		cn:        cn,
-		buf:       newBuffer(),
+		opt: opt,
+		cn:  cn,
+		buf: newBuffer(),
 	}, nil
 }
 
@@ -63,7 +63,7 @@ func (cn *conn) ssl() error {
 }
 
 func (cn *conn) Startup() error {
-	if cn.connector.getSSL() {
+	if cn.opt.getSSL() {
 		if err := cn.ssl(); err != nil {
 			return err
 		}
@@ -74,9 +74,9 @@ func (cn *conn) Startup() error {
 	cn.buf.StartMsg(0)
 	cn.buf.WriteInt32(196608)
 	cn.buf.WriteString("user")
-	cn.buf.WriteString(cn.connector.getUser())
+	cn.buf.WriteString(cn.opt.getUser())
 	cn.buf.WriteString("database")
-	cn.buf.WriteString(cn.connector.getDatabase())
+	cn.buf.WriteString(cn.opt.getDatabase())
 	cn.buf.WriteString("")
 	cn.buf.EndMsg()
 	if err := cn.Flush(); err != nil {
@@ -126,7 +126,7 @@ func (cn *conn) auth() error {
 		return nil
 	case 3:
 		cn.buf.StartMsg(passwordMessageMsg)
-		cn.buf.WriteString(cn.connector.getPassword())
+		cn.buf.WriteString(cn.opt.getPassword())
 		cn.buf.EndMsg()
 		if err := cn.Flush(); err != nil {
 			return err
@@ -154,7 +154,7 @@ func (cn *conn) auth() error {
 		}
 		s := string(b)
 
-		secret := "md5" + md5s(md5s(cn.connector.getPassword()+cn.connector.getUser())+s)
+		secret := "md5" + md5s(md5s(cn.opt.getPassword()+cn.opt.getUser())+s)
 		cn.buf.StartMsg(passwordMessageMsg)
 		cn.buf.WriteString(secret)
 		cn.buf.EndMsg()

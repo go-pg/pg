@@ -19,20 +19,19 @@ var _ = Suite(&DBTest{})
 
 type DBTest struct {
 	db            *pg.DB
-	pgdb, mysqldb *sql.DB
+	pqdb, mysqldb *sql.DB
 }
 
 func (t *DBTest) SetUpTest(c *C) {
-	connector := &pg.Connector{
+	t.db = pg.Connect(&pg.Options{
 		User:     "test",
 		Database: "test",
 		PoolSize: 2,
-	}
-	t.db = connector.Connect()
+	})
 
-	pgdb, err := sql.Open("postgres", "user=test dbname=test")
+	pqdb, err := sql.Open("postgres", "user=test dbname=test")
 	c.Assert(err, IsNil)
-	t.pgdb = pgdb
+	t.pqdb = pqdb
 
 	mysqldb, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/test")
 	c.Assert(err, IsNil)
@@ -222,7 +221,7 @@ func (t *DBTest) TestStatementExec(c *C) {
 	c.Assert(res.Affected(), Equals, int64(1))
 }
 
-func (t *DBTest) TestStatementQuery(c *C) {
+func (t *DBTest) TestQueryStmt(c *C) {
 	stmt, err := t.db.Prepare("SELECT 1 AS num")
 	c.Assert(err, IsNil)
 	defer stmt.Close()
@@ -234,22 +233,17 @@ func (t *DBTest) TestStatementQuery(c *C) {
 }
 
 func (t *DBTest) TestListenNotify(c *C) {
-	listener, err := t.db.NewListener()
+	ln, err := t.db.Listen("test_channel")
 	c.Assert(err, IsNil)
-	defer listener.Close()
-
-	c.Assert(listener.Listen("test_channel"), IsNil)
+	defer ln.Close()
 
 	_, err = t.db.Exec("NOTIFY test_channel")
 	c.Assert(err, IsNil)
 
-	select {
-	case notif := <-listener.Chan:
-		c.Assert(notif.Err, IsNil)
-		c.Assert(notif.Channel, Equals, "test_channel")
-	case <-time.After(1 * time.Second):
-		c.Fail()
-	}
+	channel, payload, err := ln.Read()
+	c.Assert(err, IsNil)
+	c.Assert(channel, Equals, "test_channel")
+	c.Assert(payload, Equals, "")
 }
 
 func (t *DBTest) BenchmarkFormatWithoutArgs(c *C) {
@@ -283,10 +277,10 @@ func (t *DBTest) BenchmarkQueryRow(c *C) {
 	}
 }
 
-func (t *DBTest) BenchmarkStdlibPostgresQueryRow(c *C) {
+func (t *DBTest) BenchmarkQueryRowStdlibPq(c *C) {
 	var n int64
 	for i := 0; i < c.N; i++ {
-		r := t.pgdb.QueryRow("SELECT $1::bigint AS num", 1)
+		r := t.pqdb.QueryRow("SELECT $1::bigint AS num", 1)
 		if err := r.Scan(&n); err != nil {
 			panic(err)
 		}
@@ -296,7 +290,7 @@ func (t *DBTest) BenchmarkStdlibPostgresQueryRow(c *C) {
 	}
 }
 
-func (t *DBTest) BenchmarkStdlibMysqlQueryRow(c *C) {
+func (t *DBTest) BenchmarkQueryRowStdlibMySQL(c *C) {
 	var n int64
 	for i := 0; i < c.N; i++ {
 		r := t.mysqldb.QueryRow("SELECT ? AS num", 1)
@@ -309,6 +303,33 @@ func (t *DBTest) BenchmarkStdlibMysqlQueryRow(c *C) {
 	}
 }
 
+func (t *DBTest) BenchmarkQueryRowStmt(c *C) {
+	stmt, err := t.db.Prepare("SELECT $1::bigint AS num")
+	c.Assert(err, IsNil)
+	defer stmt.Close()
+
+	for i := 0; i < c.N; i++ {
+		_, err := stmt.QueryOne(&Dst{}, 1)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (t *DBTest) BenchmarkQueryRowStmtStdlibPq(c *C) {
+	stmt, err := t.pqdb.Prepare("SELECT $1::bigint AS num")
+	c.Assert(err, IsNil)
+	defer stmt.Close()
+
+	var n int64
+	for i := 0; i < c.N; i++ {
+		r := stmt.QueryRow(1)
+		if err := r.Scan(&n); err != nil {
+			panic(err)
+		}
+	}
+}
+
 func (t *DBTest) BenchmarkExec(c *C) {
 	_, err := t.db.Exec(
 		"CREATE TEMP TABLE exec_test(id bigint, name varchar(500))")
@@ -316,6 +337,7 @@ func (t *DBTest) BenchmarkExec(c *C) {
 		panic(err)
 	}
 
+	c.ResetTimer()
 	for i := 0; i < c.N; i++ {
 		res, err := t.db.Exec("INSERT INTO exec_test(id, name) VALUES(?, ?)", 1, "hello world")
 		if err != nil {
@@ -339,15 +361,18 @@ func (t *DBTest) BenchmarkExecWithError(c *C) {
 		panic(err)
 	}
 
+	c.ResetTimer()
 	for i := 0; i < c.N; i++ {
 		_, err := t.db.Exec("INSERT INTO exec_with_error_test(id) VALUES(?)", 1)
-		if _, ok := err.(*pg.IntegrityError); !ok {
-			panic("expected IntegrityError")
+		if err == nil {
+			panic("got nil error, expected IntegrityError")
+		} else if _, ok := err.(*pg.IntegrityError); !ok {
+			panic("got " + err.Error() + ", expected IntegrityError")
 		}
 	}
 }
 
-func (t *DBTest) BenchmarkStatementExec(c *C) {
+func (t *DBTest) BenchmarkExecStmt(c *C) {
 	_, err := t.db.Exec("CREATE TEMP TABLE statement_exec(id bigint, name varchar(500))")
 	if err != nil {
 		panic(err)
@@ -357,6 +382,7 @@ func (t *DBTest) BenchmarkStatementExec(c *C) {
 	c.Assert(err, IsNil)
 	defer stmt.Close()
 
+	c.ResetTimer()
 	for i := 0; i < c.N; i++ {
 		_, err = stmt.Exec(1, "hello world")
 		if err != nil {
@@ -365,13 +391,19 @@ func (t *DBTest) BenchmarkStatementExec(c *C) {
 	}
 }
 
-func (t *DBTest) BenchmarkStatementQueryRow(c *C) {
-	stmt, err := t.db.Prepare("SELECT 1 AS num")
+func (t *DBTest) BenchmarkExecStmtStdlibPq(c *C) {
+	_, err := t.pqdb.Exec("CREATE TEMP TABLE statement_exec(id bigint, name varchar(500))")
+	if err != nil {
+		panic(err)
+	}
+
+	stmt, err := t.pqdb.Prepare("INSERT INTO statement_exec(id, name) VALUES($1, $2)")
 	c.Assert(err, IsNil)
 	defer stmt.Close()
 
+	c.ResetTimer()
 	for i := 0; i < c.N; i++ {
-		_, err := stmt.Query(&Dst{})
+		_, err = stmt.Exec(1, "hello world")
 		if err != nil {
 			panic(err)
 		}

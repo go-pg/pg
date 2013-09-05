@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type Connector struct {
+type Options struct {
 	Host     string
 	Port     string
 	User     string
@@ -16,62 +16,62 @@ type Connector struct {
 	IdleTimeout time.Duration
 }
 
-func (conn *Connector) getHost() string {
-	if conn == nil || conn.Host == "" {
+func (opt *Options) getHost() string {
+	if opt == nil || opt.Host == "" {
 		return "localhost"
 	}
-	return conn.Host
+	return opt.Host
 }
 
-func (conn *Connector) getPort() string {
-	if conn == nil || conn.Port == "" {
+func (opt *Options) getPort() string {
+	if opt == nil || opt.Port == "" {
 		return "5432"
 	}
-	return conn.Port
+	return opt.Port
 }
 
-func (conn *Connector) getUser() string {
-	if conn == nil || conn.User == "" {
+func (opt *Options) getUser() string {
+	if opt == nil || opt.User == "" {
 		return ""
 	}
-	return conn.User
+	return opt.User
 }
 
-func (conn *Connector) getPassword() string {
-	if conn == nil || conn.Password == "" {
+func (opt *Options) getPassword() string {
+	if opt == nil || opt.Password == "" {
 		return ""
 	}
-	return conn.Password
+	return opt.Password
 }
 
-func (conn *Connector) getDatabase() string {
-	if conn == nil || conn.Database == "" {
+func (opt *Options) getDatabase() string {
+	if opt == nil || opt.Database == "" {
 		return ""
 	}
-	return conn.Database
+	return opt.Database
 }
 
-func (conn *Connector) getPoolSize() int {
-	if conn == nil || conn.PoolSize == 0 {
+func (opt *Options) getPoolSize() int {
+	if opt == nil || opt.PoolSize == 0 {
 		return 5
 	}
-	return conn.PoolSize
+	return opt.PoolSize
 }
 
-func (conn *Connector) getIdleTimeout() time.Duration {
-	return conn.IdleTimeout
+func (opt *Options) getIdleTimeout() time.Duration {
+	return opt.IdleTimeout
 }
 
-func (conn *Connector) getSSL() bool {
-	if conn == nil {
+func (opt *Options) getSSL() bool {
+	if opt == nil {
 		return false
 	}
-	return conn.SSL
+	return opt.SSL
 }
 
-func (connector *Connector) Connect() *DB {
+func Connect(opt *Options) *DB {
 	dial := func() (*conn, error) {
-		conn, err := connect(connector)
+		conn, err := dial(opt)
 		if err != nil {
 			return nil, err
 		}
@@ -84,7 +84,7 @@ func (connector *Connector) Connect() *DB {
 		return cn.Close()
 	}
 	return &DB{
-		pool: newDefaultPool(dial, close, connector.getPoolSize(), connector.getIdleTimeout()),
+		pool: newDefaultPool(dial, close, opt.getPoolSize(), opt.getIdleTimeout()),
 	}
 }
 
@@ -104,8 +104,8 @@ func (db *DB) conn() (*conn, error) {
 	return cn, nil
 }
 
-func (db *DB) freeConn(cn *conn, e error) {
-	if _, ok := e.(Error); ok {
+func (db *DB) freeConn(cn *conn, ei error) {
+	if e, ok := ei.(Error); ok && e.GetField('S') != "FATAL" {
 		db.pool.Put(cn)
 	} else {
 		db.pool.Remove(cn)
@@ -118,7 +118,12 @@ func (db *DB) Prepare(q string) (*Stmt, error) {
 		return nil, err
 	}
 
-	if err := writeParseDescribeSyncMsg(cn, q); err != nil {
+	if err := writeParseDescribeSyncMsg(cn.buf, q); err != nil {
+		db.pool.Put(cn)
+		return nil, err
+	}
+
+	if err := cn.Flush(); err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
@@ -143,7 +148,12 @@ func (db *DB) Exec(q string, args ...interface{}) (*Result, error) {
 		return nil, err
 	}
 
-	if err := writeQueryMsg(cn, q, args...); err != nil {
+	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
+		db.pool.Put(cn)
+		return nil, err
+	}
+
+	if err := cn.Flush(); err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
@@ -164,7 +174,12 @@ func (db *DB) Query(f Fabric, q string, args ...interface{}) ([]interface{}, err
 		return nil, err
 	}
 
-	if err := writeQueryMsg(cn, q, args...); err != nil {
+	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
+		db.pool.Put(cn)
+		return nil, err
+	}
+
+	if err := cn.Flush(); err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
@@ -193,10 +208,36 @@ func (db *DB) QueryOne(model interface{}, q string, args ...interface{}) (interf
 	return res[0], nil
 }
 
-func (db *DB) NewListener() (*Listener, error) {
+func (db *DB) Begin() (*Tx, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
-	return newListener(db.pool, cn), nil
+
+	tx := &Tx{
+		pool: db.pool,
+		cn:   cn,
+	}
+	if _, err := tx.Exec("BEGIN"); err != nil {
+		tx.close()
+		return nil, err
+	}
+	return tx, nil
+}
+
+func (db *DB) Listen(channels ...string) (*Listener, error) {
+	cn, err := db.conn()
+	if err != nil {
+		return nil, err
+	}
+
+	l := &Listener{
+		pool: db.pool,
+		cn:   cn,
+	}
+	if err := l.Listen(channels...); err != nil {
+		l.Close()
+		return nil, err
+	}
+	return l, nil
 }

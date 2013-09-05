@@ -66,6 +66,7 @@ func (p *defaultPool) Get() (*conn, bool, error) {
 }
 
 func (p *defaultPool) Put(cn *conn) error {
+	cn.buf.Reset()
 	if p.idleTimeout > 0 {
 		cn.LastActivity = time.Now()
 	}
