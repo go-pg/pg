@@ -9,6 +9,16 @@ import (
 	"time"
 )
 
+var (
+	Discard Loader = discardLoader{}
+)
+
+type discardLoader struct{}
+
+func (discardLoader) Load(i int, b []byte) error {
+	return nil
+}
+
 func decode(dst interface{}, f []byte) error {
 	// NULL.
 	if f == nil {

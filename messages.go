@@ -86,6 +86,25 @@ func logNotice(cn *conn, msgLen int) error {
 	return nil
 }
 
+func logParameterStatus(cn *conn, msgLen int) error {
+	if !glog.V(2) {
+		_, err := cn.br.ReadN(msgLen)
+		return err
+	}
+
+	name, err := cn.ReadString()
+	if err != nil {
+		return err
+	}
+	value, err := cn.ReadString()
+	if err != nil {
+		return err
+	}
+
+	glog.Infof("pg parameter status: %s=%q", name, value)
+	return nil
+}
+
 func writeQueryMsg(buf *buffer, q string, args ...interface{}) (err error) {
 	buf.StartMsg(queryMsg)
 	buf.B, err = AppendQ(buf.B, q, args...)
@@ -158,6 +177,10 @@ func readParseDescribeSync(cn *conn) (columns []string, e error) {
 			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
+		case parameterStatusMsg:
+			if err := logParameterStatus(cn, msgLen); err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("pg: unexpected message %q", c)
 		}
@@ -219,6 +242,10 @@ func readBindMsg(cn *conn) (e error) {
 			if err := logNotice(cn, msgLen); err != nil {
 				return err
 			}
+		case parameterStatusMsg:
+			if err := logParameterStatus(cn, msgLen); err != nil {
+				return err
+			}
 		default:
 			return fmt.Errorf("pg: unexpected message %q", c)
 		}
@@ -261,6 +288,10 @@ func readSimpleQueryResult(cn *conn) (res *Result, e error) {
 			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
+		case parameterStatusMsg:
+			if err := logParameterStatus(cn, msgLen); err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("pg: unexpected message %q", c)
 		}
@@ -301,6 +332,10 @@ func readExtQueryResult(cn *conn) (res *Result, e error) {
 			}
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
+				return nil, err
+			}
+		case parameterStatusMsg:
+			if err := logParameterStatus(cn, msgLen); err != nil {
 				return nil, err
 			}
 		default:
@@ -402,6 +437,10 @@ func readSimpleQueryData(cn *conn, f Fabric) (res []interface{}, e error) {
 			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
 			}
+		case parameterStatusMsg:
+			if err := logParameterStatus(cn, msgLen); err != nil {
+				return nil, err
+			}
 		default:
 			return nil, fmt.Errorf("pg: unexpected message %q", c)
 		}
@@ -445,6 +484,10 @@ func readExtQueryData(cn *conn, f Fabric, columns []string) (res []interface{}, 
 			}
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
+				return nil, err
+			}
+		case parameterStatusMsg:
+			if err := logParameterStatus(cn, msgLen); err != nil {
 				return nil, err
 			}
 		default:
