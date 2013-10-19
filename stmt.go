@@ -23,7 +23,7 @@ func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
-func (stmt *Stmt) Query(f Fabric, args ...interface{}) ([]interface{}, error) {
+func (stmt *Stmt) Query(f Fabric, args ...interface{}) (*Result, error) {
 	if err := writeBindExecuteMsg(stmt.cn.buf, args...); err != nil {
 		return nil, err
 	}
@@ -40,18 +40,20 @@ func (stmt *Stmt) Query(f Fabric, args ...interface{}) ([]interface{}, error) {
 	return res, err
 }
 
-func (stmt *Stmt) QueryOne(model interface{}, args ...interface{}) (interface{}, error) {
+func (stmt *Stmt) QueryOne(model interface{}, args ...interface{}) (*Result, error) {
 	res, err := stmt.Query(&fabricWrapper{model}, args...)
 	if err != nil {
 		return nil, err
 	}
-	if len(res) == 0 {
+
+	switch affected := res.Affected(); {
+	case affected == 0:
 		return nil, ErrNoRows
-	}
-	if len(res) > 1 {
+	case affected > 1:
 		return nil, ErrMultiRows
 	}
-	return res[0], nil
+
+	return res, nil
 }
 
 func (stmt *Stmt) Close() error {

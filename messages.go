@@ -1,7 +1,6 @@
 package pg
 
 import (
-	"bytes"
 	"encoding/binary"
 	"fmt"
 
@@ -42,8 +41,6 @@ const (
 
 	syncMsg = msgType('S')
 )
-
-var resultSep = []byte{' '}
 
 func logNotice(cn *conn, msgLen int) error {
 	if !glog.V(2) {
@@ -285,9 +282,7 @@ func readSimpleQueryResult(cn *conn) (res *Result, e error) {
 			if err != nil {
 				return nil, err
 			}
-			res = &Result{
-				tags: bytes.Split(b[:len(b)-1], resultSep),
-			}
+			res = newResult(b)
 		case readyForQueryMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
@@ -336,9 +331,7 @@ func readExtQueryResult(cn *conn) (res *Result, e error) {
 			if err != nil {
 				return nil, err
 			}
-			res = &Result{
-				tags: bytes.Split(b[:len(b)-1], resultSep),
-			}
+			res = newResult(b)
 		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
@@ -384,41 +377,40 @@ func readRowDescription(cn *conn) ([]string, error) {
 	return cols, nil
 }
 
-func readDataRow(cn *conn, f Fabric, columns []string) (interface{}, error) {
-	dst := f.New()
+func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	loader, ok := dst.(Loader)
 	if !ok {
 		var err error
 		loader, err = newLoader(dst)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	colNum, err := cn.ReadInt16()
 	if err != nil {
-		return nil, err
+		return err
 	}
 	for colIdx := 0; colIdx < int(colNum); colIdx++ {
 		colLen, err := cn.ReadInt32()
 		if err != nil {
-			return nil, err
+			return err
 		}
 		var b []byte
 		if colLen != -1 {
 			b, err = cn.br.ReadN(int(colLen))
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 		if err := loader.Load(colIdx, columns[colIdx], b); err != nil {
-			return nil, err
+			return err
 		}
 	}
-	return dst, nil
+	return nil
 }
 
-func readSimpleQueryData(cn *conn, f Fabric) (res []interface{}, e error) {
+func readSimpleQueryData(cn *conn, f Fabric) (res *Result, e error) {
 	var columns []string
 	for {
 		c, msgLen, err := cn.ReadMsgType()
@@ -432,16 +424,15 @@ func readSimpleQueryData(cn *conn, f Fabric) (res []interface{}, e error) {
 				return nil, err
 			}
 		case dataRowMsg:
-			row, err := readDataRow(cn, f, columns)
-			if err != nil {
+			if err := readDataRow(cn, f.New(), columns); err != nil {
 				return nil, err
 			}
-			res = append(res, row)
 		case commandCompleteMsg:
-			_, err := cn.br.ReadN(msgLen)
+			b, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
+			res = newResult(b)
 		case readyForQueryMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
@@ -468,7 +459,7 @@ func readSimpleQueryData(cn *conn, f Fabric) (res []interface{}, e error) {
 	}
 }
 
-func readExtQueryData(cn *conn, f Fabric, columns []string) (res []interface{}, e error) {
+func readExtQueryData(cn *conn, f Fabric, columns []string) (res *Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -481,16 +472,15 @@ func readExtQueryData(cn *conn, f Fabric, columns []string) (res []interface{}, 
 				return nil, err
 			}
 		case dataRowMsg:
-			dst, err := readDataRow(cn, f, columns)
-			if err != nil {
+			if err := readDataRow(cn, f.New(), columns); err != nil {
 				return nil, err
 			}
-			res = append(res, dst)
 		case commandCompleteMsg: // Response to the EXECUTE message.
-			_, err := cn.br.ReadN(msgLen)
+			b, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
+			res = newResult(b)
 		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {

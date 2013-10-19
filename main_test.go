@@ -70,22 +70,25 @@ func (t *DBTest) TestQueryWithNullByte(c *C) {
 }
 
 func (t *DBTest) TestQuery(c *C) {
-	dst, err := t.db.Query(&Dst{}, "SELECT 1 AS num")
+	dst := &Dst{}
+	res, err := t.db.Query(dst, "SELECT 1 AS num")
 	c.Assert(err, IsNil)
-	c.Assert(dst, HasLen, 1)
-	c.Assert(dst[0].(*Dst).Num, Equals, 1)
+	c.Assert(dst.Num, Equals, 1)
+	c.Assert(res.Affected(), Equals, 1)
 }
 
 func (t *DBTest) TestQueryZeroRows(c *C) {
-	dst, err := t.db.Query(&Dst{}, "SELECT s.num AS num FROM generate_series(0, -1) AS s(num)")
+	res, err := t.db.Query(&Dst{}, "SELECT s.num AS num FROM generate_series(0, -1) AS s(num)")
 	c.Assert(err, IsNil)
-	c.Assert(len(dst), Equals, 0)
+	c.Assert(res.Affected(), Equals, 0)
 }
 
 func (t *DBTest) TestQueryOne(c *C) {
-	dst, err := t.db.QueryOne(&Dst{}, "SELECT 1 AS num")
+	dst := &Dst{}
+	res, err := t.db.QueryOne(dst, "SELECT 1 AS num")
 	c.Assert(err, IsNil)
-	c.Assert(dst.(*Dst).Num, Equals, 1)
+	c.Assert(dst.Num, Equals, 1)
+	c.Assert(res.Affected(), Equals, 1)
 }
 
 func (t *DBTest) TestQueryOneValue(c *C) {
@@ -228,17 +231,17 @@ func (t *DBTest) TestQueryStrings(c *C) {
 func (t *DBTest) TestExec(c *C) {
 	res, err := t.db.Exec("CREATE TEMP TABLE test(id serial PRIMARY KEY)")
 	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, int64(0))
+	c.Assert(res.Affected(), Equals, 0)
 
 	res, err = t.db.Exec("INSERT INTO test VALUES (1)")
 	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, int64(1))
+	c.Assert(res.Affected(), Equals, 1)
 }
 
 func (t *DBTest) TestStatementExec(c *C) {
 	res, err := t.db.Exec("CREATE TEMP TABLE test(id serial PRIMARY KEY)")
 	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, int64(0))
+	c.Assert(res.Affected(), Equals, 0)
 
 	stmt, err := t.db.Prepare("INSERT INTO test VALUES($1)")
 	c.Assert(err, IsNil)
@@ -246,7 +249,7 @@ func (t *DBTest) TestStatementExec(c *C) {
 
 	res, err = stmt.Exec(1)
 	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, int64(1))
+	c.Assert(res.Affected(), Equals, 1)
 }
 
 func (t *DBTest) TestQueryStmt(c *C) {
@@ -254,10 +257,11 @@ func (t *DBTest) TestQueryStmt(c *C) {
 	c.Assert(err, IsNil)
 	defer stmt.Close()
 
-	dst, err := stmt.Query(&Dst{})
+	dst := &Dst{}
+	res, err := stmt.Query(dst)
 	c.Assert(err, IsNil)
-	c.Assert(dst, HasLen, 1)
-	c.Assert(dst[0].(*Dst).Num, Equals, 1)
+	c.Assert(dst.Num, Equals, 1)
+	c.Assert(res.Affected(), Equals, 1)
 }
 
 func (t *DBTest) TestListenNotify(c *C) {
