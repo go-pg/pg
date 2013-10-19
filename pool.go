@@ -45,7 +45,7 @@ func (p *defaultPool) Get() (*conn, bool, error) {
 	if p.idleTimeout > 0 {
 		for e := p.conns.Front(); e != nil; e = e.Next() {
 			cn := e.Value.(*conn)
-			if time.Since(cn.LastActivity) > p.idleTimeout {
+			if time.Since(cn.usedAt) > p.idleTimeout {
 				p.conns.Remove(e)
 			}
 		}
@@ -68,7 +68,7 @@ func (p *defaultPool) Get() (*conn, bool, error) {
 func (p *defaultPool) Put(cn *conn) error {
 	cn.buf.Reset()
 	if p.idleTimeout > 0 {
-		cn.LastActivity = time.Now()
+		cn.usedAt = time.Now()
 	}
 
 	p.cond.L.Lock()

@@ -389,7 +389,7 @@ func readDataRow(cn *conn, f Fabric, columns []string) (interface{}, error) {
 	loader, ok := dst.(Loader)
 	if !ok {
 		var err error
-		loader, err = newStructLoader(dst, columns)
+		loader, err = newLoader(dst)
 		if err != nil {
 			return nil, err
 		}
@@ -399,7 +399,7 @@ func readDataRow(cn *conn, f Fabric, columns []string) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i := 0; i < int(colNum); i++ {
+	for colIdx := 0; colIdx < int(colNum); colIdx++ {
 		colLen, err := cn.ReadInt32()
 		if err != nil {
 			return nil, err
@@ -411,7 +411,7 @@ func readDataRow(cn *conn, f Fabric, columns []string) (interface{}, error) {
 				return nil, err
 			}
 		}
-		if err := loader.Load(i, b); err != nil {
+		if err := loader.Load(colIdx, columns[colIdx], b); err != nil {
 			return nil, err
 		}
 	}

@@ -19,10 +19,6 @@ func (f *fabricWrapper) New() interface{} {
 	return f.model
 }
 
-type Loader interface {
-	Load(i int, b []byte) error
-}
-
 type Appender interface {
 	Append([]byte) []byte
 }

@@ -12,12 +12,11 @@ import (
 )
 
 type conn struct {
-	opt *Options
-	cn  net.Conn
-	br  *bufio.Reader
-	buf *buffer
-
-	LastActivity time.Time
+	opt    *Options
+	cn     net.Conn
+	br     *bufio.Reader
+	buf    *buffer
+	usedAt time.Time
 }
 
 func dial(opt *Options) (*conn, error) {
