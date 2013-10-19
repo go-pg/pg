@@ -410,7 +410,7 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	return nil
 }
 
-func readSimpleQueryData(cn *conn, f Fabric) (res *Result, e error) {
+func readSimpleQueryData(cn *conn, f Factory) (res *Result, e error) {
 	var columns []string
 	for {
 		c, msgLen, err := cn.ReadMsgType()
@@ -459,7 +459,7 @@ func readSimpleQueryData(cn *conn, f Fabric) (res *Result, e error) {
 	}
 }
 
-func readExtQueryData(cn *conn, f Fabric, columns []string) (res *Result, e error) {
+func readExtQueryData(cn *conn, f Factory, columns []string) (res *Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {

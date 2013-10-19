@@ -31,7 +31,7 @@ func (tx *Tx) Exec(q string, args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
-func (tx *Tx) Query(f Fabric, q string, args ...interface{}) (*Result, error) {
+func (tx *Tx) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 	if tx.done {
 		return nil, ErrTxDone
 	}

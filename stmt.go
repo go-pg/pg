@@ -23,7 +23,7 @@ func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
-func (stmt *Stmt) Query(f Fabric, args ...interface{}) (*Result, error) {
+func (stmt *Stmt) Query(f Factory, args ...interface{}) (*Result, error) {
 	if err := writeBindExecuteMsg(stmt.cn.buf, args...); err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func (stmt *Stmt) Query(f Fabric, args ...interface{}) (*Result, error) {
 }
 
 func (stmt *Stmt) QueryOne(model interface{}, args ...interface{}) (*Result, error) {
-	res, err := stmt.Query(&fabricWrapper{model}, args...)
+	res, err := stmt.Query(&singleFactory{model}, args...)
 	if err != nil {
 		return nil, err
 	}

@@ -166,7 +166,7 @@ func (db *DB) Exec(q string, args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
-func (db *DB) Query(f Fabric, q string, args ...interface{}) (*Result, error) {
+func (db *DB) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
@@ -193,7 +193,7 @@ func (db *DB) Query(f Fabric, q string, args ...interface{}) (*Result, error) {
 }
 
 func (db *DB) QueryOne(model interface{}, q string, args ...interface{}) (*Result, error) {
-	res, err := db.Query(&fabricWrapper{model}, q, args...)
+	res, err := db.Query(&singleFactory{model}, q, args...)
 	if err != nil {
 		return nil, err
 	}

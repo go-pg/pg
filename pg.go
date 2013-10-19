@@ -1,15 +1,15 @@
 package pg
 
-type Fabric interface {
+type Factory interface {
 	New() interface{}
 }
 
-type fabricWrapper struct {
-	model interface{}
+type singleFactory struct {
+	v interface{}
 }
 
-func (f *fabricWrapper) New() interface{} {
-	return f.model
+func (f *singleFactory) New() interface{} {
+	return f.v
 }
 
 type Appender interface {
