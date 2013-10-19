@@ -47,7 +47,7 @@ func (l *structLoader) Load(colIdx int, colName string, b []byte) error {
 	if indx == nil {
 		return fmt.Errorf("pg: can not map field %q", colName)
 	}
-	return decode(l.v.FieldByIndex(indx).Addr().Interface(), b)
+	return Decode(l.v.FieldByIndex(indx).Addr().Interface(), b)
 }
 
 //------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ func LoadInto(values ...interface{}) Loader {
 }
 
 func (l *valuesLoader) Load(colIdx int, colName string, b []byte) error {
-	return decode(l.values[colIdx], b)
+	return Decode(l.values[colIdx], b)
 }
 
 //------------------------------------------------------------------------------

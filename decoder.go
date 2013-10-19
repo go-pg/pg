@@ -21,7 +21,7 @@ func Decode(dst interface{}, f []byte) error {
 
 	switch v := dst.(type) {
 	case *bool:
-		if string(f) == "t" {
+		if len(f) == 1 && f[0] == 't' {
 			*v = true
 		}
 		return nil
