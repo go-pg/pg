@@ -22,7 +22,7 @@ func (l *Listener) Close() error {
 	return l.pool.Remove(l.cn)
 }
 
-func (l *Listener) Receive() (string, string, error) {
+func (l *Listener) Receive() (channel string, payload string, err error) {
 	for {
 		c, msgLen, err := l.cn.ReadMsgType()
 		if err != nil {
@@ -51,11 +51,11 @@ func (l *Listener) Receive() (string, string, error) {
 			if err != nil {
 				return "", "", err
 			}
-			channel, err := l.cn.ReadString()
+			channel, err = l.cn.ReadString()
 			if err != nil {
 				return "", "", err
 			}
-			payload, err := l.cn.ReadString()
+			payload, err = l.cn.ReadString()
 			if err != nil {
 				return "", "", err
 			}
