@@ -13,7 +13,7 @@ const (
 	datetimeFormat = "2006-01-02 15:04:05.999999999"
 )
 
-func decode(dst interface{}, f []byte) error {
+func Decode(dst interface{}, f []byte) error {
 	// NULL.
 	if f == nil {
 		return nil
