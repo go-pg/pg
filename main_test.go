@@ -272,7 +272,7 @@ func (t *DBTest) TestListenNotify(c *C) {
 	_, err = t.db.Exec("NOTIFY test_channel")
 	c.Assert(err, IsNil)
 
-	channel, payload, err := ln.Read()
+	channel, payload, err := ln.Receive()
 	c.Assert(err, IsNil)
 	c.Assert(channel, Equals, "test_channel")
 	c.Assert(payload, Equals, "")

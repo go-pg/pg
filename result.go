@@ -8,18 +8,20 @@ import (
 var resultSep = []byte{' '}
 
 type Result struct {
-	b []byte
+	affected int
 }
 
 func newResult(b []byte) *Result {
-	return &Result{b}
+	res := &Result{}
+
+	ind := bytes.LastIndex(b, resultSep)
+	if ind != -1 {
+		res.affected, _ = strconv.Atoi(string(b[ind+1 : len(b)-1]))
+	}
+
+	return res
 }
 
 func (r *Result) Affected() int {
-	ind := bytes.LastIndex(r.b, resultSep)
-	if ind == -1 {
-		return 0
-	}
-	n, _ := strconv.Atoi(string(r.b[ind+1 : len(r.b)-1]))
-	return n
+	return r.affected
 }
