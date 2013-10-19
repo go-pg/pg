@@ -106,6 +106,23 @@ func logParameterStatus(cn *conn, msgLen int) error {
 	return nil
 }
 
+func writeStartupMsg(buf *buffer, user, database string) {
+	buf.StartMsg(0)
+	buf.WriteInt32(196608)
+	buf.WriteString("user")
+	buf.WriteString(user)
+	buf.WriteString("database")
+	buf.WriteString(database)
+	buf.WriteString("")
+	buf.EndMsg()
+}
+
+func writePasswordMsg(buf *buffer, password string) {
+	buf.StartMsg(passwordMessageMsg)
+	buf.WriteString(password)
+	buf.EndMsg()
+}
+
 func writeQueryMsg(buf *buffer, q string, args ...interface{}) (err error) {
 	buf.StartMsg(queryMsg)
 	buf.B, err = AppendQ(buf.B, q, args...)
@@ -117,7 +134,7 @@ func writeQueryMsg(buf *buffer, q string, args ...interface{}) (err error) {
 	return nil
 }
 
-func writeParseDescribeSyncMsg(buf *buffer, q string) error {
+func writeParseDescribeSyncMsg(buf *buffer, q string) {
 	buf.StartMsg(parseMsg)
 	buf.WriteString("")
 	buf.WriteString(q)
@@ -131,8 +148,6 @@ func writeParseDescribeSyncMsg(buf *buffer, q string) error {
 
 	buf.StartMsg(syncMsg)
 	buf.EndMsg()
-
-	return nil
 }
 
 func readParseDescribeSync(cn *conn) (columns []string, e error) {

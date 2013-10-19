@@ -120,11 +120,7 @@ func (db *DB) Prepare(q string) (*Stmt, error) {
 		return nil, err
 	}
 
-	if err := writeParseDescribeSyncMsg(cn.buf, q); err != nil {
-		db.pool.Put(cn)
-		return nil, err
-	}
-
+	writeParseDescribeSyncMsg(cn.buf, q)
 	if err := cn.Flush(); err != nil {
 		db.freeConn(cn, err)
 		return nil, err

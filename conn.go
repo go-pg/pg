@@ -71,14 +71,7 @@ func (cn *conn) Startup() error {
 		cn.br = bufio.NewReader(cn.cn)
 	}
 
-	cn.buf.StartMsg(0)
-	cn.buf.WriteInt32(196608)
-	cn.buf.WriteString("user")
-	cn.buf.WriteString(cn.opt.getUser())
-	cn.buf.WriteString("database")
-	cn.buf.WriteString(cn.opt.getDatabase())
-	cn.buf.WriteString("")
-	cn.buf.EndMsg()
+	writeStartupMsg(cn.buf, cn.opt.getUser(), cn.opt.getDatabase())
 	if err := cn.Flush(); err != nil {
 		return err
 	}
@@ -125,9 +118,7 @@ func (cn *conn) auth() error {
 	case 0:
 		return nil
 	case 3:
-		cn.buf.StartMsg(passwordMessageMsg)
-		cn.buf.WriteString(cn.opt.getPassword())
-		cn.buf.EndMsg()
+		writePasswordMsg(cn.buf, cn.opt.getPassword())
 		if err := cn.Flush(); err != nil {
 			return err
 		}
@@ -152,12 +143,9 @@ func (cn *conn) auth() error {
 		if err != nil {
 			return err
 		}
-		s := string(b)
 
-		secret := "md5" + md5s(md5s(cn.opt.getPassword()+cn.opt.getUser())+s)
-		cn.buf.StartMsg(passwordMessageMsg)
-		cn.buf.WriteString(secret)
-		cn.buf.EndMsg()
+		secret := "md5" + md5s(md5s(cn.opt.getPassword()+cn.opt.getUser())+string(b))
+		writePasswordMsg(cn.buf, secret)
 		if err := cn.Flush(); err != nil {
 			return err
 		}
