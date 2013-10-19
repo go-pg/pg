@@ -62,11 +62,11 @@ func (d *Dst) New() interface{} {
 	return d
 }
 
-// Postgres does not support null byte in strings.
 func (t *DBTest) TestQueryWithNullByte(c *C) {
 	var s string
-	_, err := t.db.QueryOne(pg.LoadInto(&s), "SELECT ?", "\000")
-	c.Assert(err, Not(IsNil))
+	_, err := t.db.QueryOne(pg.LoadInto(&s), "SELECT ?", "hello\000")
+	c.Assert(err, IsNil)
+	c.Assert(s, Equals, "hello")
 }
 
 func (t *DBTest) TestQuery(c *C) {

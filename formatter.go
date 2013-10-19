@@ -43,6 +43,8 @@ func appendPgString(dst []byte, src string) []byte {
 		switch c {
 		case '\'':
 			dst = append(dst, "''"...)
+		case '\000':
+			continue
 		default:
 			dst = append(dst, c)
 		}
@@ -67,6 +69,8 @@ func appendPgSubString(dst []byte, src string) []byte {
 		switch c {
 		case '\'':
 			dst = append(dst, "''"...)
+		case '\000':
+			continue
 		case '\\':
 			dst = append(dst, '\\', '\\')
 		case '"':
