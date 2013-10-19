@@ -1,12 +1,5 @@
 package pg
 
-import (
-	"log"
-	"os"
-)
-
-var Logger = log.New(os.Stdout, "pg: ", log.Ldate|log.Ltime)
-
 type Fabric interface {
 	New() interface{}
 }
