@@ -81,6 +81,8 @@ func Connect(opt *Options) *DB {
 		return conn, nil
 	}
 	close := func(cn *conn) error {
+		writeTerminateMsg(cn.buf)
+		_ = cn.Flush()
 		return cn.Close()
 	}
 	return &DB{

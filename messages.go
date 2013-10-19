@@ -19,6 +19,7 @@ const (
 	backendKeyDataMsg   = msgType('K')
 	noDataMsg           = msgType('n')
 	passwordMessageMsg  = msgType('p')
+	terminateMsg        = msgType('X')
 
 	notificationResponseMsg = msgType('A')
 
@@ -212,6 +213,11 @@ func writeBindExecuteMsg(buf *buffer, args ...interface{}) error {
 	buf.EndMsg()
 
 	return nil
+}
+
+func writeTerminateMsg(buf *buffer) {
+	buf.StartMsg(terminateMsg)
+	buf.EndMsg()
 }
 
 func readBindMsg(cn *conn) (e error) {
