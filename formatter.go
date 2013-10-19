@@ -7,10 +7,6 @@ import (
 	"time"
 )
 
-const (
-	timeFormat = "2006-01-02 15:04:05.999999999"
-)
-
 func AppendQ(dst []byte, src string, args ...interface{}) ([]byte, error) {
 	p := newQueryFormatter(dst, src)
 	for _, arg := range args {
@@ -114,7 +110,7 @@ func appendValue(dst []byte, src interface{}) []byte {
 		return appendPgString(dst, v)
 	case time.Time:
 		dst = append(dst, '\'')
-		dst = append(dst, v.UTC().Format(timeFormat)...)
+		dst = append(dst, v.UTC().Format(datetimeFormat)...)
 		dst = append(dst, '\'')
 		return dst
 	case []byte:

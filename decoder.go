@@ -7,6 +7,12 @@ import (
 	"time"
 )
 
+const (
+	dateFormat     = "2006-01-02"
+	timeFormat     = "15:04:05.999999999"
+	datetimeFormat = "2006-01-02 15:04:05.999999999"
+)
+
 func decode(dst interface{}, f []byte) error {
 	// NULL.
 	if f == nil {
@@ -102,13 +108,22 @@ func decode(dst interface{}, f []byte) error {
 		*v = d
 		return nil
 	case *time.Time:
-		if len(f) > 0 {
-			tm, err := time.Parse(timeFormat, string(f))
-			if err != nil {
-				return err
-			}
-			*v = tm.UTC()
+		var format string
+		switch l := len(f); {
+		case l <= len(dateFormat):
+			format = dateFormat
+		case l <= len(timeFormat):
+			format = timeFormat
+		default:
+			format = datetimeFormat
 		}
+
+		tm, err := time.Parse(format, string(f))
+		if err != nil {
+			return err
+		}
+		*v = tm.UTC()
+
 		return nil
 	case *[]string:
 		p := newArrayParser(f[1 : len(f)-1])

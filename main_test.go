@@ -107,11 +107,39 @@ func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
 	c.Assert(dst, IsNil)
 }
 
-func (t *DBTest) TestTypeTimeIsInUTCTimezone(c *C) {
+func (t *DBTest) TestTypeDate(c *C) {
+	src := time.Now().UTC()
 	var dst time.Time
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT now()::timestamp")
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::date", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst.Location(), Equals, time.UTC)
+	c.Assert(dst.Format("2006-01-02"), Equals, dst.Format("2006-01-02"))
+}
+
+func (t *DBTest) TestTypeTime(c *C) {
+	src := time.Now().UTC()
+	var dst time.Time
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::time", src)
+	c.Assert(err, IsNil)
+	c.Assert(dst.Location(), Equals, time.UTC)
+	c.Assert(
+		dst.Format("15:04:05.9999"),
+		Equals,
+		src.Format("15:04:05.9999"),
+	)
+}
+
+func (t *DBTest) TestTypeTimestamp(c *C) {
+	src := time.Now().UTC()
+	var dst time.Time
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::timestamp", src)
+	c.Assert(err, IsNil)
+	c.Assert(dst.Location(), Equals, time.UTC)
+	c.Assert(
+		dst.Format("2006-01-02 15:04:05.9999"),
+		Equals,
+		src.Format("2006-01-02 15:04:05.9999"),
+	)
 }
 
 func (t *DBTest) TestTypeUint64(c *C) {
