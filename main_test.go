@@ -2,6 +2,7 @@ package pg_test
 
 import (
 	"database/sql"
+	"fmt"
 	"math"
 	"testing"
 	"time"
@@ -438,6 +439,19 @@ func (t *DBTest) BenchmarkExecStmtStdlibPq(c *C) {
 		_, err = stmt.Exec(1, "hello world")
 		if err != nil {
 			panic(err)
+		}
+	}
+}
+
+func (t *DBTest) BenchmarkLoaderInts(c *C) {
+	for i := 0; i < c.N; i++ {
+		var ints pg.Ints
+		_, err := t.db.Query(&ints, "SELECT * FROM generate_series(1, 1000000)")
+		if err != nil {
+			panic(err)
+		}
+		if len(ints) != 1000000 {
+			panic(fmt.Sprintf("got %d results, expected 1000000", len(ints)))
 		}
 	}
 }

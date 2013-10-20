@@ -12,7 +12,7 @@ type buffer struct {
 
 func newBuffer() *buffer {
 	return &buffer{
-		B:  make([]byte, 0, 1024),
+		B:  make([]byte, 0, 8192),
 		b8: make([]byte, 8),
 	}
 }
