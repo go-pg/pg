@@ -7,8 +7,7 @@ import (
 )
 
 type defaultPool struct {
-	dial  func() (*conn, error)
-	close func(*conn) error
+	dial func() (*conn, error)
 
 	cond  *sync.Cond
 	conns *list.List
@@ -19,12 +18,10 @@ type defaultPool struct {
 
 func newDefaultPool(
 	dial func() (*conn, error),
-	close func(*conn) error,
 	maxSize int, idleTimeout time.Duration,
 ) *defaultPool {
 	return &defaultPool{
-		dial:  dial,
-		close: close,
+		dial: dial,
 
 		cond:  sync.NewCond(&sync.Mutex{}),
 		conns: list.New(),
@@ -82,7 +79,7 @@ func (p *defaultPool) Put(cn *conn) error {
 func (p *defaultPool) Remove(cn *conn) error {
 	var err error
 	if cn != nil {
-		err = p.close(cn)
+		err = cn.Close()
 	}
 	p.cond.L.Lock()
 	p.size--
@@ -108,7 +105,7 @@ func (p *defaultPool) Close() error {
 	p.cond.L.Lock()
 
 	for e := p.conns.Front(); e != nil; e = e.Next() {
-		if err := p.close(e.Value.(*conn)); err != nil {
+		if err := e.Value.(*conn).Close(); err != nil {
 			return err
 		}
 	}

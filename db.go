@@ -12,8 +12,12 @@ type Options struct {
 	Database string
 	SSL      bool
 
-	PoolSize    int
-	IdleTimeout time.Duration
+	PoolSize int
+
+	DialTimeout  time.Duration
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
 }
 
 func (opt *Options) getHost() string {
@@ -58,6 +62,13 @@ func (opt *Options) getPoolSize() int {
 	return opt.PoolSize
 }
 
+func (opt *Options) getDialTimeout() time.Duration {
+	if opt.DialTimeout == 0 {
+		return 5 * time.Second
+	}
+	return opt.DialTimeout
+}
+
 func (opt *Options) getIdleTimeout() time.Duration {
 	return opt.IdleTimeout
 }
@@ -70,23 +81,8 @@ func (opt *Options) getSSL() bool {
 }
 
 func Connect(opt *Options) *DB {
-	dial := func() (*conn, error) {
-		conn, err := dial(opt)
-		if err != nil {
-			return nil, err
-		}
-		if err := conn.Startup(); err != nil {
-			return nil, err
-		}
-		return conn, nil
-	}
-	close := func(cn *conn) error {
-		writeTerminateMsg(cn.buf)
-		_ = cn.Flush()
-		return cn.Close()
-	}
 	return &DB{
-		pool: newDefaultPool(dial, close, opt.getPoolSize(), opt.getIdleTimeout()),
+		pool: newDefaultPool(makeDialer(opt), opt.getPoolSize(), opt.getIdleTimeout()),
 	}
 }
 

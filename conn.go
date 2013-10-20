@@ -11,6 +11,8 @@ import (
 	"github.com/vmihailenco/bufio"
 )
 
+var zeroTime = time.Time{}
+
 type conn struct {
 	opt    *Options
 	cn     net.Conn
@@ -19,19 +21,47 @@ type conn struct {
 	usedAt time.Time
 }
 
-func dial(opt *Options) (*conn, error) {
-	cn, err := net.Dial("tcp", net.JoinHostPort(opt.getHost(), opt.getPort()))
-	if err != nil {
-		return nil, err
+func makeDialer(opt *Options) func() (*conn, error) {
+	return func() (*conn, error) {
+		netcn, err := net.DialTimeout(
+			"tcp", net.JoinHostPort(opt.getHost(), opt.getPort()), opt.getDialTimeout())
+		if err != nil {
+			return nil, err
+		}
+		cn := &conn{
+			opt: opt,
+			cn:  netcn,
+			buf: newBuffer(),
+		}
+		cn.br = bufio.NewReader(cn)
+		if err := cn.Startup(); err != nil {
+			return nil, err
+		}
+		return cn, nil
 	}
-	return &conn{
-		opt: opt,
-		cn:  cn,
-		buf: newBuffer(),
-	}, nil
+}
+
+func (cn *conn) Read(b []byte) (int, error) {
+	if cn.opt.ReadTimeout != 0 {
+		cn.cn.SetReadDeadline(time.Now().Add(cn.opt.ReadTimeout))
+	} else {
+		cn.cn.SetReadDeadline(zeroTime)
+	}
+	return cn.cn.Read(b)
+}
+
+func (cn *conn) Write(b []byte) (int, error) {
+	if cn.opt.WriteTimeout != 0 {
+		cn.cn.SetWriteDeadline(time.Now().Add(cn.opt.WriteTimeout))
+	} else {
+		cn.cn.SetReadDeadline(zeroTime)
+	}
+	return cn.cn.Write(b)
 }
 
 func (cn *conn) Close() error {
+	writeTerminateMsg(cn.buf)
+	_ = cn.Flush()
 	return cn.cn.Close()
 }
 
@@ -56,7 +86,6 @@ func (cn *conn) ssl() error {
 		InsecureSkipVerify: true,
 	}
 	cn.cn = tls.Client(cn.cn, tlsConf)
-	cn.br = bufio.NewReader(cn.cn)
 
 	return nil
 }
@@ -66,8 +95,6 @@ func (cn *conn) Startup() error {
 		if err := cn.ssl(); err != nil {
 			return err
 		}
-	} else {
-		cn.br = bufio.NewReader(cn.cn)
 	}
 
 	writeStartupMsg(cn.buf, cn.opt.getUser(), cn.opt.getDatabase())

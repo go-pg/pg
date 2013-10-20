@@ -16,7 +16,7 @@ type Appender interface {
 	Append([]byte) []byte
 }
 
-// Raw query.
+// Raw SQL query.
 type Q string
 
 func (q Q) Append(dst []byte) []byte {
