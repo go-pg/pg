@@ -2,6 +2,7 @@ package pg
 
 import (
 	"fmt"
+	"time"
 )
 
 type Listener struct {
@@ -23,6 +24,11 @@ func (l *Listener) Close() error {
 }
 
 func (l *Listener) Receive() (channel string, payload string, err error) {
+	return l.ReceiveTimeout(0)
+}
+
+func (l *Listener) ReceiveTimeout(readTimeout time.Duration) (channel, payload string, err error) {
+	l.cn.readTimeout = readTimeout
 	for {
 		c, msgLen, err := l.cn.ReadMsgType()
 		if err != nil {

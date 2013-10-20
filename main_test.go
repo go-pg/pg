@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"net"
+	"sync"
 	"testing"
 	"time"
 
@@ -28,6 +30,10 @@ func (t *DBTest) SetUpTest(c *C) {
 		User:     "test",
 		Database: "test",
 		PoolSize: 2,
+
+		DialTimeout:  time.Second,
+		ReadTimeout:  time.Second,
+		WriteTimeout: time.Second,
 	})
 
 	pqdb, err := sql.Open("postgres", "user=test dbname=test")
@@ -277,6 +283,49 @@ func (t *DBTest) TestListenNotify(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(channel, Equals, "test_channel")
 	c.Assert(payload, Equals, "")
+}
+
+func (t *DBTest) TestListenTimeout(c *C) {
+	ln, err := t.db.Listen("test_channel")
+	c.Assert(err, IsNil)
+	defer ln.Close()
+
+	channel, payload, err := ln.ReceiveTimeout(time.Second)
+	c.Assert(err.(net.Error).Timeout(), Equals, true)
+	c.Assert(channel, Equals, "")
+	c.Assert(payload, Equals, "")
+}
+
+func (t *DBTest) TestTimeout(c *C) {
+	tx1, err := t.db.Begin()
+	c.Assert(err, IsNil)
+
+	_, err = tx1.Exec("SELECT pg_advisory_xact_lock(1)")
+	c.Assert(err, IsNil)
+
+	tx2, err := t.db.Begin()
+	c.Assert(err, IsNil)
+
+	_, err = tx2.Exec("SELECT pg_advisory_xact_lock(2)")
+	c.Assert(err, IsNil)
+
+	wg := &sync.WaitGroup{}
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		_, err := tx1.Exec("SELECT pg_advisory_xact_lock(2)")
+		c.Assert(err.(net.Error).Timeout(), Equals, true)
+	}()
+
+	go func() {
+		defer wg.Done()
+		time.Sleep(500 * time.Millisecond)
+		_, err := tx2.Exec("SELECT pg_advisory_xact_lock(1)")
+		c.Assert(err, IsNil)
+	}()
+
+	wg.Wait()
 }
 
 func (t *DBTest) BenchmarkFormatWithoutArgs(c *C) {

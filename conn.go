@@ -19,6 +19,9 @@ type conn struct {
 	br     *bufio.Reader
 	buf    *buffer
 	usedAt time.Time
+
+	readTimeout  time.Duration
+	writeTimeout time.Duration
 }
 
 func makeDialer(opt *Options) func() (*conn, error) {
@@ -42,8 +45,8 @@ func makeDialer(opt *Options) func() (*conn, error) {
 }
 
 func (cn *conn) Read(b []byte) (int, error) {
-	if cn.opt.ReadTimeout != 0 {
-		cn.cn.SetReadDeadline(time.Now().Add(cn.opt.ReadTimeout))
+	if cn.readTimeout != 0 {
+		cn.cn.SetReadDeadline(time.Now().Add(cn.readTimeout))
 	} else {
 		cn.cn.SetReadDeadline(zeroTime)
 	}
@@ -51,8 +54,8 @@ func (cn *conn) Read(b []byte) (int, error) {
 }
 
 func (cn *conn) Write(b []byte) (int, error) {
-	if cn.opt.WriteTimeout != 0 {
-		cn.cn.SetWriteDeadline(time.Now().Add(cn.opt.WriteTimeout))
+	if cn.writeTimeout != 0 {
+		cn.cn.SetWriteDeadline(time.Now().Add(cn.writeTimeout))
 	} else {
 		cn.cn.SetReadDeadline(zeroTime)
 	}

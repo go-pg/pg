@@ -82,11 +82,13 @@ func (opt *Options) getSSL() bool {
 
 func Connect(opt *Options) *DB {
 	return &DB{
+		opt:  opt,
 		pool: newDefaultPool(makeDialer(opt), opt.getPoolSize(), opt.getIdleTimeout()),
 	}
 }
 
 type DB struct {
+	opt  *Options
 	pool *defaultPool
 }
 
@@ -99,6 +101,8 @@ func (db *DB) conn() (*conn, error) {
 	if err != nil {
 		return nil, err
 	}
+	cn.readTimeout = db.opt.ReadTimeout
+	cn.writeTimeout = db.opt.WriteTimeout
 	return cn, nil
 }
 
