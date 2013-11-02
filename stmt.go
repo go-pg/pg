@@ -1,9 +1,11 @@
 package pg
 
 type Stmt struct {
-	pool    *defaultPool
+	db      *DB
 	cn      *conn
 	columns []string
+
+	err error
 }
 
 func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
@@ -12,11 +14,13 @@ func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
 	}
 
 	if err := stmt.cn.Flush(); err != nil {
+		stmt.setErr(err)
 		return nil, err
 	}
 
 	res, err := readExtQueryResult(stmt.cn)
 	if err != nil {
+		stmt.setErr(err)
 		return nil, err
 	}
 
@@ -29,11 +33,13 @@ func (stmt *Stmt) Query(f Factory, args ...interface{}) (*Result, error) {
 	}
 
 	if err := stmt.cn.Flush(); err != nil {
+		stmt.setErr(err)
 		return nil, err
 	}
 
 	res, err := readExtQueryData(stmt.cn, f, stmt.columns)
 	if err != nil {
+		stmt.setErr(err)
 		return nil, err
 	}
 
@@ -56,6 +62,10 @@ func (stmt *Stmt) QueryOne(model interface{}, args ...interface{}) (*Result, err
 	return res, nil
 }
 
+func (stmt *Stmt) setErr(e error) {
+	stmt.err = e
+}
+
 func (stmt *Stmt) Close() error {
-	return stmt.pool.Put(stmt.cn)
+	return stmt.db.freeConn(stmt.cn, stmt.err)
 }

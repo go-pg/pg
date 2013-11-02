@@ -2,7 +2,9 @@ package pg
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
 )
@@ -186,5 +188,25 @@ func Decode(dst interface{}, f []byte) error {
 		*v = vv
 		return nil
 	}
-	return fmt.Errorf("pg: unsupported destination type: %T", dst)
+
+	v := reflect.ValueOf(dst)
+	if !v.IsValid() {
+		return fmt.Errorf("pg: Decode(%q)", v)
+	}
+	if v.Kind() != reflect.Ptr {
+		return errors.New("pg: pointer expected")
+	}
+	v = v.Elem()
+
+	switch v.Kind() {
+	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
+		n, err := strconv.ParseInt(string(f), 10, 64)
+		if err != nil {
+			return err
+		}
+		v.SetInt(n)
+		return nil
+	default:
+		return fmt.Errorf("pg: unsupported dst type: %T", dst)
+	}
 }

@@ -1,10 +1,14 @@
 package pg
 
-type Tx struct {
-	pool     *defaultPool
-	cn       *conn
-	cnBroken bool
+import (
+	"github.com/golang/glog"
+)
 
+type Tx struct {
+	db *DB
+	cn *conn
+
+	err  error
 	done bool
 }
 
@@ -78,17 +82,20 @@ func (tx *Tx) Rollback() error {
 	return err
 }
 
-func (tx *Tx) setErr(ei error) {
-	if e, ok := ei.(Error); !ok || e.GetField('S') == "FATAL" {
-		tx.cnBroken = true
-	}
+func (tx *Tx) setErr(e error) {
+	tx.err = e
 }
 
 func (tx *Tx) close() error {
+	if tx.done {
+		return nil
+	}
 	tx.done = true
-	if tx.cnBroken {
-		return tx.pool.Remove(tx.cn)
-	} else {
-		return tx.pool.Put(tx.cn)
+	return tx.db.freeConn(tx.cn, tx.err)
+}
+
+func txFinalizer(tx *Tx) {
+	if !tx.done {
+		glog.Errorf("transaction was neither commited or rollbacked")
 	}
 }

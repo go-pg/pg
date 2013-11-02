@@ -13,6 +13,11 @@ import (
 
 var zeroTime = time.Time{}
 
+func dial(opt *Options) (net.Conn, error) {
+	return net.DialTimeout(
+		"tcp", net.JoinHostPort(opt.getHost(), opt.getPort()), opt.getDialTimeout())
+}
+
 type conn struct {
 	opt    *Options
 	cn     net.Conn
@@ -22,12 +27,14 @@ type conn struct {
 
 	readTimeout  time.Duration
 	writeTimeout time.Duration
+
+	processId int32
+	secretKey int32
 }
 
-func makeDialer(opt *Options) func() (*conn, error) {
+func newConnFunc(opt *Options) func() (*conn, error) {
 	return func() (*conn, error) {
-		netcn, err := net.DialTimeout(
-			"tcp", net.JoinHostPort(opt.getHost(), opt.getPort()), opt.getDialTimeout())
+		netcn, err := dial(opt)
 		if err != nil {
 			return nil, err
 		}
@@ -111,7 +118,18 @@ func (cn *conn) Startup() error {
 			return err
 		}
 		switch c {
-		case backendKeyDataMsg, parameterStatusMsg:
+		case backendKeyDataMsg:
+			processId, err := cn.ReadInt32()
+			if err != nil {
+				return err
+			}
+			secretKey, err := cn.ReadInt32()
+			if err != nil {
+				return err
+			}
+			cn.processId = processId
+			cn.secretKey = secretKey
+		case parameterStatusMsg:
 			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return err

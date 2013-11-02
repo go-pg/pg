@@ -114,6 +114,14 @@ func writeStartupMsg(buf *buffer, user, database string) {
 	buf.EndMsg()
 }
 
+func writeCancelRequestMsg(buf *buffer, processId, secretKey int32) {
+	buf.StartMsg(0)
+	buf.WriteInt32(80877102)
+	buf.WriteInt32(processId)
+	buf.WriteInt32(secretKey)
+	buf.EndMsg()
+}
+
 func writePasswordMsg(buf *buffer, password string) {
 	buf.StartMsg(passwordMessageMsg)
 	buf.WriteString(password)

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"net"
-	"sync"
 	"testing"
 	"time"
 
@@ -297,35 +296,14 @@ func (t *DBTest) TestListenTimeout(c *C) {
 }
 
 func (t *DBTest) TestTimeout(c *C) {
-	tx1, err := t.db.Begin()
+	_, err := t.db.Exec("SELECT pg_sleep(60)")
+	c.Assert(err.(net.Error).Timeout(), Equals, true)
+
+	// Unreliable check that previous query was cancelled.
+	var count int
+	_, err = t.db.QueryOne(pg.LoadInto(&count), "SELECT COUNT(*) FROM pg_stat_activity")
 	c.Assert(err, IsNil)
-
-	_, err = tx1.Exec("SELECT pg_advisory_xact_lock(1)")
-	c.Assert(err, IsNil)
-
-	tx2, err := t.db.Begin()
-	c.Assert(err, IsNil)
-
-	_, err = tx2.Exec("SELECT pg_advisory_xact_lock(2)")
-	c.Assert(err, IsNil)
-
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		_, err := tx1.Exec("SELECT pg_advisory_xact_lock(2)")
-		c.Assert(err.(net.Error).Timeout(), Equals, true)
-	}()
-
-	go func() {
-		defer wg.Done()
-		time.Sleep(500 * time.Millisecond)
-		_, err := tx2.Exec("SELECT pg_advisory_xact_lock(1)")
-		c.Assert(err, IsNil)
-	}()
-
-	wg.Wait()
+	c.Assert(count, Equals, 1)
 }
 
 func (t *DBTest) BenchmarkFormatWithoutArgs(c *C) {

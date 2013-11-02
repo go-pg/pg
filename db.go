@@ -1,7 +1,11 @@
 package pg
 
 import (
+	"net"
+	"runtime"
 	"time"
+
+	"github.com/golang/glog"
 )
 
 type Options struct {
@@ -83,7 +87,7 @@ func (opt *Options) getSSL() bool {
 func Connect(opt *Options) *DB {
 	return &DB{
 		opt:  opt,
-		pool: newDefaultPool(makeDialer(opt), opt.getPoolSize(), opt.getIdleTimeout()),
+		pool: newDefaultPool(newConnFunc(opt), opt.getPoolSize(), opt.getIdleTimeout()),
 	}
 }
 
@@ -106,11 +110,16 @@ func (db *DB) conn() (*conn, error) {
 	return cn, nil
 }
 
-func (db *DB) freeConn(cn *conn, ei error) {
+func (db *DB) freeConn(cn *conn, ei error) error {
 	if e, ok := ei.(Error); ok && e.GetField('S') != "FATAL" {
-		db.pool.Put(cn)
+		return db.pool.Put(cn)
 	} else {
-		db.pool.Remove(cn)
+		if netErr, ok := ei.(net.Error); ok && netErr.Timeout() {
+			if err := db.cancelRequest(cn.processId, cn.secretKey); err != nil {
+				glog.Errorf("cancelRequest failed: %s", err)
+			}
+		}
+		return db.pool.Remove(cn)
 	}
 }
 
@@ -133,7 +142,7 @@ func (db *DB) Prepare(q string) (*Stmt, error) {
 	}
 
 	stmt := &Stmt{
-		pool:    db.pool,
+		db:      db,
 		cn:      cn,
 		columns: columns,
 	}
@@ -215,13 +224,14 @@ func (db *DB) Begin() (*Tx, error) {
 	}
 
 	tx := &Tx{
-		pool: db.pool,
-		cn:   cn,
+		db: db,
+		cn: cn,
 	}
 	if _, err := tx.Exec("BEGIN"); err != nil {
 		tx.close()
 		return nil, err
 	}
+	runtime.SetFinalizer(tx, txFinalizer)
 	return tx, nil
 }
 
@@ -240,4 +250,20 @@ func (db *DB) Listen(channels ...string) (*Listener, error) {
 		return nil, err
 	}
 	return l, nil
+}
+
+func (db *DB) cancelRequest(processId, secretKey int32) error {
+	cn, err := dial(db.opt)
+	if err != nil {
+		return err
+	}
+
+	buf := newBuffer()
+	writeCancelRequestMsg(buf, processId, secretKey)
+	_, err = cn.Write(buf.Flush())
+	if err != nil {
+		return err
+	}
+
+	return cn.Close()
 }

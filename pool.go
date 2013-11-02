@@ -7,7 +7,7 @@ import (
 )
 
 type defaultPool struct {
-	dial func() (*conn, error)
+	New func() (*conn, error)
 
 	cond  *sync.Cond
 	conns *list.List
@@ -21,7 +21,7 @@ func newDefaultPool(
 	maxSize int, idleTimeout time.Duration,
 ) *defaultPool {
 	return &defaultPool{
-		dial: dial,
+		New: dial,
 
 		cond:  sync.NewCond(&sync.Mutex{}),
 		conns: list.New(),
@@ -49,7 +49,7 @@ func (p *defaultPool) Get() (*conn, bool, error) {
 	}
 
 	if p.conns.Len() == 0 {
-		cn, err := p.dial()
+		cn, err := p.New()
 		if err != nil {
 			return nil, false, err
 		}
