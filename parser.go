@@ -117,14 +117,22 @@ func newHstoreParser(b []byte) *hstoreParser {
 	}
 }
 
-func (p *hstoreParser) NextKey() []byte {
-	if p.Next() != '"' {
+func (p *hstoreParser) NextKey() ([]byte, error) {
+	next := p.Next()
+	if next == ',' {
+		if n := p.Peek(); n == ' ' {
+			p.pos++
+		}
+		next = p.Next()
+	}
+
+	if next != '"' {
 		p.pos--
 		bb := p.ReadSep([]byte{'=', '>'})
 		if bytes.Equal(bb, pgNull) {
-			return nil
+			return nil, nil
 		}
-		return bb
+		return bb, nil
 	}
 
 	b := make([]byte, 0)
@@ -153,24 +161,23 @@ func (p *hstoreParser) NextKey() []byte {
 		case '"':
 			// Read "=>".
 			p.pos += 2
-			return b
+			return b, nil
 		default:
 			b = append(b, c)
 		}
 	}
 
-	p.err = fmt.Errorf("pg: can't parse hstore: %q", p.b)
-	return nil
+	return nil, fmt.Errorf("pg: can't parse hstore: %s", p.b)
 }
 
-func (p *hstoreParser) NextValue() []byte {
+func (p *hstoreParser) NextValue() ([]byte, error) {
 	if p.Next() != '"' {
 		p.pos--
 		bb := p.ReadSep([]byte{',', ' '})
 		if bytes.Equal(bb, pgNull) {
-			return nil
+			return nil, nil
 		}
-		return bb
+		return bb, nil
 	}
 
 	b := make([]byte, 0)
@@ -197,14 +204,11 @@ func (p *hstoreParser) NextValue() []byte {
 				b = append(b, c)
 			}
 		case '"':
-			// Read ",".
-			p.pos++
-			return b
+			return b, nil
 		default:
 			b = append(b, c)
 		}
 	}
 
-	p.err = fmt.Errorf("pg: can't parse hstore: %q", p.b)
-	return nil
+	return nil, fmt.Errorf("pg: can't parse hstore: %s", p.b)
 }

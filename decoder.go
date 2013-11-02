@@ -175,11 +175,17 @@ func Decode(dst interface{}, f []byte) error {
 		p := newHstoreParser(f)
 		vv := make(map[string]string)
 		for p.Valid() {
-			key := p.NextKey()
+			key, err := p.NextKey()
+			if err != nil {
+				return err
+			}
 			if key == nil {
 				return fmt.Errorf("pg: unexpected NULL: %q", f)
 			}
-			value := p.NextValue()
+			value, err := p.NextValue()
+			if err != nil {
+				return err
+			}
 			if value == nil {
 				return fmt.Errorf("pg: unexpected NULL: %q", f)
 			}

@@ -218,7 +218,7 @@ func writeBindExecuteMsg(buf *buffer, args ...interface{}) error {
 	for i := 0; i < len(args); i++ {
 		pos := len(buf.B)
 		buf.Grow(4)
-		buf.B = appendValue(buf.B, args[i])
+		buf.B = appendRawValue(buf.B, args[i])
 		binary.BigEndian.PutUint32(buf.B[pos:], uint32(len(buf.B)-pos-4))
 	}
 	buf.WriteInt16(0)

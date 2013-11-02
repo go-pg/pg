@@ -16,12 +16,19 @@ type Appender interface {
 	Append([]byte) []byte
 }
 
+type RawAppender interface {
+	AppendRaw([]byte) []byte
+}
+
 // Raw SQL query.
 type Q string
 
 func (q Q) Append(dst []byte) []byte {
-	dst = append(dst, string(q)...)
-	return dst
+	return append(dst, string(q)...)
+}
+
+func (q Q) AppendRaw(dst []byte) []byte {
+	return q.Append(dst)
 }
 
 // SQL field.
@@ -38,4 +45,8 @@ func (f F) Append(dst []byte) []byte {
 	}
 	dst = append(dst, '"')
 	return dst
+}
+
+func (f F) AppendRaw(dst []byte) []byte {
+	return append(dst, string(f)...)
 }

@@ -6,6 +6,14 @@ import (
 	"github.com/vmihailenco/pg"
 )
 
+var db *pg.DB
+
+func init() {
+	db = pg.Connect(&pg.Options{
+		User: "postgres",
+	})
+}
+
 func ExampleConnect() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
@@ -14,11 +22,6 @@ func ExampleConnect() {
 }
 
 func ExampleDB_QueryOne() {
-	db := pg.Connect(&pg.Options{
-		User: "postgres",
-	})
-	defer db.Close()
-
 	var user struct {
 		Name string
 	}
@@ -34,22 +37,12 @@ func ExampleDB_QueryOne() {
 }
 
 func ExampleDB_Exec() {
-	db := pg.Connect(&pg.Options{
-		User: "postgres",
-	})
-	defer db.Close()
-
 	res, err := db.Exec("CREATE TEMP TABLE test()")
 	fmt.Println(res.Affected(), err)
 	// Output: 0 <nil>
 }
 
 func ExampleLoadInto() {
-	db := pg.Connect(&pg.Options{
-		User: "postgres",
-	})
-	defer db.Close()
-
 	var s1, s2 string
 	_, err := db.QueryOne(pg.LoadInto(&s1, &s2), "SELECT ?, ?", "foo", "bar")
 	fmt.Println(s1, s2, err)
@@ -57,11 +50,6 @@ func ExampleLoadInto() {
 }
 
 func ExampleListener() {
-	db := pg.Connect(&pg.Options{
-		User: "postgres",
-	})
-	defer db.Close()
-
 	ln, _ := db.Listen("mychan")
 
 	done := make(chan struct{})
@@ -75,4 +63,37 @@ func ExampleListener() {
 	<-done
 
 	// Output: mychan "hello world" <nil>
+}
+
+func ExampleDB_Begin() {
+	tx, err := db.Begin()
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = tx.Exec("CREATE TEMP TABLE test()")
+	if err != nil {
+		panic(err)
+	}
+
+	err = tx.Rollback()
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = db.Exec("SELECT * FROM test")
+	fmt.Println(err)
+	// Output: ERROR #42P01 relation "test" does not exist:
+}
+
+func ExampleDB_Prepare() {
+	stmt, err := db.Prepare("SELECT $1::text, $2::text")
+	if err != nil {
+		panic(err)
+	}
+
+	var s1, s2 string
+	_, err = stmt.QueryOne(pg.LoadInto(&s1, &s2), "foo", "bar")
+	fmt.Println(s1, s2, err)
+	// Output: foo bar <nil>
 }

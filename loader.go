@@ -83,7 +83,7 @@ func (strings Strings) Append(dst []byte) []byte {
 	}
 
 	for _, s := range strings {
-		dst = appendPgString(dst, s)
+		dst = appendString(dst, s)
 		dst = append(dst, ',')
 	}
 	dst = dst[:len(dst)-1]

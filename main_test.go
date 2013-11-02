@@ -68,13 +68,6 @@ func (d *Dst) New() interface{} {
 	return d
 }
 
-func (t *DBTest) TestQueryWithNullByte(c *C) {
-	var s string
-	_, err := t.db.QueryOne(pg.LoadInto(&s), "SELECT ?", "hello\000")
-	c.Assert(err, IsNil)
-	c.Assert(s, Equals, "hello")
-}
-
 func (t *DBTest) TestQuery(c *C) {
 	dst := &Dst{}
 	res, err := t.db.Query(dst, "SELECT 1 AS num")
@@ -114,6 +107,46 @@ func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
 	dst, err := t.db.QueryOne(&Dst{}, "SELECT s.num AS num FROM generate_series(0, 10) AS s(num)")
 	c.Assert(err, Equals, pg.ErrMultiRows)
 	c.Assert(dst, IsNil)
+}
+
+func (t *DBTest) TestTypeString(c *C) {
+	src := "hello\000"
+	var dst string
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?", src)
+	c.Assert(err, IsNil)
+	c.Assert(dst, Equals, "hello")
+}
+
+func (t *DBTest) TestTypeStmtString(c *C) {
+	stmt, err := t.db.Prepare("SELECT $1::text")
+	c.Assert(err, IsNil)
+
+	src := "hello\000"
+	var dst string
+	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
+	c.Assert(err, IsNil)
+	c.Assert(dst, Equals, "hello")
+}
+
+func (t *DBTest) TestTypeBytes(c *C) {
+	src := []byte("hello world\000")
+	var dst []byte
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::bytea", src)
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, src)
+}
+
+func (t *DBTest) TestTypeStmtBytes(c *C) {
+	stmt, err := t.db.Prepare("SELECT $1::bytea")
+	c.Assert(err, IsNil)
+
+	src := []byte("hello world\000")
+	var dst []byte
+	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, src)
+
+	c.Assert(stmt.Close(), IsNil)
 }
 
 func (t *DBTest) TestTypeDate(c *C) {
@@ -158,44 +191,59 @@ func (t *DBTest) TestTypeUint64(c *C) {
 	c.Assert(dst, Equals, uint64(math.MaxUint64))
 }
 
-func (t *DBTest) TestTypeBytes(c *C) {
-	var dst []byte
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::bytea", []byte("hello world"))
+func (t *DBTest) TestTypeStringArray(c *C) {
+	src := []string{"foo \n", "bar", "hello {}", "'\\\""}
+	var dst []string
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::text[]", src)
 	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, []byte("hello world"))
+	c.Assert(dst, DeepEquals, src)
 }
 
-func (t *DBTest) TestTypeStringArray(c *C) {
-	var dst []string
-	_, err := t.db.QueryOne(
-		pg.LoadInto(&dst),
-		"SELECT ?::text[]",
-		[]string{"foo \n", "bar", "hello {}", "'\\\""},
-	)
+func (t *DBTest) TestTypeStmtStringArray(c *C) {
+	stmt, err := t.db.Prepare("SELECT $1::text[]")
 	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, []string{"foo \n", "bar", "hello {}", "'\\\""})
+
+	src := []string{"foo \n", "bar", "hello {}", "'\\\""}
+	var dst []string
+	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, src)
 }
 
 func (t *DBTest) TestTypeEmptyStringArray(c *C) {
 	var dst []string
-	_, err := t.db.QueryOne(
-		pg.LoadInto(&dst),
-		"SELECT ?::text[]",
-		[]string{},
-	)
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::text[]", []string{})
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, []string{})
+}
+
+func (t *DBTest) TestTypeStmtEmptyStringArray(c *C) {
+	stmt, err := t.db.Prepare("SELECT $1::text[]")
+	c.Assert(err, IsNil)
+
+	var dst []string
+	_, err = stmt.QueryOne(pg.LoadInto(&dst), []string{})
 	c.Assert(err, IsNil)
 	c.Assert(dst, DeepEquals, []string{})
 }
 
 func (t *DBTest) TestTypeIntArray(c *C) {
+	src := []int{1, 2, 3}
 	var dst []int
-	_, err := t.db.QueryOne(
-		pg.LoadInto(&dst),
-		"SELECT ?::int[]",
-		[]int{1, 2, 3},
-	)
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::int[]", []int{1, 2, 3})
 	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, []int{1, 2, 3})
+	c.Assert(dst, DeepEquals, src)
+}
+
+func (t *DBTest) TestTypeStmtIntArray(c *C) {
+	stmt, err := t.db.Prepare("SELECT $1::int[]")
+	c.Assert(err, IsNil)
+
+	src := []int{1, 2, 3}
+	var dst []int
+	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, src)
 }
 
 func (t *DBTest) TestTypeEmptyIntArray(c *C) {
@@ -210,14 +258,22 @@ func (t *DBTest) TestTypeEmptyIntArray(c *C) {
 }
 
 func (t *DBTest) TestTypeHstore(c *C) {
+	src := map[string]string{"foo =>": "bar =>", "hello": "world", "'\\\"": "'\\\""}
 	dst := make(map[string]string)
-	_, err := t.db.QueryOne(
-		pg.LoadInto(&dst),
-		"SELECT ?",
-		map[string]string{"foo =>": "bar =>", "hello": "world", "'\\\"": "'\\\""},
-	)
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?", src)
 	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, map[string]string{"foo =>": "bar =>", "hello": "world", "'\\\"": "'\\\""})
+	c.Assert(dst, DeepEquals, src)
+}
+
+func (t *DBTest) TestTypeStmtHstore(c *C) {
+	stmt, err := t.db.Prepare("SELECT $1::hstore")
+	c.Assert(err, IsNil)
+
+	src := map[string]string{"foo =>": "bar =>", "hello": "world", "'\\\"": "'\\\""}
+	dst := make(map[string]string)
+	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, src)
 }
 
 func (t *DBTest) TestQueryInts(c *C) {

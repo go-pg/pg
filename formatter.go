@@ -33,7 +33,7 @@ func MustFormatQ(src string, args ...interface{}) Q {
 	return q
 }
 
-func appendPgString(dst []byte, src string) []byte {
+func appendString(dst []byte, src string) []byte {
 	dst = append(dst, '\'')
 	for _, c := range []byte(src) {
 		switch c {
@@ -49,7 +49,16 @@ func appendPgString(dst []byte, src string) []byte {
 	return dst
 }
 
-func appendPgBytes(dst []byte, src []byte) []byte {
+func appendRawString(dst []byte, src string) []byte {
+	for _, c := range []byte(src) {
+		if c != '\000' {
+			dst = append(dst, c)
+		}
+	}
+	return dst
+}
+
+func appendBytes(dst []byte, src []byte) []byte {
 	tmp := make([]byte, hex.EncodedLen(len(src)))
 	hex.Encode(tmp, src)
 
@@ -59,7 +68,7 @@ func appendPgBytes(dst []byte, src []byte) []byte {
 	return dst
 }
 
-func appendPgSubString(dst []byte, src string) []byte {
+func appendSubstring(dst []byte, src string) []byte {
 	dst = append(dst, '"')
 	for _, c := range []byte(src) {
 		switch c {
@@ -79,62 +88,80 @@ func appendPgSubString(dst []byte, src string) []byte {
 	return dst
 }
 
-func appendValue(dst []byte, src interface{}) []byte {
-	switch v := src.(type) {
+func appendRawSubstring(dst []byte, src string) []byte {
+	dst = append(dst, '"')
+	for _, c := range []byte(src) {
+		switch c {
+		case '\000':
+			continue
+		case '\\':
+			dst = append(dst, '\\', '\\')
+		case '"':
+			dst = append(dst, '\\', '"')
+		default:
+			dst = append(dst, c)
+		}
+	}
+	dst = append(dst, '"')
+	return dst
+}
+
+func appendValue(dst []byte, srci interface{}) []byte {
+	switch src := srci.(type) {
 	case bool:
-		if v {
+		if src {
 			return append(dst, "'t'"...)
 		}
 		return append(dst, "'f'"...)
 	case int8:
-		return strconv.AppendInt(dst, int64(v), 10)
+		return strconv.AppendInt(dst, int64(src), 10)
 	case int16:
-		return strconv.AppendInt(dst, int64(v), 10)
+		return strconv.AppendInt(dst, int64(src), 10)
 	case int32:
-		return strconv.AppendInt(dst, int64(v), 10)
+		return strconv.AppendInt(dst, int64(src), 10)
 	case int64:
-		return strconv.AppendInt(dst, int64(v), 10)
+		return strconv.AppendInt(dst, int64(src), 10)
 	case int:
-		return strconv.AppendInt(dst, int64(v), 10)
+		return strconv.AppendInt(dst, int64(src), 10)
 	case uint8:
-		return strconv.AppendInt(dst, int64(v), 10)
+		return strconv.AppendInt(dst, int64(src), 10)
 	case uint16:
-		return strconv.AppendInt(dst, int64(v), 10)
+		return strconv.AppendInt(dst, int64(src), 10)
 	case uint32:
-		return strconv.AppendInt(dst, int64(v), 10)
+		return strconv.AppendInt(dst, int64(src), 10)
 	case uint64:
-		return strconv.AppendInt(dst, int64(v), 10)
+		return strconv.AppendInt(dst, int64(src), 10)
 	case uint:
-		return strconv.AppendInt(dst, int64(v), 10)
+		return strconv.AppendInt(dst, int64(src), 10)
 	case string:
-		return appendPgString(dst, v)
+		return appendString(dst, src)
 	case time.Time:
 		dst = append(dst, '\'')
-		dst = append(dst, v.UTC().Format(datetimeFormat)...)
+		dst = append(dst, src.UTC().Format(datetimeFormat)...)
 		dst = append(dst, '\'')
 		return dst
 	case []byte:
-		return appendPgBytes(dst, v)
+		return appendBytes(dst, src)
 	case []string:
-		if len(v) == 0 {
+		if len(src) == 0 {
 			return append(dst, "'{}'"...)
 		}
 
 		dst = append(dst, "'{"...)
-		for _, s := range v {
-			dst = appendPgSubString(dst, s)
+		for _, s := range src {
+			dst = appendSubstring(dst, s)
 			dst = append(dst, ',')
 		}
 		dst[len(dst)-1] = '}'
 		dst = append(dst, '\'')
 		return dst
 	case []int:
-		if len(v) == 0 {
+		if len(src) == 0 {
 			return append(dst, "'{}'"...)
 		}
 
 		dst = append(dst, "'{"...)
-		for _, n := range v {
+		for _, n := range src {
 			dst = strconv.AppendInt(dst, int64(n), 10)
 			dst = append(dst, ',')
 		}
@@ -142,12 +169,12 @@ func appendValue(dst []byte, src interface{}) []byte {
 		dst = append(dst, '\'')
 		return dst
 	case []int64:
-		if len(v) == 0 {
+		if len(src) == 0 {
 			return append(dst, "'{}'"...)
 		}
 
 		dst = append(dst, "'{"...)
-		for _, n := range v {
+		for _, n := range src {
 			dst = strconv.AppendInt(dst, n, 10)
 			dst = append(dst, ',')
 		}
@@ -155,25 +182,121 @@ func appendValue(dst []byte, src interface{}) []byte {
 		dst = append(dst, '\'')
 		return dst
 	case map[string]string:
-		if len(v) == 0 {
+		if len(src) == 0 {
 			return append(dst, "''"...)
 		}
 
 		dst = append(dst, '\'')
-		for key, value := range v {
-			dst = appendPgSubString(dst, key)
+		for key, value := range src {
+			dst = appendSubstring(dst, key)
 			dst = append(dst, '=', '>')
-			dst = appendPgSubString(dst, value)
+			dst = appendSubstring(dst, value)
 			dst = append(dst, ',')
 		}
 		dst[len(dst)-1] = '\''
 		return dst
 	case Appender:
-		return v.Append(dst)
+		return src.Append(dst)
 	default:
-		panic(fmt.Sprintf("pg: unsupported src type: %T", src))
+		panic(fmt.Sprintf("pg: unsupported src type: %T", srci))
 	}
 }
+
+func appendRawValue(dst []byte, srci interface{}) []byte {
+	switch src := srci.(type) {
+	case bool:
+		if src {
+			return append(dst, 't')
+		}
+		return append(dst, 'f')
+	case int8:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case int16:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case int32:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case int64:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case int:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case uint8:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case uint16:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case uint32:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case uint64:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case uint:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case string:
+		return appendRawString(dst, src)
+	case time.Time:
+		return append(dst, src.UTC().Format(datetimeFormat)...)
+	case []byte:
+		tmp := make([]byte, hex.EncodedLen(len(src)))
+		hex.Encode(tmp, src)
+
+		dst = append(dst, "\\x"...)
+		dst = append(dst, tmp...)
+		return dst
+	case []string:
+		if len(src) == 0 {
+			return append(dst, "{}"...)
+		}
+
+		dst = append(dst, "{"...)
+		for _, s := range src {
+			dst = appendRawSubstring(dst, s)
+			dst = append(dst, ',')
+		}
+		dst[len(dst)-1] = '}'
+		return dst
+	case []int:
+		if len(src) == 0 {
+			return append(dst, "{}"...)
+		}
+
+		dst = append(dst, "{"...)
+		for _, n := range src {
+			dst = strconv.AppendInt(dst, int64(n), 10)
+			dst = append(dst, ',')
+		}
+		dst[len(dst)-1] = '}'
+		return dst
+	case []int64:
+		if len(src) == 0 {
+			return append(dst, "{}"...)
+		}
+
+		dst = append(dst, "{"...)
+		for _, n := range src {
+			dst = strconv.AppendInt(dst, n, 10)
+			dst = append(dst, ',')
+		}
+		dst[len(dst)-1] = '}'
+		return dst
+	case map[string]string:
+		if len(src) == 0 {
+			return dst
+		}
+
+		for key, value := range src {
+			dst = appendRawSubstring(dst, key)
+			dst = append(dst, '=', '>')
+			dst = appendRawSubstring(dst, value)
+			dst = append(dst, ',')
+		}
+		dst = dst[:len(dst)-1]
+		return dst
+	case RawAppender:
+		return src.AppendRaw(dst)
+	default:
+		panic(fmt.Sprintf("pg: unsupported src type: %T", srci))
+	}
+}
+
+//------------------------------------------------------------------------------
 
 type queryFormatter struct {
 	*parser
