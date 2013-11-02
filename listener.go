@@ -6,21 +6,24 @@ import (
 )
 
 type Listener struct {
-	pool *defaultPool
-	cn   *conn
+	db  *DB
+	_cn *conn
+}
+
+func (l *Listener) conn() *conn {
+	l._cn.SetReadTimeout(l.db.opt.ReadTimeout)
+	l._cn.SetWriteTimeout(l.db.opt.WriteTimeout)
+	return l._cn
 }
 
 func (l *Listener) Listen(channels ...string) error {
+	cn := l.conn()
 	for _, name := range channels {
-		if err := writeQueryMsg(l.cn.buf, "LISTEN ?", F(name)); err != nil {
+		if err := writeQueryMsg(cn.buf, "LISTEN ?", F(name)); err != nil {
 			return err
 		}
 	}
-	return l.cn.Flush()
-}
-
-func (l *Listener) Close() error {
-	return l.pool.Remove(l.cn)
+	return cn.Flush()
 }
 
 func (l *Listener) Receive() (channel string, payload string, err error) {
@@ -28,40 +31,41 @@ func (l *Listener) Receive() (channel string, payload string, err error) {
 }
 
 func (l *Listener) ReceiveTimeout(readTimeout time.Duration) (channel, payload string, err error) {
-	l.cn.readTimeout = readTimeout
+	cn := l.conn()
+
 	for {
-		c, msgLen, err := l.cn.ReadMsgType()
+		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
 			return "", "", err
 		}
 
 		switch c {
 		case commandCompleteMsg:
-			_, err := l.cn.br.ReadN(msgLen)
+			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return "", "", err
 			}
 		case readyForQueryMsg:
-			_, err := l.cn.br.ReadN(msgLen)
+			_, err := cn.br.ReadN(msgLen)
 			if err != nil {
 				return "", "", err
 			}
 		case errorResponseMsg:
-			e, err := l.cn.ReadError()
+			e, err := cn.ReadError()
 			if err != nil {
 				return "", "", err
 			}
 			return "", "", e
 		case notificationResponseMsg:
-			_, err := l.cn.ReadInt32()
+			_, err := cn.ReadInt32()
 			if err != nil {
 				return "", "", err
 			}
-			channel, err = l.cn.ReadString()
+			channel, err = cn.ReadString()
 			if err != nil {
 				return "", "", err
 			}
-			payload, err = l.cn.ReadString()
+			payload, err = cn.ReadString()
 			if err != nil {
 				return "", "", err
 			}
@@ -70,4 +74,8 @@ func (l *Listener) ReceiveTimeout(readTimeout time.Duration) (channel, payload s
 			return "", "", fmt.Errorf("pg: unexpected message %q", c)
 		}
 	}
+}
+
+func (l *Listener) Close() error {
+	return l.db.pool.Remove(l._cn)
 }

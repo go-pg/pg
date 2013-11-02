@@ -2,23 +2,31 @@ package pg
 
 type Stmt struct {
 	db      *DB
-	cn      *conn
+	_cn     *conn
 	columns []string
 
 	err error
 }
 
+func (stmt *Stmt) conn() *conn {
+	stmt._cn.SetReadTimeout(stmt.db.opt.ReadTimeout)
+	stmt._cn.SetWriteTimeout(stmt.db.opt.WriteTimeout)
+	return stmt._cn
+}
+
 func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
-	if err := writeBindExecuteMsg(stmt.cn.buf, args...); err != nil {
+	cn := stmt.conn()
+
+	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
 		return nil, err
 	}
 
-	if err := stmt.cn.Flush(); err != nil {
+	if err := cn.Flush(); err != nil {
 		stmt.setErr(err)
 		return nil, err
 	}
 
-	res, err := readExtQueryResult(stmt.cn)
+	res, err := readExtQueryResult(cn)
 	if err != nil {
 		stmt.setErr(err)
 		return nil, err
@@ -28,16 +36,18 @@ func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
 }
 
 func (stmt *Stmt) Query(f Factory, args ...interface{}) (*Result, error) {
-	if err := writeBindExecuteMsg(stmt.cn.buf, args...); err != nil {
+	cn := stmt.conn()
+
+	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
 		return nil, err
 	}
 
-	if err := stmt.cn.Flush(); err != nil {
+	if err := cn.Flush(); err != nil {
 		stmt.setErr(err)
 		return nil, err
 	}
 
-	res, err := readExtQueryData(stmt.cn, f, stmt.columns)
+	res, err := readExtQueryData(cn, f, stmt.columns)
 	if err != nil {
 		stmt.setErr(err)
 		return nil, err
@@ -67,5 +77,5 @@ func (stmt *Stmt) setErr(e error) {
 }
 
 func (stmt *Stmt) Close() error {
-	return stmt.db.freeConn(stmt.cn, stmt.err)
+	return stmt.db.freeConn(stmt._cn, stmt.err)
 }

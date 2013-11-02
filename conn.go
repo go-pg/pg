@@ -25,8 +25,8 @@ type conn struct {
 	buf    *buffer
 	usedAt time.Time
 
-	readTimeout  time.Duration
-	writeTimeout time.Duration
+	readDeadline  time.Time
+	writeDeadline time.Time
 
 	processId int32
 	secretKey int32
@@ -51,21 +51,29 @@ func newConnFunc(opt *Options) func() (*conn, error) {
 	}
 }
 
-func (cn *conn) Read(b []byte) (int, error) {
-	if cn.readTimeout != 0 {
-		cn.cn.SetReadDeadline(time.Now().Add(cn.readTimeout))
+func (cn *conn) SetReadTimeout(dur time.Duration) {
+	if dur == 0 {
+		cn.readDeadline = zeroTime
 	} else {
-		cn.cn.SetReadDeadline(zeroTime)
+		cn.readDeadline = time.Now().Add(dur)
 	}
+}
+
+func (cn *conn) SetWriteTimeout(dur time.Duration) {
+	if dur == 0 {
+		cn.writeDeadline = zeroTime
+	} else {
+		cn.writeDeadline = time.Now().Add(dur)
+	}
+}
+
+func (cn *conn) Read(b []byte) (int, error) {
+	cn.cn.SetReadDeadline(cn.readDeadline)
 	return cn.cn.Read(b)
 }
 
 func (cn *conn) Write(b []byte) (int, error) {
-	if cn.writeTimeout != 0 {
-		cn.cn.SetWriteDeadline(time.Now().Add(cn.writeTimeout))
-	} else {
-		cn.cn.SetReadDeadline(zeroTime)
-	}
+	cn.cn.SetWriteDeadline(cn.writeDeadline)
 	return cn.cn.Write(b)
 }
 

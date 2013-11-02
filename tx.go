@@ -5,11 +5,17 @@ import (
 )
 
 type Tx struct {
-	db *DB
-	cn *conn
+	db  *DB
+	_cn *conn
 
 	err  error
 	done bool
+}
+
+func (tx *Tx) conn() *conn {
+	tx._cn.SetReadTimeout(tx.db.opt.ReadTimeout)
+	tx._cn.SetWriteTimeout(tx.db.opt.WriteTimeout)
+	return tx._cn
 }
 
 func (tx *Tx) Exec(q string, args ...interface{}) (*Result, error) {
@@ -17,16 +23,18 @@ func (tx *Tx) Exec(q string, args ...interface{}) (*Result, error) {
 		return nil, ErrTxDone
 	}
 
-	if err := writeQueryMsg(tx.cn.buf, q, args...); err != nil {
+	cn := tx.conn()
+
+	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
 		return nil, err
 	}
 
-	if err := tx.cn.Flush(); err != nil {
+	if err := cn.Flush(); err != nil {
 		tx.setErr(err)
 		return nil, err
 	}
 
-	res, err := readSimpleQueryResult(tx.cn)
+	res, err := readSimpleQueryResult(cn)
 	if err != nil {
 		tx.setErr(err)
 		return nil, err
@@ -40,16 +48,18 @@ func (tx *Tx) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 		return nil, ErrTxDone
 	}
 
-	if err := writeQueryMsg(tx.cn.buf, q, args...); err != nil {
+	cn := tx.conn()
+
+	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
 		return nil, err
 	}
 
-	if err := tx.cn.Flush(); err != nil {
+	if err := cn.Flush(); err != nil {
 		tx.setErr(err)
 		return nil, err
 	}
 
-	res, err := readSimpleQueryData(tx.cn, f)
+	res, err := readSimpleQueryData(cn, f)
 	if err != nil {
 		tx.setErr(err)
 		return nil, err
@@ -91,7 +101,7 @@ func (tx *Tx) close() error {
 		return nil
 	}
 	tx.done = true
-	return tx.db.freeConn(tx.cn, tx.err)
+	return tx.db.freeConn(tx._cn, tx.err)
 }
 
 func txFinalizer(tx *Tx) {

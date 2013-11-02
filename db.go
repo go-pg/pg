@@ -105,8 +105,9 @@ func (db *DB) conn() (*conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	cn.readTimeout = db.opt.ReadTimeout
-	cn.writeTimeout = db.opt.WriteTimeout
+
+	cn.SetReadTimeout(db.opt.ReadTimeout)
+	cn.SetWriteTimeout(db.opt.WriteTimeout)
 	return cn, nil
 }
 
@@ -143,7 +144,7 @@ func (db *DB) Prepare(q string) (*Stmt, error) {
 
 	stmt := &Stmt{
 		db:      db,
-		cn:      cn,
+		_cn:     cn,
 		columns: columns,
 	}
 	return stmt, nil
@@ -224,8 +225,8 @@ func (db *DB) Begin() (*Tx, error) {
 	}
 
 	tx := &Tx{
-		db: db,
-		cn: cn,
+		db:  db,
+		_cn: cn,
 	}
 	if _, err := tx.Exec("BEGIN"); err != nil {
 		tx.close()
@@ -242,8 +243,8 @@ func (db *DB) Listen(channels ...string) (*Listener, error) {
 	}
 
 	l := &Listener{
-		pool: db.pool,
-		cn:   cn,
+		db:  db,
+		_cn: cn,
 	}
 	if err := l.Listen(channels...); err != nil {
 		l.Close()
