@@ -68,6 +68,22 @@ func (tx *Tx) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
+func (tx *Tx) QueryOne(model interface{}, q string, args ...interface{}) (*Result, error) {
+	res, err := tx.Query(&singleFactory{model}, q, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	switch affected := res.Affected(); {
+	case affected == 0:
+		return nil, ErrNoRows
+	case affected > 1:
+		return nil, ErrMultiRows
+	}
+
+	return res, nil
+}
+
 func (tx *Tx) Commit() error {
 	if tx.done {
 		return errTxDone
