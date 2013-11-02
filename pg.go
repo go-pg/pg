@@ -46,7 +46,3 @@ func (f F) Append(dst []byte) []byte {
 	dst = append(dst, '"')
 	return dst
 }
-
-func (f F) AppendRaw(dst []byte) []byte {
-	return append(dst, string(f)...)
-}
