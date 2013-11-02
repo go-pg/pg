@@ -18,6 +18,16 @@ func (tx *Tx) conn() *conn {
 	return tx._cn
 }
 
+// TODO(vmihailenco): track and close prepared statements
+func (tx *Tx) Prepare(q string) (*Stmt, error) {
+	if tx.done {
+		return nil, errTxDone
+	}
+
+	cn := tx.conn()
+	return prepare(tx.db, cn, q)
+}
+
 func (tx *Tx) Exec(q string, args ...interface{}) (*Result, error) {
 	if tx.done {
 		return nil, errTxDone

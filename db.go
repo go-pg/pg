@@ -129,25 +129,7 @@ func (db *DB) Prepare(q string) (*Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	writeParseDescribeSyncMsg(cn.buf, q)
-	if err := cn.Flush(); err != nil {
-		db.freeConn(cn, err)
-		return nil, err
-	}
-
-	columns, err := readParseDescribeSync(cn)
-	if err != nil {
-		db.freeConn(cn, err)
-		return nil, err
-	}
-
-	stmt := &Stmt{
-		db:      db,
-		_cn:     cn,
-		columns: columns,
-	}
-	return stmt, nil
+	return prepare(db, cn, q)
 }
 
 func (db *DB) Exec(q string, args ...interface{}) (*Result, error) {

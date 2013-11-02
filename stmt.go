@@ -9,6 +9,27 @@ type Stmt struct {
 	closed bool
 }
 
+func prepare(db *DB, cn *conn, q string) (*Stmt, error) {
+	writeParseDescribeSyncMsg(cn.buf, q)
+	if err := cn.Flush(); err != nil {
+		db.freeConn(cn, err)
+		return nil, err
+	}
+
+	columns, err := readParseDescribeSync(cn)
+	if err != nil {
+		db.freeConn(cn, err)
+		return nil, err
+	}
+
+	stmt := &Stmt{
+		db:      db,
+		_cn:     cn,
+		columns: columns,
+	}
+	return stmt, nil
+}
+
 func (stmt *Stmt) conn() *conn {
 	stmt._cn.SetReadTimeout(stmt.db.opt.ReadTimeout)
 	stmt._cn.SetWriteTimeout(stmt.db.opt.WriteTimeout)
