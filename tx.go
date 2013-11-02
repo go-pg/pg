@@ -20,7 +20,7 @@ func (tx *Tx) conn() *conn {
 
 func (tx *Tx) Exec(q string, args ...interface{}) (*Result, error) {
 	if tx.done {
-		return nil, ErrTxDone
+		return nil, errTxDone
 	}
 
 	cn := tx.conn()
@@ -45,7 +45,7 @@ func (tx *Tx) Exec(q string, args ...interface{}) (*Result, error) {
 
 func (tx *Tx) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 	if tx.done {
-		return nil, ErrTxDone
+		return nil, errTxDone
 	}
 
 	cn := tx.conn()
@@ -70,7 +70,7 @@ func (tx *Tx) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 
 func (tx *Tx) Commit() error {
 	if tx.done {
-		return ErrTxDone
+		return errTxDone
 	}
 	_, err := tx.Exec("COMMIT")
 	if err != nil {
@@ -82,7 +82,7 @@ func (tx *Tx) Commit() error {
 
 func (tx *Tx) Rollback() error {
 	if tx.done {
-		return ErrTxDone
+		return errTxDone
 	}
 	_, err := tx.Exec("ROLLBACK")
 	if err != nil {

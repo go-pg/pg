@@ -11,7 +11,8 @@ var (
 	ErrNoRows    = errors.New("pg: no rows in result set")
 	ErrMultiRows = errors.New("pg: multiple rows in result set")
 
-	ErrTxDone = errors.New("pg: transaction has already been committed or rolled back")
+	errTxDone     = errors.New("pg: transaction has already been committed or rolled back")
+	errStmtClosed = errors.New("pg: attempt to use closed statement")
 
 	errExpectedPlaceholder   = errors.New("pg: expected placeholder")
 	errUnexpectedPlaceholder = errors.New("pg: unexpected placeholder")

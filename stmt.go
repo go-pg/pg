@@ -5,7 +5,8 @@ type Stmt struct {
 	_cn     *conn
 	columns []string
 
-	err error
+	err    error
+	closed bool
 }
 
 func (stmt *Stmt) conn() *conn {
@@ -15,6 +16,10 @@ func (stmt *Stmt) conn() *conn {
 }
 
 func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
+	if stmt.closed {
+		return nil, errStmtClosed
+	}
+
 	cn := stmt.conn()
 
 	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
@@ -36,6 +41,10 @@ func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
 }
 
 func (stmt *Stmt) Query(f Factory, args ...interface{}) (*Result, error) {
+	if stmt.closed {
+		return nil, errStmtClosed
+	}
+
 	cn := stmt.conn()
 
 	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
@@ -77,5 +86,9 @@ func (stmt *Stmt) setErr(e error) {
 }
 
 func (stmt *Stmt) Close() error {
+	if stmt.closed {
+		return nil
+	}
+	stmt.closed = true
 	return stmt.db.freeConn(stmt._cn, stmt.err)
 }
