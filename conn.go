@@ -154,7 +154,7 @@ func (cn *conn) Startup() error {
 			}
 			return e
 		default:
-			return fmt.Errorf("pg: uknown response for startup: %q", c)
+			return fmt.Errorf("pg: unknown startup message response: %q", c)
 		}
 	}
 }
@@ -177,17 +177,25 @@ func (cn *conn) auth() error {
 		if err != nil {
 			return err
 		}
-		if c != authenticationOKMsg {
-			return fmt.Errorf("pg: unexpected password response: %q", c)
+		switch c {
+		case authenticationOKMsg:
+			num, err := cn.ReadInt32()
+			if err != nil {
+				return err
+			}
+			if num != 0 {
+				return fmt.Errorf("pg: unexpected authentication code: %d", num)
+			}
+			return nil
+		case errorResponseMsg:
+			e, err := cn.ReadError()
+			if err != nil {
+				return err
+			}
+			return e
+		default:
+			return fmt.Errorf("pg: unknown password message response: %q", c)
 		}
-		num, err := cn.ReadInt32()
-		if err != nil {
-			return err
-		}
-		if num != 0 {
-			return fmt.Errorf("pg: unexpected authentication response: %q", num)
-		}
-		return nil
 	case 5:
 		b, err := cn.br.ReadN(4)
 		if err != nil {
@@ -204,19 +212,27 @@ func (cn *conn) auth() error {
 		if err != nil {
 			return err
 		}
-		if c != authenticationOKMsg {
-			return fmt.Errorf("pg: unexpected password response: %q", c)
+		switch c {
+		case authenticationOKMsg:
+			num, err := cn.ReadInt32()
+			if err != nil {
+				return err
+			}
+			if num != 0 {
+				return fmt.Errorf("pg: unexpected authentication code: %d", num)
+			}
+			return nil
+		case errorResponseMsg:
+			e, err := cn.ReadError()
+			if err != nil {
+				return err
+			}
+			return e
+		default:
+			return fmt.Errorf("pg: unknown password message response: %q", c)
 		}
-		num, err := cn.ReadInt32()
-		if err != nil {
-			return err
-		}
-		if num != 0 {
-			return fmt.Errorf("pg: unexpected password response: %q", num)
-		}
-		return nil
 	default:
-		return fmt.Errorf("pg: unknown authentication response: %d", num)
+		return fmt.Errorf("pg: unknown authentication message response: %d", num)
 	}
 }
 
