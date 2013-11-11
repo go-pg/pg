@@ -10,14 +10,14 @@ type Listener struct {
 	_cn *conn
 }
 
-func (l *Listener) conn() *conn {
-	l._cn.SetReadTimeout(l.db.opt.ReadTimeout)
+func (l *Listener) conn(readTimeout time.Duration) *conn {
+	l._cn.SetReadTimeout(readTimeout)
 	l._cn.SetWriteTimeout(l.db.opt.WriteTimeout)
 	return l._cn
 }
 
 func (l *Listener) Listen(channels ...string) error {
-	cn := l.conn()
+	cn := l.conn(l.db.opt.ReadTimeout)
 	for _, name := range channels {
 		if err := writeQueryMsg(cn.buf, "LISTEN ?", F(name)); err != nil {
 			return err
@@ -31,7 +31,7 @@ func (l *Listener) Receive() (channel string, payload string, err error) {
 }
 
 func (l *Listener) ReceiveTimeout(readTimeout time.Duration) (channel, payload string, err error) {
-	cn := l.conn()
+	cn := l.conn(readTimeout)
 
 	for {
 		c, msgLen, err := cn.ReadMsgType()

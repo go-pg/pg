@@ -338,6 +338,23 @@ func (t *DBTest) TestListenNotify(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(channel, Equals, "test_channel")
 	c.Assert(payload, Equals, "")
+
+	done := make(chan struct{})
+	go func() {
+		_, _, err := ln.Receive()
+		c.Assert(err.Error(), Equals, "read tcp 127.0.0.1:5432: use of closed network connection")
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-done:
+		c.Fail()
+	case <-time.After(2 * time.Second):
+		// ok
+	}
+
+	c.Assert(ln.Close(), IsNil)
+	<-done
 }
 
 func (t *DBTest) TestListenTimeout(c *C) {
