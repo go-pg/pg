@@ -110,9 +110,9 @@ func appendValue(dst []byte, srci interface{}) []byte {
 	switch src := srci.(type) {
 	case bool:
 		if src {
-			return append(dst, "'t'"...)
+			return append(dst, "TRUE"...)
 		}
-		return append(dst, "'f'"...)
+		return append(dst, "FALSE"...)
 	case int8:
 		return strconv.AppendInt(dst, int64(src), 10)
 	case int16:
@@ -206,9 +206,9 @@ func appendRawValue(dst []byte, srci interface{}) []byte {
 	switch src := srci.(type) {
 	case bool:
 		if src {
-			return append(dst, 't')
+			return append(dst, "TRUE"...)
 		}
-		return append(dst, 'f')
+		return append(dst, "FALSE"...)
 	case int8:
 		return strconv.AppendInt(dst, int64(src), 10)
 	case int16:
