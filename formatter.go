@@ -284,20 +284,24 @@ func appendRawValue(dst []byte, srci interface{}) []byte {
 
 func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 	p := &parser{b: src}
-	for i := 0; p.Valid(); {
+	var paramInd int
+	for p.Valid() {
 		c := p.Next()
 		if c == '?' {
-			if i >= len(params) {
+			if paramInd >= len(params) {
 				return nil, fmt.Errorf(
 					"pg: expected at least %d parameters but got %d",
-					i+1, len(params),
+					paramInd+1, len(params),
 				)
 			}
-			dst = appendValue(dst, params[i])
-			i++
+			dst = appendValue(dst, params[paramInd])
+			paramInd++
 		} else {
 			dst = append(dst, c)
 		}
+	}
+	if paramInd < len(params) {
+		return nil, fmt.Errorf("pg: expected %d parameters but got %d", paramInd, len(params))
 	}
 	return dst, nil
 }

@@ -47,6 +47,18 @@ func (t *DBTest) TearDownTest(c *C) {
 	c.Assert(t.db.Close(), IsNil)
 }
 
+func (t *DBTest) TestFormatWithTooManyParams(c *C) {
+	q, err := pg.FormatQ("", "foo", "bar")
+	c.Assert(err.Error(), Equals, "pg: expected 0 parameters but got 2")
+	c.Assert(string(q), Equals, "")
+}
+
+func (t *DBTest) TestFormatWithTooFewParams(c *C) {
+	q, err := pg.FormatQ("? ? ?", "foo", "bar")
+	c.Assert(err.Error(), Equals, "pg: expected at least 3 parameters but got 2")
+	c.Assert(string(q), Equals, "")
+}
+
 func (t *DBTest) TestFormatInts(c *C) {
 	q, err := pg.FormatQ("?", pg.Ints{1, 2, 3})
 	c.Assert(err, IsNil)
