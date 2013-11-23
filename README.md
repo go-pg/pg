@@ -54,7 +54,7 @@ Example
 
         users := &Users{}
         res, err := db.Query(users, `
-            WITH users (name) AS (VALUES ($1), ($2))
+            WITH users (name) AS (VALUES (?), (?))
             SELECT * FROM users
         `, "admin", "root")
         fmt.Println(res.Affected(), err)
