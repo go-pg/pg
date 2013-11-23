@@ -29,7 +29,7 @@ func ExampleDB_QueryOne() {
 	}
 
 	res, err := db.QueryOne(&user, `
-        WITH users (name) AS (VALUES ($1))
+        WITH users (name) AS (VALUES (?))
         SELECT * FROM users
     `, "admin")
 	fmt.Println(res.Affected(), err)
@@ -46,7 +46,7 @@ func ExampleDB_Exec() {
 
 func ExampleLoadInto() {
 	var s1, s2 string
-	_, err := db.QueryOne(pg.LoadInto(&s1, &s2), "SELECT $1, $2", "foo", "bar")
+	_, err := db.QueryOne(pg.LoadInto(&s1, &s2), "SELECT ?, ?", "foo", "bar")
 	fmt.Println(s1, s2, err)
 	// Output: foo bar <nil>
 }
@@ -61,7 +61,7 @@ func ExampleListener() {
 		done <- struct{}{}
 	}()
 
-	_, _ = db.Exec("NOTIFY mychan, $1", "hello world")
+	_, _ = db.Exec("NOTIFY mychan, ?", "hello world")
 	<-done
 
 	// Output: mychan "hello world" <nil>

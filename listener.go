@@ -19,7 +19,7 @@ func (l *Listener) conn(readTimeout time.Duration) *conn {
 func (l *Listener) Listen(channels ...string) error {
 	cn := l.conn(l.db.opt.ReadTimeout)
 	for _, name := range channels {
-		if err := writeQueryMsg(cn.buf, "LISTEN $1", F(name)); err != nil {
+		if err := writeQueryMsg(cn.buf, "LISTEN ?", F(name)); err != nil {
 			return err
 		}
 	}

@@ -14,7 +14,7 @@ func (f *ArticleFilter) CategoryClause() pg.Q {
 	if f.CategoryId == 0 {
 		return ""
 	}
-	return pg.MustFormatQ("AND category_id = $1", f.CategoryId)
+	return pg.MustFormatQ("AND category_id = ?", f.CategoryId)
 }
 
 type Article struct {
@@ -35,8 +35,8 @@ func (f *Articles) New() interface{} {
 func GetArticles(db *pg.DB, f *ArticleFilter) ([]*Article, error) {
 	articles := &Articles{}
 	_, err := db.Query(articles, `
-        WITH articles (name, category_id) AS (VALUES ($1, $2), ($3, $4))
-        SELECT * FROM articles WHERE 1=1 $5
+        WITH articles (name, category_id) AS (VALUES (?, ?), (?, ?))
+        SELECT * FROM articles WHERE 1=1 ?
     `, "article1", 1, "article2", 2, f.CategoryClause())
 	if err != nil {
 		return nil, err

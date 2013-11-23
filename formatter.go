@@ -2,7 +2,6 @@ package pg
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -285,24 +284,17 @@ func appendRawValue(dst []byte, srci interface{}) []byte {
 
 func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 	p := &parser{b: src}
-	for p.Valid() {
+	for i := 0; p.Valid(); {
 		c := p.Next()
-		if c == '$' {
-			ind, err := p.ReadNumber()
-			if err != nil {
-				return nil, err
-			}
-			if ind < 1 {
-				return nil, errors.New("pg: there is no parameter $0, try $1")
-			}
-			if ind > len(params) {
-				err := fmt.Errorf(
-					"pg: expected at least %d paramaters but got %d",
-					ind, len(params),
+		if c == '?' {
+			if i >= len(params) {
+				return nil, fmt.Errorf(
+					"pg: expected at least %d parameters but got %d",
+					i+1, len(params),
 				)
-				return nil, err
 			}
-			dst = appendValue(dst, params[ind-1])
+			dst = appendValue(dst, params[i])
+			i++
 		} else {
 			dst = append(dst, c)
 		}
