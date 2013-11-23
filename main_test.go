@@ -3,7 +3,6 @@ package pg_test
 import (
 	"database/sql"
 	"fmt"
-	"math"
 	"net"
 	"testing"
 	"time"
@@ -182,13 +181,6 @@ func (t *DBTest) TestTypeTimestamp(c *C) {
 		Equals,
 		src.Format("2006-01-02 15:04:05.9999"),
 	)
-}
-
-func (t *DBTest) TestTypeUint64(c *C) {
-	var dst uint64
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT $1::bigint", uint64(math.MaxUint64))
-	c.Assert(err, IsNil)
-	c.Assert(dst, Equals, uint64(math.MaxUint64))
 }
 
 func (t *DBTest) TestTypeStringArray(c *C) {

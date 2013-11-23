@@ -118,16 +118,6 @@ func appendValue(dst []byte, srci interface{}) []byte {
 		return strconv.AppendInt(dst, int64(src), 10)
 	case int:
 		return strconv.AppendInt(dst, int64(src), 10)
-	case uint8:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case uint16:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case uint32:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case uint64:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case uint:
-		return strconv.AppendInt(dst, int64(src), 10)
 	case string:
 		return appendString(dst, src)
 	case time.Time:
