@@ -18,7 +18,9 @@ func ExampleConnect() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
 	})
-	defer db.Close()
+	err := db.Close()
+	fmt.Println(err)
+	// Output: <nil>
 }
 
 func ExampleDB_QueryOne() {

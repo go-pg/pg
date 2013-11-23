@@ -1,4 +1,4 @@
-Postgresql client for Golang
+PostgreSQL client for Golang
 ============================
 
 Supports:
@@ -10,7 +10,7 @@ Supports:
 - Notifications, LISTEN/NOTIFY.
 - Timeouts. Client sends `CancelRequest` message on timeout.
 - Connection pool.
-- Postgresql to Go struct mapping.
+- PostgreSQL to Go struct mapping.
 
 API docs: http://godoc.org/github.com/vmihailenco/pg
 
