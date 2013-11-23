@@ -2,31 +2,26 @@ package pg
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
 )
 
-func AppendQ(dst []byte, src string, args ...interface{}) ([]byte, error) {
-	p := newQueryFormatter(dst, src)
-	for _, arg := range args {
-		if err := p.Format(arg); err != nil {
-			return nil, err
-		}
-	}
-	return p.Value()
+func AppendQ(dst []byte, src string, params ...interface{}) ([]byte, error) {
+	return formatQuery(dst, []byte(src), params)
 }
 
-func FormatQ(src string, args ...interface{}) (Q, error) {
-	b, err := AppendQ(nil, src, args...)
+func FormatQ(src string, params ...interface{}) (Q, error) {
+	b, err := AppendQ(nil, src, params...)
 	if err != nil {
 		return "", err
 	}
 	return Q(b), nil
 }
 
-func MustFormatQ(src string, args ...interface{}) Q {
-	q, err := FormatQ(src, args...)
+func MustFormatQ(src string, params ...interface{}) Q {
+	q, err := FormatQ(src, params...)
 	if err != nil {
 		panic(err)
 	}
@@ -298,40 +293,29 @@ func appendRawValue(dst []byte, srci interface{}) []byte {
 
 //------------------------------------------------------------------------------
 
-type queryFormatter struct {
-	*parser
-	dst []byte
-}
-
-func newQueryFormatter(dst []byte, src string) *queryFormatter {
-	return &queryFormatter{
-		parser: &parser{b: []byte(src)},
-		dst:    dst,
-	}
-}
-
-func (f *queryFormatter) Format(v interface{}) (err error) {
-	for f.Valid() {
-		c := f.Next()
-		if c == '?' {
-			f.dst = appendValue(f.dst, v)
-			return nil
+func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
+	p := &parser{b: src}
+	for p.Valid() {
+		c := p.Next()
+		if c == '$' {
+			ind, err := p.ReadNumber()
+			if err != nil {
+				return nil, err
+			}
+			if ind < 1 {
+				return nil, errors.New("pg: there is no parameter $0, try $1")
+			}
+			if ind > len(params) {
+				err := fmt.Errorf(
+					"pg: expected at least %d paramaters but got %d",
+					ind, len(params),
+				)
+				return nil, err
+			}
+			dst = appendValue(dst, params[ind-1])
+		} else {
+			dst = append(dst, c)
 		}
-		f.dst = append(f.dst, c)
 	}
-	if err != nil {
-		return err
-	}
-	return errExpectedPlaceholder
-}
-
-func (f *queryFormatter) Value() ([]byte, error) {
-	for f.Valid() {
-		c := f.Next()
-		if c == '?' {
-			return nil, errUnexpectedPlaceholder
-		}
-		f.dst = append(f.dst, c)
-	}
-	return f.dst, nil
+	return dst, nil
 }

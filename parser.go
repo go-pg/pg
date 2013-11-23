@@ -3,6 +3,7 @@ package pg
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 )
 
 var (
@@ -49,6 +50,18 @@ func (p *parser) ReadSep(sep []byte) []byte {
 	}
 	p.pos = len(p.b)
 	return p.b[start:p.pos]
+}
+
+func (p *parser) ReadNumber() (int, error) {
+	start := p.pos
+	for p.Valid() {
+		c := p.Next()
+		if c < '0' || c > '9' {
+			p.pos--
+			break
+		}
+	}
+	return strconv.Atoi(string(p.b[start:p.pos]))
 }
 
 type arrayParser struct {

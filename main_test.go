@@ -49,13 +49,13 @@ func (t *DBTest) TearDownTest(c *C) {
 }
 
 func (t *DBTest) TestFormatInts(c *C) {
-	q, err := pg.FormatQ("?", pg.Ints{1, 2, 3})
+	q, err := pg.FormatQ("$1", pg.Ints{1, 2, 3})
 	c.Assert(err, IsNil)
 	c.Assert(q, Equals, pg.Q("1,2,3"))
 }
 
 func (t *DBTest) TestFormatStrings(c *C) {
-	q, err := pg.FormatQ("?", pg.Strings{"hello", "world"})
+	q, err := pg.FormatQ("$1", pg.Strings{"hello", "world"})
 	c.Assert(err, IsNil)
 	c.Assert(q, Equals, pg.Q("'hello','world'"))
 }
@@ -112,7 +112,7 @@ func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
 func (t *DBTest) TestTypeString(c *C) {
 	src := "hello\000"
 	var dst string
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?", src)
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT $1", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst, Equals, "hello")
 }
@@ -131,7 +131,7 @@ func (t *DBTest) TestTypeStmtString(c *C) {
 func (t *DBTest) TestTypeBytes(c *C) {
 	src := []byte("hello world\000")
 	var dst []byte
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::bytea", src)
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT $1::bytea", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst, DeepEquals, src)
 }
@@ -152,7 +152,7 @@ func (t *DBTest) TestTypeStmtBytes(c *C) {
 func (t *DBTest) TestTypeDate(c *C) {
 	src := time.Now().UTC()
 	var dst time.Time
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::date", src)
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT $1::date", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst.Location(), Equals, time.UTC)
 	c.Assert(dst.Format("2006-01-02"), Equals, dst.Format("2006-01-02"))
@@ -161,7 +161,7 @@ func (t *DBTest) TestTypeDate(c *C) {
 func (t *DBTest) TestTypeTime(c *C) {
 	src := time.Now().UTC()
 	var dst time.Time
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::time", src)
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT $1::time", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst.Location(), Equals, time.UTC)
 	c.Assert(
@@ -174,7 +174,7 @@ func (t *DBTest) TestTypeTime(c *C) {
 func (t *DBTest) TestTypeTimestamp(c *C) {
 	src := time.Now().UTC()
 	var dst time.Time
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::timestamp", src)
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT $1::timestamp", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst.Location(), Equals, time.UTC)
 	c.Assert(
@@ -186,7 +186,7 @@ func (t *DBTest) TestTypeTimestamp(c *C) {
 
 func (t *DBTest) TestTypeUint64(c *C) {
 	var dst uint64
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::bigint", uint64(math.MaxUint64))
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT $1::bigint", uint64(math.MaxUint64))
 	c.Assert(err, IsNil)
 	c.Assert(dst, Equals, uint64(math.MaxUint64))
 }
@@ -194,7 +194,7 @@ func (t *DBTest) TestTypeUint64(c *C) {
 func (t *DBTest) TestTypeStringArray(c *C) {
 	src := []string{"foo \n", "bar", "hello {}", "'\\\""}
 	var dst []string
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::text[]", src)
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT $1::text[]", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst, DeepEquals, src)
 }
@@ -212,7 +212,7 @@ func (t *DBTest) TestTypeStmtStringArray(c *C) {
 
 func (t *DBTest) TestTypeEmptyStringArray(c *C) {
 	var dst []string
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::text[]", []string{})
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT $1::text[]", []string{})
 	c.Assert(err, IsNil)
 	c.Assert(dst, DeepEquals, []string{})
 }
@@ -230,7 +230,7 @@ func (t *DBTest) TestTypeStmtEmptyStringArray(c *C) {
 func (t *DBTest) TestTypeIntArray(c *C) {
 	src := []int{1, 2, 3}
 	var dst []int
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::int[]", []int{1, 2, 3})
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT $1::int[]", []int{1, 2, 3})
 	c.Assert(err, IsNil)
 	c.Assert(dst, DeepEquals, src)
 }
@@ -250,7 +250,7 @@ func (t *DBTest) TestTypeEmptyIntArray(c *C) {
 	var dst []int
 	_, err := t.db.QueryOne(
 		pg.LoadInto(&dst),
-		"SELECT ?::int[]",
+		"SELECT $1::int[]",
 		[]int{},
 	)
 	c.Assert(err, IsNil)
@@ -260,7 +260,7 @@ func (t *DBTest) TestTypeEmptyIntArray(c *C) {
 func (t *DBTest) TestTypeHstore(c *C) {
 	src := map[string]string{"foo =>": "bar =>", "hello": "world", "'\\\"": "'\\\""}
 	dst := make(map[string]string)
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?", src)
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT $1", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst, DeepEquals, src)
 }
@@ -390,7 +390,7 @@ func (t *DBTest) BenchmarkFormatWithoutArgs(c *C) {
 
 func (t *DBTest) BenchmarkFormatWithArgs(c *C) {
 	for i := 0; i < c.N; i++ {
-		_, err := pg.FormatQ("SELECT ?, ? WHERE 1=1 AND 2=2", "hello", "world")
+		_, err := pg.FormatQ("SELECT $1, $2 WHERE 1=1 AND 2=2", "hello", "world")
 		if err != nil {
 			panic(err)
 		}
@@ -400,7 +400,7 @@ func (t *DBTest) BenchmarkFormatWithArgs(c *C) {
 func (t *DBTest) BenchmarkQueryRow(c *C) {
 	dst := &Dst{}
 	for i := 0; i < c.N; i++ {
-		_, err := t.db.QueryOne(dst, "SELECT ?::bigint AS num", 1)
+		_, err := t.db.QueryOne(dst, "SELECT $1::bigint AS num", 1)
 		if err != nil {
 			panic(err)
 		}
@@ -472,7 +472,7 @@ func (t *DBTest) BenchmarkExec(c *C) {
 
 	c.ResetTimer()
 	for i := 0; i < c.N; i++ {
-		res, err := t.db.Exec("INSERT INTO exec_test(id, name) VALUES(?, ?)", 1, "hello world")
+		res, err := t.db.Exec("INSERT INTO exec_test(id, name) VALUES($1, $1)", 1, "hello world")
 		if err != nil {
 			panic(err)
 		}
@@ -489,14 +489,17 @@ func (t *DBTest) BenchmarkExecWithError(c *C) {
 		panic(err)
 	}
 
-	_, err = t.db.Exec("INSERT INTO exec_with_error_test(id, name) VALUES(?, ?)", 1, "hello world")
+	_, err = t.db.Exec(
+		"INSERT INTO exec_with_error_test(id, name) VALUES($1, $1)",
+		1, "hello world",
+	)
 	if err != nil {
 		panic(err)
 	}
 
 	c.ResetTimer()
 	for i := 0; i < c.N; i++ {
-		_, err := t.db.Exec("INSERT INTO exec_with_error_test(id) VALUES(?)", 1)
+		_, err := t.db.Exec("INSERT INTO exec_with_error_test(id) VALUES($1)", 1)
 		if err == nil {
 			panic("got nil error, expected IntegrityError")
 		} else if _, ok := err.(*pg.IntegrityError); !ok {

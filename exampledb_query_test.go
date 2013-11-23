@@ -28,7 +28,7 @@ func ExampleDB_Query() {
 
 	users := &Users{}
 	res, err := db.Query(users, `
-        WITH users (name) AS (VALUES (?), (?))
+        WITH users (name) AS (VALUES ($1), ($2))
         SELECT * FROM users
     `, "admin", "root")
 	fmt.Println(res.Affected(), err)
