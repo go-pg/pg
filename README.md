@@ -12,7 +12,7 @@ Supports:
 - Connection pool.
 - PostgreSQL to Go struct mapping.
 
-API docs: http://godoc.org/github.com/vmihailenco/pg
+API docs: http://godoc.org/github.com/vmihailenco/pg. Make sure to check examples: http://godoc.org/github.com/vmihailenco/pg#pkg-examples.
 
 Installation
 ------------
