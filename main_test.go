@@ -126,7 +126,7 @@ func (t *PoolTest) TestClosedListener(c *C) {
 	c.Assert(err.Error(), Equals, "pg: listener is closed")
 }
 
-func (t *PoolTest) TestClosedStatement(c *C) {
+func (t *PoolTest) TestClosedTx(c *C) {
 	tx, err := t.db.Begin()
 	c.Assert(err, IsNil)
 
@@ -139,6 +139,21 @@ func (t *PoolTest) TestClosedStatement(c *C) {
 	_, err = tx.Exec("SELECT 1")
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: transaction has already been committed or rolled back")
+}
+
+func (t *PoolTest) TestClosedStmt(c *C) {
+	stmt, err := t.db.Prepare("SELECT $1::int")
+	c.Assert(err, IsNil)
+
+	c.Assert(stmt.Close(), IsNil)
+
+	err = stmt.Close()
+	c.Assert(err, Not(IsNil))
+	c.Assert(err.Error(), Equals, "pg: statement is closed")
+
+	_, err = stmt.Exec(1)
+	c.Assert(err, Not(IsNil))
+	c.Assert(err.Error(), Equals, "pg: statement is closed")
 }
 
 var _ = Suite(&DBTest{})

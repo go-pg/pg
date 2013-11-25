@@ -4,6 +4,7 @@ import (
 	"github.com/golang/glog"
 )
 
+// Not thread-safe.
 type Tx struct {
 	db  *DB
 	_cn *conn

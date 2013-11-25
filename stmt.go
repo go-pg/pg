@@ -1,12 +1,12 @@
 package pg
 
+// Not thread-safe.
 type Stmt struct {
 	db      *DB
 	_cn     *conn
 	columns []string
 
-	err    error
-	closed bool
+	err error
 }
 
 func prepare(db *DB, cn *conn, q string) (*Stmt, error) {
@@ -30,18 +30,20 @@ func prepare(db *DB, cn *conn, q string) (*Stmt, error) {
 	return stmt, nil
 }
 
-func (stmt *Stmt) conn() *conn {
+func (stmt *Stmt) conn() (*conn, error) {
+	if stmt._cn == nil {
+		return nil, errStmtClosed
+	}
 	stmt._cn.SetReadTimeout(stmt.db.opt.ReadTimeout)
 	stmt._cn.SetWriteTimeout(stmt.db.opt.WriteTimeout)
-	return stmt._cn
+	return stmt._cn, nil
 }
 
 func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
-	if stmt.closed {
-		return nil, errStmtClosed
+	cn, err := stmt.conn()
+	if err != nil {
+		return nil, err
 	}
-
-	cn := stmt.conn()
 
 	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
 		return nil, err
@@ -62,11 +64,10 @@ func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
 }
 
 func (stmt *Stmt) Query(f Factory, args ...interface{}) (*Result, error) {
-	if stmt.closed {
-		return nil, errStmtClosed
+	cn, err := stmt.conn()
+	if err != nil {
+		return nil, err
 	}
-
-	cn := stmt.conn()
 
 	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
 		return nil, err
@@ -107,9 +108,10 @@ func (stmt *Stmt) setErr(e error) {
 }
 
 func (stmt *Stmt) Close() error {
-	if stmt.closed {
-		return nil
+	if stmt._cn == nil {
+		return errStmtClosed
 	}
-	stmt.closed = true
-	return stmt.db.freeConn(stmt._cn, stmt.err)
+	err := stmt.db.freeConn(stmt._cn, stmt.err)
+	stmt._cn = nil
+	return err
 }

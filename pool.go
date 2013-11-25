@@ -121,14 +121,14 @@ func (p *connPool) remove(cn *conn) (err error) {
 	return err
 }
 
-func (p *connPool) Remove(cn *conn) (err error) {
+func (p *connPool) Remove(cn *conn) error {
 	p.cond.L.Lock()
 	if p.closed {
 		// Noop, connection is already closed.
 		p.cond.L.Unlock()
 		return nil
 	}
-	err = p.remove(cn)
+	err := p.remove(cn)
 	p.cond.Signal()
 	p.cond.L.Unlock()
 	return err
