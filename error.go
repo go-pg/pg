@@ -11,8 +11,10 @@ var (
 	ErrNoRows    = errors.New("pg: no rows in result set")
 	ErrMultiRows = errors.New("pg: multiple rows in result set")
 
-	errTxDone     = errors.New("pg: transaction has already been committed or rolled back")
-	errStmtClosed = errors.New("pg: attempt to use closed statement")
+	errClosed         = errors.New("pg: database is closed")
+	errTxDone         = errors.New("pg: transaction has already been committed or rolled back")
+	errStmtClosed     = errors.New("pg: statement is closed")
+	errListenerClosed = errors.New("pg: listener is closed")
 )
 
 var (

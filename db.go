@@ -87,13 +87,14 @@ func (opt *Options) getSSL() bool {
 func Connect(opt *Options) *DB {
 	return &DB{
 		opt:  opt,
-		pool: newDefaultPool(newConnFunc(opt), opt.getPoolSize(), opt.getIdleTimeout()),
+		pool: newConnPool(newConnFunc(opt), opt.getPoolSize(), opt.getIdleTimeout()),
 	}
 }
 
+// Thread-safe.
 type DB struct {
 	opt  *Options
-	pool *defaultPool
+	pool *connPool
 }
 
 func (db *DB) Close() error {

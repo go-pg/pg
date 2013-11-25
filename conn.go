@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"container/list"
 	"crypto/tls"
 	"encoding/binary"
 	"fmt"
@@ -23,10 +24,13 @@ type conn struct {
 	cn     net.Conn
 	br     *bufio.Reader
 	buf    *buffer
+	inUse  bool
 	usedAt time.Time
 
 	processId int32
 	secretKey int32
+
+	elem *list.Element
 }
 
 func newConnFunc(opt *Options) func() (*conn, error) {

@@ -5,19 +5,28 @@ import (
 	"time"
 )
 
+// Not thread-safe.
 type Listener struct {
 	db  *DB
 	_cn *conn
+
+	closed bool
 }
 
-func (l *Listener) conn(readTimeout time.Duration) *conn {
+func (l *Listener) conn(readTimeout time.Duration) (*conn, error) {
+	if l._cn == nil {
+		return nil, errListenerClosed
+	}
 	l._cn.SetReadTimeout(readTimeout)
 	l._cn.SetWriteTimeout(l.db.opt.WriteTimeout)
-	return l._cn
+	return l._cn, nil
 }
 
 func (l *Listener) Listen(channels ...string) error {
-	cn := l.conn(l.db.opt.ReadTimeout)
+	cn, err := l.conn(l.db.opt.ReadTimeout)
+	if err != nil {
+		return err
+	}
 	for _, name := range channels {
 		if err := writeQueryMsg(cn.buf, "LISTEN ?", F(name)); err != nil {
 			return err
@@ -31,7 +40,10 @@ func (l *Listener) Receive() (channel string, payload string, err error) {
 }
 
 func (l *Listener) ReceiveTimeout(readTimeout time.Duration) (channel, payload string, err error) {
-	cn := l.conn(readTimeout)
+	cn, err := l.conn(readTimeout)
+	if err != nil {
+		return "", "", err
+	}
 
 	for {
 		c, msgLen, err := cn.ReadMsgType()
@@ -77,5 +89,10 @@ func (l *Listener) ReceiveTimeout(readTimeout time.Duration) (channel, payload s
 }
 
 func (l *Listener) Close() error {
-	return l.db.pool.Remove(l._cn)
+	if l._cn == nil {
+		return errListenerClosed
+	}
+	err := l.db.pool.Remove(l._cn)
+	l._cn = nil
+	return err
 }
