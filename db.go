@@ -113,7 +113,7 @@ func (db *DB) conn() (*conn, error) {
 }
 
 func (db *DB) freeConn(cn *conn, ei error) error {
-	if e, ok := ei.(Error); ok && e.GetField('S') != "FATAL" {
+	if e, ok := ei.(Error); ok && e.Field('S') != "FATAL" {
 		return db.pool.Put(cn)
 	} else {
 		if netErr, ok := ei.(net.Error); ok && netErr.Timeout() {

@@ -293,7 +293,7 @@ func (cn *conn) ReadError() (error, error) {
 		e.c[c] = s
 	}
 
-	switch e.GetField('C') {
+	switch e.Field('C') {
 	case "23000", "23001", "23502", "23503", "23505", "23514", "23P01":
 		return &IntegrityError{pgError: e}, nil
 	}

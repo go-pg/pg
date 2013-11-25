@@ -23,21 +23,21 @@ var (
 )
 
 type Error interface {
-	GetField(byte) string
+	Field(byte) string
 }
 
 type pgError struct {
 	c map[byte]string
 }
 
-func (err *pgError) GetField(k byte) string {
+func (err *pgError) Field(k byte) string {
 	return err.c[k]
 }
 
 func (err *pgError) Error() string {
 	return fmt.Sprintf(
 		"%s #%s %s: %s",
-		err.GetField('S'), err.GetField('C'), err.GetField('M'), err.GetField('D'),
+		err.Field('S'), err.Field('C'), err.Field('M'), err.Field('D'),
 	)
 }
 
