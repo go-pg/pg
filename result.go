@@ -13,12 +13,10 @@ type Result struct {
 
 func newResult(b []byte) *Result {
 	res := &Result{}
-
 	ind := bytes.LastIndex(b, resultSep)
 	if ind != -1 {
 		res.affected, _ = strconv.Atoi(string(b[ind+1 : len(b)-1]))
 	}
-
 	return res
 }
 
