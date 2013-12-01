@@ -558,6 +558,32 @@ func (t *DBTest) BenchmarkQueryRowStdlibPq(c *C) {
 	}
 }
 
+func (t *DBTest) BenchmarkQueryRowWithoutParams(c *C) {
+	dst := &Dst{}
+	for i := 0; i < c.N; i++ {
+		_, err := t.db.QueryOne(dst, "SELECT 1::bigint AS num")
+		if err != nil {
+			panic(err)
+		}
+		if dst.Num != 1 {
+			panic("dst.Num != 1")
+		}
+	}
+}
+
+func (t *DBTest) BenchmarkQueryRowWithoutParamsStdlibPq(c *C) {
+	var n int64
+	for i := 0; i < c.N; i++ {
+		r := t.pqdb.QueryRow("SELECT 1::bigint AS num")
+		if err := r.Scan(&n); err != nil {
+			panic(err)
+		}
+		if n != 1 {
+			panic("n != 1")
+		}
+	}
+}
+
 func (t *DBTest) BenchmarkQueryRowStdlibMySQL(c *C) {
 	var n int64
 	for i := 0; i < c.N; i++ {
