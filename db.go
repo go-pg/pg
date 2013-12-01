@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"io"
 	"net"
 	"runtime"
 	"time"
@@ -250,6 +251,102 @@ func (db *DB) Listen(channels ...string) (*Listener, error) {
 		return nil, err
 	}
 	return l, nil
+}
+
+func (db *DB) CopyFrom(r io.Reader, q string) (*Result, error) {
+	cn, err := db.conn()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := writeQueryMsg(cn.buf, q); err != nil {
+		db.pool.Put(cn)
+		return nil, err
+	}
+
+	if err := cn.Flush(); err != nil {
+		db.freeConn(cn, err)
+		return nil, err
+	}
+
+	if err := readCopyInResponse(cn); err != nil {
+		db.freeConn(cn, err)
+		return nil, err
+	}
+
+	ready := make(chan struct{})
+	var res *Result
+	go func() {
+		res, err = readReadyForQuery(cn)
+		close(ready)
+	}()
+
+	for {
+		select {
+		case <-ready:
+			break
+		default:
+		}
+
+		_, err := writeCopyData(cn.buf, r)
+		if err == io.EOF {
+			break
+		}
+
+		if err := cn.Flush(); err != nil {
+			db.freeConn(cn, err)
+			return nil, err
+		}
+	}
+
+	select {
+	case <-ready:
+	default:
+		writeCopyDone(cn.buf)
+		if err := cn.Flush(); err != nil {
+			db.freeConn(cn, err)
+			return nil, err
+		}
+	}
+
+	<-ready
+	if err != nil {
+		db.freeConn(cn, err)
+		return nil, err
+	}
+
+	db.pool.Put(cn)
+	return res, nil
+}
+
+func (db *DB) CopyTo(w io.Writer, q string) (*Result, error) {
+	cn, err := db.conn()
+	if err != nil {
+		return nil, err
+	}
+
+	if err := writeQueryMsg(cn.buf, q); err != nil {
+		db.pool.Put(cn)
+		return nil, err
+	}
+
+	if err := cn.Flush(); err != nil {
+		db.freeConn(cn, err)
+		return nil, err
+	}
+
+	if err := readCopyOutResponse(cn); err != nil {
+		db.freeConn(cn, err)
+		return nil, err
+	}
+
+	res, err := readCopyData(cn, w)
+	if err != nil {
+		db.freeConn(cn, err)
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func (db *DB) cancelRequest(processId, secretKey int32) error {

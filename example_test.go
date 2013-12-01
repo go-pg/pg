@@ -1,7 +1,9 @@
 package pg_test
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/vmihailenco/pg"
 )
@@ -113,4 +115,26 @@ func ExampleStrings() {
 		&strs, "WITH users AS (VALUES ('foo'), ('bar')) SELECT * FROM users")
 	fmt.Println(strs, err)
 	// Output: [foo bar] <nil>
+}
+
+func ExampleDB_CopyFrom() {
+	_, err := db.Exec("CREATE TEMP TABLE words(word text, len int)")
+	if err != nil {
+		panic(err)
+	}
+
+	r := strings.NewReader("hello,5\nfoo,3\n")
+	_, err = db.CopyFrom(r, "COPY words FROM STDIN WITH CSV")
+	if err != nil {
+		panic(err)
+	}
+
+	buf := &bytes.Buffer{}
+	_, err = db.CopyTo(buf, "COPY words TO STDOUT WITH CSV")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(buf.String())
+	// Output: hello,5
+	// foo,3
 }

@@ -46,3 +46,7 @@ func (f F) Append(dst []byte) []byte {
 	dst = append(dst, '"')
 	return dst
 }
+
+type RecordReader interface {
+	Read() ([]string, error)
+}

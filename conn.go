@@ -83,9 +83,8 @@ func (cn *conn) Close() error {
 }
 
 func (cn *conn) ssl() error {
-	cn.buf.StartMsg(0)
+	cn.buf.StartMessage(0)
 	cn.buf.WriteInt32(80877103)
-	cn.buf.EndMsg()
 	if err := cn.Flush(); err != nil {
 		return err
 	}

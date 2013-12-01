@@ -7,7 +7,8 @@ Supports:
 - Partially hstore.
 - Transactions.
 - Prepared statements.
-- Notifications, LISTEN/NOTIFY.
+- Notifications: `LISTEN`/`NOTIFY`.
+- `COPY FROM` and `COPY TO`.
 - Timeouts. Client sends `CancelRequest` message on timeout.
 - Connection pool.
 - PostgreSQL to Go struct mapping.
