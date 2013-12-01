@@ -33,7 +33,8 @@ Example
     )
 
     type User struct {
-        Name string
+        Name   string
+        Emails []string
     }
 
     type Users struct {
@@ -54,11 +55,13 @@ Example
 
         users := &Users{}
         res, err := db.Query(users, `
-            WITH users (name) AS (VALUES (?), (?))
+            WITH users (name, emails) AS (VALUES (?, ?), (?, ?))
             SELECT * FROM users
-        `, "admin", "root")
+        `, "admin", []string{"admin1@admin", "admin2@admin"},
+            "root", []string{"root1@root", "root2@root"},
+        )
         fmt.Println(res.Affected(), err)
         fmt.Println(users.Values[0], users.Values[1])
         // Output: 2 <nil>
-        // &{admin} &{root}
+        // &{admin [admin1@admin admin2@admin]} &{root [root1@root root2@root]}
     }
