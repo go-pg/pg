@@ -28,10 +28,10 @@ func ExampleDB_Query() {
 	defer db.Close()
 
 	users := &Users{}
-	res, err := db.Query(users, `
-        WITH users (name, emails) AS (VALUES (?, ?), (?, ?))
-        SELECT * FROM users
-    `, "admin", []string{"admin1@admin", "admin2@admin"},
+	res, err := db.Query(users,
+		`WITH users (name, emails) AS (VALUES (?, ?), (?, ?))
+		SELECT * FROM users`,
+		"admin", []string{"admin1@admin", "admin2@admin"},
 		"root", []string{"root1@root", "root2@root"},
 	)
 	fmt.Println(res.Affected(), err)
