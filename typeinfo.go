@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	tinfoMap = newTypeInfoMap()
+	structs = newStructCache()
 )
 
 func isUpper(c byte) bool {
@@ -40,21 +40,21 @@ func formatColumnName(s string) string {
 	return string(r)
 }
 
-type typeInfoMap struct {
+type structCache struct {
 	l sync.RWMutex
 	m map[reflect.Type]map[string][]int
 }
 
-func newTypeInfoMap() *typeInfoMap {
-	return &typeInfoMap{
+func newStructCache() *structCache {
+	return &structCache{
 		m: make(map[reflect.Type]map[string][]int),
 	}
 }
 
-func (m *typeInfoMap) Indexes(typ reflect.Type) map[string][]int {
-	m.l.RLock()
-	indxs, ok := m.m[typ]
-	m.l.RUnlock()
+func (c *structCache) Indexes(typ reflect.Type) map[string][]int {
+	c.l.RLock()
+	indxs, ok := c.m[typ]
+	c.l.RUnlock()
 	if ok {
 		return indxs
 	}
@@ -78,9 +78,9 @@ func (m *typeInfoMap) Indexes(typ reflect.Type) map[string][]int {
 		indxs[name] = f.Index
 	}
 
-	m.l.Lock()
-	m.m[typ] = indxs
-	m.l.Unlock()
+	c.l.Lock()
+	c.m[typ] = indxs
+	c.l.Unlock()
 
 	return indxs
 }

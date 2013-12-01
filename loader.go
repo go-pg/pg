@@ -38,7 +38,7 @@ type structLoader struct {
 func newStructLoader(v *reflect.Value) *structLoader {
 	return &structLoader{
 		v:     v,
-		indxs: tinfoMap.Indexes(v.Type()),
+		indxs: structs.Indexes(v.Type()),
 	}
 }
 
