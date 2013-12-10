@@ -256,6 +256,40 @@ func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
 	c.Assert(dst, IsNil)
 }
 
+func (t *DBTest) TestExecOne(c *C) {
+	_, err := t.db.Exec("CREATE TEMP TABLE test(id int)")
+	c.Assert(err, IsNil)
+
+	_, err = t.db.Exec("INSERT INTO test VALUES (1)")
+	c.Assert(err, IsNil)
+
+	res, err := t.db.ExecOne("DELETE FROM test WHERE id = 1")
+	c.Assert(err, IsNil)
+	c.Assert(res.Affected(), Equals, 1)
+}
+
+func (t *DBTest) TestExecOneErrNoRows(c *C) {
+	_, err := t.db.Exec("CREATE TEMP TABLE test(id int)")
+	c.Assert(err, IsNil)
+
+	_, err = t.db.ExecOne("DELETE FROM test WHERE id = 1")
+	c.Assert(err, Equals, pg.ErrNoRows)
+}
+
+func (t *DBTest) TestExecOneErrMultiRows(c *C) {
+	_, err := t.db.Exec("CREATE TEMP TABLE test(id int)")
+	c.Assert(err, IsNil)
+
+	_, err = t.db.Exec("INSERT INTO test VALUES (1)")
+	c.Assert(err, IsNil)
+
+	_, err = t.db.Exec("INSERT INTO test VALUES (1)")
+	c.Assert(err, IsNil)
+
+	_, err = t.db.ExecOne("DELETE FROM test WHERE id = 1")
+	c.Assert(err, Equals, pg.ErrMultiRows)
+}
+
 func (t *DBTest) TestTypeString(c *C) {
 	src := "hello\000"
 	var dst string

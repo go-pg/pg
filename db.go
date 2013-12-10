@@ -159,6 +159,22 @@ func (db *DB) Exec(q string, args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
+func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
+	res, err := db.Exec(q, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	switch affected := res.Affected(); {
+	case affected == 0:
+		return nil, ErrNoRows
+	case affected > 1:
+		return nil, ErrMultiRows
+	}
+
+	return res, nil
+}
+
 func (db *DB) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 	cn, err := db.conn()
 	if err != nil {
