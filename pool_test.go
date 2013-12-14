@@ -67,6 +67,9 @@ func (t *PoolTest) TestTimeoutAndCancelRequest(c *C) {
 	c.Assert(t.db.Pool().Size(), Equals, 0)
 	c.Assert(t.db.Pool().Len(), Equals, 0)
 
+	// Give PostgreSQL some time to cancel request.
+	time.Sleep(time.Second)
+
 	// Unreliable check that previous query was cancelled.
 	var count int
 	_, err = t.db.QueryOne(pg.LoadInto(&count), "SELECT COUNT(*) FROM pg_stat_activity")
