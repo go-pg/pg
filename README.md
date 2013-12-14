@@ -1,4 +1,4 @@
-PostgreSQL client for Golang
+PostgreSQL client for Golang [![Build Status](https://travis-ci.org/vmihailenco/pg.png?branch=master)](https://travis-ci.org/vmihailenco/pg)
 ============================
 
 Supports:
