@@ -61,8 +61,6 @@ func (t *PoolTest) TestPoolMaxSize(c *C) {
 }
 
 func (t *PoolTest) TestTimeoutAndCancelRequest(c *C) {
-	return
-
 	_, err := t.db.Exec("SELECT pg_sleep(60)")
 	c.Assert(err.(net.Error).Timeout(), Equals, true)
 

@@ -42,6 +42,12 @@ func (t *DBTest) SetUpTest(c *C) {
 	t.mysqldb = mysqldb
 }
 
+func (t *DBTest) TearDownTest(c *C) {
+	c.Assert(t.db.Close(), IsNil)
+	c.Assert(t.pqdb.Close(), IsNil)
+	c.Assert(t.mysqldb.Close(), IsNil)
+}
+
 func (t *DBTest) TestFormatWithTooManyParams(c *C) {
 	q, err := pg.FormatQ("", "foo", "bar")
 	c.Assert(err.Error(), Equals, "pg: expected 0 parameters but got 2")
