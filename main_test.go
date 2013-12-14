@@ -28,9 +28,9 @@ func (t *DBTest) SetUpTest(c *C) {
 		Database: "test",
 		PoolSize: 2,
 
-		DialTimeout:  time.Second,
-		ReadTimeout:  time.Second,
-		WriteTimeout: time.Second,
+		DialTimeout:  3 * time.Second,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
 	})
 
 	pqdb, err := sql.Open("postgres", "user=test dbname=test")
@@ -392,7 +392,7 @@ func (t *DBTest) TestListenNotify(c *C) {
 	select {
 	case <-done:
 		c.Fail()
-	case <-time.After(2 * time.Second):
+	case <-time.After(4 * time.Second):
 		// ok
 	}
 

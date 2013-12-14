@@ -22,9 +22,9 @@ func (t *PoolTest) SetUpTest(c *C) {
 		Database: "test",
 		PoolSize: 10,
 
-		DialTimeout:  time.Second,
-		ReadTimeout:  time.Second,
-		WriteTimeout: time.Second,
+		DialTimeout:  3 * time.Second,
+		ReadTimeout:  3 * time.Second,
+		WriteTimeout: 3 * time.Second,
 	})
 }
 
