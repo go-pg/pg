@@ -376,6 +376,11 @@ func (t *DBTest) TestQueryStmt(c *C) {
 	c.Assert(res.Affected(), Equals, 1)
 }
 
+func (t *DBTest) TestIntegrityError(c *C) {
+	_, err := t.db.Exec("DO $$BEGIN RAISE unique_violation USING MESSAGE='foo'; END$$;")
+	c.Assert(err, FitsTypeOf, &pg.IntegrityError{})
+}
+
 func (t *DBTest) TestListenNotify(c *C) {
 	ln, err := t.db.Listen("test_channel")
 	c.Assert(err, IsNil)
