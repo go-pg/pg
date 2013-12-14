@@ -24,7 +24,7 @@ type PoolTest struct {
 
 func (t *PoolTest) SetUpTest(c *C) {
 	t.db = pg.Connect(&pg.Options{
-		User:     "test",
+		User:     "postgres",
 		Database: "test",
 		PoolSize: 10,
 
@@ -165,7 +165,7 @@ type DBTest struct {
 
 func (t *DBTest) SetUpTest(c *C) {
 	t.db = pg.Connect(&pg.Options{
-		User:     "test",
+		User:     "postgres",
 		Database: "test",
 		PoolSize: 2,
 

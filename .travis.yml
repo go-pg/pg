@@ -1,0 +1,13 @@
+language: go
+
+services:
+- postgresql
+
+go:
+  - 1.0
+  - 1.1
+  - 1.2
+  - tip
+
+before_script:
+  - psql -c 'CREATE DATABASE test;' -U postgres
