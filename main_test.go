@@ -299,6 +299,8 @@ func (t *DBTest) TestTypeHstore(c *C) {
 }
 
 func (t *DBTest) TestTypeStmtHstore(c *C) {
+	t.db.Exec("CREATE EXTENSION hstore")
+
 	stmt, err := t.db.Prepare("SELECT $1::hstore")
 	c.Assert(err, IsNil)
 
@@ -307,6 +309,8 @@ func (t *DBTest) TestTypeStmtHstore(c *C) {
 	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
 	c.Assert(err, IsNil)
 	c.Assert(dst, DeepEquals, src)
+
+	t.db.Exec("DROP EXTENSION hstore")
 }
 
 func (t *DBTest) TestQueryInts(c *C) {
