@@ -4,10 +4,14 @@ services:
 - postgresql
 
 go:
-  - 1.0
   - 1.1
   - 1.2
   - tip
+
+install:
+  - go get github.com/go-sql-driver/mysql
+  - go get github.com/lib/pq
+  - go get launchpad.net/gocheck
 
 before_script:
   - psql -c 'CREATE DATABASE test;' -U postgres
