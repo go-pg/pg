@@ -54,6 +54,22 @@ func (tx *Tx) Exec(q string, args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
+func (tx *Tx) ExecOne(q string, args ...interface{}) (*Result, error) {
+	res, err := tx.Exec(q, args...)
+	if err != nil {
+		return nil, err
+	}
+
+	switch affected := res.Affected(); {
+	case affected == 0:
+		return nil, ErrNoRows
+	case affected > 1:
+		return nil, ErrMultiRows
+	}
+
+	return res, nil
+}
+
 func (tx *Tx) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 	if tx.done {
 		return nil, errTxDone

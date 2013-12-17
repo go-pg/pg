@@ -63,6 +63,22 @@ func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
+func (stmt *Stmt) ExecOne(args ...interface{}) (*Result, error) {
+	res, err := stmt.Exec(args...)
+	if err != nil {
+		return nil, err
+	}
+
+	switch affected := res.Affected(); {
+	case affected == 0:
+		return nil, ErrNoRows
+	case affected > 1:
+		return nil, ErrMultiRows
+	}
+
+	return res, nil
+}
+
 func (stmt *Stmt) Query(f Factory, args ...interface{}) (*Result, error) {
 	cn, err := stmt.conn()
 	if err != nil {
