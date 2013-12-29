@@ -68,15 +68,7 @@ func (stmt *Stmt) ExecOne(args ...interface{}) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	switch affected := res.Affected(); {
-	case affected == 0:
-		return nil, ErrNoRows
-	case affected > 1:
-		return nil, ErrMultiRows
-	}
-
-	return res, nil
+	return assertOneAffected(res)
 }
 
 func (stmt *Stmt) Query(f Factory, args ...interface{}) (*Result, error) {
@@ -86,6 +78,7 @@ func (stmt *Stmt) Query(f Factory, args ...interface{}) (*Result, error) {
 	}
 
 	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
+		stmt.setErr(err)
 		return nil, err
 	}
 
@@ -108,15 +101,7 @@ func (stmt *Stmt) QueryOne(model interface{}, args ...interface{}) (*Result, err
 	if err != nil {
 		return nil, err
 	}
-
-	switch affected := res.Affected(); {
-	case affected == 0:
-		return nil, ErrNoRows
-	case affected > 1:
-		return nil, ErrMultiRows
-	}
-
-	return res, nil
+	return assertOneAffected(res)
 }
 
 func (stmt *Stmt) setErr(e error) {

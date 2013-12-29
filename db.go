@@ -165,15 +165,7 @@ func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	switch affected := res.Affected(); {
-	case affected == 0:
-		return nil, ErrNoRows
-	case affected > 1:
-		return nil, ErrMultiRows
-	}
-
-	return res, nil
+	return assertOneAffected(res)
 }
 
 func (db *DB) Query(f Factory, q string, args ...interface{}) (*Result, error) {
@@ -182,22 +174,11 @@ func (db *DB) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 		return nil, err
 	}
 
-	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
-		db.pool.Put(cn)
-		return nil, err
-	}
-
-	if err := cn.Flush(); err != nil {
-		db.freeConn(cn, err)
-		return nil, err
-	}
-
-	res, err := readSimpleQueryData(cn, f)
+	res, err := simpleQuery(cn, f, q, args...)
 	if err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
-
 	db.pool.Put(cn)
 	return res, nil
 }
@@ -207,15 +188,7 @@ func (db *DB) QueryOne(model interface{}, q string, args ...interface{}) (*Resul
 	if err != nil {
 		return nil, err
 	}
-
-	switch affected := res.Affected(); {
-	case affected == 0:
-		return nil, ErrNoRows
-	case affected > 1:
-		return nil, ErrMultiRows
-	}
-
-	return res, nil
+	return assertOneAffected(res)
 }
 
 func (db *DB) Begin() (*Tx, error) {
@@ -363,4 +336,31 @@ func (db *DB) cancelRequest(processId, secretKey int32) error {
 	}
 
 	return cn.Close()
+}
+
+func simpleQuery(cn *conn, f Factory, q string, args ...interface{}) (*Result, error) {
+	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
+		return nil, err
+	}
+
+	if err := cn.Flush(); err != nil {
+		return nil, err
+	}
+
+	res, err := readSimpleQueryData(cn, f)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func assertOneAffected(res *Result) (*Result, error) {
+	switch affected := res.Affected(); {
+	case affected == 0:
+		return nil, ErrNoRows
+	case affected > 1:
+		return nil, ErrMultiRows
+	}
+	return res, nil
 }

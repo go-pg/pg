@@ -59,15 +59,7 @@ func (tx *Tx) ExecOne(q string, args ...interface{}) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	switch affected := res.Affected(); {
-	case affected == 0:
-		return nil, ErrNoRows
-	case affected > 1:
-		return nil, ErrMultiRows
-	}
-
-	return res, nil
+	return assertOneAffected(res)
 }
 
 func (tx *Tx) Query(f Factory, q string, args ...interface{}) (*Result, error) {
@@ -76,22 +68,11 @@ func (tx *Tx) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 	}
 
 	cn := tx.conn()
-
-	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
-		return nil, err
-	}
-
-	if err := cn.Flush(); err != nil {
-		tx.setErr(err)
-		return nil, err
-	}
-
-	res, err := readSimpleQueryData(cn, f)
+	res, err := simpleQuery(cn, f, q, args...)
 	if err != nil {
 		tx.setErr(err)
 		return nil, err
 	}
-
 	return res, nil
 }
 
@@ -100,15 +81,7 @@ func (tx *Tx) QueryOne(model interface{}, q string, args ...interface{}) (*Resul
 	if err != nil {
 		return nil, err
 	}
-
-	switch affected := res.Affected(); {
-	case affected == 0:
-		return nil, ErrNoRows
-	case affected > 1:
-		return nil, ErrMultiRows
-	}
-
-	return res, nil
+	return assertOneAffected(res)
 }
 
 func (tx *Tx) Commit() error {
