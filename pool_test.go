@@ -85,7 +85,7 @@ func (t *PoolTest) TestCloseClosesAllConnections(c *C) {
 	done := make(chan struct{})
 	go func() {
 		close(started)
-		_, _, err := ln.ReceiveTimeout(0)
+		_, _, err := ln.Receive()
 		c.Assert(err, Not(IsNil))
 		c.Assert(err.Error(), Equals, "read tcp 127.0.0.1:5432: use of closed network connection")
 		close(done)

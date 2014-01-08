@@ -394,6 +394,7 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	if err != nil {
 		return err
 	}
+	var loadErr error
 	for colIdx := 0; colIdx < int(colNum); colIdx++ {
 		colLen, err := cn.ReadInt32()
 		if err != nil {
@@ -407,10 +408,10 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 			}
 		}
 		if err := loader.Load(colIdx, columns[colIdx], b); err != nil {
-			return err
+			loadErr = err
 		}
 	}
-	return nil
+	return loadErr
 }
 
 func readSimpleQueryData(cn *conn, f Factory) (res *Result, e error) {
@@ -428,7 +429,7 @@ func readSimpleQueryData(cn *conn, f Factory) (res *Result, e error) {
 			}
 		case dataRowMsg:
 			if err := readDataRow(cn, f.New(), columns); err != nil {
-				return nil, err
+				e = err
 			}
 		case commandCompleteMsg:
 			b, err := cn.br.ReadN(msgLen)
@@ -476,7 +477,7 @@ func readExtQueryData(cn *conn, f Factory, columns []string) (res *Result, e err
 			}
 		case dataRowMsg:
 			if err := readDataRow(cn, f.New(), columns); err != nil {
-				return nil, err
+				e = err
 			}
 		case commandCompleteMsg: // Response to the EXECUTE message.
 			b, err := cn.br.ReadN(msgLen)

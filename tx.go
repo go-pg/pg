@@ -1,6 +1,8 @@
 package pg
 
 import (
+	"runtime"
+
 	"github.com/golang/glog"
 )
 
@@ -11,6 +13,24 @@ type Tx struct {
 
 	err  error
 	done bool
+}
+
+func (db *DB) Begin() (*Tx, error) {
+	cn, err := db.conn()
+	if err != nil {
+		return nil, err
+	}
+
+	tx := &Tx{
+		db:  db,
+		_cn: cn,
+	}
+	if _, err := tx.Exec("BEGIN"); err != nil {
+		tx.close()
+		return nil, err
+	}
+	runtime.SetFinalizer(tx, txFinalizer)
+	return tx, nil
 }
 
 func (tx *Tx) conn() *conn {

@@ -94,6 +94,10 @@ func (p *connPool) Get() (*conn, bool, error) {
 }
 
 func (p *connPool) Put(cn *conn) error {
+	if cn.br.Buffered() > 0 {
+		panic("connection has unread data")
+	}
+
 	cn.buf.Reset()
 	if p.idleTimeout > 0 {
 		cn.usedAt = time.Now()

@@ -3,6 +3,7 @@ package pg_test
 import (
 	"bytes"
 	"database/sql"
+	"errors"
 	"net"
 	"strings"
 	"testing"
@@ -376,6 +377,33 @@ func (t *DBTest) TestQueryStmt(c *C) {
 	c.Assert(err, IsNil)
 	c.Assert(dst.Num, Equals, 1)
 	c.Assert(res.Affected(), Equals, 1)
+}
+
+type loader string
+
+func (l loader) Load(colIdx int, colName string, b []byte) error {
+	return errors.New(string(l))
+}
+
+func (t *DBTest) TestLoaderError(c *C) {
+	tx, err := t.db.Begin()
+	c.Assert(err, IsNil)
+
+	{
+		loader := loader("my error")
+		_, err := tx.QueryOne(loader, "SELECT 1, 2")
+		c.Assert(err.Error(), Equals, "my error")
+	}
+
+	{
+		var n1, n2 int
+		_, err := tx.QueryOne(pg.LoadInto(&n1, &n2), "SELECT 1, 2")
+		c.Assert(err, IsNil)
+		c.Assert(n1, Equals, 1)
+		c.Assert(n2, Equals, 2)
+	}
+
+	c.Assert(tx.Rollback(), IsNil)
 }
 
 func (t *DBTest) TestIntegrityError(c *C) {
