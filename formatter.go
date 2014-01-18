@@ -3,6 +3,7 @@ package pg
 import (
 	"encoding/hex"
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
 )
@@ -117,6 +118,16 @@ func appendValue(dst []byte, srci interface{}) []byte {
 		return strconv.AppendInt(dst, int64(src), 10)
 	case int:
 		return strconv.AppendInt(dst, int64(src), 10)
+	case uint8:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case uint16:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case uint32:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case uint64:
+		return strconv.AppendInt(dst, int64(src), 10)
+	case uint:
+		return strconv.AppendInt(dst, int64(src), 10)
 	case string:
 		return appendString(dst, src)
 	case time.Time:
@@ -182,7 +193,17 @@ func appendValue(dst []byte, srci interface{}) []byte {
 	case Appender:
 		return src.Append(dst)
 	default:
-		panic(fmt.Sprintf("pg: unsupported src type: %T", srci))
+		v := reflect.ValueOf(srci)
+		switch v.Kind() {
+		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
+			return strconv.AppendInt(dst, v.Int(), 10)
+		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+			return strconv.AppendUint(dst, v.Uint(), 10)
+		case reflect.String:
+			return appendString(dst, v.String())
+		default:
+			panic(fmt.Sprintf("pg: unsupported src type: %T", srci))
+		}
 	}
 }
 
@@ -276,32 +297,85 @@ func appendRawValue(dst []byte, srci interface{}) []byte {
 	case RawAppender:
 		return src.AppendRaw(dst)
 	default:
-		panic(fmt.Sprintf("pg: unsupported src type: %T", srci))
+		v := reflect.ValueOf(srci)
+		switch v.Kind() {
+		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
+			return strconv.AppendInt(dst, v.Int(), 10)
+		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
+			return strconv.AppendUint(dst, v.Uint(), 10)
+		case reflect.String:
+			return appendRawString(dst, v.String())
+		default:
+			panic(fmt.Sprintf("pg: unsupported src type: %T", srci))
+		}
 	}
 }
 
 //------------------------------------------------------------------------------
 
 func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
-	p := &parser{b: src}
+	var structptr, structv reflect.Value
+	var fields map[string][]int
+	var methods map[string]int
 	var paramInd int
+
+	p := &parser{b: src}
+
 	for p.Valid() {
-		c := p.Next()
-		if c == '?' {
-			if paramInd >= len(params) {
-				return nil, fmt.Errorf(
-					"pg: expected at least %d parameters but got %d",
-					paramInd+1, len(params),
-				)
+		ch := p.Next()
+
+		switch ch {
+		case '?':
+			var value interface{}
+
+			name := p.ReadName()
+			if name != "" {
+				if fields == nil {
+					if len(params) == 0 {
+						return nil, fmt.Errorf("pg: expected at least one parameter, got nothing")
+					}
+					structptr = reflect.ValueOf(params[len(params)-1])
+					params = params[:len(params)-1]
+					if structptr.Kind() == reflect.Ptr {
+						structv = structptr.Elem()
+					} else {
+						structv = structptr
+					}
+					if structv.Kind() != reflect.Struct {
+						return nil, fmt.Errorf("pg: expected struct, got %s", structv.Kind())
+					}
+					fields = structs.Fields(structv.Type())
+					methods = structs.Methods(structptr.Type())
+				}
+
+				if indx, ok := fields[name]; ok {
+					value = structv.FieldByIndex(indx).Interface()
+				} else if indx, ok := methods[name]; ok {
+					value = structptr.Method(indx).Call(nil)[0].Interface()
+				} else {
+					return nil, fmt.Errorf("pg: cannot map %q", name)
+				}
+			} else {
+				if paramInd >= len(params) {
+					return nil, fmt.Errorf(
+						"pg: expected at least %d parameters, got %d",
+						paramInd+1, len(params),
+					)
+				}
+
+				value = params[paramInd]
+				paramInd++
 			}
-			dst = appendValue(dst, params[paramInd])
-			paramInd++
-		} else {
-			dst = append(dst, c)
+
+			dst = appendValue(dst, value)
+		default:
+			dst = append(dst, ch)
 		}
 	}
+
 	if paramInd < len(params) {
-		return nil, fmt.Errorf("pg: expected %d parameters but got %d", paramInd, len(params))
+		return nil, fmt.Errorf("pg: expected %d parameters, got %d", paramInd, len(params))
 	}
+
 	return dst, nil
 }

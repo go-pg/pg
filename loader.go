@@ -31,21 +31,21 @@ func (discardLoader) Load(colIdx int, colName string, b []byte) error {
 //------------------------------------------------------------------------------
 
 type structLoader struct {
-	v     *reflect.Value
-	indxs map[string][]int
+	v      *reflect.Value
+	fields map[string][]int
 }
 
 func newStructLoader(v *reflect.Value) *structLoader {
 	return &structLoader{
-		v:     v,
-		indxs: structs.Indexes(v.Type()),
+		v:      v,
+		fields: structs.Fields(v.Type()),
 	}
 }
 
 func (l *structLoader) Load(colIdx int, colName string, b []byte) error {
-	indx := l.indxs[colName]
-	if indx == nil {
-		return fmt.Errorf("pg: can not map field %q", colName)
+	indx, ok := l.fields[colName]
+	if !ok {
+		return fmt.Errorf("pg: cannot map field %q", colName)
 	}
 	return Decode(l.v.FieldByIndex(indx).Addr().Interface(), b)
 }

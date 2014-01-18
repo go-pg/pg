@@ -41,27 +41,31 @@ func formatColumnName(s string) string {
 }
 
 type structCache struct {
-	l sync.RWMutex
-	m map[reflect.Type]map[string][]int
+	fields  map[reflect.Type]map[string][]int
+	fieldsl sync.RWMutex
+
+	methods  map[reflect.Type]map[string]int
+	methodsl sync.RWMutex
 }
 
 func newStructCache() *structCache {
 	return &structCache{
-		m: make(map[reflect.Type]map[string][]int),
+		fields:  make(map[reflect.Type]map[string][]int),
+		methods: make(map[reflect.Type]map[string]int),
 	}
 }
 
-func (c *structCache) Indexes(typ reflect.Type) map[string][]int {
-	c.l.RLock()
-	indxs, ok := c.m[typ]
-	c.l.RUnlock()
+func (c *structCache) Fields(typ reflect.Type) map[string][]int {
+	c.fieldsl.RLock()
+	indxs, ok := c.fields[typ]
+	c.fieldsl.RUnlock()
 	if ok {
 		return indxs
 	}
 
-	numField := typ.NumField()
-	indxs = make(map[string][]int, numField)
-	for i := 0; i < numField; i++ {
+	num := typ.NumField()
+	indxs = make(map[string][]int, num)
+	for i := 0; i < num; i++ {
 		f := typ.Field(i)
 		if f.PkgPath != "" {
 			continue
@@ -78,9 +82,37 @@ func (c *structCache) Indexes(typ reflect.Type) map[string][]int {
 		indxs[name] = f.Index
 	}
 
-	c.l.Lock()
-	c.m[typ] = indxs
-	c.l.Unlock()
+	c.fieldsl.Lock()
+	c.fields[typ] = indxs
+	c.fieldsl.Unlock()
+
+	return indxs
+}
+
+func (c *structCache) Methods(typ reflect.Type) map[string]int {
+	c.methodsl.RLock()
+	indxs, ok := c.methods[typ]
+	c.methodsl.RUnlock()
+	if ok {
+		return indxs
+	}
+
+	num := typ.NumMethod()
+	indxs = make(map[string]int, num)
+	for i := 0; i < num; i++ {
+		m := typ.Method(i)
+		if m.Type.NumIn() > 1 {
+			continue
+		}
+		if m.Type.NumOut() != 1 {
+			continue
+		}
+		indxs[m.Name] = m.Index
+	}
+
+	c.methodsl.Lock()
+	c.methods[typ] = indxs
+	c.methodsl.Unlock()
 
 	return indxs
 }

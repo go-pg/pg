@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"errors"
+	"math"
 	"net"
 	"strings"
 	"testing"
@@ -52,27 +53,99 @@ func (t *DBTest) TearDownTest(c *C) {
 }
 
 func (t *DBTest) TestFormatWithTooManyParams(c *C) {
-	q, err := pg.FormatQ("", "foo", "bar")
-	c.Assert(err.Error(), Equals, "pg: expected 0 parameters but got 2")
-	c.Assert(string(q), Equals, "")
+	_, err := pg.FormatQ("", "foo", "bar")
+	c.Assert(err.Error(), Equals, "pg: expected 0 parameters, got 2")
 }
 
 func (t *DBTest) TestFormatWithTooFewParams(c *C) {
-	q, err := pg.FormatQ("? ? ?", "foo", "bar")
-	c.Assert(err.Error(), Equals, "pg: expected at least 3 parameters but got 2")
-	c.Assert(string(q), Equals, "")
+	_, err := pg.FormatQ("? ? ?", "foo", "bar")
+	c.Assert(err.Error(), Equals, "pg: expected at least 3 parameters, got 2")
+}
+
+// TODO: check for overflow?
+func (t *DBTest) TestFormatUint64(c *C) {
+	q, err := pg.FormatQ("?", uint64(math.MaxUint64))
+	c.Assert(err, IsNil)
+	c.Assert(string(q), Equals, "-1")
 }
 
 func (t *DBTest) TestFormatInts(c *C) {
 	q, err := pg.FormatQ("?", pg.Ints{1, 2, 3})
 	c.Assert(err, IsNil)
-	c.Assert(q, Equals, pg.Q("1,2,3"))
+	c.Assert(string(q), Equals, "1,2,3")
 }
 
 func (t *DBTest) TestFormatStrings(c *C) {
 	q, err := pg.FormatQ("?", pg.Strings{"hello", "world"})
 	c.Assert(err, IsNil)
-	c.Assert(q, Equals, pg.Q("'hello','world'"))
+	c.Assert(string(q), Equals, "'hello','world'")
+}
+
+func (t *DBTest) TestFormatAlias(c *C) {
+	{
+		type myint int
+		q, err := pg.FormatQ("?", myint(42))
+		c.Assert(err, IsNil)
+		c.Assert(string(q), Equals, "42")
+	}
+
+	{
+		type mystr string
+		q, err := pg.FormatQ("?", mystr("hello world"))
+		c.Assert(err, IsNil)
+		c.Assert(string(q), Equals, "'hello world'")
+	}
+}
+
+type structFormatter struct {
+	Foo string
+}
+
+func (structFormatter) Meth() string {
+	return "hello world"
+}
+
+func (structFormatter) MethWithArgs(string) string {
+	return "hello world"
+}
+
+func (structFormatter) MethWithReturns() (string, string) {
+	return "hello", "world"
+}
+
+func (t *DBTest) TestFormatStruct(c *C) {
+	{
+		src := struct{ Foo string }{"bar"}
+		q, err := pg.FormatQ("?bar", src)
+		c.Assert(err.Error(), Equals, `pg: cannot map "bar"`)
+		c.Assert(string(q), Equals, "")
+	}
+
+	{
+		src := struct{ S1, S2 string }{"hello", "world"}
+		q, err := pg.FormatQ("? ?s1 ? ?s2 ?", "one", "two", "three", src)
+		c.Assert(err, IsNil)
+		c.Assert(string(q), Equals, "'one' 'hello' 'two' 'world' 'three'")
+	}
+
+	{
+		src := &structFormatter{}
+		_, err := pg.FormatQ("?MethWithArgs", src)
+		c.Assert(err.Error(), Equals, `pg: cannot map "MethWithArgs"`)
+	}
+
+	{
+		src := &structFormatter{}
+		_, err := pg.FormatQ("?MethWithReturns", src)
+		c.Assert(err.Error(), Equals, `pg: cannot map "MethWithReturns"`)
+	}
+
+	{
+		src := &structFormatter{"bar"}
+		q, err := pg.FormatQ("?foo ?Meth", src)
+		c.Assert(err, IsNil)
+		c.Assert(string(q), Equals, "'bar' 'hello world'")
+	}
 }
 
 type Dst struct {

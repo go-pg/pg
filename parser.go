@@ -10,6 +10,18 @@ var (
 	pgNull = []byte("NULL")
 )
 
+func isDigit(c byte) bool {
+	return c >= '0' && c <= '9'
+}
+
+func isAlpha(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
+}
+
+func isAlnum(c byte) bool {
+	return isAlpha(c) || isDigit(c)
+}
+
 type parser struct {
 	b   []byte
 	pos int
@@ -52,16 +64,28 @@ func (p *parser) ReadSep(sep []byte) []byte {
 	return p.b[start:p.pos]
 }
 
-func (p *parser) ReadNumber() (int, error) {
+func (p *parser) ReadName() string {
 	start := p.pos
 	for p.Valid() {
-		c := p.Next()
-		if c < '0' || c > '9' {
+		ch := p.Next()
+		if !(isAlnum(ch) || ch == '_') {
 			p.pos--
 			break
 		}
 	}
-	return strconv.Atoi(string(p.b[start:p.pos]))
+	return string(p.b[start:p.pos])
+}
+
+func (p *parser) ReadNumber() int {
+	start := p.pos
+	for p.Valid() {
+		if !isDigit(p.Next()) {
+			p.pos--
+			break
+		}
+	}
+	n, _ := strconv.Atoi(string(p.b[start:p.pos]))
+	return n
 }
 
 type arrayParser struct {
