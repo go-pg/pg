@@ -330,6 +330,7 @@ func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 
 			name := p.ReadName()
 			if name != "" {
+				// Lazily initialize named params.
 				if fields == nil {
 					if len(params) == 0 {
 						return nil, fmt.Errorf("pg: expected at least one parameter, got nothing")
