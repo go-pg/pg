@@ -322,56 +322,54 @@ func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 	p := &parser{b: src}
 
 	for p.Valid() {
-		ch := p.Next()
+		if ch := p.Next(); ch != '?' {
+			dst = append(dst, ch)
+			continue
+		}
 
-		switch ch {
-		case '?':
-			var value interface{}
+		var value interface{}
 
-			name := p.ReadName()
-			if name != "" {
-				// Lazily initialize named params.
-				if fields == nil {
-					if len(params) == 0 {
-						return nil, fmt.Errorf("pg: expected at least one parameter, got nothing")
-					}
-					structptr = reflect.ValueOf(params[len(params)-1])
-					params = params[:len(params)-1]
-					if structptr.Kind() == reflect.Ptr {
-						structv = structptr.Elem()
-					} else {
-						structv = structptr
-					}
-					if structv.Kind() != reflect.Struct {
-						return nil, fmt.Errorf("pg: expected struct, got %s", structv.Kind())
-					}
-					fields = structs.Fields(structv.Type())
-					methods = structs.Methods(structptr.Type())
+		name := p.ReadName()
+		if name != "" {
+			// Lazily initialize named params.
+			if fields == nil {
+				if len(params) == 0 {
+					return nil, fmt.Errorf("pg: expected at least one parameter, got nothing")
 				}
-
-				if indx, ok := fields[name]; ok {
-					value = structv.FieldByIndex(indx).Interface()
-				} else if indx, ok := methods[name]; ok {
-					value = structptr.Method(indx).Call(nil)[0].Interface()
+				structptr = reflect.ValueOf(params[len(params)-1])
+				params = params[:len(params)-1]
+				if structptr.Kind() == reflect.Ptr {
+					structv = structptr.Elem()
 				} else {
-					return nil, fmt.Errorf("pg: cannot map %q", name)
+					structv = structptr
 				}
-			} else {
-				if paramInd >= len(params) {
-					return nil, fmt.Errorf(
-						"pg: expected at least %d parameters, got %d",
-						paramInd+1, len(params),
-					)
+				if structv.Kind() != reflect.Struct {
+					return nil, fmt.Errorf("pg: expected struct, got %s", structv.Kind())
 				}
-
-				value = params[paramInd]
-				paramInd++
+				fields = structs.Fields(structv.Type())
+				methods = structs.Methods(structptr.Type())
 			}
 
-			dst = appendValue(dst, value)
-		default:
-			dst = append(dst, ch)
+			if indx, ok := fields[name]; ok {
+				value = structv.FieldByIndex(indx).Interface()
+			} else if indx, ok := methods[name]; ok {
+				value = structptr.Method(indx).Call(nil)[0].Interface()
+			} else {
+				return nil, fmt.Errorf("pg: cannot map %q", name)
+			}
+		} else {
+			if paramInd >= len(params) {
+				return nil, fmt.Errorf(
+					"pg: expected at least %d parameters, got %d",
+					paramInd+1, len(params),
+				)
+			}
+
+			value = params[paramInd]
+			paramInd++
 		}
+
+		dst = appendValue(dst, value)
 	}
 
 	if paramInd < len(params) {
