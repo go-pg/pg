@@ -24,7 +24,7 @@ Install:
 
 Example
 -------
-```
+```go
 package pg_test
 
 import (
