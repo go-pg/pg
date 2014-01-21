@@ -29,23 +29,29 @@ Changelog
 
 * Support for named placeholders:
 
-    a := &Article{Id: 1, Name: "Hello world"}
-    _, err := db.ExecOne(`UPDATE articles SET name = ?name WHERE id = ?id`, a)
+```go
+a := &Article{Id: 1, Name: "Hello world"}
+_, err := db.ExecOne(`UPDATE articles SET name = ?name WHERE id = ?id`, a)
+```
 
 * CopyFrom/CopyTo support:
 
-    r := strings.NewReader("hello\t5\nworld\t5\nfoo\t3\nbar\t3\n")
-    res, err := t.db.CopyFrom(r, "COPY test FROM STDIN")
+```go
+r := strings.NewReader("hello\t5\nworld\t5\nfoo\t3\nbar\t3\n")
+res, err := t.db.CopyFrom(r, "COPY test FROM STDIN")
+```
 
 * Simplify collections:
 
-    type Articles []*Article
+```go
+type Articles []*Article
 
-    func (articles *Articles) New() interface{} {
-        a := &Article{}
-        *articles = append(*articles, a)
-        return a
-    }
+func (articles *Articles) New() interface{} {
+    a := &Article{}
+    *articles = append(*articles, a)
+    return a
+}
+```
 
 ### 0.1
 
