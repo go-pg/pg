@@ -24,7 +24,7 @@ Install:
 
 Example
 -------
-```go
+```
 package pg_test
 
 import (
@@ -38,13 +38,11 @@ type User struct {
 	Emails []string
 }
 
-type Users struct {
-	Values []*User
-}
+type Users []*User
 
-func (f *Users) New() interface{} {
+func (users *Users) New() interface{} {
 	u := &User{}
-	f.Values = append(f.Values, u)
+	*users = append(*users, u)
 	return u
 }
 
@@ -54,12 +52,12 @@ func CreateUser(db *pg.DB, user *User) error {
 }
 
 func GetUsers(db *pg.DB) ([]*User, error) {
-	users := &Users{}
-	_, err := db.Query(users, `SELECT * FROM users`)
+	var users Users
+	_, err := db.Query(&users, `SELECT * FROM users`)
 	if err != nil {
 		return nil, err
 	}
-	return users.Values, nil
+	return users, nil
 }
 
 func ExampleDB_Query() {
