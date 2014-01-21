@@ -46,8 +46,8 @@ func CreateArticle(db *pg.DB, article *Article) error {
 func GetArticles(db *pg.DB, f *ArticleFilter) ([]*Article, error) {
 	var articles Articles
 	_, err := db.Query(&articles, `
-        SELECT * FROM articles WHERE 1=1 ?FilterName ?FilterCategory
-    `, f)
+		SELECT * FROM articles WHERE 1=1 ?FilterName ?FilterCategory
+	`, f)
 	if err != nil {
 		return nil, err
 	}
