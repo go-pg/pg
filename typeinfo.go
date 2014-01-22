@@ -63,24 +63,7 @@ func (c *structCache) Fields(typ reflect.Type) map[string][]int {
 		return indxs
 	}
 
-	num := typ.NumField()
-	indxs = make(map[string][]int, num)
-	for i := 0; i < num; i++ {
-		f := typ.Field(i)
-		if f.PkgPath != "" {
-			continue
-		}
-
-		tokens := strings.Split(f.Tag.Get("pg"), ",")
-		name := tokens[0]
-		if name == "-" {
-			continue
-		}
-		if name == "" {
-			name = formatColumnName(f.Name)
-		}
-		indxs[name] = f.Index
-	}
+	indxs = fields(typ)
 
 	c.fieldsl.Lock()
 	c.fields[typ] = indxs
@@ -115,4 +98,38 @@ func (c *structCache) Methods(typ reflect.Type) map[string]int {
 	c.methodsl.Unlock()
 
 	return indxs
+}
+
+func fields(typ reflect.Type) map[string][]int {
+	num := typ.NumField()
+	dst := make(map[string][]int, num)
+	for i := 0; i < num; i++ {
+		f := typ.Field(i)
+
+		if f.Anonymous {
+			typ := f.Type
+			if typ.Kind() == reflect.Ptr {
+				typ = typ.Elem()
+			}
+			for name, indx := range fields(typ) {
+				dst[name] = append(f.Index, indx...)
+			}
+			continue
+		}
+
+		if f.PkgPath != "" {
+			continue
+		}
+
+		tokens := strings.Split(f.Tag.Get("pg"), ",")
+		name := tokens[0]
+		if name == "-" {
+			continue
+		}
+		if name == "" {
+			name = formatColumnName(f.Name)
+		}
+		dst[name] = f.Index
+	}
+	return dst
 }

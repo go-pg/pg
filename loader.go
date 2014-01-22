@@ -31,11 +31,11 @@ func (discardLoader) Load(colIdx int, colName string, b []byte) error {
 //------------------------------------------------------------------------------
 
 type structLoader struct {
-	v      *reflect.Value
+	v      reflect.Value
 	fields map[string][]int
 }
 
-func newStructLoader(v *reflect.Value) *structLoader {
+func newStructLoader(v reflect.Value) *structLoader {
 	return &structLoader{
 		v:      v,
 		fields: structs.Fields(v.Type()),
@@ -47,7 +47,7 @@ func (l *structLoader) Load(colIdx int, colName string, b []byte) error {
 	if !ok {
 		return fmt.Errorf("pg: cannot map field %q", colName)
 	}
-	return Decode(l.v.FieldByIndex(indx).Addr().Interface(), b)
+	return decodeValue(l.v.FieldByIndex(indx), b)
 }
 
 //------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ func newLoader(dst interface{}) (Loader, error) {
 	v = v.Elem()
 	switch v.Kind() {
 	case reflect.Struct:
-		return newStructLoader(&v), nil
+		return newStructLoader(v), nil
 	}
 	return nil, fmt.Errorf("pg: unsupported type %v", v.Type().String())
 }

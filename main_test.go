@@ -102,15 +102,23 @@ type structFormatter struct {
 }
 
 func (structFormatter) Meth() string {
-	return "hello world"
+	return "value"
 }
 
 func (structFormatter) MethWithArgs(string) string {
-	return "hello world"
+	return "value"
 }
 
 func (structFormatter) MethWithReturns() (string, string) {
-	return "hello", "world"
+	return "value1", "value2"
+}
+
+type embeddedStructFormatter struct {
+	*structFormatter
+}
+
+func (embeddedStructFormatter) Meth2() string {
+	return "value2"
 }
 
 func (t *DBTest) TestFormatStruct(c *C) {
@@ -122,10 +130,10 @@ func (t *DBTest) TestFormatStruct(c *C) {
 	}
 
 	{
-		src := struct{ S1, S2 string }{"hello", "world"}
+		src := struct{ S1, S2 string }{"value1", "value2"}
 		q, err := pg.FormatQ("? ?s1 ? ?s2 ?", "one", "two", "three", src)
 		c.Assert(err, IsNil)
-		c.Assert(string(q), Equals, "'one' 'hello' 'two' 'world' 'three'")
+		c.Assert(string(q), Equals, "'one' 'value1' 'two' 'value2' 'three'")
 	}
 
 	{
@@ -144,34 +152,59 @@ func (t *DBTest) TestFormatStruct(c *C) {
 		src := &structFormatter{"bar"}
 		q, err := pg.FormatQ("?foo ?Meth", src)
 		c.Assert(err, IsNil)
-		c.Assert(string(q), Equals, "'bar' 'hello world'")
+		c.Assert(string(q), Equals, "'bar' 'value'")
+	}
+
+	{
+		src := &embeddedStructFormatter{&structFormatter{"bar"}}
+		q, err := pg.FormatQ("?foo ?Meth ?Meth2", src)
+		c.Assert(err, IsNil)
+		c.Assert(string(q), Equals, "'bar' 'value' 'value2'")
 	}
 }
 
-type Dst struct {
+type structLoader struct {
 	Num int
 }
 
-func (d *Dst) New() interface{} {
-	return d
+func (l *structLoader) New() interface{} {
+	return l
+}
+
+type embeddedStructLoader struct {
+	*structLoader
+	Num2 int
+}
+
+func (l *embeddedStructLoader) New() interface{} {
+	return l
 }
 
 func (t *DBTest) TestQuery(c *C) {
-	dst := &Dst{}
-	res, err := t.db.Query(dst, "SELECT 1 AS num")
+	dst := &structLoader{}
+	_, err := t.db.Query(dst, "SELECT 1 AS num")
 	c.Assert(err, IsNil)
 	c.Assert(dst.Num, Equals, 1)
-	c.Assert(res.Affected(), Equals, 1)
+}
+
+func (t *DBTest) TestQueryEmbeddedStruct(c *C) {
+	dst := &embeddedStructLoader{
+		structLoader: &structLoader{},
+	}
+	_, err := t.db.Query(dst, "SELECT 1 AS num, 2 as num2")
+	c.Assert(err, IsNil)
+	c.Assert(dst.Num, Equals, 1)
+	c.Assert(dst.Num2, Equals, 2)
 }
 
 func (t *DBTest) TestQueryZeroRows(c *C) {
-	res, err := t.db.Query(&Dst{}, "SELECT s.num AS num FROM generate_series(0, -1) AS s(num)")
+	res, err := t.db.Query(&structLoader{}, "SELECT s.num AS num FROM generate_series(0, -1) AS s(num)")
 	c.Assert(err, IsNil)
 	c.Assert(res.Affected(), Equals, 0)
 }
 
 func (t *DBTest) TestQueryOne(c *C) {
-	dst := &Dst{}
+	dst := &structLoader{}
 	res, err := t.db.QueryOne(dst, "SELECT 1 AS num")
 	c.Assert(err, IsNil)
 	c.Assert(dst.Num, Equals, 1)
@@ -186,13 +219,13 @@ func (t *DBTest) TestQueryOneValue(c *C) {
 }
 
 func (t *DBTest) TestQueryOneErrNoRows(c *C) {
-	dst, err := t.db.QueryOne(&Dst{}, "SELECT s.num AS num FROM generate_series(0, -1) AS s(num)")
+	dst, err := t.db.QueryOne(&structLoader{}, "SELECT s.num AS num FROM generate_series(0, -1) AS s(num)")
 	c.Assert(dst, IsNil)
 	c.Assert(err, Equals, pg.ErrNoRows)
 }
 
 func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
-	dst, err := t.db.QueryOne(&Dst{}, "SELECT s.num AS num FROM generate_series(0, 10) AS s(num)")
+	dst, err := t.db.QueryOne(&structLoader{}, "SELECT s.num AS num FROM generate_series(0, 10) AS s(num)")
 	c.Assert(err, Equals, pg.ErrMultiRows)
 	c.Assert(dst, IsNil)
 }
@@ -445,7 +478,7 @@ func (t *DBTest) TestQueryStmt(c *C) {
 	c.Assert(err, IsNil)
 	defer stmt.Close()
 
-	dst := &Dst{}
+	dst := &structLoader{}
 	res, err := stmt.Query(dst)
 	c.Assert(err, IsNil)
 	c.Assert(dst.Num, Equals, 1)
@@ -582,7 +615,7 @@ func (t *DBTest) BenchmarkFormatWithArgs(c *C) {
 }
 
 func (t *DBTest) BenchmarkQueryRow(c *C) {
-	dst := &Dst{}
+	dst := &structLoader{}
 	for i := 0; i < c.N; i++ {
 		_, err := t.db.QueryOne(dst, "SELECT ?::bigint AS num", 1)
 		if err != nil {
@@ -608,7 +641,7 @@ func (t *DBTest) BenchmarkQueryRowStdlibPq(c *C) {
 }
 
 func (t *DBTest) BenchmarkQueryRowWithoutParams(c *C) {
-	dst := &Dst{}
+	dst := &structLoader{}
 	for i := 0; i < c.N; i++ {
 		_, err := t.db.QueryOne(dst, "SELECT 1::bigint AS num")
 		if err != nil {
@@ -652,7 +685,7 @@ func (t *DBTest) BenchmarkQueryRowStmt(c *C) {
 	defer stmt.Close()
 
 	for i := 0; i < c.N; i++ {
-		_, err := stmt.QueryOne(&Dst{}, 1)
+		_, err := stmt.QueryOne(&structLoader{}, 1)
 		if err != nil {
 			panic(err)
 		}

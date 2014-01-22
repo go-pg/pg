@@ -28,12 +28,8 @@ type parser struct {
 	err error
 }
 
-func (p *parser) Err() error {
-	return p.err
-}
-
 func (p *parser) Valid() bool {
-	return p.err == nil && p.pos < len(p.b)
+	return p.pos < len(p.b)
 }
 
 func (p *parser) Next() byte {
@@ -98,14 +94,14 @@ func newArrayParser(b []byte) *arrayParser {
 	}
 }
 
-func (p *arrayParser) NextElem() []byte {
+func (p *arrayParser) NextElem() ([]byte, error) {
 	if p.Next() != '"' {
 		p.pos--
 		b := p.ReadSep([]byte{','})
 		if bytes.Equal(b, pgNull) {
-			return nil
+			return nil, nil
 		}
-		return b
+		return b, nil
 	}
 
 	b := make([]byte, 0)
@@ -134,14 +130,13 @@ func (p *arrayParser) NextElem() []byte {
 		case '"':
 			// Read ",".
 			p.pos++
-			return b
+			return b, nil
 		default:
 			b = append(b, c)
 		}
 	}
 
-	p.err = fmt.Errorf("pg: can't parse array: %q", p.b)
-	return nil
+	return nil, fmt.Errorf("pg: can't parse array: %q", p.b)
 }
 
 type hstoreParser struct {
