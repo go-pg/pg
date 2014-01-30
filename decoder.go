@@ -100,6 +100,20 @@ func Decode(dst interface{}, f []byte) error {
 		}
 		*v = uint(n)
 		return nil
+	case *float32:
+		n, err := strconv.ParseFloat(string(f), 32)
+		if err != nil {
+			return err
+		}
+		*v = float32(n)
+		return nil
+	case *float64:
+		n, err := strconv.ParseFloat(string(f), 64)
+		if err != nil {
+			return err
+		}
+		*v = n
+		return nil
 	case *string:
 		*v = string(f)
 		return nil
@@ -183,6 +197,13 @@ func decodeValue(dst reflect.Value, f []byte) error {
 			return err
 		}
 		dst.SetUint(uint64(n))
+		return nil
+	case reflect.Float32, reflect.Float64:
+		n, err := strconv.ParseFloat(string(f), 64)
+		if err != nil {
+			return err
+		}
+		dst.SetFloat(n)
 		return nil
 	case reflect.String:
 		dst.SetString(string(f))

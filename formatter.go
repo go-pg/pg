@@ -128,6 +128,10 @@ func appendValue(dst []byte, srci interface{}) []byte {
 		return strconv.AppendInt(dst, int64(src), 10)
 	case uint:
 		return strconv.AppendInt(dst, int64(src), 10)
+	case float32:
+		return strconv.AppendFloat(dst, float64(src), 'f', -1, 32)
+	case float64:
+		return strconv.AppendFloat(dst, src, 'f', -1, 64)
 	case string:
 		return appendString(dst, src)
 	case time.Time:
@@ -199,6 +203,8 @@ func appendValue(dst []byte, srci interface{}) []byte {
 			return strconv.AppendInt(dst, v.Int(), 10)
 		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 			return strconv.AppendUint(dst, v.Uint(), 10)
+		case reflect.Float32, reflect.Float64:
+			return strconv.AppendFloat(dst, v.Float(), 'f', -1, 64)
 		case reflect.String:
 			return appendString(dst, v.String())
 		default:
@@ -234,6 +240,10 @@ func appendRawValue(dst []byte, srci interface{}) []byte {
 		return strconv.AppendInt(dst, int64(src), 10)
 	case uint:
 		return strconv.AppendInt(dst, int64(src), 10)
+	case float32:
+		return strconv.AppendFloat(dst, float64(src), 'f', -1, 32)
+	case float64:
+		return strconv.AppendFloat(dst, src, 'f', -1, 64)
 	case string:
 		return appendRawString(dst, src)
 	case time.Time:
@@ -303,6 +313,8 @@ func appendRawValue(dst []byte, srci interface{}) []byte {
 			return strconv.AppendInt(dst, v.Int(), 10)
 		case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
 			return strconv.AppendUint(dst, v.Uint(), 10)
+		case reflect.Float32, reflect.Float64:
+			return strconv.AppendFloat(dst, v.Float(), 'f', -1, 64)
 		case reflect.String:
 			return appendRawString(dst, v.String())
 		default:

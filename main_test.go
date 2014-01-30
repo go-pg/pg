@@ -203,7 +203,7 @@ func (t *DBTest) TestQueryZeroRows(c *C) {
 	c.Assert(res.Affected(), Equals, 0)
 }
 
-func (t *DBTest) TestQueryOne(c *C) {
+func (t *DBTest) TestQueryOneStruct(c *C) {
 	dst := &structLoader{}
 	res, err := t.db.QueryOne(dst, "SELECT 1 AS num")
 	c.Assert(err, IsNil)
@@ -211,7 +211,7 @@ func (t *DBTest) TestQueryOne(c *C) {
 	c.Assert(res.Affected(), Equals, 1)
 }
 
-func (t *DBTest) TestQueryOneValue(c *C) {
+func (t *DBTest) TestQueryOnePrimitive(c *C) {
 	var v int
 	_, err := t.db.QueryOne(pg.LoadInto(&v), "SELECT 1 AS num")
 	c.Assert(err, IsNil)
@@ -262,6 +262,25 @@ func (t *DBTest) TestExecOneErrMultiRows(c *C) {
 
 	_, err = t.db.ExecOne("DELETE FROM test WHERE id = 1")
 	c.Assert(err, Equals, pg.ErrMultiRows)
+}
+
+func (t *DBTest) TestTypeFloat64(c *C) {
+	src := 3.14
+	var dst float64
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?", src)
+	c.Assert(err, IsNil)
+	c.Assert(dst, Equals, src)
+}
+
+func (t *DBTest) TestTypeStmtFloat64(c *C) {
+	stmt, err := t.db.Prepare("SELECT $1::real")
+	c.Assert(err, IsNil)
+
+	src := 3.14
+	var dst float64
+	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
+	c.Assert(err, IsNil)
+	c.Assert(dst, Equals, src)
 }
 
 func (t *DBTest) TestTypeString(c *C) {
