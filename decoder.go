@@ -100,6 +100,13 @@ func Decode(dst interface{}, f []byte) error {
 		}
 		*v = uint(n)
 		return nil
+	case *float64:
+		n, err := strconv.ParseFloat(string(f), 64)
+		if err != nil {
+			return err
+		}
+		*v = float64(n)
+		return nil
 	case *string:
 		*v = string(f)
 		return nil
