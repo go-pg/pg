@@ -122,6 +122,23 @@ func (ints Ints) Append(dst []byte) []byte {
 
 //------------------------------------------------------------------------------
 
+type IntsSet map[int64]struct{}
+
+func (set IntsSet) New() interface{} {
+	return set
+}
+
+func (set IntsSet) Load(colIdx int, colName string, b []byte) error {
+	n, err := strconv.ParseInt(string(b), 10, 64)
+	if err != nil {
+		return err
+	}
+	set[n] = struct{}{}
+	return nil
+}
+
+//------------------------------------------------------------------------------
+
 func newLoader(dst interface{}) (Loader, error) {
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
