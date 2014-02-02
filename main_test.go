@@ -218,6 +218,13 @@ func (t *DBTest) TestQueryOneValue(c *C) {
 	c.Assert(v, Equals, 1)
 }
 
+func (t *DBTest) TestQueryOneFloat64Value(c *C) {
+	var v float64
+	_, err := t.db.QueryOne(pg.LoadInto(&v), "SELECT 3.14 AS num")
+	c.Assert(err, IsNil)
+	c.Assert(v, Equals, 3.14)
+}
+
 func (t *DBTest) TestQueryOneErrNoRows(c *C) {
 	dst, err := t.db.QueryOne(&structLoader{}, "SELECT s.num AS num FROM generate_series(0, -1) AS s(num)")
 	c.Assert(dst, IsNil)
