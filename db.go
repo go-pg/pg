@@ -133,28 +133,26 @@ func (db *DB) Prepare(q string) (*Stmt, error) {
 	return prepare(db, cn, q)
 }
 
-func (db *DB) Exec(q string, args ...interface{}) (*Result, error) {
+func (db *DB) Exec(q string, args ...interface{}) (res *Result, err error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
-		db.pool.Put(cn)
-		return nil, err
+	for i := 0; i < 3; i++ {
+		res, err = simpleQuery(cn, q, args...)
+		if err != nil {
+			if pgerr, ok := err.(*pgError); ok && pgerr.Field('C') == "40001" {
+				continue
+			}
+		}
+		break
 	}
 
-	if err := cn.Flush(); err != nil {
-		db.freeConn(cn, err)
-		return nil, err
-	}
-
-	res, err := readSimpleQueryResult(cn)
 	if err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
-
 	db.pool.Put(cn)
 	return res, nil
 }
@@ -167,13 +165,22 @@ func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
 	return assertOneAffected(res)
 }
 
-func (db *DB) Query(f Factory, q string, args ...interface{}) (*Result, error) {
+func (db *DB) Query(f Factory, q string, args ...interface{}) (res *Result, err error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := simpleQuery(cn, f, q, args...)
+	for i := 0; i < 3; i++ {
+		res, err = simpleQueryData(cn, f, q, args...)
+		if err != nil {
+			if pgerr, ok := err.(*pgError); ok && pgerr.Field('C') == "40001" {
+				continue
+			}
+		}
+		break
+	}
+
 	if err != nil {
 		db.freeConn(cn, err)
 		return nil, err
@@ -319,7 +326,24 @@ func (db *DB) cancelRequest(processId, secretKey int32) error {
 	return cn.Close()
 }
 
-func simpleQuery(cn *conn, f Factory, q string, args ...interface{}) (*Result, error) {
+func simpleQuery(cn *conn, q string, args ...interface{}) (*Result, error) {
+	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
+		return nil, err
+	}
+
+	if err := cn.Flush(); err != nil {
+		return nil, err
+	}
+
+	res, err := readSimpleQuery(cn)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func simpleQueryData(cn *conn, f Factory, q string, args ...interface{}) (*Result, error) {
 	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
 		return nil, err
 	}

@@ -56,21 +56,11 @@ func (tx *Tx) Exec(q string, args ...interface{}) (*Result, error) {
 
 	cn := tx.conn()
 
-	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
-		return nil, err
-	}
-
-	if err := cn.Flush(); err != nil {
-		tx.setErr(err)
-		return nil, err
-	}
-
-	res, err := readSimpleQueryResult(cn)
+	res, err := simpleQuery(cn, q, args...)
 	if err != nil {
 		tx.setErr(err)
 		return nil, err
 	}
-
 	return res, nil
 }
 
@@ -88,7 +78,7 @@ func (tx *Tx) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 	}
 
 	cn := tx.conn()
-	res, err := simpleQuery(cn, f, q, args...)
+	res, err := simpleQueryData(cn, f, q, args...)
 	if err != nil {
 		tx.setErr(err)
 		return nil, err

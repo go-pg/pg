@@ -273,7 +273,7 @@ func readBindMsg(cn *conn) (e error) {
 	}
 }
 
-func readSimpleQueryResult(cn *conn) (res *Result, e error) {
+func readSimpleQuery(cn *conn) (res *Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -317,7 +317,7 @@ func readSimpleQueryResult(cn *conn) (res *Result, e error) {
 	}
 }
 
-func readExtQueryResult(cn *conn) (res *Result, e error) {
+func readExtQuery(cn *conn) (res *Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {

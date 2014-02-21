@@ -39,27 +39,26 @@ func (stmt *Stmt) conn() (*conn, error) {
 	return stmt._cn, nil
 }
 
-func (stmt *Stmt) Exec(args ...interface{}) (*Result, error) {
+func (stmt *Stmt) Exec(args ...interface{}) (res *Result, err error) {
 	cn, err := stmt.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
-		return nil, err
+	for i := 0; i < 3; i++ {
+		res, err = extQuery(cn, args...)
+		if err != nil {
+			if pgerr, ok := err.(*pgError); ok && pgerr.Field('C') == "40001" {
+				continue
+			}
+		}
+		break
 	}
 
-	if err := cn.Flush(); err != nil {
-		stmt.setErr(err)
-		return nil, err
-	}
-
-	res, err := readExtQueryResult(cn)
 	if err != nil {
 		stmt.setErr(err)
 		return nil, err
 	}
-
 	return res, nil
 }
 
@@ -71,28 +70,26 @@ func (stmt *Stmt) ExecOne(args ...interface{}) (*Result, error) {
 	return assertOneAffected(res)
 }
 
-func (stmt *Stmt) Query(f Factory, args ...interface{}) (*Result, error) {
+func (stmt *Stmt) Query(f Factory, args ...interface{}) (res *Result, err error) {
 	cn, err := stmt.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
-		stmt.setErr(err)
-		return nil, err
+	for i := 0; i < 3; i++ {
+		res, err = extQueryData(cn, f, stmt.columns, args...)
+		if err != nil {
+			if pgerr, ok := err.(*pgError); ok && pgerr.Field('C') == "40001" {
+				continue
+			}
+		}
+		break
 	}
 
-	if err := cn.Flush(); err != nil {
-		stmt.setErr(err)
-		return nil, err
-	}
-
-	res, err := readExtQueryData(cn, f, stmt.columns)
 	if err != nil {
 		stmt.setErr(err)
 		return nil, err
 	}
-
 	return res, err
 }
 
@@ -115,4 +112,24 @@ func (stmt *Stmt) Close() error {
 	err := stmt.db.freeConn(stmt._cn, stmt.err)
 	stmt._cn = nil
 	return err
+}
+
+func extQuery(cn *conn, args ...interface{}) (*Result, error) {
+	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
+		return nil, err
+	}
+	if err := cn.Flush(); err != nil {
+		return nil, err
+	}
+	return readExtQuery(cn)
+}
+
+func extQueryData(cn *conn, f Factory, columns []string, args ...interface{}) (*Result, error) {
+	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
+		return nil, err
+	}
+	if err := cn.Flush(); err != nil {
+		return nil, err
+	}
+	return readExtQueryData(cn, f, columns)
 }
