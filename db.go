@@ -8,6 +8,8 @@ import (
 	"github.com/golang/glog"
 )
 
+const defaultBackoff = 100 * time.Millisecond
+
 type Options struct {
 	Host     string
 	Port     string
@@ -139,7 +141,7 @@ func (db *DB) Exec(q string, args ...interface{}) (res *Result, err error) {
 		return nil, err
 	}
 
-	backoff := 100 * time.Millisecond
+	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		res, err = simpleQuery(cn, q, args...)
 		if err != nil {
@@ -174,7 +176,7 @@ func (db *DB) Query(f Factory, q string, args ...interface{}) (res *Result, err 
 		return nil, err
 	}
 
-	backoff := 100 * time.Millisecond
+	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		res, err = simpleQueryData(cn, f, q, args...)
 		if err != nil {

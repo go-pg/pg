@@ -49,7 +49,7 @@ func (stmt *Stmt) Exec(args ...interface{}) (res *Result, err error) {
 		return nil, err
 	}
 
-	backoff := 100 * time.Millisecond
+	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		res, err = extQuery(cn, args...)
 		if err != nil {
@@ -83,7 +83,7 @@ func (stmt *Stmt) Query(f Factory, args ...interface{}) (res *Result, err error)
 		return nil, err
 	}
 
-	backoff := 100 * time.Millisecond
+	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		res, err = extQueryData(cn, f, stmt.columns, args...)
 		if err != nil {
