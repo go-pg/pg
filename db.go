@@ -139,10 +139,13 @@ func (db *DB) Exec(q string, args ...interface{}) (res *Result, err error) {
 		return nil, err
 	}
 
+	backoff := 100 * time.Millisecond
 	for i := 0; i < 3; i++ {
 		res, err = simpleQuery(cn, q, args...)
 		if err != nil {
 			if pgerr, ok := err.(*pgError); ok && pgerr.Field('C') == "40001" {
+				time.Sleep(backoff)
+				backoff *= 2
 				continue
 			}
 		}
@@ -171,10 +174,13 @@ func (db *DB) Query(f Factory, q string, args ...interface{}) (res *Result, err 
 		return nil, err
 	}
 
+	backoff := 100 * time.Millisecond
 	for i := 0; i < 3; i++ {
 		res, err = simpleQueryData(cn, f, q, args...)
 		if err != nil {
 			if pgerr, ok := err.(*pgError); ok && pgerr.Field('C') == "40001" {
+				time.Sleep(backoff)
+				backoff *= 2
 				continue
 			}
 		}
