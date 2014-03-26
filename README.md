@@ -11,6 +11,7 @@ Supports:
 - `COPY FROM` and `COPY TO`.
 - Timeouts. Client sends `CancelRequest` message on timeout.
 - Connection pool.
+- Queries are retried when possible.
 - PostgreSQL to Go struct mapping.
 
 API docs: http://godoc.org/github.com/vmihailenco/pg. Make sure to check examples: http://godoc.org/github.com/vmihailenco/pg#pkg-examples.
