@@ -2,7 +2,6 @@ package pg
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 )
 
@@ -136,7 +135,7 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("pg: can't parse array: %q", p.b)
+	return nil, errorf("pg: can't parse array: %q", p.b)
 }
 
 type hstoreParser struct {
@@ -199,7 +198,7 @@ func (p *hstoreParser) NextKey() ([]byte, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("pg: can't parse hstore: %s", p.b)
+	return nil, errorf("pg: can't parse hstore: %s", p.b)
 }
 
 func (p *hstoreParser) NextValue() ([]byte, error) {
@@ -242,5 +241,5 @@ func (p *hstoreParser) NextValue() ([]byte, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("pg: can't parse hstore: %s", p.b)
+	return nil, errorf("pg: can't parse hstore: %s", p.b)
 }

@@ -1,20 +1,20 @@
 package pg
 
 import (
-	"errors"
 	"fmt"
+	"net"
 )
 
 var (
-	ErrSSLNotSupported = errors.New("pg: SSL is not enabled on the server")
+	ErrSSLNotSupported = errorf("pg: SSL is not enabled on the server")
 
-	ErrNoRows    = errors.New("pg: no rows in result set")
-	ErrMultiRows = errors.New("pg: multiple rows in result set")
+	ErrNoRows    = errorf("pg: no rows in result set")
+	ErrMultiRows = errorf("pg: multiple rows in result set")
 
-	errClosed         = errors.New("pg: database is closed")
-	errTxDone         = errors.New("pg: transaction has already been committed or rolled back")
-	errStmtClosed     = errors.New("pg: statement is closed")
-	errListenerClosed = errors.New("pg: listener is closed")
+	errClosed         = errorf("pg: database is closed")
+	errTxDone         = errorf("pg: transaction has already been committed or rolled back")
+	errStmtClosed     = errorf("pg: statement is closed")
+	errListenerClosed = errorf("pg: listener is closed")
 )
 
 var (
@@ -24,6 +24,18 @@ var (
 
 type Error interface {
 	Field(byte) string
+}
+
+type dbError struct {
+	s string
+}
+
+func errorf(s string, args ...interface{}) dbError {
+	return dbError{s: fmt.Sprintf(s, args...)}
+}
+
+func (err dbError) Error() string {
+	return err.s
 }
 
 type pgError struct {
@@ -43,4 +55,20 @@ func (err *pgError) Error() string {
 
 type IntegrityError struct {
 	*pgError
+}
+
+func canRetry(e error) bool {
+	if e == nil {
+		return false
+	}
+	if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
+		return false
+	}
+	if _, ok := e.(*dbError); ok {
+		return false
+	}
+	if pgerr, ok := e.(Error); ok && pgerr.Field('C') != "40001" {
+		return false
+	}
+	return true
 }

@@ -354,7 +354,7 @@ func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 			// Lazily initialize named params.
 			if fields == nil {
 				if len(params) == 0 {
-					return nil, fmt.Errorf("pg: expected at least one parameter, got nothing")
+					return nil, errorf("pg: expected at least one parameter, got nothing")
 				}
 				structptr = reflect.ValueOf(params[len(params)-1])
 				params = params[:len(params)-1]
@@ -364,7 +364,7 @@ func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 					structv = structptr
 				}
 				if structv.Kind() != reflect.Struct {
-					return nil, fmt.Errorf("pg: expected struct, got %s", structv.Kind())
+					return nil, errorf("pg: expected struct, got %s", structv.Kind())
 				}
 				fields = structs.Fields(structv.Type())
 				methods = structs.Methods(structptr.Type())
@@ -375,11 +375,11 @@ func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 			} else if indx, ok := methods[name]; ok {
 				value = structptr.Method(indx).Call(nil)[0].Interface()
 			} else {
-				return nil, fmt.Errorf("pg: cannot map %q", name)
+				return nil, errorf("pg: cannot map %q", name)
 			}
 		} else {
 			if paramInd >= len(params) {
-				return nil, fmt.Errorf(
+				return nil, errorf(
 					"pg: expected at least %d parameters, got %d",
 					paramInd+1, len(params),
 				)
@@ -393,7 +393,7 @@ func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 	}
 
 	if paramInd < len(params) {
-		return nil, fmt.Errorf("pg: expected %d parameters, got %d", paramInd, len(params))
+		return nil, errorf("pg: expected %d parameters, got %d", paramInd, len(params))
 	}
 
 	return dst, nil

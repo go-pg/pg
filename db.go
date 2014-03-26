@@ -115,16 +115,18 @@ func (db *DB) conn() (*conn, error) {
 }
 
 func (db *DB) freeConn(cn *conn, ei error) error {
+	if ei == nil {
+		return db.pool.Put(cn)
+	}
 	if e, ok := ei.(Error); ok && e.Field('S') != "FATAL" {
 		return db.pool.Put(cn)
-	} else {
-		if netErr, ok := ei.(net.Error); ok && netErr.Timeout() {
-			if err := db.cancelRequest(cn.processId, cn.secretKey); err != nil {
-				glog.Errorf("cancelRequest failed: %s", err)
-			}
-		}
-		return db.pool.Remove(cn)
 	}
+	if netErr, ok := ei.(net.Error); ok && netErr.Timeout() {
+		if err := db.cancelRequest(cn.processId, cn.secretKey); err != nil {
+			glog.Errorf("cancelRequest failed: %s", err)
+		}
+	}
+	return db.pool.Remove(cn)
 }
 
 func (db *DB) Prepare(q string) (*Stmt, error) {
@@ -136,30 +138,25 @@ func (db *DB) Prepare(q string) (*Stmt, error) {
 }
 
 func (db *DB) Exec(q string, args ...interface{}) (res *Result, err error) {
-	cn, err := db.conn()
-	if err != nil {
-		return nil, err
-	}
-
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
-		res, err = simpleQuery(cn, q, args...)
-		if err != nil {
-			if pgerr, ok := err.(*pgError); ok && pgerr.Field('C') == "40001" {
-				time.Sleep(backoff)
-				backoff *= 2
-				continue
-			}
-		}
-		break
-	}
+		var cn *conn
 
-	if err != nil {
+		cn, err = db.conn()
+		if err != nil {
+			return nil, err
+		}
+
+		res, err = simpleQuery(cn, q, args...)
 		db.freeConn(cn, err)
-		return nil, err
+		if !canRetry(err) {
+			break
+		}
+
+		time.Sleep(backoff)
+		backoff *= 2
 	}
-	db.pool.Put(cn)
-	return res, nil
+	return
 }
 
 func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
@@ -171,30 +168,25 @@ func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
 }
 
 func (db *DB) Query(f Factory, q string, args ...interface{}) (res *Result, err error) {
-	cn, err := db.conn()
-	if err != nil {
-		return nil, err
-	}
-
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
-		res, err = simpleQueryData(cn, f, q, args...)
-		if err != nil {
-			if pgerr, ok := err.(*pgError); ok && pgerr.Field('C') == "40001" {
-				time.Sleep(backoff)
-				backoff *= 2
-				continue
-			}
-		}
-		break
-	}
+		var cn *conn
 
-	if err != nil {
+		cn, err = db.conn()
+		if err != nil {
+			break
+		}
+
+		res, err = simpleQueryData(cn, f, q, args...)
 		db.freeConn(cn, err)
-		return nil, err
+		if !canRetry(err) {
+			break
+		}
+
+		time.Sleep(backoff)
+		backoff *= 2
 	}
-	db.pool.Put(cn)
-	return res, nil
+	return
 }
 
 func (db *DB) QueryOne(model interface{}, q string, args ...interface{}) (*Result, error) {

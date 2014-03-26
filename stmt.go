@@ -44,29 +44,27 @@ func (stmt *Stmt) conn() (*conn, error) {
 }
 
 func (stmt *Stmt) Exec(args ...interface{}) (res *Result, err error) {
-	cn, err := stmt.conn()
-	if err != nil {
-		return nil, err
-	}
-
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
-		res, err = extQuery(cn, args...)
-		if err != nil {
-			if pgerr, ok := err.(*pgError); ok && pgerr.Field('C') == "40001" {
-				time.Sleep(backoff)
-				backoff *= 2
-				continue
-			}
-		}
-		break
-	}
+		var cn *conn
 
+		cn, err := stmt.conn()
+		if err != nil {
+			return nil, err
+		}
+
+		res, err = extQuery(cn, args...)
+		if !canRetry(err) {
+			break
+		}
+
+		time.Sleep(backoff)
+		backoff *= 2
+	}
 	if err != nil {
 		stmt.setErr(err)
-		return nil, err
 	}
-	return res, nil
+	return
 }
 
 func (stmt *Stmt) ExecOne(args ...interface{}) (*Result, error) {
@@ -78,29 +76,27 @@ func (stmt *Stmt) ExecOne(args ...interface{}) (*Result, error) {
 }
 
 func (stmt *Stmt) Query(f Factory, args ...interface{}) (res *Result, err error) {
-	cn, err := stmt.conn()
-	if err != nil {
-		return nil, err
-	}
-
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
-		res, err = extQueryData(cn, f, stmt.columns, args...)
-		if err != nil {
-			if pgerr, ok := err.(*pgError); ok && pgerr.Field('C') == "40001" {
-				time.Sleep(backoff)
-				backoff *= 2
-				continue
-			}
-		}
-		break
-	}
+		var cn *conn
 
+		cn, err = stmt.conn()
+		if err != nil {
+			break
+		}
+
+		res, err = extQueryData(cn, f, stmt.columns, args...)
+		if !canRetry(err) {
+			break
+		}
+
+		time.Sleep(backoff)
+		backoff *= 2
+	}
 	if err != nil {
 		stmt.setErr(err)
-		return nil, err
 	}
-	return res, err
+	return
 }
 
 func (stmt *Stmt) QueryOne(model interface{}, args ...interface{}) (*Result, error) {

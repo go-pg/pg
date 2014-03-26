@@ -1,8 +1,6 @@
 package pg
 
 import (
-	"errors"
-	"fmt"
 	"reflect"
 	"strconv"
 )
@@ -45,7 +43,7 @@ func newStructLoader(v reflect.Value) *structLoader {
 func (l *structLoader) Load(colIdx int, colName string, b []byte) error {
 	indx, ok := l.fields[colName]
 	if !ok {
-		return fmt.Errorf("pg: cannot map field %q", colName)
+		return errorf("pg: cannot map field %q", colName)
 	}
 	return decodeValue(l.v.FieldByIndex(indx), b)
 }
@@ -142,15 +140,15 @@ func (set IntsSet) Load(colIdx int, colName string, b []byte) error {
 func newLoader(dst interface{}) (Loader, error) {
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
-		return nil, errors.New("pg: Decode(" + v.String() + ")")
+		return nil, errorf("pg: Decode(%s)", v)
 	}
 	if v.Kind() != reflect.Ptr {
-		return nil, errors.New("pg: pointer expected")
+		return nil, errorf("pg: pointer expected")
 	}
 	v = v.Elem()
 	switch v.Kind() {
 	case reflect.Struct:
 		return newStructLoader(v), nil
 	}
-	return nil, fmt.Errorf("pg: unsupported type %v", v.Type().String())
+	return nil, errorf("pg: unsupported type %s", v.Type())
 }

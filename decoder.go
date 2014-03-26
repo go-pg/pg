@@ -2,7 +2,6 @@ package pg
 
 import (
 	"encoding/hex"
-	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -159,7 +158,7 @@ func Decode(dst interface{}, f []byte) error {
 
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
-		return fmt.Errorf("pg: Decode(%q)", v)
+		return errorf("pg: Decode(%q)", v)
 	}
 	return decodeValue(v.Elem(), f)
 }
@@ -222,7 +221,7 @@ func decodeValue(dst reflect.Value, f []byte) error {
 	case reflect.Interface:
 		return decodeValue(dst.Elem(), f)
 	}
-	return fmt.Errorf("pg: unsupported dst: %T", dst.Interface())
+	return errorf("pg: unsupported dst: %T", dst.Interface())
 }
 
 func decodeSliceValue(dst reflect.Value, f []byte) error {
@@ -257,7 +256,7 @@ func decodeSliceValue(dst reflect.Value, f []byte) error {
 		dst.Set(reflect.ValueOf(s))
 		return nil
 	}
-	return fmt.Errorf("pg: unsupported dst: %T", dst.Interface())
+	return errorf("pg: unsupported dst: %T", dst.Interface())
 }
 
 func decodeMapValue(dst reflect.Value, f []byte) error {
@@ -270,7 +269,7 @@ func decodeMapValue(dst reflect.Value, f []byte) error {
 		dst.Set(reflect.ValueOf(m))
 		return nil
 	}
-	return fmt.Errorf("pg: unsupported dst: %T", dst.Interface())
+	return errorf("pg: unsupported dst: %T", dst.Interface())
 }
 
 func decodeBytes(f []byte) ([]byte, error) {
@@ -309,7 +308,7 @@ func decodeIntSlice(f []byte) ([]int, error) {
 			return nil, err
 		}
 		if elem == nil {
-			return nil, fmt.Errorf("pg: unexpected NULL: %q", f)
+			return nil, errorf("pg: unexpected NULL: %q", f)
 		}
 		n, err := strconv.Atoi(string(elem))
 		if err != nil {
@@ -329,7 +328,7 @@ func decodeInt64Slice(f []byte) ([]int64, error) {
 			return nil, err
 		}
 		if elem == nil {
-			return nil, fmt.Errorf("pg: unexpected NULL: %q", f)
+			return nil, errorf("pg: unexpected NULL: %q", f)
 		}
 		n, err := strconv.ParseInt(string(elem), 10, 64)
 		if err != nil {
@@ -349,7 +348,7 @@ func decodeStringSlice(f []byte) ([]string, error) {
 			return nil, err
 		}
 		if elem == nil {
-			return nil, fmt.Errorf("pg: unexpected NULL: %q", f)
+			return nil, errorf("pg: unexpected NULL: %q", f)
 		}
 		s = append(s, string(elem))
 	}
@@ -365,14 +364,14 @@ func decodeStringStringMap(f []byte) (map[string]string, error) {
 			return nil, err
 		}
 		if key == nil {
-			return nil, fmt.Errorf("pg: unexpected NULL: %q", f)
+			return nil, errorf("pg: unexpected NULL: %q", f)
 		}
 		value, err := p.NextValue()
 		if err != nil {
 			return nil, err
 		}
 		if value == nil {
-			return nil, fmt.Errorf("pg: unexpected NULL: %q", f)
+			return nil, errorf("pg: unexpected NULL: %q", f)
 		}
 		m[string(key)] = string(value)
 	}
