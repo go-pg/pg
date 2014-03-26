@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+const (
+	dateFormat             = "2006-01-02"
+	timeFormat             = "15:04:05.999999999"
+	timestampFormat        = "2006-01-02 15:04:05.999999999"
+	timestampWithTzFormat  = "2006-01-02 15:04:05.999999999-0700"
+	timestampWithTzFormat2 = "2006-01-02 15:04:05.999999999-07"
+)
+
 func AppendQ(dst []byte, src string, params ...interface{}) ([]byte, error) {
 	return formatQuery(dst, []byte(src), params)
 }
@@ -136,7 +144,7 @@ func appendValue(dst []byte, srci interface{}) []byte {
 		return appendString(dst, src)
 	case time.Time:
 		dst = append(dst, '\'')
-		dst = append(dst, src.UTC().Format(datetimeFormat)...)
+		dst = append(dst, src.UTC().Format(timestampWithTzFormat)...)
 		dst = append(dst, '\'')
 		return dst
 	case []byte:
@@ -247,7 +255,7 @@ func appendRawValue(dst []byte, srci interface{}) []byte {
 	case string:
 		return appendRawString(dst, src)
 	case time.Time:
-		return append(dst, src.UTC().Format(datetimeFormat)...)
+		return append(dst, src.UTC().Format(timestampWithTzFormat)...)
 	case []byte:
 		tmp := make([]byte, hex.EncodedLen(len(src)))
 		hex.Encode(tmp, src)

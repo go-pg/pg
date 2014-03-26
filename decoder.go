@@ -8,12 +8,6 @@ import (
 	"time"
 )
 
-const (
-	dateFormat     = "2006-01-02"
-	timeFormat     = "15:04:05.999999999"
-	datetimeFormat = "2006-01-02 15:04:05.999999999"
-)
-
 var (
 	timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 )
@@ -28,6 +22,8 @@ func Decode(dst interface{}, f []byte) error {
 	case *bool:
 		if len(f) == 1 && f[0] == 't' {
 			*v = true
+		} else {
+			*v = false
 		}
 		return nil
 	case *int8:
@@ -56,7 +52,7 @@ func Decode(dst interface{}, f []byte) error {
 		if err != nil {
 			return err
 		}
-		*v = int64(n)
+		*v = n
 		return nil
 	case *int:
 		n, err := strconv.ParseInt(string(f), 10, 64)
@@ -66,32 +62,32 @@ func Decode(dst interface{}, f []byte) error {
 		*v = int(n)
 		return nil
 	case *uint8:
-		n, err := strconv.ParseInt(string(f), 10, 8)
+		n, err := strconv.ParseUint(string(f), 10, 8)
 		if err != nil {
 			return err
 		}
 		*v = uint8(n)
 		return nil
 	case *uint16:
-		n, err := strconv.ParseInt(string(f), 10, 16)
+		n, err := strconv.ParseUint(string(f), 10, 16)
 		if err != nil {
 			return err
 		}
 		*v = uint16(n)
 		return nil
 	case *uint32:
-		n, err := strconv.ParseInt(string(f), 10, 32)
+		n, err := strconv.ParseUint(string(f), 10, 32)
 		if err != nil {
 			return err
 		}
 		*v = uint32(n)
 		return nil
 	case *uint64:
-		n, err := strconv.ParseInt(string(f), 10, 64)
+		n, err := strconv.ParseUint(string(f), 10, 64)
 		if err != nil {
 			return err
 		}
-		*v = uint64(n)
+		*v = n
 		return nil
 	case *uint:
 		n, err := strconv.ParseInt(string(f), 10, 64)
@@ -129,7 +125,7 @@ func Decode(dst interface{}, f []byte) error {
 		if err != nil {
 			return err
 		}
-		*v = tm.UTC()
+		*v = tm
 		return nil
 	case *[]string:
 		s, err := decodeStringSlice(f)
@@ -182,6 +178,8 @@ func decodeValue(dst reflect.Value, f []byte) error {
 	case reflect.Bool:
 		if len(f) == 1 && f[0] == 't' {
 			dst.SetBool(true)
+		} else {
+			dst.SetBool(false)
 		}
 		return nil
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
@@ -221,6 +219,8 @@ func decodeValue(dst reflect.Value, f []byte) error {
 			dst.Set(reflect.ValueOf(tm))
 			return nil
 		}
+	case reflect.Interface:
+		return decodeValue(dst.Elem(), f)
 	}
 	return fmt.Errorf("pg: unsupported dst: %T", dst.Interface())
 }
@@ -284,16 +284,20 @@ func decodeBytes(f []byte) ([]byte, error) {
 }
 
 func decodeTime(f []byte) (time.Time, error) {
-	var format string
 	switch l := len(f); {
 	case l <= len(dateFormat):
-		format = dateFormat
+		return time.Parse(dateFormat, string(f))
 	case l <= len(timeFormat):
-		format = timeFormat
+		return time.Parse(timeFormat, string(f))
 	default:
-		format = datetimeFormat
+		if c := f[len(f)-5]; c == '+' || c == '-' {
+			return time.Parse(timestampWithTzFormat, string(f))
+		}
+		if c := f[len(f)-3]; c == '+' || c == '-' {
+			return time.Parse(timestampWithTzFormat2, string(f))
+		}
+		return time.Parse(timestampFormat, string(f))
 	}
-	return time.Parse(format, string(f))
 }
 
 func decodeIntSlice(f []byte) ([]int, error) {

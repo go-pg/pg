@@ -3,9 +3,9 @@ package pg_test
 import (
 	"bytes"
 	"database/sql"
-	"errors"
 	"math"
 	"net"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -52,180 +52,30 @@ func (t *DBTest) TearDownTest(c *C) {
 	c.Assert(t.mysqldb.Close(), IsNil)
 }
 
-func (t *DBTest) TestFormatWithTooManyParams(c *C) {
-	_, err := pg.FormatQ("", "foo", "bar")
-	c.Assert(err.Error(), Equals, "pg: expected 0 parameters, got 2")
-}
+type discard struct{}
 
-func (t *DBTest) TestFormatWithTooFewParams(c *C) {
-	_, err := pg.FormatQ("? ? ?", "foo", "bar")
-	c.Assert(err.Error(), Equals, "pg: expected at least 3 parameters, got 2")
-}
-
-// TODO: check for overflow?
-func (t *DBTest) TestFormatUint64(c *C) {
-	q, err := pg.FormatQ("?", uint64(math.MaxUint64))
-	c.Assert(err, IsNil)
-	c.Assert(string(q), Equals, "-1")
-}
-
-func (t *DBTest) TestFormatInts(c *C) {
-	q, err := pg.FormatQ("?", pg.Ints{1, 2, 3})
-	c.Assert(err, IsNil)
-	c.Assert(string(q), Equals, "1,2,3")
-}
-
-func (t *DBTest) TestFormatStrings(c *C) {
-	q, err := pg.FormatQ("?", pg.Strings{"hello", "world"})
-	c.Assert(err, IsNil)
-	c.Assert(string(q), Equals, "'hello','world'")
-}
-
-func (t *DBTest) TestFormatAlias(c *C) {
-	{
-		type myint int
-		q, err := pg.FormatQ("?", myint(42))
-		c.Assert(err, IsNil)
-		c.Assert(string(q), Equals, "42")
-	}
-
-	{
-		type mystr string
-		q, err := pg.FormatQ("?", mystr("hello world"))
-		c.Assert(err, IsNil)
-		c.Assert(string(q), Equals, "'hello world'")
-	}
-}
-
-type structFormatter struct {
-	Foo string
-}
-
-func (structFormatter) Meth() string {
-	return "value"
-}
-
-func (structFormatter) MethWithArgs(string) string {
-	return "value"
-}
-
-func (structFormatter) MethWithReturns() (string, string) {
-	return "value1", "value2"
-}
-
-type embeddedStructFormatter struct {
-	*structFormatter
-}
-
-func (embeddedStructFormatter) Meth2() string {
-	return "value2"
-}
-
-func (t *DBTest) TestFormatStruct(c *C) {
-	{
-		src := struct{ Foo string }{"bar"}
-		q, err := pg.FormatQ("?bar", src)
-		c.Assert(err.Error(), Equals, `pg: cannot map "bar"`)
-		c.Assert(string(q), Equals, "")
-	}
-
-	{
-		src := struct{ S1, S2 string }{"value1", "value2"}
-		q, err := pg.FormatQ("? ?s1 ? ?s2 ?", "one", "two", "three", src)
-		c.Assert(err, IsNil)
-		c.Assert(string(q), Equals, "'one' 'value1' 'two' 'value2' 'three'")
-	}
-
-	{
-		src := &structFormatter{}
-		_, err := pg.FormatQ("?MethWithArgs", src)
-		c.Assert(err.Error(), Equals, `pg: cannot map "MethWithArgs"`)
-	}
-
-	{
-		src := &structFormatter{}
-		_, err := pg.FormatQ("?MethWithReturns", src)
-		c.Assert(err.Error(), Equals, `pg: cannot map "MethWithReturns"`)
-	}
-
-	{
-		src := &structFormatter{"bar"}
-		q, err := pg.FormatQ("?foo ?Meth", src)
-		c.Assert(err, IsNil)
-		c.Assert(string(q), Equals, "'bar' 'value'")
-	}
-
-	{
-		src := &embeddedStructFormatter{&structFormatter{"bar"}}
-		q, err := pg.FormatQ("?foo ?Meth ?Meth2", src)
-		c.Assert(err, IsNil)
-		c.Assert(string(q), Equals, "'bar' 'value' 'value2'")
-	}
-}
-
-type structLoader struct {
-	Num int
-}
-
-func (l *structLoader) New() interface{} {
+func (l *discard) New() interface{} {
 	return l
 }
 
-type embeddedStructLoader struct {
-	*structLoader
-	Num2 int
-}
-
-func (l *embeddedStructLoader) New() interface{} {
-	return l
-}
-
-func (t *DBTest) TestQuery(c *C) {
-	dst := &structLoader{}
-	_, err := t.db.Query(dst, "SELECT 1 AS num")
-	c.Assert(err, IsNil)
-	c.Assert(dst.Num, Equals, 1)
-}
-
-func (t *DBTest) TestQueryEmbeddedStruct(c *C) {
-	dst := &embeddedStructLoader{
-		structLoader: &structLoader{},
-	}
-	_, err := t.db.Query(dst, "SELECT 1 AS num, 2 as num2")
-	c.Assert(err, IsNil)
-	c.Assert(dst.Num, Equals, 1)
-	c.Assert(dst.Num2, Equals, 2)
+func (l *discard) Load(colIdx int, colName string, b []byte) error {
+	return nil
 }
 
 func (t *DBTest) TestQueryZeroRows(c *C) {
-	res, err := t.db.Query(&structLoader{}, "SELECT s.num AS num FROM generate_series(0, -1) AS s(num)")
+	res, err := t.db.Query(&discard{}, "SELECT 1 WHERE 1 != 1")
 	c.Assert(err, IsNil)
 	c.Assert(res.Affected(), Equals, 0)
 }
 
-func (t *DBTest) TestQueryOneStruct(c *C) {
-	dst := &structLoader{}
-	res, err := t.db.QueryOne(dst, "SELECT 1 AS num")
-	c.Assert(err, IsNil)
-	c.Assert(dst.Num, Equals, 1)
-	c.Assert(res.Affected(), Equals, 1)
-}
-
-func (t *DBTest) TestQueryOnePrimitive(c *C) {
-	var v int
-	_, err := t.db.QueryOne(pg.LoadInto(&v), "SELECT 1 AS num")
-	c.Assert(err, IsNil)
-	c.Assert(v, Equals, 1)
-}
-
 func (t *DBTest) TestQueryOneErrNoRows(c *C) {
-	dst, err := t.db.QueryOne(&structLoader{}, "SELECT s.num AS num FROM generate_series(0, -1) AS s(num)")
+	dst, err := t.db.QueryOne(&discard{}, "SELECT 1 WHERE 1 != 1")
 	c.Assert(dst, IsNil)
 	c.Assert(err, Equals, pg.ErrNoRows)
 }
 
 func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
-	dst, err := t.db.QueryOne(&structLoader{}, "SELECT s.num AS num FROM generate_series(0, 10) AS s(num)")
+	dst, err := t.db.QueryOne(&discard{}, "SELECT generate_series(0, 10)")
 	c.Assert(err, Equals, pg.ErrMultiRows)
 	c.Assert(dst, IsNil)
 }
@@ -264,208 +114,15 @@ func (t *DBTest) TestExecOneErrMultiRows(c *C) {
 	c.Assert(err, Equals, pg.ErrMultiRows)
 }
 
-func (t *DBTest) TestTypeFloat64(c *C) {
-	src := 3.14
-	var dst float64
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?", src)
+func (t *DBTest) TestLoadInto(c *C) {
+	var dst int
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT 1")
 	c.Assert(err, IsNil)
-	c.Assert(dst, Equals, src)
+	c.Assert(dst, Equals, 1)
 }
 
-func (t *DBTest) TestTypeStmtFloat64(c *C) {
-	stmt, err := t.db.Prepare("SELECT $1::real")
-	c.Assert(err, IsNil)
-
-	src := 3.14
-	var dst float64
-	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
-	c.Assert(err, IsNil)
-	c.Assert(dst, Equals, src)
-}
-
-func (t *DBTest) TestTypeString(c *C) {
-	src := "hello\000"
-	var dst string
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?", src)
-	c.Assert(err, IsNil)
-	c.Assert(dst, Equals, "hello")
-}
-
-func (t *DBTest) TestTypeStmtString(c *C) {
-	stmt, err := t.db.Prepare("SELECT $1::text")
-	c.Assert(err, IsNil)
-
-	src := "hello\000"
-	var dst string
-	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
-	c.Assert(err, IsNil)
-	c.Assert(dst, Equals, "hello")
-}
-
-func (t *DBTest) TestTypeBytes(c *C) {
-	src := []byte("hello world\000")
-	var dst []byte
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::bytea", src)
-	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, src)
-}
-
-func (t *DBTest) TestTypeStmtBytes(c *C) {
-	stmt, err := t.db.Prepare("SELECT $1::bytea")
-	c.Assert(err, IsNil)
-
-	src := []byte("hello world\000")
-	var dst []byte
-	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
-	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, src)
-
-	c.Assert(stmt.Close(), IsNil)
-}
-
-func (t *DBTest) TestTypeDate(c *C) {
-	src := time.Now().UTC()
-	var dst time.Time
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::date", src)
-	c.Assert(err, IsNil)
-	c.Assert(dst.Location(), Equals, time.UTC)
-	c.Assert(dst.Format("2006-01-02"), Equals, dst.Format("2006-01-02"))
-}
-
-func (t *DBTest) TestTypeTime(c *C) {
-	src := time.Now().UTC()
-	var dst time.Time
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::time", src)
-	c.Assert(err, IsNil)
-	c.Assert(dst.Location(), Equals, time.UTC)
-	c.Assert(
-		dst.Format("15:04:05.9999"),
-		Equals,
-		src.Format("15:04:05.9999"),
-	)
-}
-
-func (t *DBTest) TestTypeTimestamp(c *C) {
-	src := time.Now().UTC()
-	var dst time.Time
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::timestamp", src)
-	c.Assert(err, IsNil)
-	c.Assert(dst.Location(), Equals, time.UTC)
-	c.Assert(
-		dst.Format("2006-01-02 15:04:05.9999"),
-		Equals,
-		src.Format("2006-01-02 15:04:05.9999"),
-	)
-}
-
-func (t *DBTest) TestTypeStringArray(c *C) {
-	src := []string{"foo \n", "bar", "hello {}", "'\\\""}
-	var dst []string
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::text[]", src)
-	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, src)
-}
-
-func (t *DBTest) TestTypeStmtStringArray(c *C) {
-	stmt, err := t.db.Prepare("SELECT $1::text[]")
-	c.Assert(err, IsNil)
-
-	src := []string{"foo \n", "bar", "hello {}", "'\\\""}
-	var dst []string
-	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
-	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, src)
-}
-
-func (t *DBTest) TestTypeEmptyStringArray(c *C) {
-	var dst []string
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::text[]", []string{})
-	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, []string{})
-}
-
-func (t *DBTest) TestTypeStmtEmptyStringArray(c *C) {
-	stmt, err := t.db.Prepare("SELECT $1::text[]")
-	c.Assert(err, IsNil)
-
-	var dst []string
-	_, err = stmt.QueryOne(pg.LoadInto(&dst), []string{})
-	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, []string{})
-}
-
-func (t *DBTest) TestTypeIntArray(c *C) {
-	src := []int{1, 2, 3}
-	var dst []int
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?::int[]", []int{1, 2, 3})
-	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, src)
-}
-
-func (t *DBTest) TestTypeStmtIntArray(c *C) {
-	stmt, err := t.db.Prepare("SELECT $1::int[]")
-	c.Assert(err, IsNil)
-
-	src := []int{1, 2, 3}
-	var dst []int
-	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
-	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, src)
-}
-
-func (t *DBTest) TestTypeEmptyIntArray(c *C) {
-	var dst []int
-	_, err := t.db.QueryOne(
-		pg.LoadInto(&dst),
-		"SELECT ?::int[]",
-		[]int{},
-	)
-	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, []int{})
-}
-
-func (t *DBTest) TestTypeHstore(c *C) {
-	src := map[string]string{"foo =>": "bar =>", "hello": "world", "'\\\"": "'\\\""}
-	dst := make(map[string]string)
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?", src)
-	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, src)
-}
-
-func (t *DBTest) TestTypeStmtHstore(c *C) {
-	t.db.Exec("CREATE EXTENSION hstore")
-
-	stmt, err := t.db.Prepare("SELECT $1::hstore")
-	c.Assert(err, IsNil)
-
-	src := map[string]string{"foo =>": "bar =>", "hello": "world", "'\\\"": "'\\\""}
-	dst := make(map[string]string)
-	_, err = stmt.QueryOne(pg.LoadInto(&dst), src)
-	c.Assert(err, IsNil)
-	c.Assert(dst, DeepEquals, src)
-
-	t.db.Exec("DROP EXTENSION hstore")
-}
-
-func (t *DBTest) TestQueryInts(c *C) {
-	var ids pg.Ints
-	_, err := t.db.Query(&ids, "SELECT s.num AS num FROM generate_series(0, 10) AS s(num)")
-	c.Assert(err, IsNil)
-	c.Assert(ids, DeepEquals, pg.Ints{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10})
-}
-
-func (t *DBTest) TestQueryInts2(c *C) {
-	var ints pg.Ints
-	_, err := t.db.Query(&ints, "SELECT * FROM generate_series(1, 1000000)")
-	c.Assert(err, IsNil)
-	c.Assert(ints, HasLen, 1000000)
-}
-
-func (t *DBTest) TestQueryStrings(c *C) {
-	var strings pg.Strings
-	_, err := t.db.Query(&strings, "SELECT 'hello'")
-	c.Assert(err, IsNil)
-	c.Assert(strings, DeepEquals, pg.Strings{"hello"})
+func deref(v interface{}) interface{} {
+	return reflect.ValueOf(v).Elem().Interface()
 }
 
 func (t *DBTest) TestExec(c *C) {
@@ -492,48 +149,151 @@ func (t *DBTest) TestStatementExec(c *C) {
 	c.Assert(res.Affected(), Equals, 1)
 }
 
-func (t *DBTest) TestQueryStmt(c *C) {
-	stmt, err := t.db.Prepare("SELECT 1 AS num")
-	c.Assert(err, IsNil)
-	defer stmt.Close()
-
-	dst := &structLoader{}
-	res, err := stmt.Query(dst)
-	c.Assert(err, IsNil)
-	c.Assert(dst.Num, Equals, 1)
-	c.Assert(res.Affected(), Equals, 1)
-}
-
-type loader string
-
-func (l loader) Load(colIdx int, colName string, b []byte) error {
-	return errors.New(string(l))
-}
-
-func (t *DBTest) TestLoaderError(c *C) {
-	tx, err := t.db.Begin()
-	c.Assert(err, IsNil)
-
-	{
-		loader := loader("my error")
-		_, err := tx.QueryOne(loader, "SELECT 1, 2")
-		c.Assert(err.Error(), Equals, "my error")
-	}
-
-	{
-		var n1, n2 int
-		_, err := tx.QueryOne(pg.LoadInto(&n1, &n2), "SELECT 1, 2")
-		c.Assert(err, IsNil)
-		c.Assert(n1, Equals, 1)
-		c.Assert(n2, Equals, 2)
-	}
-
-	c.Assert(tx.Rollback(), IsNil)
-}
-
 func (t *DBTest) TestIntegrityError(c *C) {
 	_, err := t.db.Exec("DO $$BEGIN RAISE unique_violation USING MESSAGE='foo'; END$$;")
 	c.Assert(err, FitsTypeOf, &pg.IntegrityError{})
+}
+
+func (t *DBTest) TestTypes(c *C) {
+	var (
+		b bool
+
+		s  string
+		bs []byte
+
+		i    int
+		i8   int8
+		i16  int16
+		i32  int32
+		i64  int64
+		ui   uint
+		ui8  uint8
+		ui16 uint16
+		ui32 uint32
+		ui64 uint64
+
+		f32 float32
+		f64 float64
+
+		ss []string
+		is []int
+
+		sm map[string]string
+	)
+	table := []struct {
+		src, dst interface{}
+		typ      string
+	}{
+		{true, &b, "bool"},
+		{false, &b, "bool"},
+
+		{"hello world", &s, "text"},
+		{[]byte("hello world\000"), &bs, "bytea"},
+
+		{int(math.MaxInt32), &i, "int"},
+		{int(math.MinInt32), &i, "int"},
+		{int8(math.MaxInt8), &i8, "smallint"},
+		{int8(math.MinInt8), &i8, "smallint"},
+		{int16(math.MaxInt16), &i16, "smallint"},
+		{int16(math.MinInt16), &i16, "smallint"},
+		{int32(math.MaxInt32), &i32, "int"},
+		{int32(math.MinInt32), &i32, "int"},
+		{int64(math.MaxInt64), &i64, "bigint"},
+		{int64(math.MinInt64), &i64, "bigint"},
+		{uint(math.MaxUint32), &ui, "bigint"},
+		{uint8(math.MaxUint8), &ui8, "smallint"},
+		{uint16(math.MaxUint16), &ui16, "int"},
+		{uint32(math.MaxUint32), &ui32, "bigint"},
+		{uint64(math.MaxUint32), &ui64, "bigint"}, // uint64 is not supported
+
+		{float32(math.MaxFloat32), &f32, "decimal"},
+		{float32(math.SmallestNonzeroFloat32), &f32, "decimal"},
+		{float64(math.MaxFloat64), &f64, "decimal"},
+		{float64(math.SmallestNonzeroFloat64), &f64, "decimal"},
+
+		{[]string{}, &ss, "text[]"},
+		{[]string{"foo\n", "bar {}", "'\\\""}, &ss, "text[]"},
+		{[]int{}, &is, "int[]"},
+		{[]int{1, 2, 3}, &is, "int[]"},
+
+		{map[string]string{"foo\n =>": "bar\n =>", "'\\\"": "'\\\""}, &sm, "hstore"},
+	}
+
+	t.db.Exec("CREATE EXTENSION hstore")
+	defer t.db.Exec("DROP EXTENSION hstore")
+
+	for _, row := range table {
+		_, err := t.db.QueryOne(pg.LoadInto(row.dst), "SELECT ?", row.src)
+		c.Assert(err, IsNil)
+		c.Assert(deref(row.dst), DeepEquals, row.src)
+	}
+
+	for _, row := range table {
+		if row.typ == "" {
+			continue
+		}
+
+		stmt, err := t.db.Prepare("SELECT $1::" + row.typ)
+		c.Assert(err, IsNil)
+
+		_, err = stmt.QueryOne(pg.LoadInto(row.dst), row.src)
+		c.Assert(err, IsNil)
+		c.Assert(deref(row.dst), DeepEquals, row.src)
+
+		c.Assert(stmt.Close(), IsNil)
+	}
+}
+
+func (t *DBTest) TestTypeTime(c *C) {
+	table := []struct {
+		src time.Time
+		dst time.Time
+		typ string
+	}{
+		{time.Now(), time.Time{}, "timestamp with time zone"},
+		{time.Now().UTC(), time.Time{}, "timestamp with time zone"},
+		{time.Now(), time.Time{}, "timestamp"},
+		{time.Now().UTC(), time.Time{}, "timestamp"},
+	}
+
+	for _, row := range table {
+		_, err := t.db.QueryOne(pg.LoadInto(&row.dst), "SELECT ?", row.src)
+		c.Assert(err, IsNil)
+		c.Assert(row.dst.Unix(), DeepEquals, row.src.Unix())
+	}
+
+	for _, row := range table {
+		if row.typ == "" {
+			continue
+		}
+
+		stmt, err := t.db.Prepare("SELECT $1::" + row.typ)
+		c.Assert(err, IsNil)
+
+		_, err = stmt.QueryOne(pg.LoadInto(&row.dst), row.src)
+		c.Assert(err, IsNil)
+		c.Assert(row.dst.Unix(), DeepEquals, row.src.Unix())
+
+		c.Assert(stmt.Close(), IsNil)
+	}
+
+	for _, row := range table {
+		_, err := t.db.Exec("CREATE TEMP TABLE test_time (time ?)", pg.Q(row.typ))
+		c.Assert(err, IsNil)
+
+		_, err = t.db.Exec("INSERT INTO test_time VALUES (?)", row.src)
+		c.Assert(err, IsNil)
+
+		_, err = t.db.QueryOne(pg.LoadInto(&row.dst), "SELECT time FROM test_time")
+		c.Assert(err, IsNil)
+		c.Assert(row.dst.Unix(), Equals, row.src.Unix())
+		if row.typ == "timestamp" {
+			c.Assert(row.dst.Location(), Equals, time.UTC)
+		}
+
+		_, err = t.db.Exec("DROP TABLE test_time")
+		c.Assert(err, IsNil)
+	}
 }
 
 func (t *DBTest) TestListenNotify(c *C) {
@@ -633,19 +393,6 @@ func (t *DBTest) BenchmarkFormatWithArgs(c *C) {
 	}
 }
 
-func (t *DBTest) BenchmarkQueryRow(c *C) {
-	dst := &structLoader{}
-	for i := 0; i < c.N; i++ {
-		_, err := t.db.QueryOne(dst, "SELECT ?::bigint AS num", 1)
-		if err != nil {
-			panic(err)
-		}
-		if dst.Num != 1 {
-			panic("dst.Num != 1")
-		}
-	}
-}
-
 func (t *DBTest) BenchmarkQueryRowStdlibPq(c *C) {
 	var n int64
 	for i := 0; i < c.N; i++ {
@@ -655,19 +402,6 @@ func (t *DBTest) BenchmarkQueryRowStdlibPq(c *C) {
 		}
 		if n != 1 {
 			panic("n != 1")
-		}
-	}
-}
-
-func (t *DBTest) BenchmarkQueryRowWithoutParams(c *C) {
-	dst := &structLoader{}
-	for i := 0; i < c.N; i++ {
-		_, err := t.db.QueryOne(dst, "SELECT 1::bigint AS num")
-		if err != nil {
-			panic(err)
-		}
-		if dst.Num != 1 {
-			panic("dst.Num != 1")
 		}
 	}
 }
@@ -694,19 +428,6 @@ func (t *DBTest) BenchmarkQueryRowStdlibMySQL(c *C) {
 		}
 		if n != 1 {
 			panic("n != 1")
-		}
-	}
-}
-
-func (t *DBTest) BenchmarkQueryRowStmt(c *C) {
-	stmt, err := t.db.Prepare("SELECT $1::bigint AS num")
-	c.Assert(err, IsNil)
-	defer stmt.Close()
-
-	for i := 0; i < c.N; i++ {
-		_, err := stmt.QueryOne(&structLoader{}, 1)
-		if err != nil {
-			panic(err)
 		}
 	}
 }
