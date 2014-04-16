@@ -14,7 +14,7 @@ import (
 	_ "github.com/lib/pq"
 	. "launchpad.net/gocheck"
 
-	"github.com/vmihailenco/pg"
+	"gopkg.in/pg.v1"
 )
 
 func Test(t *testing.T) { TestingT(t) }

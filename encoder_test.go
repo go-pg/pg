@@ -5,7 +5,7 @@ import (
 
 	. "launchpad.net/gocheck"
 
-	"github.com/vmihailenco/pg"
+	"gopkg.in/pg.v1"
 )
 
 type EncoderTest struct{}

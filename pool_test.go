@@ -7,7 +7,7 @@ import (
 
 	. "launchpad.net/gocheck"
 
-	"github.com/vmihailenco/pg"
+	"github.com/go-pg/pg"
 )
 
 var _ = Suite(&PoolTest{})

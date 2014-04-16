@@ -118,6 +118,9 @@ func (db *DB) freeConn(cn *conn, ei error) error {
 	if ei == nil {
 		return db.pool.Put(cn)
 	}
+	if cn.br.Buffered() > 0 {
+		return db.pool.Remove(cn)
+	}
 	if e, ok := ei.(Error); ok && e.Field('S') != "FATAL" {
 		return db.pool.Put(cn)
 	}
@@ -214,13 +217,13 @@ func (db *DB) Listen(channels ...string) (*Listener, error) {
 	return l, nil
 }
 
-func (db *DB) CopyFrom(r io.Reader, q string) (*Result, error) {
+func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (*Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := writeQueryMsg(cn.buf, q); err != nil {
+	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
 		db.pool.Put(cn)
 		return nil, err
 	}
@@ -263,11 +266,12 @@ func (db *DB) CopyFrom(r io.Reader, q string) (*Result, error) {
 	select {
 	case <-ready:
 	default:
-		writeCopyDone(cn.buf)
-		if err := cn.Flush(); err != nil {
-			db.freeConn(cn, err)
-			return nil, err
-		}
+	}
+
+	writeCopyDone(cn.buf)
+	if err := cn.Flush(); err != nil {
+		db.freeConn(cn, err)
+		return nil, err
 	}
 
 	<-ready
@@ -280,13 +284,13 @@ func (db *DB) CopyFrom(r io.Reader, q string) (*Result, error) {
 	return res, nil
 }
 
-func (db *DB) CopyTo(w io.Writer, q string) (*Result, error) {
+func (db *DB) CopyTo(w io.WriteCloser, q string, args ...interface{}) (*Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := writeQueryMsg(cn.buf, q); err != nil {
+	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
 		db.pool.Put(cn)
 		return nil, err
 	}

@@ -3,7 +3,7 @@ package pg_test
 import (
 	"fmt"
 
-	"github.com/vmihailenco/pg"
+	"gopkg.in/pg.v1"
 )
 
 type ArticleFilter struct {

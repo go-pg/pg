@@ -577,7 +577,8 @@ func readCopyOutResponse(cn *conn) error {
 	}
 }
 
-func readCopyData(cn *conn, w io.Writer) (*Result, error) {
+func readCopyData(cn *conn, w io.WriteCloser) (*Result, error) {
+	defer w.Close()
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
