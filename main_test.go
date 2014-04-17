@@ -349,7 +349,7 @@ func (t *DBTest) TestCopyFrom(c *C) {
 	c.Assert(res.Affected(), Equals, 4)
 
 	buf := &bytes.Buffer{}
-	res, err = t.db.CopyTo(buf, "COPY test TO STDOUT")
+	res, err = t.db.CopyTo(&NopWriteCloser{buf}, "COPY test TO STDOUT")
 	c.Assert(err, IsNil)
 	c.Assert(res.Affected(), Equals, 4)
 	c.Assert(buf.String(), Equals, data)
@@ -363,7 +363,7 @@ func (t *DBTest) TestCopyTo(c *C) {
 	c.Assert(err, IsNil)
 
 	buf := &bytes.Buffer{}
-	res, err := t.db.CopyTo(buf, "COPY test TO STDOUT")
+	res, err := t.db.CopyTo(&NopWriteCloser{buf}, "COPY test TO STDOUT")
 	c.Assert(err, IsNil)
 	c.Assert(res.Affected(), Equals, 1000000)
 

@@ -130,7 +130,7 @@ func ExampleDB_CopyFrom() {
 	}
 
 	buf := &bytes.Buffer{}
-	_, err = db.CopyTo(buf, "COPY words TO STDOUT WITH CSV")
+	_, err = db.CopyTo(&NopWriteCloser{buf}, "COPY words TO STDOUT WITH CSV")
 	if err != nil {
 		panic(err)
 	}
