@@ -1,7 +1,10 @@
 package pg_test
 
 import (
+	"strings"
+	"strconv"
 	"errors"
+	"fmt"
 
 	. "launchpad.net/gocheck"
 
@@ -89,6 +92,62 @@ func (t *LoaderTest) TestQueryStrings(c *C) {
 	_, err := t.db.Query(&strings, "SELECT 'hello'")
 	c.Assert(err, IsNil)
 	c.Assert(strings, DeepEquals, pg.Strings{"hello"})
+}
+
+type unmarshalableField struct {
+	p1 string
+	p2 int
+}
+
+// implements encoding.TextUnmarshaler interface
+func (f *unmarshalableField) UnmarshalText(b []byte) error {
+	parts := strings.SplitN(string(b), "|", 2)
+	if len(parts) != 2 {
+		return errors.New("wrong number of parts")
+	}
+	f.p1 = parts[0]
+	x, err := strconv.Atoi(parts[1])
+	if err != nil {
+		return fmt.Errorf("part #2 is not an integer: %s", err)
+	}
+	f.p2 = x
+	return nil
+}
+
+type structWithUnmarshalableField struct {
+	Num1 int
+	Thing2 unmarshalableField
+}
+
+type structWithPointerToUnmarshalableField struct {
+	Num1 int
+	Thing2 *unmarshalableField
+}
+
+func (t *LoaderTest) TestUnmarshalingStructs(c *C) {
+	var s structWithUnmarshalableField
+	_, err := t.db.QueryOne(&s, "SELECT 42 AS num1, 'hello|66' AS thing2")
+	c.Assert(err, IsNil)
+	c.Assert(s.Num1, Equals, 42)
+	c.Assert(s.Thing2.p1, Equals, "hello")
+	c.Assert(s.Thing2.p2, Equals, 66)
+}
+
+func (t *LoaderTest) TestUnmarshalingPointersToStructs(c *C) {
+	var s structWithPointerToUnmarshalableField
+	_, err := t.db.QueryOne(&s, "SELECT 42 AS num1, 'hello|66' AS thing2")
+	c.Assert(err, IsNil)
+	c.Assert(s.Num1, Equals, 42)
+	c.Assert(s.Thing2.p1, Equals, "hello")
+	c.Assert(s.Thing2.p2, Equals, 66)
+}
+
+func (t *LoaderTest) TestUnmarshalingPointersToStructsIfNull(c *C) {
+	var s structWithPointerToUnmarshalableField
+	_, err := t.db.QueryOne(&s, "SELECT 42 AS num1, NULL AS thing2")
+	c.Assert(err, IsNil)
+	c.Assert(s.Num1, Equals, 42)
+	c.Assert(s.Thing2, IsNil)
 }
 
 type errLoader string
