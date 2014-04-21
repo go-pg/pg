@@ -14,6 +14,7 @@ install:
   - go get github.com/go-sql-driver/mysql
   - go get github.com/lib/pq
   - go get launchpad.net/gocheck
+  - go get gopkg.in/pg.v1
 
 before_script:
   - psql -c 'CREATE DATABASE test;' -U postgres
