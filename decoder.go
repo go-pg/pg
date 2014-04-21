@@ -1,7 +1,6 @@
 package pg
 
 import (
-	"encoding"
 	"encoding/hex"
 	"reflect"
 	"strconv"
@@ -170,16 +169,12 @@ func decodeValue(dst reflect.Value, f []byte) error {
 		return nil
 	}
 
-	kind := dst.Kind()
-	if kind == reflect.Ptr {
+	switch dst.Kind() {
+	case reflect.Ptr:
 		if dst.IsNil() {
-			// must point to an empty value before proceeding
 			dst.Set(reflect.New(dst.Type().Elem()))
 		}
-
 		return decodeValue(dst.Elem(), f)
-	}
-	switch kind {
 	case reflect.Bool:
 		if len(f) == 1 && f[0] == 't' {
 			dst.SetBool(true)
@@ -225,9 +220,7 @@ func decodeValue(dst reflect.Value, f []byte) error {
 			return nil
 		}
 
-		iface := dst.Addr().Interface()
-		unmarshaler, ok := iface.(encoding.TextUnmarshaler)
-		if ok {
+		if unmarshaler, ok := dst.Addr().Interface().(textUnmarshaler); ok {
 			return unmarshaler.UnmarshalText(f)
 		}
 	case reflect.Interface:
