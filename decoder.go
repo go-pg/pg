@@ -17,6 +17,19 @@ func Decode(dst interface{}, f []byte) error {
 		return nil
 	}
 
+	if tm, ok := dst.(*time.Time); ok {
+		tm_, err := decodeTime(f)
+		if err != nil {
+			return err
+		}
+		*tm = tm_
+		return nil
+	}
+
+	if unmarshaler, ok := dst.(textUnmarshaler); ok {
+		return unmarshaler.UnmarshalText(f)
+	}
+
 	switch v := dst.(type) {
 	case *bool:
 		if len(f) == 1 && f[0] == 't' {
@@ -119,13 +132,6 @@ func Decode(dst interface{}, f []byte) error {
 		}
 		*v = b
 		return nil
-	case *time.Time:
-		tm, err := decodeTime(f)
-		if err != nil {
-			return err
-		}
-		*v = tm
-		return nil
 	case *[]string:
 		s, err := decodeStringSlice(f)
 		if err != nil {
@@ -169,6 +175,25 @@ func decodeValue(dst reflect.Value, f []byte) error {
 		return nil
 	}
 
+	kind := dst.Kind()
+	if kind == reflect.Struct && dst.Type() == timeType {
+		tm, err := decodeTime(f)
+		if err != nil {
+			return err
+		}
+		dst.Set(reflect.ValueOf(tm))
+		return nil
+	}
+
+	if dst.CanAddr() {
+		addr := dst.Addr()
+		if addr.CanInterface() {
+			if unmarshaler, ok := addr.Interface().(textUnmarshaler); ok {
+				return unmarshaler.UnmarshalText(f)
+			}
+		}
+	}
+
 	switch dst.Kind() {
 	case reflect.Ptr:
 		if dst.IsNil() {
@@ -210,19 +235,6 @@ func decodeValue(dst reflect.Value, f []byte) error {
 		return decodeSliceValue(dst, f)
 	case reflect.Map:
 		return decodeMapValue(dst, f)
-	case reflect.Struct:
-		if dst.Type() == timeType {
-			tm, err := decodeTime(f)
-			if err != nil {
-				return err
-			}
-			dst.Set(reflect.ValueOf(tm))
-			return nil
-		}
-
-		if unmarshaler, ok := dst.Addr().Interface().(textUnmarshaler); ok {
-			return unmarshaler.UnmarshalText(f)
-		}
 	case reflect.Interface:
 		return decodeValue(dst.Elem(), f)
 	}
