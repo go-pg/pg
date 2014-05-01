@@ -89,7 +89,7 @@ func (p *connPool) Put(cn *conn) error {
 	if cn.br.Buffered() > 0 {
 		b, _ := cn.br.Peek(cn.br.Buffered())
 		glog.Errorf("pg: discarding connection that has unread data: %.100q", b)
-		return nil
+		return p.Remove(cn)
 	}
 
 	cn.buf.Reset()
