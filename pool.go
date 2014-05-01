@@ -95,7 +95,9 @@ func (p *connPool) Get() (*conn, bool, error) {
 
 func (p *connPool) Put(cn *conn) error {
 	if cn.br.Buffered() > 0 {
-		panic("connection has unread data")
+		b, _ := cn.br.Peek(cn.br.Buffered())
+		glog.Errorf("pg: discarding connection that has unread data: %.100q", b)
+		return nil
 	}
 
 	cn.buf.Reset()
