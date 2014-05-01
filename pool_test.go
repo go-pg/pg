@@ -25,6 +25,9 @@ func (t *PoolTest) SetUpTest(c *C) {
 		DialTimeout:  3 * time.Second,
 		ReadTimeout:  3 * time.Second,
 		WriteTimeout: 3 * time.Second,
+
+		IdleTimeout:        time.Second,
+		IdleCheckFrequency: time.Second,
 	})
 }
 
@@ -94,10 +97,16 @@ func (t *PoolTest) TestCloseClosesAllConnections(c *C) {
 	<-started
 	c.Assert(t.db.Close(), IsNil)
 	<-done
+
+	c.Assert(t.db.Pool().Size(), Equals, 0)
+	c.Assert(t.db.Pool().Len(), Equals, 0)
 }
 
 func (t *PoolTest) TestClosedDB(c *C) {
 	c.Assert(t.db.Close(), IsNil)
+
+	c.Assert(t.db.Pool().Size(), Equals, 0)
+	c.Assert(t.db.Pool().Len(), Equals, 0)
 
 	err := t.db.Close()
 	c.Assert(err, Not(IsNil))
@@ -112,7 +121,13 @@ func (t *PoolTest) TestClosedListener(c *C) {
 	ln, err := t.db.Listen("test_channel")
 	c.Assert(err, IsNil)
 
+	c.Assert(t.db.Pool().Size(), Equals, 1)
+	c.Assert(t.db.Pool().Len(), Equals, 0)
+
 	c.Assert(ln.Close(), IsNil)
+
+	c.Assert(t.db.Pool().Size(), Equals, 0)
+	c.Assert(t.db.Pool().Len(), Equals, 0)
 
 	err = ln.Close()
 	c.Assert(err, Not(IsNil))
@@ -127,7 +142,13 @@ func (t *PoolTest) TestClosedTx(c *C) {
 	tx, err := t.db.Begin()
 	c.Assert(err, IsNil)
 
+	c.Assert(t.db.Pool().Size(), Equals, 1)
+	c.Assert(t.db.Pool().Len(), Equals, 0)
+
 	c.Assert(tx.Rollback(), IsNil)
+
+	c.Assert(t.db.Pool().Size(), Equals, 1)
+	c.Assert(t.db.Pool().Len(), Equals, 1)
 
 	err = tx.Rollback()
 	c.Assert(err, Not(IsNil))
@@ -142,13 +163,32 @@ func (t *PoolTest) TestClosedStmt(c *C) {
 	stmt, err := t.db.Prepare("SELECT $1::int")
 	c.Assert(err, IsNil)
 
+	c.Assert(t.db.Pool().Size(), Equals, 1)
+	c.Assert(t.db.Pool().Len(), Equals, 0)
+
 	c.Assert(stmt.Close(), IsNil)
+
+	c.Assert(t.db.Pool().Size(), Equals, 1)
+	c.Assert(t.db.Pool().Len(), Equals, 1)
 
 	err = stmt.Close()
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: statement is closed")
 
 	_, err = stmt.Exec(1)
-	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: statement is closed")
+}
+
+func (t *PoolTest) TestIdleConnectionsAreClosed(c *C) {
+	_, err := t.db.Exec("SELECT 1")
+	c.Assert(err, IsNil)
+
+	c.Assert(t.db.Pool().Size(), Equals, 1)
+	c.Assert(t.db.Pool().Len(), Equals, 1)
+
+	// Give pg time to close idle connections.
+	time.Sleep(2 * time.Second)
+
+	c.Assert(t.db.Pool().Size(), Equals, 0)
+	c.Assert(t.db.Pool().Len(), Equals, 0)
 }

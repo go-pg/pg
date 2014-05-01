@@ -52,6 +52,10 @@ func newConnFunc(opt *Options) func() (*conn, error) {
 	}
 }
 
+func (cn *conn) IsIdle(dur time.Duration) bool {
+	return time.Since(cn.usedAt) > dur
+}
+
 func (cn *conn) SetReadTimeout(dur time.Duration) {
 	if dur == 0 {
 		cn.cn.SetReadDeadline(zeroTime)

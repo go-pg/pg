@@ -14,26 +14,32 @@ type connPool struct {
 	cond  *sync.Cond
 	conns *list.List
 
-	idleNum     int
-	maxSize     int
-	idleTimeout time.Duration
+	maxSize int
+
+	idleNum            int
+	idleTimeout        time.Duration
+	idleCheckFrequency time.Duration
+	idleCheckTicker    *time.Ticker
 
 	closed bool
 }
 
-func newConnPool(
-	dial func() (*conn, error),
-	maxSize int, idleTimeout time.Duration,
-) *connPool {
-	return &connPool{
-		New: dial,
+func newConnPool(opt *Options) *connPool {
+	p := &connPool{
+		New: newConnFunc(opt),
 
 		cond:  sync.NewCond(&sync.Mutex{}),
 		conns: list.New(),
 
-		maxSize:     maxSize,
-		idleTimeout: idleTimeout,
+		maxSize: opt.getPoolSize(),
+
+		idleTimeout:        opt.getIdleTimeout(),
+		idleCheckFrequency: opt.getIdleCheckFrequency(),
 	}
+	if p.idleTimeout > 0 && p.idleCheckFrequency > 0 {
+		go p.reaper()
+	}
+	return p
 }
 
 func (p *connPool) Get() (*conn, bool, error) {
@@ -42,20 +48,6 @@ func (p *connPool) Get() (*conn, bool, error) {
 	if p.closed {
 		p.cond.L.Unlock()
 		return nil, false, errClosed
-	}
-
-	if p.idleTimeout > 0 {
-		for el := p.conns.Front(); el != nil; el = el.Next() {
-			cn := el.Value.(*conn)
-			if cn.inUse {
-				break
-			}
-			if time.Since(cn.usedAt) > p.idleTimeout {
-				if err := p.remove(cn); err != nil {
-					glog.Errorf("Remove failed: %s", err)
-				}
-			}
-		}
 	}
 
 	for p.conns.Len() >= p.maxSize && p.idleNum == 0 {
@@ -118,13 +110,13 @@ func (p *connPool) Put(cn *conn) error {
 	return nil
 }
 
-func (p *connPool) remove(cn *conn) (err error) {
-	if cn != nil {
-		err = cn.Close()
-	}
+func (p *connPool) remove(cn *conn) error {
 	p.conns.Remove(cn.elem)
+	if !cn.inUse {
+		p.idleNum--
+	}
 	cn.elem = nil
-	return err
+	return cn.Close()
 }
 
 func (p *connPool) Remove(cn *conn) error {
@@ -162,15 +154,45 @@ func (p *connPool) Close() error {
 		return errClosed
 	}
 	p.closed = true
+
+	if p.idleCheckTicker != nil {
+		p.idleCheckTicker.Stop()
+	}
+
 	var retErr error
-	for e := p.conns.Front(); e != nil; e = e.Next() {
-		cn := e.Value.(*conn)
-		if err := cn.Close(); err != nil {
+	for {
+		e := p.conns.Front()
+		if e == nil {
+			break
+		}
+		if err := p.remove(e.Value.(*conn)); err != nil {
 			glog.Errorf("cn.Close failed: %s", err)
 			retErr = err
 		}
-		cn.elem = nil
 	}
-	p.conns = nil
+
 	return retErr
+}
+
+func (p *connPool) reaper() {
+	p.idleCheckTicker = time.NewTicker(p.idleCheckFrequency)
+	for _ = range p.idleCheckTicker.C {
+		p.cond.L.Lock()
+		p.closeIdle()
+		p.cond.L.Unlock()
+	}
+}
+
+func (p *connPool) closeIdle() {
+	for el := p.conns.Front(); el != nil; el = el.Next() {
+		cn := el.Value.(*conn)
+		if cn.inUse {
+			break
+		}
+		if cn.IsIdle(p.idleTimeout) {
+			if err := p.remove(cn); err != nil {
+				glog.Errorf("Remove failed: %s", err)
+			}
+		}
+	}
 }

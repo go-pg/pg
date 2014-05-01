@@ -23,7 +23,9 @@ type Options struct {
 	DialTimeout  time.Duration
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
+
+	IdleTimeout        time.Duration
+	IdleCheckFrequency time.Duration
 }
 
 func (opt *Options) getHost() string {
@@ -79,6 +81,10 @@ func (opt *Options) getIdleTimeout() time.Duration {
 	return opt.IdleTimeout
 }
 
+func (opt *Options) getIdleCheckFrequency() time.Duration {
+	return opt.IdleCheckFrequency
+}
+
 func (opt *Options) getSSL() bool {
 	if opt == nil {
 		return false
@@ -89,7 +95,7 @@ func (opt *Options) getSSL() bool {
 func Connect(opt *Options) *DB {
 	return &DB{
 		opt:  opt,
-		pool: newConnPool(newConnFunc(opt), opt.getPoolSize(), opt.getIdleTimeout()),
+		pool: newConnPool(opt),
 	}
 }
 
