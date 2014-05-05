@@ -137,7 +137,7 @@ func (set IntsSet) Load(colIdx int, colName string, b []byte) error {
 
 //------------------------------------------------------------------------------
 
-func newLoader(dst interface{}) (Loader, error) {
+func NewLoader(dst interface{}) (Loader, error) {
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
 		return nil, errorf("pg: Decode(%s)", v)

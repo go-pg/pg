@@ -384,7 +384,7 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	loader, ok := dst.(Loader)
 	if !ok {
 		var err error
-		loader, err = newLoader(dst)
+		loader, err = NewLoader(dst)
 		if err != nil {
 			return err
 		}
