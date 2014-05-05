@@ -45,7 +45,7 @@ func (l *structLoader) Load(colIdx int, colName string, b []byte) error {
 	if !ok {
 		return errorf("pg: cannot map field %q", colName)
 	}
-	return decodeValue(l.v.FieldByIndex(indx), b)
+	return DecodeValue(l.v.FieldByIndex(indx), b)
 }
 
 //------------------------------------------------------------------------------

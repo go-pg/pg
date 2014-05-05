@@ -166,10 +166,10 @@ func Decode(dst interface{}, f []byte) error {
 	if !v.IsValid() {
 		return errorf("pg: Decode(%q)", v)
 	}
-	return decodeValue(v.Elem(), f)
+	return DecodeValue(v.Elem(), f)
 }
 
-func decodeValue(dst reflect.Value, f []byte) error {
+func DecodeValue(dst reflect.Value, f []byte) error {
 	// NULL.
 	if f == nil {
 		return nil
@@ -199,7 +199,7 @@ func decodeValue(dst reflect.Value, f []byte) error {
 		if dst.IsNil() {
 			dst.Set(reflect.New(dst.Type().Elem()))
 		}
-		return decodeValue(dst.Elem(), f)
+		return DecodeValue(dst.Elem(), f)
 	case reflect.Bool:
 		if len(f) == 1 && f[0] == 't' {
 			dst.SetBool(true)
@@ -236,7 +236,7 @@ func decodeValue(dst reflect.Value, f []byte) error {
 	case reflect.Map:
 		return decodeMapValue(dst, f)
 	case reflect.Interface:
-		return decodeValue(dst.Elem(), f)
+		return DecodeValue(dst.Elem(), f)
 	}
 	return errorf("pg: unsupported dst: %T", dst.Interface())
 }
