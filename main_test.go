@@ -15,6 +15,7 @@ import (
 	. "launchpad.net/gocheck"
 
 	"gopkg.in/pg.v1"
+	"gopkg.in/pg.v1/pgutil"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -373,6 +374,13 @@ func (t *DBTest) TestCopyTo(c *C) {
 	res, err = t.db.CopyFrom(buf, "COPY test2 FROM STDIN")
 	c.Assert(err, IsNil)
 	c.Assert(res.Affected(), Equals, 1000000)
+}
+
+func (t *DBTest) TestFormattingColumnNames(c *C) {
+	c.Assert(pgutil.Underscore("Megacolumn"), Equals, "megacolumn")
+	c.Assert(pgutil.Underscore("MegaColumn"), Equals, "mega_column")
+	c.Assert(pgutil.Underscore("MegaColumn_Id"), Equals, "mega_column__id")
+	c.Assert(pgutil.Underscore("MegaColumn_id"), Equals, "mega_column_id")
 }
 
 func (t *DBTest) BenchmarkFormatWithoutArgs(c *C) {

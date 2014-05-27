@@ -75,7 +75,7 @@ func (t *PoolTest) TestTimeoutAndCancelRequest(c *C) {
 
 	// Unreliable check that previous query was cancelled.
 	var count int
-	_, err = t.db.QueryOne(pg.LoadInto(&count), "SELECT COUNT(*) FROM pg_stat_activity")
+	_, err = t.db.QueryOne(pg.LoadInto(&count), "SELECT COUNT(*) FROM pg_stat_activity WHERE datname = 'test'")
 	c.Assert(err, IsNil)
 	c.Assert(count, Equals, 1)
 }
