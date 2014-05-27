@@ -375,6 +375,13 @@ func (t *DBTest) TestCopyTo(c *C) {
 	c.Assert(res.Affected(), Equals, 1000000)
 }
 
+func (t *DBTest) TestFormattingColumnNames(c *C) {
+	c.Assert(pg.FormatColumnName("Megacolumn"), Equals, "megacolumn")
+	c.Assert(pg.FormatColumnName("MegaColumn"), Equals, "mega_column")
+	c.Assert(pg.FormatColumnName("MegaColumn_Id"), Equals, "mega_column__id")
+	c.Assert(pg.FormatColumnName("MegaColumn_id"), Equals, "mega_column_id")
+}
+
 func (t *DBTest) BenchmarkFormatWithoutArgs(c *C) {
 	for i := 0; i < c.N; i++ {
 		_, err := pg.FormatQ("SELECT 'hello', 'world' WHERE 1=1 AND 2=2")

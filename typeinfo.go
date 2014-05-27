@@ -22,7 +22,7 @@ func toLower(c byte) byte {
 	return c + 32
 }
 
-func formatColumnName(s string) string {
+func FormatColumnName(s string) string {
 	b := []byte(s)
 	r := make([]byte, 0, len(b))
 	for i := 0; i < len(b); i++ {
@@ -127,7 +127,7 @@ func fields(typ reflect.Type) map[string][]int {
 			continue
 		}
 		if name == "" {
-			name = formatColumnName(f.Name)
+			name = FormatColumnName(f.Name)
 		}
 		dst[name] = f.Index
 	}
