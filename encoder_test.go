@@ -36,6 +36,23 @@ func (t *EncoderTest) TestTypeAlias(c *C) {
 	c.Assert(string(q), Equals, "'hello world'")
 }
 
+func (t *EncoderTest) TestPointers(c *C) {
+	var x *int
+	q, err := pg.FormatQ("?", x)
+	c.Assert(err, IsNil)
+	c.Assert(string(q), Equals, "NULL")
+
+	y := new(int)
+	*y = 42
+	q, err = pg.FormatQ("?", y)
+	c.Assert(err, IsNil)
+	c.Assert(string(q), Equals, "42")
+
+	q, err = pg.FormatQ("?", nil)
+	c.Assert(err, IsNil)
+	c.Assert(string(q), Equals, "NULL")
+}
+
 type structFormatter struct {
 	Foo string
 }

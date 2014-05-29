@@ -297,6 +297,34 @@ func (t *DBTest) TestTypeTime(c *C) {
 	}
 }
 
+func (t *DBTest) TestInsertingNullsAndPointers(c *C) {
+	rec := &struct{
+		Id int
+		X *int
+	}{1, new(int)}
+	*rec.X = 1138
+
+	_, err := t.db.Exec("CREATE TEMP TABLE test(id int, x int)")
+	c.Assert(err, IsNil)
+
+	_, err = t.db.Exec("INSERT INTO test (id, x) VALUES (?id, ?x)", rec)
+	c.Assert(err, IsNil)
+
+	rec.X = nil
+	_, err = t.db.QueryOne(rec, "SELECT x FROM test")
+	c.Assert(err, IsNil)
+	c.Assert(*rec.X, Equals, 1138)
+
+	rec.X = nil
+	_, err = t.db.Exec("UPDATE test SET x = ?x WHERE id = ?id", rec)
+	c.Assert(err, IsNil)
+
+	rec.X = nil
+	_, err = t.db.QueryOne(rec, "SELECT x FROM test")
+	c.Assert(err, IsNil)
+	c.Assert(rec.X, IsNil)
+}
+
 func (t *DBTest) TestListenNotify(c *C) {
 	ln, err := t.db.Listen("test_channel")
 	c.Assert(err, IsNil)
