@@ -206,6 +206,10 @@ func appendValue(dst []byte, srci interface{}) []byte {
 		return src.Append(dst)
 	default:
 		v := reflect.ValueOf(srci)
+		if srci == nil || v.Kind() == reflect.Ptr && v.IsNil() {
+			return appendRawString(dst, "NULL")
+		}
+		v = reflect.Indirect(v) // if v is not a pointer, it will simply return v
 		switch v.Kind() {
 		case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 			return strconv.AppendInt(dst, v.Int(), 10)
