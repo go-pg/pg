@@ -64,7 +64,7 @@ func canRetry(e error) bool {
 	if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
 		return false
 	}
-	if _, ok := e.(*dbError); ok {
+	if _, ok := e.(dbError); ok {
 		return false
 	}
 	if pgerr, ok := e.(Error); ok && pgerr.Field('C') != "40001" {
