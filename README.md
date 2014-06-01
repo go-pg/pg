@@ -3,6 +3,7 @@ PostgreSQL client for Golang [![Build Status](https://travis-ci.org/go-pg/pg.svg
 
 Supports:
 
+- sql.NullBool, sql.NullString, sql.NullInt64 and sql.Float64.
 - Arrays.
 - Partially hstore.
 - Transactions.

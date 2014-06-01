@@ -1,10 +1,10 @@
 package pg_test
 
 import (
-	"strings"
-	"strconv"
 	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	. "launchpad.net/gocheck"
 
@@ -115,12 +115,12 @@ func (f *unmarshalableField) UnmarshalText(b []byte) error {
 }
 
 type structWithUnmarshalableField struct {
-	Num1 int
+	Num1   int
 	Thing2 unmarshalableField
 }
 
 type structWithPointerToUnmarshalableField struct {
-	Num1 int
+	Num1   int
 	Thing2 *unmarshalableField
 }
 

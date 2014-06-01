@@ -70,48 +70,28 @@ func (t *DBTest) TestQueryZeroRows(c *C) {
 }
 
 func (t *DBTest) TestQueryOneErrNoRows(c *C) {
-	dst, err := t.db.QueryOne(&discard{}, "SELECT 1 WHERE 1 != 1")
-	c.Assert(dst, IsNil)
+	_, err := t.db.QueryOne(&discard{}, "SELECT 1 WHERE 1 != 1")
 	c.Assert(err, Equals, pg.ErrNoRows)
 }
 
 func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
-	dst, err := t.db.QueryOne(&discard{}, "SELECT generate_series(0, 10)")
+	_, err := t.db.QueryOne(&discard{}, "SELECT generate_series(0, 1)")
 	c.Assert(err, Equals, pg.ErrMultiRows)
-	c.Assert(dst, IsNil)
 }
 
 func (t *DBTest) TestExecOne(c *C) {
-	_, err := t.db.Exec("CREATE TEMP TABLE test(id int)")
-	c.Assert(err, IsNil)
-
-	_, err = t.db.Exec("INSERT INTO test VALUES (1)")
-	c.Assert(err, IsNil)
-
-	res, err := t.db.ExecOne("DELETE FROM test WHERE id = 1")
+	res, err := t.db.ExecOne("SELECT 1")
 	c.Assert(err, IsNil)
 	c.Assert(res.Affected(), Equals, 1)
 }
 
 func (t *DBTest) TestExecOneErrNoRows(c *C) {
-	_, err := t.db.Exec("CREATE TEMP TABLE test(id int)")
-	c.Assert(err, IsNil)
-
-	_, err = t.db.ExecOne("DELETE FROM test WHERE id = 1")
+	_, err := t.db.ExecOne("SELECT 1 WHERE 1 != 1")
 	c.Assert(err, Equals, pg.ErrNoRows)
 }
 
 func (t *DBTest) TestExecOneErrMultiRows(c *C) {
-	_, err := t.db.Exec("CREATE TEMP TABLE test(id int)")
-	c.Assert(err, IsNil)
-
-	_, err = t.db.Exec("INSERT INTO test VALUES (1)")
-	c.Assert(err, IsNil)
-
-	_, err = t.db.Exec("INSERT INTO test VALUES (1)")
-	c.Assert(err, IsNil)
-
-	_, err = t.db.ExecOne("DELETE FROM test WHERE id = 1")
+	_, err := t.db.ExecOne("SELECT generate_series(0, 1)")
 	c.Assert(err, Equals, pg.ErrMultiRows)
 }
 
@@ -120,10 +100,6 @@ func (t *DBTest) TestLoadInto(c *C) {
 	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT 1")
 	c.Assert(err, IsNil)
 	c.Assert(dst, Equals, 1)
-}
-
-func deref(v interface{}) interface{} {
-	return reflect.ValueOf(v).Elem().Interface()
 }
 
 func (t *DBTest) TestExec(c *C) {
@@ -155,6 +131,10 @@ func (t *DBTest) TestIntegrityError(c *C) {
 	c.Assert(err, FitsTypeOf, &pg.IntegrityError{})
 }
 
+func deref(v interface{}) interface{} {
+	return reflect.Indirect(reflect.ValueOf(v)).Interface()
+}
+
 func (t *DBTest) TestTypes(c *C) {
 	var (
 		b bool
@@ -180,6 +160,11 @@ func (t *DBTest) TestTypes(c *C) {
 		is []int
 
 		sm map[string]string
+
+		nullBool    sql.NullBool
+		nullString  sql.NullString
+		nullInt64   sql.NullInt64
+		nullFloat64 sql.NullFloat64
 	)
 	table := []struct {
 		src, dst interface{}
@@ -218,6 +203,22 @@ func (t *DBTest) TestTypes(c *C) {
 		{[]int{1, 2, 3}, &is, "int[]"},
 
 		{map[string]string{"foo\n =>": "bar\n =>", "'\\\"": "'\\\""}, &sm, "hstore"},
+
+		{&sql.NullBool{}, &nullBool, "bool"},
+		{&sql.NullBool{Valid: true}, &nullBool, "bool"},
+		{&sql.NullBool{Valid: true, Bool: true}, &nullBool, "bool"},
+
+		{&sql.NullString{}, &nullString, "text"},
+		{&sql.NullString{Valid: true}, &nullString, "text"},
+		{&sql.NullString{Valid: true, String: "foo"}, &nullString, "text"},
+
+		{&sql.NullInt64{}, &nullInt64, "bigint"},
+		{&sql.NullInt64{Valid: true}, &nullInt64, "bigint"},
+		{&sql.NullInt64{Valid: true, Int64: math.MaxInt64}, &nullInt64, "bigint"},
+
+		{&sql.NullFloat64{}, &nullFloat64, "decimal"},
+		{&sql.NullFloat64{Valid: true}, &nullFloat64, "decimal"},
+		{&sql.NullFloat64{Valid: true, Float64: math.MaxFloat64}, &nullFloat64, "decimal"},
 	}
 
 	t.db.Exec("CREATE EXTENSION hstore")
@@ -226,7 +227,7 @@ func (t *DBTest) TestTypes(c *C) {
 	for _, row := range table {
 		_, err := t.db.QueryOne(pg.LoadInto(row.dst), "SELECT ?", row.src)
 		c.Assert(err, IsNil)
-		c.Assert(deref(row.dst), DeepEquals, row.src)
+		c.Assert(deref(row.dst), DeepEquals, deref(row.src))
 	}
 
 	for _, row := range table {
@@ -239,7 +240,7 @@ func (t *DBTest) TestTypes(c *C) {
 
 		_, err = stmt.QueryOne(pg.LoadInto(row.dst), row.src)
 		c.Assert(err, IsNil)
-		c.Assert(deref(row.dst), DeepEquals, row.src)
+		c.Assert(deref(row.dst), DeepEquals, deref(row.src))
 
 		c.Assert(stmt.Close(), IsNil)
 	}
@@ -298,9 +299,9 @@ func (t *DBTest) TestTypeTime(c *C) {
 }
 
 func (t *DBTest) TestInsertingNullsAndPointers(c *C) {
-	rec := &struct{
+	rec := &struct {
 		Id int
-		X *int
+		X  *int
 	}{1, new(int)}
 	*rec.X = 1138
 

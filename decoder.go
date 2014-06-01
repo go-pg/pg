@@ -1,10 +1,13 @@
 package pg
 
 import (
+	"database/sql"
 	"encoding/hex"
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/golang/glog"
 )
 
 var (
@@ -12,11 +15,6 @@ var (
 )
 
 func Decode(dst interface{}, f []byte) error {
-	// NULL.
-	if f == nil {
-		return nil
-	}
-
 	if tm, ok := dst.(*time.Time); ok {
 		tm_, err := decodeTime(f)
 		if err != nil {
@@ -28,6 +26,19 @@ func Decode(dst interface{}, f []byte) error {
 
 	if unmarshaler, ok := dst.(textUnmarshaler); ok {
 		return unmarshaler.UnmarshalText(f)
+	}
+
+	if scanner, ok := dst.(sql.Scanner); ok {
+		glog.Infof("scan %v %q", scanner, f)
+		if f == nil {
+			return scanner.Scan(nil)
+		}
+		return scanner.Scan(f)
+	}
+
+	// NULL.
+	if f == nil {
+		return nil
 	}
 
 	switch v := dst.(type) {

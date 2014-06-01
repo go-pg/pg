@@ -217,8 +217,13 @@ func writeBindExecuteMsg(buf *buffer, args ...interface{}) error {
 	for i := 0; i < len(args); i++ {
 		pos := len(buf.B)
 		buf.Grow(4)
-		buf.B = appendRawValue(buf.B, args[i])
-		binary.BigEndian.PutUint32(buf.B[pos:], uint32(len(buf.B)-pos-4))
+		newB := appendRawIface(buf.B, args[i])
+		l := -1
+		if newB != nil {
+			buf.B = newB
+			l = len(buf.B) - pos - 4
+		}
+		binary.BigEndian.PutUint32(buf.B[pos:], uint32(l))
 	}
 	buf.WriteInt16(0)
 
@@ -396,20 +401,22 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	}
 	var loadErr error
 	for colIdx := 0; colIdx < int(colNum); colIdx++ {
-		colLen, err := cn.ReadInt32()
+		l, err := cn.ReadInt32()
 		if err != nil {
 			return err
 		}
 		var b []byte
-		if colLen != -1 {
-			b, err = cn.br.ReadN(int(colLen))
+		if l != -1 {
+			b, err = cn.br.ReadN(int(l))
 			if err != nil {
 				return err
 			}
+
 		}
 		if err := loader.Load(colIdx, columns[colIdx], b); err != nil {
 			loadErr = err
 		}
+
 	}
 	return loadErr
 }
