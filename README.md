@@ -3,7 +3,9 @@ PostgreSQL client for Golang [![Build Status](https://travis-ci.org/go-pg/pg.svg
 
 Supports:
 
+- Basic types: integers, floats, string, bool, time.Time, and pointers to these types.
 - sql.NullBool, sql.NullString, sql.NullInt64 and sql.Float64.
+- sql.Scanner and sql/driver.Valuer interfaces.
 - Arrays.
 - Partially hstore.
 - Transactions.
