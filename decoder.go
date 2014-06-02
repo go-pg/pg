@@ -6,8 +6,6 @@ import (
 	"reflect"
 	"strconv"
 	"time"
-
-	"github.com/golang/glog"
 )
 
 var (
@@ -29,7 +27,6 @@ func Decode(dst interface{}, f []byte) error {
 	}
 
 	if scanner, ok := dst.(sql.Scanner); ok {
-		glog.Infof("scan %v %q", scanner, f)
 		if f == nil {
 			return scanner.Scan(nil)
 		}
