@@ -202,7 +202,7 @@ func readParseDescribeSync(cn *conn) (columns []string, e error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: unexpected message %q", c)
+			return nil, fmt.Errorf("pg: readParseDescribeSync: unexpected message %q", c)
 		}
 	}
 }
@@ -273,7 +273,7 @@ func readBindMsg(cn *conn) (e error) {
 				return err
 			}
 		default:
-			return fmt.Errorf("pg: unexpected message %q", c)
+			return fmt.Errorf("pg: readBindMsg: unexpected message %q", c)
 		}
 	}
 }
@@ -317,7 +317,7 @@ func readSimpleQuery(cn *conn) (res *Result, e error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: unexpected message %q", c)
+			return nil, fmt.Errorf("pg: readSimpleQuery: unexpected message %q", c)
 		}
 	}
 }
@@ -361,7 +361,7 @@ func readExtQuery(cn *conn) (res *Result, e error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: unexpected message %q", c)
+			return nil, fmt.Errorf("pg: readExtQuery: unexpected message %q", c)
 		}
 	}
 }
@@ -465,7 +465,7 @@ func readSimpleQueryData(cn *conn, f Factory) (res *Result, e error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: unexpected message %q", c)
+			return nil, fmt.Errorf("pg: readSimpleQueryData: unexpected message %q", c)
 		}
 	}
 }
@@ -513,7 +513,7 @@ func readExtQueryData(cn *conn, f Factory, columns []string) (res *Result, e err
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: unexpected message %q", c)
+			return nil, fmt.Errorf("pg: readExtQueryData: unexpected message %q", c)
 		}
 	}
 }
@@ -546,7 +546,7 @@ func readCopyInResponse(cn *conn) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("pg: unexpected message %q", c)
+			return fmt.Errorf("pg: readCopyInResponse: unexpected message %q", c)
 		}
 	}
 }
@@ -579,7 +579,7 @@ func readCopyOutResponse(cn *conn) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("pg: unexpected message %q", c)
+			return fmt.Errorf("pg: readCopyOutResponse: unexpected message %q", c)
 		}
 	}
 }
@@ -628,7 +628,7 @@ func readCopyData(cn *conn, w io.WriteCloser) (*Result, error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: unexpected message %q", c)
+			return nil, fmt.Errorf("pg: readCopyData: unexpected message %q", c)
 		}
 	}
 }
@@ -677,7 +677,7 @@ func readReadyForQuery(cn *conn) (res *Result, e error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: unexpected message %q", c)
+			return nil, fmt.Errorf("pg: readReadyForQuery: unexpected message %q", c)
 		}
 	}
 }

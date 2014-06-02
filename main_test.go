@@ -3,6 +3,7 @@ package pg_test
 import (
 	"bytes"
 	"database/sql"
+	"fmt"
 	"math"
 	"net"
 	"reflect"
@@ -135,165 +136,197 @@ func deref(v interface{}) interface{} {
 	return reflect.Indirect(reflect.ValueOf(v)).Interface()
 }
 
-func (t *DBTest) TestTypes(c *C) {
-	var (
-		b bool
+func zero(v interface{}) interface{} {
+	return reflect.Zero(reflect.ValueOf(v).Elem().Type()).Interface()
+}
 
-		s  string
-		bs []byte
+var (
+	boolv   bool
+	boolptr *bool
 
-		i    int
-		i8   int8
-		i16  int16
-		i32  int32
-		i64  int64
-		ui   uint
-		ui8  uint8
-		ui16 uint16
-		ui32 uint32
-		ui64 uint64
+	stringv   string
+	stringptr *string
+	bytesv    []byte
 
-		f32 float32
-		f64 float64
+	intv    int
+	int8v   int8
+	int16v  int16
+	int32v  int32
+	int64v  int64
+	uintv   uint
+	uint8v  uint8
+	uint16v uint16
+	uint32v uint32
+	uint64v uint64
 
-		ss []string
-		is []int
+	f32v float32
+	f64v float64
 
-		sm map[string]string
+	strslice    []string
+	strsliceptr *[]string
+	intslice    []int
 
-		nullBool    sql.NullBool
-		nullString  sql.NullString
-		nullInt64   sql.NullInt64
-		nullFloat64 sql.NullFloat64
-	)
-	table := []struct {
-		src, dst interface{}
-		typ      string
-	}{
-		{true, &b, "bool"},
-		{false, &b, "bool"},
+	strstrmap map[string]string
 
-		{"hello world", &s, "text"},
-		{[]byte("hello world\000"), &bs, "bytea"},
+	nullBool    sql.NullBool
+	nullString  sql.NullString
+	nullInt64   sql.NullInt64
+	nullFloat64 sql.NullFloat64
 
-		{int(math.MaxInt32), &i, "int"},
-		{int(math.MinInt32), &i, "int"},
-		{int8(math.MaxInt8), &i8, "smallint"},
-		{int8(math.MinInt8), &i8, "smallint"},
-		{int16(math.MaxInt16), &i16, "smallint"},
-		{int16(math.MinInt16), &i16, "smallint"},
-		{int32(math.MaxInt32), &i32, "int"},
-		{int32(math.MinInt32), &i32, "int"},
-		{int64(math.MaxInt64), &i64, "bigint"},
-		{int64(math.MinInt64), &i64, "bigint"},
-		{uint(math.MaxUint32), &ui, "bigint"},
-		{uint8(math.MaxUint8), &ui8, "smallint"},
-		{uint16(math.MaxUint16), &ui16, "int"},
-		{uint32(math.MaxUint32), &ui32, "bigint"},
-		{uint64(math.MaxUint32), &ui64, "bigint"}, // uint64 is not supported
+	timev   time.Time
+	timeptr *time.Time
+)
 
-		{float32(math.MaxFloat32), &f32, "decimal"},
-		{float32(math.SmallestNonzeroFloat32), &f32, "decimal"},
-		{float64(math.MaxFloat64), &f64, "decimal"},
-		{float64(math.SmallestNonzeroFloat64), &f64, "decimal"},
+type conversionTest struct {
+	src, dst interface{}
+	pgtype   string
 
-		{[]string{}, &ss, "text[]"},
-		{[]string{"foo\n", "bar {}", "'\\\""}, &ss, "text[]"},
-		{[]int{}, &is, "int[]"},
-		{[]int{1, 2, 3}, &is, "int[]"},
+	wantnil  bool
+	wantzero bool
+}
 
-		{map[string]string{"foo\n =>": "bar\n =>", "'\\\"": "'\\\""}, &sm, "hstore"},
+var conversionTests = []conversionTest{
+	{src: false, dst: &boolv, pgtype: "bool"},
+	{src: true, dst: &boolv, pgtype: "bool"},
+	{src: nil, dst: &boolv, pgtype: "bool", wantzero: true},
+	{src: nil, dst: boolptr, pgtype: "bool", wantnil: true},
 
-		{&sql.NullBool{}, &nullBool, "bool"},
-		{&sql.NullBool{Valid: true}, &nullBool, "bool"},
-		{&sql.NullBool{Valid: true, Bool: true}, &nullBool, "bool"},
+	{src: "hello world", dst: &stringv, pgtype: "text"},
+	{src: nil, dst: &stringv, pgtype: "text", wantzero: true},
+	{src: nil, dst: stringptr, pgtype: "text", wantnil: true},
 
-		{&sql.NullString{}, &nullString, "text"},
-		{&sql.NullString{Valid: true}, &nullString, "text"},
-		{&sql.NullString{Valid: true, String: "foo"}, &nullString, "text"},
+	{src: []byte("hello world\000"), dst: &bytesv, pgtype: "bytea"},
+	{src: nil, dst: &bytesv, pgtype: "bytea", wantzero: true},
 
-		{&sql.NullInt64{}, &nullInt64, "bigint"},
-		{&sql.NullInt64{Valid: true}, &nullInt64, "bigint"},
-		{&sql.NullInt64{Valid: true, Int64: math.MaxInt64}, &nullInt64, "bigint"},
+	{src: int(math.MaxInt32), dst: &intv, pgtype: "int"},
+	{src: int(math.MinInt32), dst: &intv, pgtype: "int"},
+	{src: int8(math.MaxInt8), dst: &int8v, pgtype: "smallint"},
+	{src: int8(math.MinInt8), dst: &int8v, pgtype: "smallint"},
+	{src: int16(math.MaxInt16), dst: &int16v, pgtype: "smallint"},
+	{src: int16(math.MinInt16), dst: &int16v, pgtype: "smallint"},
+	{src: int32(math.MaxInt32), dst: &int32v, pgtype: "int"},
+	{src: int32(math.MinInt32), dst: &int32v, pgtype: "int"},
+	{src: int64(math.MaxInt64), dst: &int64v, pgtype: "bigint"},
+	{src: int64(math.MinInt64), dst: &int64v, pgtype: "bigint"},
+	{src: uint(math.MaxUint32), dst: &uintv, pgtype: "bigint"},
+	{src: uint8(math.MaxUint8), dst: &uint8v, pgtype: "smallint"},
+	{src: uint16(math.MaxUint16), dst: &uint16v, pgtype: "int"},
+	{src: uint32(math.MaxUint32), dst: &uint32v, pgtype: "bigint"},
+	{src: uint64(math.MaxUint32), dst: &uint64v, pgtype: "bigint"}, // math.MaxUint64 is not supported
 
-		{&sql.NullFloat64{}, &nullFloat64, "decimal"},
-		{&sql.NullFloat64{Valid: true}, &nullFloat64, "decimal"},
-		{&sql.NullFloat64{Valid: true, Float64: math.MaxFloat64}, &nullFloat64, "decimal"},
+	{src: float32(math.MaxFloat32), dst: &f32v, pgtype: "decimal"},
+	{src: float32(math.SmallestNonzeroFloat32), dst: &f32v, pgtype: "decimal"},
+	{src: float64(math.MaxFloat64), dst: &f64v, pgtype: "decimal"},
+	{src: float64(math.SmallestNonzeroFloat64), dst: &f64v, pgtype: "decimal"},
+
+	{src: []string{}, dst: &strslice, pgtype: "text[]"},
+	{src: []string{"foo\n", "bar {}", "'\\\""}, dst: &strslice, pgtype: "text[]"},
+	{src: nil, dst: &strslice, pgtype: "text[]", wantzero: true},
+	{src: nil, dst: strsliceptr, pgtype: "text[]", wantnil: true},
+
+	{src: []int{}, dst: &intslice, pgtype: "int[]"},
+	{src: []int{1, 2, 3}, dst: &intslice, pgtype: "int[]"},
+
+	{
+		src:    map[string]string{"foo\n =>": "bar\n =>", "'\\\"": "'\\\""},
+		dst:    &strstrmap,
+		pgtype: "hstore",
+	},
+
+	{src: &sql.NullBool{}, dst: &nullBool, pgtype: "bool"},
+	{src: &sql.NullBool{Valid: true}, dst: &nullBool, pgtype: "bool"},
+	{src: &sql.NullBool{Valid: true, Bool: true}, dst: &nullBool, pgtype: "bool"},
+
+	{src: &sql.NullString{}, dst: &nullString, pgtype: "text"},
+	{src: &sql.NullString{Valid: true}, dst: &nullString, pgtype: "text"},
+	{src: &sql.NullString{Valid: true, String: "foo"}, dst: &nullString, pgtype: "text"},
+
+	{src: &sql.NullInt64{}, dst: &nullInt64, pgtype: "bigint"},
+	{src: &sql.NullInt64{Valid: true}, dst: &nullInt64, pgtype: "bigint"},
+	{src: &sql.NullInt64{Valid: true, Int64: math.MaxInt64}, dst: &nullInt64, pgtype: "bigint"},
+
+	{src: &sql.NullFloat64{}, dst: &nullFloat64, pgtype: "decimal"},
+	{src: &sql.NullFloat64{Valid: true}, dst: &nullFloat64, pgtype: "decimal"},
+	{src: &sql.NullFloat64{Valid: true, Float64: math.MaxFloat64}, dst: &nullFloat64, pgtype: "decimal"},
+
+	{src: time.Now(), dst: &timev, pgtype: "timestamp"},
+	{src: nil, dst: &timev, pgtype: "timestamp", wantzero: true},
+	{src: nil, dst: timeptr, pgtype: "timestamp", wantnil: true},
+	{src: time.Now(), dst: &timev, pgtype: "timestamptz"},
+	{src: nil, dst: &timev, pgtype: "timestamptz", wantzero: true},
+	{src: nil, dst: timeptr, pgtype: "timestamptz", wantnil: true},
+}
+
+func (t *conversionTest) Assert(c *C) {
+	if t.wantzero {
+		if reflect.ValueOf(t.dst).Elem().Kind() == reflect.Slice {
+			c.Assert(t.dst, Not(IsNil))
+			c.Assert(deref(t.dst), HasLen, 0)
+		} else {
+			c.Assert(deref(t.dst), Equals, zero(t.dst), t.Comment())
+		}
+		return
 	}
+	if t.wantnil {
+		c.Assert(t.dst, IsNil)
+		return
+	}
+	if dsttm, ok := t.dst.(*time.Time); ok {
+		srctm := t.src.(time.Time)
+		c.Assert(dsttm.Unix(), Equals, srctm.Unix())
+	} else {
+		c.Assert(deref(t.dst), DeepEquals, deref(t.src))
+	}
+}
 
+func (t *conversionTest) Comment() CommentInterface {
+	return Commentf("src: %#v, dst: %#v", t.src, t.dst)
+}
+
+func (t *DBTest) TestTypes(c *C) {
 	t.db.Exec("CREATE EXTENSION hstore")
 	defer t.db.Exec("DROP EXTENSION hstore")
 
-	for _, row := range table {
+	for _, row := range conversionTests {
 		_, err := t.db.QueryOne(pg.LoadInto(row.dst), "SELECT ?", row.src)
 		c.Assert(err, IsNil)
-		c.Assert(deref(row.dst), DeepEquals, deref(row.src))
+		row.Assert(c)
 	}
 
-	for _, row := range table {
-		if row.typ == "" {
+	for _, row := range conversionTests {
+		if row.pgtype == "" {
 			continue
 		}
 
-		stmt, err := t.db.Prepare("SELECT $1::" + row.typ)
+		stmt, err := t.db.Prepare("SELECT $1::" + row.pgtype)
 		c.Assert(err, IsNil)
 
 		_, err = stmt.QueryOne(pg.LoadInto(row.dst), row.src)
 		c.Assert(err, IsNil)
-		c.Assert(deref(row.dst), DeepEquals, deref(row.src))
-
 		c.Assert(stmt.Close(), IsNil)
-	}
-}
-
-func (t *DBTest) TestTypeTime(c *C) {
-	tm := time.Unix(1e6, 0)
-	table := []struct {
-		src interface{}
-		dst time.Time
-		typ string
-	}{
-		{&tm, time.Time{}, "timestamptz"},
-		{tm, time.Time{}, "timestamptz"},
-		{tm.UTC(), time.Time{}, "timestamptz"},
-		{&tm, time.Time{}, "timestamp"},
-		{tm, time.Time{}, "timestamp"},
-		{tm.UTC(), time.Time{}, "timestamp"},
+		row.Assert(c)
 	}
 
-	for _, row := range table {
-		_, err := t.db.QueryOne(pg.LoadInto(&row.dst), "SELECT ?", row.src)
+	for _, row := range conversionTests {
+		dst := struct{ Dst interface{} }{Dst: row.dst}
+		_, err := t.db.QueryOne(&dst, "SELECT ? AS dst", row.src)
 		c.Assert(err, IsNil)
-		c.Assert(row.dst.Unix(), Equals, tm.Unix())
+		row.Assert(c)
 	}
 
-	for _, row := range table {
-		stmt, err := t.db.Prepare("SELECT $1::" + row.typ)
-		c.Assert(err, IsNil)
-
-		_, err = stmt.QueryOne(pg.LoadInto(&row.dst), row.src)
-		c.Assert(err, IsNil)
-		c.Assert(row.dst.Unix(), Equals, tm.Unix())
-
-		c.Assert(stmt.Close(), IsNil)
-	}
-
-	for _, row := range table {
-		_, err := t.db.Exec("CREATE TEMP TABLE test_time (time ?)", pg.Q(row.typ))
-		c.Assert(err, IsNil)
-
-		_, err = t.db.Exec("INSERT INTO test_time VALUES (?)", row.src)
-		c.Assert(err, IsNil)
-
-		_, err = t.db.QueryOne(pg.LoadInto(&row.dst), "SELECT time FROM test_time")
-		c.Assert(err, IsNil)
-		c.Assert(row.dst.Unix(), Equals, tm.Unix())
-		if row.typ == "timestamp" {
-			c.Assert(row.dst.Location(), Equals, time.UTC)
+	for _, row := range conversionTests {
+		if row.pgtype == "" {
+			continue
 		}
 
-		_, err = t.db.Exec("DROP TABLE test_time")
+		stmt, err := t.db.Prepare(fmt.Sprintf("SELECT $1::%s AS dst", row.pgtype))
 		c.Assert(err, IsNil)
+
+		dst := struct{ Dst interface{} }{Dst: row.dst}
+		_, err = stmt.QueryOne(&dst, row.src)
+		c.Assert(err, IsNil)
+		c.Assert(stmt.Close(), IsNil)
+		row.Assert(c)
 	}
 }
 
@@ -563,4 +596,30 @@ func (t *DBTest) BenchmarkExecStmtStdlibPq(c *C) {
 			panic(err)
 		}
 	}
+}
+
+func (t *DBTest) TestOverwritingNullValuesNonPointer(c *C) {
+	rec := &struct {
+		X int
+	}{}
+	_, err := t.db.QueryOne(rec, "SELECT 1138 AS x")
+	c.Assert(err, IsNil)
+	c.Assert(rec.X, Equals, 1138)
+
+	_, err = t.db.QueryOne(rec, "SELECT NULL::int AS x")
+	c.Assert(err, IsNil)
+	c.Assert(rec.X, Equals, 0)
+}
+
+func (t *DBTest) TestOverwritingNullValuesPointer(c *C) {
+	rec := &struct {
+		X *int
+	}{}
+	_, err := t.db.QueryOne(rec, "SELECT 1138 AS x")
+	c.Assert(err, IsNil)
+	c.Assert(*rec.X, Equals, 1138)
+
+	_, err = t.db.QueryOne(rec, "SELECT NULL::int AS x")
+	c.Assert(err, IsNil)
+	c.Assert(rec.X, IsNil)
 }

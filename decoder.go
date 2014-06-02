@@ -9,203 +9,50 @@ import (
 )
 
 var (
-	timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
+	timePtrType = reflect.TypeOf((*time.Time)(nil))
+	timeType    = timePtrType.Elem()
 )
 
 func Decode(dst interface{}, f []byte) error {
-	if tm, ok := dst.(*time.Time); ok {
-		tm_, err := decodeTime(f)
-		if err != nil {
-			return err
-		}
-		*tm = tm_
-		return nil
-	}
-
-	if unmarshaler, ok := dst.(textUnmarshaler); ok {
-		return unmarshaler.UnmarshalText(f)
-	}
-
-	if scanner, ok := dst.(sql.Scanner); ok {
-		if f == nil {
-			return scanner.Scan(nil)
-		}
-		return scanner.Scan(f)
-	}
-
-	// NULL.
-	if f == nil {
-		return nil
-	}
-
-	switch v := dst.(type) {
-	case *bool:
-		if len(f) == 1 && f[0] == 't' {
-			*v = true
-		} else {
-			*v = false
-		}
-		return nil
-	case *int8:
-		n, err := strconv.ParseInt(string(f), 10, 8)
-		if err != nil {
-			return err
-		}
-		*v = int8(n)
-		return nil
-	case *int16:
-		n, err := strconv.ParseInt(string(f), 10, 16)
-		if err != nil {
-			return err
-		}
-		*v = int16(n)
-		return nil
-	case *int32:
-		n, err := strconv.ParseInt(string(f), 10, 32)
-		if err != nil {
-			return err
-		}
-		*v = int32(n)
-		return nil
-	case *int64:
-		n, err := strconv.ParseInt(string(f), 10, 64)
-		if err != nil {
-			return err
-		}
-		*v = n
-		return nil
-	case *int:
-		n, err := strconv.ParseInt(string(f), 10, 64)
-		if err != nil {
-			return err
-		}
-		*v = int(n)
-		return nil
-	case *uint8:
-		n, err := strconv.ParseUint(string(f), 10, 8)
-		if err != nil {
-			return err
-		}
-		*v = uint8(n)
-		return nil
-	case *uint16:
-		n, err := strconv.ParseUint(string(f), 10, 16)
-		if err != nil {
-			return err
-		}
-		*v = uint16(n)
-		return nil
-	case *uint32:
-		n, err := strconv.ParseUint(string(f), 10, 32)
-		if err != nil {
-			return err
-		}
-		*v = uint32(n)
-		return nil
-	case *uint64:
-		n, err := strconv.ParseUint(string(f), 10, 64)
-		if err != nil {
-			return err
-		}
-		*v = n
-		return nil
-	case *uint:
-		n, err := strconv.ParseInt(string(f), 10, 64)
-		if err != nil {
-			return err
-		}
-		*v = uint(n)
-		return nil
-	case *float32:
-		n, err := strconv.ParseFloat(string(f), 32)
-		if err != nil {
-			return err
-		}
-		*v = float32(n)
-		return nil
-	case *float64:
-		n, err := strconv.ParseFloat(string(f), 64)
-		if err != nil {
-			return err
-		}
-		*v = n
-		return nil
-	case *string:
-		*v = string(f)
-		return nil
-	case *[]byte:
-		b, err := decodeBytes(f)
-		if err != nil {
-			return err
-		}
-		*v = b
-		return nil
-	case *[]string:
-		s, err := decodeStringSlice(f)
-		if err != nil {
-			return err
-		}
-		*v = s
-		return nil
-	case *[]int:
-		s, err := decodeIntSlice(f)
-		if err != nil {
-			return err
-		}
-		*v = s
-		return nil
-	case *[]int64:
-		s, err := decodeInt64Slice(f)
-		if err != nil {
-			return err
-		}
-		*v = s
-		return nil
-	case *map[string]string:
-		m, err := decodeStringStringMap(f)
-		if err != nil {
-			return err
-		}
-		*v = m
-		return nil
-	}
-
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
 		return errorf("pg: Decode(%s)", v)
 	}
-	return DecodeValue(v.Elem(), f)
+	if v.Kind() != reflect.Ptr {
+		return errorf("pg: pointer expected")
+	}
+	return DecodeValue(v, f)
+}
+
+func indirect(v reflect.Value) reflect.Value {
+	switch v.Kind() {
+	case reflect.Interface:
+		return indirect(v.Elem())
+	case reflect.Ptr:
+		return v.Elem()
+	}
+	return v
 }
 
 func DecodeValue(dst reflect.Value, f []byte) error {
-	// NULL.
 	if f == nil {
-		return nil
-	}
-
-	kind := dst.Kind()
-	if kind == reflect.Struct && dst.Type() == timeType {
-		tm, err := decodeTime(f)
-		if err != nil {
-			return err
+		dst = indirect(dst)
+		if dst.IsValid() {
+			dst.Set(reflect.Zero(dst.Type()))
 		}
-		dst.Set(reflect.ValueOf(tm))
 		return nil
-	}
-
-	if dst.CanAddr() {
-		addr := dst.Addr()
-		if addr.CanInterface() {
-			if unmarshaler, ok := addr.Interface().(textUnmarshaler); ok {
-				return unmarshaler.UnmarshalText(f)
-			}
-		}
 	}
 
 	switch dst.Kind() {
 	case reflect.Ptr:
 		if dst.IsNil() {
 			dst.Set(reflect.New(dst.Type().Elem()))
+		}
+		if dst.Type() == timePtrType {
+			return DecodeValue(dst.Elem(), f)
+		}
+		if err, ok := tryDecodeInterfaces(dst.Interface(), f); ok {
+			return err
 		}
 		return DecodeValue(dst.Elem(), f)
 	case reflect.Bool:
@@ -245,8 +92,33 @@ func DecodeValue(dst reflect.Value, f []byte) error {
 		return decodeMapValue(dst, f)
 	case reflect.Interface:
 		return DecodeValue(dst.Elem(), f)
+	case reflect.Struct:
+		if dst.Type() == timeType {
+			tm, err := decodeTime(f)
+			if err != nil {
+				return err
+			}
+			dst.Set(reflect.ValueOf(tm))
+			return nil
+		}
+		if err, ok := tryDecodeInterfaces(dst.Addr().Interface(), f); ok {
+			return err
+		}
 	}
-	return errorf("pg: unsupported dst: %s", dst)
+	return errorf("pg: unsupported dst: %v", dst)
+}
+
+func tryDecodeInterfaces(dst interface{}, f []byte) (error, bool) {
+	if scanner, ok := dst.(sql.Scanner); ok {
+		if f == nil {
+			return scanner.Scan(nil), true
+		}
+		return scanner.Scan(f), true
+	}
+	if unmarshaler, ok := dst.(textUnmarshaler); ok {
+		return unmarshaler.UnmarshalText(f), true
+	}
+	return nil, false
 }
 
 func decodeSliceValue(dst reflect.Value, f []byte) error {
