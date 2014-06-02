@@ -19,10 +19,6 @@ const (
 	timestampWithTzFormat2 = "2006-01-02 15:04:05.999999999-07"
 )
 
-type valuer interface {
-	Value() (driver.Value, error)
-}
-
 func AppendQ(dst []byte, src string, params ...interface{}) ([]byte, error) {
 	return formatQuery(dst, []byte(src), params)
 }
@@ -215,7 +211,7 @@ func appendIface(dst []byte, srci interface{}) []byte {
 		return dst
 	case Appender:
 		return src.Append(dst)
-	case valuer:
+	case driver.Valuer:
 		v, err := src.Value()
 		if err != nil {
 			glog.Errorf("%#v value failed: %s", src, err)
@@ -345,7 +341,7 @@ func appendRawIface(dst []byte, srci interface{}) []byte {
 		return dst
 	case RawAppender:
 		return src.AppendRaw(dst)
-	case valuer:
+	case driver.Valuer:
 		v, err := src.Value()
 		if err != nil {
 			glog.Errorf("%#v value failed: %s", src, err)
