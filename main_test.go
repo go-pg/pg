@@ -250,9 +250,11 @@ var conversionTests = []conversionTest{
 	{src: &sql.NullFloat64{Valid: true, Float64: math.MaxFloat64}, dst: &nullFloat64, pgtype: "decimal"},
 
 	{src: time.Now(), dst: &timev, pgtype: "timestamp"},
+	{src: time.Now().UTC(), dst: &timev, pgtype: "timestamp"},
 	{src: nil, dst: &timev, pgtype: "timestamp", wantzero: true},
 	{src: nil, dst: timeptr, pgtype: "timestamp", wantnil: true},
 	{src: time.Now(), dst: &timev, pgtype: "timestamptz"},
+	{src: time.Now().UTC(), dst: &timev, pgtype: "timestamptz"},
 	{src: nil, dst: &timev, pgtype: "timestamptz", wantzero: true},
 	{src: nil, dst: timeptr, pgtype: "timestamptz", wantnil: true},
 }
