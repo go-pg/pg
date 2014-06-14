@@ -247,34 +247,33 @@ func (t *DBTest) TestTypes(c *C) {
 }
 
 func (t *DBTest) TestTypeTime(c *C) {
+	tm := time.Unix(1e6, 0)
 	table := []struct {
-		src time.Time
+		src interface{}
 		dst time.Time
 		typ string
 	}{
-		{time.Now(), time.Time{}, "timestamp with time zone"},
-		{time.Now().UTC(), time.Time{}, "timestamp with time zone"},
-		{time.Now(), time.Time{}, "timestamp"},
-		{time.Now().UTC(), time.Time{}, "timestamp"},
+		{&tm, time.Time{}, "timestamptz"},
+		{tm, time.Time{}, "timestamptz"},
+		{tm.UTC(), time.Time{}, "timestamptz"},
+		{&tm, time.Time{}, "timestamp"},
+		{tm, time.Time{}, "timestamp"},
+		{tm.UTC(), time.Time{}, "timestamp"},
 	}
 
 	for _, row := range table {
 		_, err := t.db.QueryOne(pg.LoadInto(&row.dst), "SELECT ?", row.src)
 		c.Assert(err, IsNil)
-		c.Assert(row.dst.Unix(), DeepEquals, row.src.Unix())
+		c.Assert(row.dst.Unix(), Equals, tm.Unix())
 	}
 
 	for _, row := range table {
-		if row.typ == "" {
-			continue
-		}
-
 		stmt, err := t.db.Prepare("SELECT $1::" + row.typ)
 		c.Assert(err, IsNil)
 
 		_, err = stmt.QueryOne(pg.LoadInto(&row.dst), row.src)
 		c.Assert(err, IsNil)
-		c.Assert(row.dst.Unix(), DeepEquals, row.src.Unix())
+		c.Assert(row.dst.Unix(), Equals, tm.Unix())
 
 		c.Assert(stmt.Close(), IsNil)
 	}
@@ -288,7 +287,7 @@ func (t *DBTest) TestTypeTime(c *C) {
 
 		_, err = t.db.QueryOne(pg.LoadInto(&row.dst), "SELECT time FROM test_time")
 		c.Assert(err, IsNil)
-		c.Assert(row.dst.Unix(), Equals, row.src.Unix())
+		c.Assert(row.dst.Unix(), Equals, tm.Unix())
 		if row.typ == "timestamp" {
 			c.Assert(row.dst.Location(), Equals, time.UTC)
 		}

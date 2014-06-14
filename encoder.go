@@ -112,6 +112,17 @@ func appendRawSubstring(dst []byte, src string) []byte {
 	return dst
 }
 
+func appendTime(dst []byte, tm time.Time) []byte {
+	dst = append(dst, '\'')
+	dst = append(dst, tm.UTC().Format(timestampWithTzFormat)...)
+	dst = append(dst, '\'')
+	return dst
+}
+
+func appendRawTime(dst []byte, tm time.Time) []byte {
+	return append(dst, tm.UTC().Format(timestampWithTzFormat)...)
+}
+
 func appendIface(dst []byte, srci interface{}) []byte {
 	if srci == nil {
 		return append(dst, "NULL"...)
@@ -150,10 +161,7 @@ func appendIface(dst []byte, srci interface{}) []byte {
 	case string:
 		return appendString(dst, src)
 	case time.Time:
-		dst = append(dst, '\'')
-		dst = append(dst, src.UTC().Format(timestampWithTzFormat)...)
-		dst = append(dst, '\'')
-		return dst
+		return appendTime(dst, src)
 	case []byte:
 		return appendBytes(dst, src)
 	case []string:
@@ -238,9 +246,12 @@ func appendValue(dst []byte, v reflect.Value) []byte {
 		return strconv.AppendFloat(dst, v.Float(), 'f', -1, 64)
 	case reflect.String:
 		return appendString(dst, v.String())
-	default:
-		panic(fmt.Sprintf("pg: unsupported src type: %s", v))
+	case reflect.Struct:
+		if v.Type() == timeType {
+			return appendTime(dst, v.Interface().(time.Time))
+		}
 	}
+	panic(fmt.Sprintf("pg: unsupported src type: %s", v))
 }
 
 // Returns nil when src is NULL.
@@ -282,7 +293,7 @@ func appendRawIface(dst []byte, srci interface{}) []byte {
 	case string:
 		return appendRawString(dst, src)
 	case time.Time:
-		return append(dst, src.UTC().Format(timestampWithTzFormat)...)
+		return appendRawTime(dst, src)
 	case []byte:
 		tmp := make([]byte, hex.EncodedLen(len(src)))
 		hex.Encode(tmp, src)
@@ -359,7 +370,7 @@ func appendRawValue(dst []byte, v reflect.Value) []byte {
 		if v.IsNil() {
 			return nil
 		}
-		return appendValue(dst, v.Elem())
+		return appendRawValue(dst, v.Elem())
 	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
 		return strconv.AppendInt(dst, v.Int(), 10)
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
@@ -368,9 +379,12 @@ func appendRawValue(dst []byte, v reflect.Value) []byte {
 		return strconv.AppendFloat(dst, v.Float(), 'f', -1, 64)
 	case reflect.String:
 		return appendRawString(dst, v.String())
-	default:
-		panic(fmt.Sprintf("pg: unsupported src type: %s", v))
+	case reflect.Struct:
+		if v.Type() == timeType {
+			return appendRawTime(dst, v.Interface().(time.Time))
+		}
 	}
+	panic(fmt.Sprintf("pg: unsupported src type: %s", v))
 }
 
 //------------------------------------------------------------------------------
