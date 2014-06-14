@@ -24,23 +24,24 @@ func Decode(dst interface{}, f []byte) error {
 	return DecodeValue(v, f)
 }
 
-func indirect(v reflect.Value) reflect.Value {
-	switch v.Kind() {
-	case reflect.Interface:
-		return indirect(v.Elem())
-	case reflect.Ptr:
-		return v.Elem()
+func decodeNull(dst reflect.Value) error {
+	kind := dst.Kind()
+	if kind == reflect.Interface {
+		return decodeNull(dst.Elem())
 	}
-	return v
+	if dst.CanSet() {
+		dst.Set(reflect.Zero(dst.Type()))
+		return nil
+	}
+	if kind == reflect.Ptr {
+		return decodeNull(dst.Elem())
+	}
+	return nil
 }
 
 func DecodeValue(dst reflect.Value, f []byte) error {
 	if f == nil {
-		dst = indirect(dst)
-		if dst.IsValid() {
-			dst.Set(reflect.Zero(dst.Type()))
-		}
-		return nil
+		return decodeNull(dst)
 	}
 
 	switch dst.Kind() {
