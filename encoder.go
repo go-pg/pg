@@ -114,13 +114,13 @@ func appendRawSubstring(dst []byte, src string) []byte {
 
 func appendTime(dst []byte, tm time.Time) []byte {
 	dst = append(dst, '\'')
-	dst = append(dst, tm.UTC().Format(timestampWithTzFormat)...)
+	dst = append(dst, tm.Local().Format(timestampWithTzFormat)...)
 	dst = append(dst, '\'')
 	return dst
 }
 
 func appendRawTime(dst []byte, tm time.Time) []byte {
-	return append(dst, tm.UTC().Format(timestampWithTzFormat)...)
+	return append(dst, tm.Local().Format(timestampWithTzFormat)...)
 }
 
 func appendIface(dst []byte, srci interface{}) []byte {

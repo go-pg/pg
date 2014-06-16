@@ -193,7 +193,7 @@ func decodeTime(f []byte) (time.Time, error) {
 		if c := f[len(f)-3]; c == '+' || c == '-' {
 			return time.Parse(timestampWithTzFormat2, string(f))
 		}
-		return time.Parse(timestampFormat, string(f))
+		return time.ParseInLocation(timestampFormat, string(f), time.Local)
 	}
 }
 

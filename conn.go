@@ -140,8 +140,7 @@ func (cn *conn) Startup() error {
 			cn.processId = processId
 			cn.secretKey = secretKey
 		case parameterStatusMsg:
-			_, err := cn.br.ReadN(msgLen)
-			if err != nil {
+			if err := logParameterStatus(cn, msgLen); err != nil {
 				return err
 			}
 		case authenticationOKMsg:

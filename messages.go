@@ -100,6 +100,7 @@ func logParameterStatus(cn *conn, msgLen int) error {
 	if err != nil {
 		return err
 	}
+
 	value, err := cn.ReadString()
 	if err != nil {
 		return err
