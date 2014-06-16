@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-	"gopkg.in/pg.v1/pgutil"
+	"gopkg.in/pg.v2/pgutil"
 )
 
 var (
