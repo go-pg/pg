@@ -33,6 +33,19 @@ func (db *DB) Begin() (*Tx, error) {
 	return tx, nil
 }
 
+func (db *DB) RunInTransaction(fn func(*Tx) error) error {
+	tx, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	if err := fn(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
 func (tx *Tx) conn() *conn {
 	tx._cn.SetReadTimeout(tx.db.opt.ReadTimeout)
 	tx._cn.SetWriteTimeout(tx.db.opt.WriteTimeout)
