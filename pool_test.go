@@ -7,7 +7,7 @@ import (
 
 	. "launchpad.net/gocheck"
 
-	"gopkg.in/pg.v1"
+	"gopkg.in/pg.v2"
 )
 
 var _ = Suite(&PoolTest{})

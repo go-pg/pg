@@ -17,14 +17,14 @@ Supports:
 - Queries are retried when possible.
 - PostgreSQL to Go struct mapping.
 
-API docs: http://godoc.org/gopkg.in/pg.v1. Make sure to check examples: http://godoc.org/gopkg.in/pg.v1#pkg-examples.
+API docs: http://godoc.org/gopkg.in/pg.v2. Make sure to check examples: http://godoc.org/gopkg.in/pg.v2#pkg-examples.
 
 Installation
 ------------
 
 Install:
 
-    go get gopkg.in/pg.v1
+    go get gopkg.in/pg.v2
 
 Changelog
 ---------
@@ -69,7 +69,7 @@ package pg_test
 import (
 	"fmt"
 
-	"gopkg.in/pg.v1"
+	"gopkg.in/pg.v2"
 )
 
 type User struct {
