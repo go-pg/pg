@@ -1,10 +1,10 @@
 package pg
 
 import (
+	"gopkg.in/pg.v2.1/pgutil"
 	"reflect"
 	"strings"
 	"sync"
-	"gopkg.in/pg.v2/pgutil"
 )
 
 var (
