@@ -3,6 +3,7 @@ package pg_test
 import (
 	"bytes"
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"math"
 	"net"
@@ -15,8 +16,8 @@ import (
 	_ "github.com/lib/pq"
 	. "launchpad.net/gocheck"
 
-	"gopkg.in/pg.v2"
-	"gopkg.in/pg.v2/pgutil"
+	"gopkg.in/pg.v2.1"
+	"gopkg.in/pg.v2.1/pgutil"
 )
 
 func Test(t *testing.T) { TestingT(t) }
@@ -140,6 +141,17 @@ func zero(v interface{}) interface{} {
 	return reflect.Zero(reflect.ValueOf(v).Elem().Type()).Interface()
 }
 
+type customStrSlice []string
+
+func (s customStrSlice) Value() (driver.Value, error) {
+	return strings.Join(s, "\n"), nil
+}
+
+func (s *customStrSlice) Scan(value interface{}) error {
+	*s = strings.Split(string(value.([]byte)), "\n")
+	return nil
+}
+
 var (
 	boolv   bool
 	boolptr *bool
@@ -172,6 +184,8 @@ var (
 	nullString  sql.NullString
 	nullInt64   sql.NullInt64
 	nullFloat64 sql.NullFloat64
+
+	customStrSliceV customStrSlice
 
 	timev   time.Time
 	timeptr *time.Time
@@ -249,6 +263,8 @@ var conversionTests = []conversionTest{
 	{src: &sql.NullFloat64{Valid: true}, dst: &nullFloat64, pgtype: "decimal"},
 	{src: &sql.NullFloat64{Valid: true, Float64: math.MaxFloat64}, dst: &nullFloat64, pgtype: "decimal"},
 
+	{src: customStrSlice{"one", "two"}, dst: &customStrSliceV},
+
 	{src: time.Now(), dst: &timev, pgtype: "timestamp"},
 	{src: time.Now().UTC(), dst: &timev, pgtype: "timestamp"},
 	{src: nil, dst: &timev, pgtype: "timestamp", wantzero: true},
@@ -312,7 +328,14 @@ func (t *DBTest) TestTypes(c *C) {
 	for _, row := range conversionTests {
 		dst := struct{ Dst interface{} }{Dst: row.dst}
 		_, err := t.db.QueryOne(&dst, "SELECT ? AS dst", row.src)
-		c.Assert(err, IsNil)
+		c.Assert(err, IsNil, row.Comment())
+		row.Assert(c)
+	}
+
+	for _, row := range conversionTests {
+		dst := struct{ Dst interface{} }{Dst: row.dst}
+		_, err := t.db.QueryOne(&dst, "SELECT ? AS dst", row.src)
+		c.Assert(err, IsNil, row.Comment())
 		row.Assert(c)
 	}
 
@@ -332,32 +355,12 @@ func (t *DBTest) TestTypes(c *C) {
 	}
 }
 
-func (t *DBTest) TestInsertingNullsAndPointers(c *C) {
-	rec := &struct {
-		Id int
-		X  *int
-	}{1, new(int)}
-	*rec.X = 1138
-
-	_, err := t.db.Exec("CREATE TEMP TABLE test(id int, x int)")
+func (t *DBTest) TestScannerValueOnStruct(c *C) {
+	src := customStrSlice{"foo", "bar"}
+	dst := struct{ Dst customStrSlice }{}
+	_, err := t.db.QueryOne(&dst, "SELECT ? AS dst", src)
 	c.Assert(err, IsNil)
-
-	_, err = t.db.Exec("INSERT INTO test (id, x) VALUES (?id, ?x)", rec)
-	c.Assert(err, IsNil)
-
-	rec.X = nil
-	_, err = t.db.QueryOne(rec, "SELECT x FROM test")
-	c.Assert(err, IsNil)
-	c.Assert(*rec.X, Equals, 1138)
-
-	rec.X = nil
-	_, err = t.db.Exec("UPDATE test SET x = ?x WHERE id = ?id", rec)
-	c.Assert(err, IsNil)
-
-	rec.X = nil
-	_, err = t.db.QueryOne(rec, "SELECT x FROM test")
-	c.Assert(err, IsNil)
-	c.Assert(rec.X, IsNil)
+	c.Assert(dst.Dst, DeepEquals, src)
 }
 
 func (t *DBTest) TestListenNotify(c *C) {
