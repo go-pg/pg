@@ -3,7 +3,7 @@ package pg_test
 import (
 	"fmt"
 
-	"gopkg.in/pg.v2.1"
+	"gopkg.in/pg.v2"
 )
 
 type User struct {

@@ -1,2 +1,2 @@
 all:
-	go test gopkg.in/pg.v2.1
+	go test gopkg.in/pg.v2
