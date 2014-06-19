@@ -10,7 +10,3 @@ func md5s(s string) string {
 	h.Write([]byte(s))
 	return hex.EncodeToString(h.Sum(nil))
 }
-
-type textUnmarshaler interface {
-	UnmarshalText(text []byte) error
-}

@@ -14,6 +14,10 @@ var (
 )
 
 func Decode(dst interface{}, f []byte) error {
+	if err, ok := tryDecodeInterfaces(dst, f); ok {
+		return err
+	}
+
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
 		return errorf("pg: Decode(%s)", v)
@@ -21,7 +25,7 @@ func Decode(dst interface{}, f []byte) error {
 	if v.Kind() != reflect.Ptr {
 		return errorf("pg: pointer expected")
 	}
-	return DecodeValue(v, f)
+	return DecodeValue(v.Elem(), f)
 }
 
 func decodeNull(dst reflect.Value) error {
@@ -44,18 +48,16 @@ func DecodeValue(dst reflect.Value, f []byte) error {
 		return decodeNull(dst)
 	}
 
-	switch dst.Kind() {
-	case reflect.Ptr:
-		if dst.IsNil() {
-			dst.Set(reflect.New(dst.Type().Elem()))
-		}
-		if dst.Type() == timePtrType {
-			return DecodeValue(dst.Elem(), f)
-		}
-		if err, ok := tryDecodeInterfaces(dst.Interface(), f); ok {
-			return err
-		}
-		return DecodeValue(dst.Elem(), f)
+	kind := dst.Kind()
+	if kind == reflect.Ptr && dst.IsNil() {
+		dst.Set(reflect.New(dst.Type().Elem()))
+	}
+
+	if err, ok := tryDecodeInterfaces(dst.Interface(), f); ok {
+		return err
+	}
+
+	switch kind {
 	case reflect.Bool:
 		if len(f) == 1 && f[0] == 't' {
 			dst.SetBool(true)
@@ -91,7 +93,7 @@ func DecodeValue(dst reflect.Value, f []byte) error {
 		return decodeSliceValue(dst, f)
 	case reflect.Map:
 		return decodeMapValue(dst, f)
-	case reflect.Interface:
+	case reflect.Interface, reflect.Ptr:
 		return DecodeValue(dst.Elem(), f)
 	case reflect.Struct:
 		if dst.Type() == timeType {
@@ -101,9 +103,6 @@ func DecodeValue(dst reflect.Value, f []byte) error {
 			}
 			dst.Set(reflect.ValueOf(tm))
 			return nil
-		}
-		if err, ok := tryDecodeInterfaces(dst.Addr().Interface(), f); ok {
-			return err
 		}
 	}
 	return errorf("pg: unsupported dst: %v", dst)
@@ -115,9 +114,6 @@ func tryDecodeInterfaces(dst interface{}, f []byte) (error, bool) {
 			return scanner.Scan(nil), true
 		}
 		return scanner.Scan(f), true
-	}
-	if unmarshaler, ok := dst.(textUnmarshaler); ok {
-		return unmarshaler.UnmarshalText(f), true
 	}
 	return nil, false
 }
