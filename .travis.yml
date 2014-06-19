@@ -15,7 +15,7 @@ install:
   - go get github.com/lib/pq
   - go get launchpad.net/gocheck
   - mkdir -p $HOME/gopath/src/gopkg.in
-  - ln -s `pwd` $HOME/gopath/src/gopkg.in/pg.v2.1
+  - ln -s `pwd` $HOME/gopath/src/gopkg.in/pg.v2
 
 before_script:
   - psql -c 'CREATE DATABASE test;' -U postgres

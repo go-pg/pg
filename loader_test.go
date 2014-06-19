@@ -5,7 +5,7 @@ import (
 
 	. "launchpad.net/gocheck"
 
-	"gopkg.in/pg.v2.1"
+	"gopkg.in/pg.v2"
 )
 
 type LoaderTest struct {
