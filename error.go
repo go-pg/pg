@@ -61,14 +61,14 @@ func canRetry(e error) bool {
 	if e == nil {
 		return false
 	}
-	if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
+	// 40001 - serialization_failure
+	if pgerr, ok := e.(Error); ok && pgerr.Field('C') != "40001" {
 		return false
 	}
 	if _, ok := e.(dbError); ok {
 		return false
 	}
-	// 40001 - serialization_failure
-	if pgerr, ok := e.(Error); ok && pgerr.Field('C') != "40001" {
+	if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
 		return false
 	}
 	return true

@@ -120,17 +120,20 @@ func (db *DB) conn() (*conn, error) {
 	return cn, nil
 }
 
-func (db *DB) freeConn(cn *conn, ei error) error {
-	if ei == nil {
+func (db *DB) freeConn(cn *conn, e error) error {
+	if e == nil {
 		return db.pool.Put(cn)
 	}
 	if cn.br.Buffered() > 0 {
 		return db.pool.Remove(cn)
 	}
-	if e, ok := ei.(Error); ok && e.Field('S') != "FATAL" {
+	if pgerr, ok := e.(Error); ok && pgerr.Field('S') != "FATAL" {
 		return db.pool.Put(cn)
 	}
-	if netErr, ok := ei.(net.Error); ok && netErr.Timeout() {
+	if _, ok := e.(dbError); ok {
+		return db.pool.Put(cn)
+	}
+	if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
 		if err := db.cancelRequest(cn.processId, cn.secretKey); err != nil {
 			glog.Errorf("cancelRequest failed: %s", err)
 		}
