@@ -9,7 +9,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/vmihailenco/bufio"
+	"gopkg.in/bufio.v1"
 )
 
 var zeroTime = time.Time{}
