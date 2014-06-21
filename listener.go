@@ -53,12 +53,12 @@ func (l *Listener) ReceiveTimeout(readTimeout time.Duration) (channel, payload s
 
 		switch c {
 		case commandCompleteMsg:
-			_, err := cn.br.ReadN(msgLen)
+			_, err := cn.ReadN(msgLen)
 			if err != nil {
 				return "", "", err
 			}
 		case readyForQueryMsg:
-			_, err := cn.br.ReadN(msgLen)
+			_, err := cn.ReadN(msgLen)
 			if err != nil {
 				return "", "", err
 			}

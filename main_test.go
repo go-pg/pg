@@ -128,6 +128,14 @@ func (t *DBTest) TestStatementExec(c *C) {
 	c.Assert(res.Affected(), Equals, 1)
 }
 
+func (t *DBTest) TestLargeWriteRead(c *C) {
+	src := bytes.Repeat([]byte{0x1}, 1e6)
+	var dst []byte
+	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?", src)
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, src)
+}
+
 func (t *DBTest) TestIntegrityError(c *C) {
 	_, err := t.db.Exec("DO $$BEGIN RAISE unique_violation USING MESSAGE='foo'; END$$;")
 	c.Assert(err, FitsTypeOf, &pg.IntegrityError{})

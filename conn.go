@@ -148,7 +148,7 @@ func (cn *conn) Startup() error {
 				return err
 			}
 		case readyForQueryMsg:
-			_, err := cn.br.ReadN(msgLen)
+			_, err := cn.ReadN(msgLen)
 			if err != nil {
 				return err
 			}
@@ -203,7 +203,7 @@ func (cn *conn) auth() error {
 			return fmt.Errorf("pg: unknown password message response: %q", c)
 		}
 	case 5:
-		b, err := cn.br.ReadN(4)
+		b, err := cn.ReadN(4)
 		if err != nil {
 			return err
 		}
@@ -242,8 +242,32 @@ func (cn *conn) auth() error {
 	}
 }
 
+func (cn *conn) ReadN(n int) ([]byte, error) {
+	b, err := cn.br.ReadN(n)
+	if err == bufio.ErrBufferFull {
+		tmp := make([]byte, n)
+		r := copy(tmp, b)
+		b = tmp
+
+		for {
+			nn, err := cn.br.Read(b[r:])
+			r += nn
+			if r >= n {
+				// Ignore error if we read enough.
+				break
+			}
+			if err != nil {
+				return nil, err
+			}
+		}
+	} else if err != nil {
+		return nil, err
+	}
+	return b, nil
+}
+
 func (cn *conn) ReadInt16() (int16, error) {
-	b, err := cn.br.ReadN(2)
+	b, err := cn.ReadN(2)
 	if err != nil {
 		return 0, err
 	}
@@ -251,7 +275,7 @@ func (cn *conn) ReadInt16() (int16, error) {
 }
 
 func (cn *conn) ReadInt32() (int32, error) {
-	b, err := cn.br.ReadN(4)
+	b, err := cn.ReadN(4)
 	if err != nil {
 		return 0, err
 	}
