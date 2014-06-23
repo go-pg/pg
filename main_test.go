@@ -273,10 +273,12 @@ var conversionTests = []conversionTest{
 
 	{src: customStrSlice{"one", "two"}, dst: &customStrSliceV},
 
+	{src: time.Time{}, dst: &timev, pgtype: "timestamp"},
 	{src: time.Now(), dst: &timev, pgtype: "timestamp"},
 	{src: time.Now().UTC(), dst: &timev, pgtype: "timestamp"},
 	{src: nil, dst: &timev, pgtype: "timestamp", wantzero: true},
 	{src: nil, dst: timeptr, pgtype: "timestamp", wantnil: true},
+	{src: time.Time{}, dst: &timev, pgtype: "timestamptz"},
 	{src: time.Now(), dst: &timev, pgtype: "timestamptz"},
 	{src: time.Now().UTC(), dst: &timev, pgtype: "timestamptz"},
 	{src: nil, dst: &timev, pgtype: "timestamptz", wantzero: true},

@@ -12,11 +12,12 @@ import (
 )
 
 const (
-	dateFormat             = "2006-01-02"
-	timeFormat             = "15:04:05.999999999"
-	timestampFormat        = "2006-01-02 15:04:05.999999999"
-	timestampWithTzFormat  = "2006-01-02 15:04:05.999999999-0700"
-	timestampWithTzFormat2 = "2006-01-02 15:04:05.999999999-07"
+	dateFormat         = "2006-01-02"
+	timeFormat         = "15:04:05.999999999"
+	timestampFormat    = "2006-01-02 15:04:05.999999999"
+	timestamptzFormat  = "2006-01-02 15:04:05.999999999-0700"
+	timestamptzFormat2 = "2006-01-02 15:04:05.999999999-07"
+	timestamptzFormat3 = "2006-01-02 15:04:05.999999999-07:00:00"
 )
 
 func AppendQ(dst []byte, src string, params ...interface{}) ([]byte, error) {
@@ -114,13 +115,13 @@ func appendRawSubstring(dst []byte, src string) []byte {
 
 func appendTime(dst []byte, tm time.Time) []byte {
 	dst = append(dst, '\'')
-	dst = append(dst, tm.Local().Format(timestampWithTzFormat)...)
+	dst = append(dst, tm.Local().Format(timestamptzFormat)...)
 	dst = append(dst, '\'')
 	return dst
 }
 
 func appendRawTime(dst []byte, tm time.Time) []byte {
-	return append(dst, tm.Local().Format(timestampWithTzFormat)...)
+	return append(dst, tm.Local().Format(timestamptzFormat)...)
 }
 
 func appendIface(dst []byte, srci interface{}) []byte {
