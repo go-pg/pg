@@ -2,14 +2,20 @@ package pg
 
 import (
 	"container/list"
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/golang/glog"
 )
 
+var (
+	errRateLimited = errors.New("pg: you open connections too fast")
+)
+
 type connPool struct {
-	New func() (*conn, error)
+	dial func() (*conn, error)
+	rl   *rateLimiter
 
 	cond  *sync.Cond
 	conns *list.List
@@ -26,7 +32,8 @@ type connPool struct {
 
 func newConnPool(opt *Options) *connPool {
 	p := &connPool{
-		New: newConnFunc(opt),
+		dial: newConnFunc(opt),
+		rl:   newRateLimiter(3*time.Second, 2*opt.getPoolSize()),
 
 		cond:  sync.NewCond(&sync.Mutex{}),
 		conns: list.New(),
@@ -40,6 +47,15 @@ func newConnPool(opt *Options) *connPool {
 		go p.reaper()
 	}
 	return p
+}
+
+func (p *connPool) new() (*conn, error) {
+	select {
+	case <-p.rl.C:
+	default:
+		return nil, errRateLimited
+	}
+	return p.dial()
 }
 
 func (p *connPool) Get() (*conn, bool, error) {
@@ -69,7 +85,7 @@ func (p *connPool) Get() (*conn, bool, error) {
 	}
 
 	if p.conns.Len() < p.maxSize {
-		cn, err := p.New()
+		cn, err := p.new()
 		if err != nil {
 			p.cond.L.Unlock()
 			return nil, false, err
