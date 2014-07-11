@@ -19,4 +19,4 @@ install:
   - ln -s `pwd` $HOME/gopath/src/gopkg.in/pg.v2
 
 before_script:
-  - psql -c 'CREATE DATABASE test;' -U postgres
+  - psql -c 'CREATE DATABASE test' -U postgres

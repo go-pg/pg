@@ -11,6 +11,7 @@ import (
 const defaultBackoff = 100 * time.Millisecond
 
 type Options struct {
+	Network  string
 	Host     string
 	Port     string
 	User     string
@@ -28,6 +29,13 @@ type Options struct {
 	IdleCheckFrequency time.Duration
 }
 
+func (opt *Options) getNetwork() string {
+	if opt == nil || opt.Network == "" {
+		return "tcp"
+	}
+	return opt.Network
+}
+
 func (opt *Options) getHost() string {
 	if opt == nil || opt.Host == "" {
 		return "localhost"
@@ -40,6 +48,15 @@ func (opt *Options) getPort() string {
 		return "5432"
 	}
 	return opt.Port
+}
+
+func (opt *Options) getAddr() string {
+	switch opt.getNetwork() {
+	case "tcp":
+		return net.JoinHostPort(opt.getHost(), opt.getPort())
+	default:
+		return opt.getHost()
+	}
 }
 
 func (opt *Options) getUser() string {

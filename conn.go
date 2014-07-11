@@ -15,15 +15,15 @@ import (
 var zeroTime = time.Time{}
 
 func dial(opt *Options) (net.Conn, error) {
-	return net.DialTimeout(
-		"tcp", net.JoinHostPort(opt.getHost(), opt.getPort()), opt.getDialTimeout())
+	return net.DialTimeout(opt.getNetwork(), opt.getAddr(), opt.getDialTimeout())
 }
 
 type conn struct {
-	opt    *Options
-	cn     net.Conn
-	br     *bufio.Reader
-	buf    *buffer
+	opt *Options
+	cn  net.Conn
+	br  *bufio.Reader
+	buf *buffer
+
 	inUse  bool
 	usedAt time.Time
 

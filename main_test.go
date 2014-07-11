@@ -20,6 +20,19 @@ import (
 	"gopkg.in/pg.v2/pgutil"
 )
 
+func TestUnixSocket(t *testing.T) {
+	db := pg.Connect(&pg.Options{
+		Network:  "unix",
+		Host:     "/var/run/postgresql/.s.PGSQL.5432",
+		User:     "postgres",
+		Database: "test",
+	})
+	_, err := db.Exec("SELECT 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
 func Test(t *testing.T) { TestingT(t) }
 
 var _ = Suite(&DBTest{})
