@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net"
@@ -212,6 +213,20 @@ var (
 	timeptr *time.Time
 )
 
+type jsonMap_ map[string]interface{}
+
+func (m *jsonMap_) Scan(value interface{}) error {
+	return json.Unmarshal(value.([]byte), m)
+}
+
+func (m jsonMap_) Value() (driver.Value, error) {
+	b, err := json.Marshal(m)
+	if err != nil {
+		return nil, err
+	}
+	return string(b), nil
+}
+
 type conversionTest struct {
 	src, dst interface{}
 	pgtype   string
@@ -296,6 +311,8 @@ var conversionTests = []conversionTest{
 	{src: time.Now().UTC(), dst: &timev, pgtype: "timestamptz"},
 	{src: nil, dst: &timev, pgtype: "timestamptz", wantzero: true},
 	{src: nil, dst: timeptr, pgtype: "timestamptz", wantnil: true},
+
+	{src: jsonMap_{"foo": "bar"}, dst: &jsonMap_{}, pgtype: "json"},
 }
 
 func (t *conversionTest) Assert(c *C) {
