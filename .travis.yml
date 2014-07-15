@@ -3,6 +3,9 @@ language: go
 services:
 - postgresql
 
+addons:
+  postgresql: "9.3"
+
 go:
   - 1.1
   - 1.2

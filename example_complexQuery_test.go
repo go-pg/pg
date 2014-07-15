@@ -7,6 +7,7 @@ import (
 )
 
 type ArticleFilter struct {
+	Id         int64
 	Name       string
 	CategoryId int
 }
@@ -26,6 +27,7 @@ func (f *ArticleFilter) FilterCategory() pg.Q {
 }
 
 type Article struct {
+	Id         int64
 	Name       string
 	CategoryId int
 }
@@ -39,8 +41,17 @@ func (articles *Articles) New() interface{} {
 }
 
 func CreateArticle(db *pg.DB, article *Article) error {
-	_, err := db.ExecOne(`INSERT INTO articles VALUES (?name, ?category_id)`, article)
+	_, err := db.ExecOne(`
+		INSERT INTO articles (name, category_id)
+		VALUES (?name, ?category_id)
+	`, article)
 	return err
+}
+
+func GetArticle(db *pg.DB, id int64) (*Article, error) {
+	article := &Article{}
+	_, err := db.QueryOne(article, `SELECT * FROM articles WHERE id = ?`, id)
+	return article, err
 }
 
 func GetArticles(db *pg.DB, f *ArticleFilter) ([]*Article, error) {
@@ -60,17 +71,17 @@ func Example_complexQuery() {
 	})
 	defer db.Close()
 
-	_, err := db.Exec(`CREATE TEMP TABLE articles (name text, category_id int)`)
+	_, err := db.Exec(`CREATE TEMP TABLE articles (id serial, name text, category_id int)`)
 	if err != nil {
 		panic(err)
 	}
 
-	err = CreateArticle(db, &Article{"article1", 1})
+	err = CreateArticle(db, &Article{Name: "article1", CategoryId: 1})
 	if err != nil {
 		panic(err)
 	}
 
-	err = CreateArticle(db, &Article{"article2", 2})
+	err = CreateArticle(db, &Article{Name: "article2", CategoryId: 2})
 	if err != nil {
 		panic(err)
 	}
@@ -87,6 +98,6 @@ func Example_complexQuery() {
 	}
 	fmt.Printf("%d %v\n", len(articles), articles[0])
 
-	// Output: 2 &{article1 1} &{article2 2}
-	// 1 &{article1 1}
+	// Output: 2 &{1 article1 1} &{2 article2 2}
+	// 1 &{1 article1 1}
 }
