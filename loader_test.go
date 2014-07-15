@@ -33,13 +33,16 @@ func (l *numLoader) New() interface{} {
 	return l
 }
 
-type numNum2Loader struct {
+type embeddedLoader struct {
 	*numLoader
 	Num2 int
 }
 
-func (l *numNum2Loader) New() interface{} {
-	return l
+type multipleLoader struct {
+	One struct {
+		Num int
+	}
+	Num int
 }
 
 func (t *LoaderTest) TestQuery(c *C) {
@@ -50,13 +53,28 @@ func (t *LoaderTest) TestQuery(c *C) {
 }
 
 func (t *LoaderTest) TestQueryEmbeddedStruct(c *C) {
-	dst := &numNum2Loader{
+	src := &embeddedLoader{
+		numLoader: &numLoader{
+			Num: 1,
+		},
+		Num2: 2,
+	}
+	dst := &embeddedLoader{
 		numLoader: &numLoader{},
 	}
-	_, err := t.db.Query(dst, "SELECT 1 AS num, 2 as num2")
+	_, err := t.db.QueryOne(dst, "SELECT ?num AS num, ?num2 as num2", src)
 	c.Assert(err, IsNil)
-	c.Assert(dst.Num, Equals, 1)
-	c.Assert(dst.Num2, Equals, 2)
+	c.Assert(dst, DeepEquals, src)
+}
+
+func (t *LoaderTest) TestQueryMultipleStructs(c *C) {
+	src := &multipleLoader{}
+	src.One.Num = 1
+	src.Num = 2
+	dst := &multipleLoader{}
+	_, err := t.db.QueryOne(dst, `SELECT ?one__num AS one__num, ?num as num`, src)
+	c.Assert(err, IsNil)
+	c.Assert(dst, DeepEquals, src)
 }
 
 func (t *LoaderTest) TestQueryStmt(c *C) {
