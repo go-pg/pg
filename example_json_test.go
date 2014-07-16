@@ -69,7 +69,7 @@ func Example_json() {
 
 	item := &Item{
 		Id:   1,
-		Data: jsonMap{"hello": "world", "foo": "bar"},
+		Data: jsonMap{"hello": "world"},
 	}
 	if err := CreateItem(db, item); err != nil {
 		panic(err)
@@ -80,5 +80,5 @@ func Example_json() {
 		panic(err)
 	}
 	fmt.Println(item)
-	// Output: &{1 map[foo:bar hello:world]}
+	// Output: &{1 map[hello:world]}
 }

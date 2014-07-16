@@ -101,7 +101,22 @@ func fields(typ reflect.Type) map[string][]int {
 		if name == "" {
 			name = pgutil.Underscore(f.Name)
 		}
+
+		tt := indirectType(f.Type)
+		if tt.Kind() == reflect.Struct {
+			for subname, indx := range fields(tt) {
+				dst[name+"__"+subname] = append(f.Index, indx...)
+			}
+		}
+
 		dst[name] = f.Index
 	}
 	return dst
+}
+
+func indirectType(t reflect.Type) reflect.Type {
+	for t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+	return t
 }
