@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"net"
 	"reflect"
 	"strings"
 	"testing"
@@ -401,47 +400,6 @@ func (t *DBTest) TestScannerValueOnStruct(c *C) {
 	_, err := t.db.QueryOne(&dst, "SELECT ? AS dst", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst.Dst, DeepEquals, src)
-}
-
-func (t *DBTest) TestListenNotify(c *C) {
-	ln, err := t.db.Listen("test_channel")
-	c.Assert(err, IsNil)
-
-	_, err = t.db.Exec("NOTIFY test_channel")
-	c.Assert(err, IsNil)
-
-	channel, payload, err := ln.Receive()
-	c.Assert(err, IsNil)
-	c.Assert(channel, Equals, "test_channel")
-	c.Assert(payload, Equals, "")
-
-	done := make(chan struct{})
-	go func() {
-		_, _, err := ln.Receive()
-		c.Assert(err.Error(), Equals, "read tcp 127.0.0.1:5432: use of closed network connection")
-		done <- struct{}{}
-	}()
-
-	select {
-	case <-done:
-		c.Fail()
-	case <-time.After(4 * time.Second):
-		// ok
-	}
-
-	c.Assert(ln.Close(), IsNil)
-	<-done
-}
-
-func (t *DBTest) TestListenTimeout(c *C) {
-	ln, err := t.db.Listen("test_channel")
-	c.Assert(err, IsNil)
-	defer ln.Close()
-
-	channel, payload, err := ln.ReceiveTimeout(time.Second)
-	c.Assert(err.(net.Error).Timeout(), Equals, true)
-	c.Assert(channel, Equals, "")
-	c.Assert(payload, Equals, "")
 }
 
 func (t *DBTest) TestCopyFrom(c *C) {

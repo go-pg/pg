@@ -7,6 +7,8 @@ import (
 
 // Not thread-safe.
 type Listener struct {
+	channels []string
+
 	db  *DB
 	_cn *conn
 
@@ -14,8 +16,22 @@ type Listener struct {
 }
 
 func (l *Listener) conn(readTimeout time.Duration) (*conn, error) {
-	if l._cn == nil {
+	if l.closed {
 		return nil, errListenerClosed
+	}
+	if l._cn == nil {
+		cn, err := l.db.conn()
+		if err != nil {
+			return nil, err
+		}
+
+		if len(l.channels) > 0 {
+			if err := l.listen(cn, l.channels...); err != nil {
+				return nil, err
+			}
+		}
+
+		l._cn = cn
 	}
 	l._cn.SetReadTimeout(readTimeout)
 	l._cn.SetWriteTimeout(l.db.opt.WriteTimeout)
@@ -27,8 +43,19 @@ func (l *Listener) Listen(channels ...string) error {
 	if err != nil {
 		return err
 	}
-	for _, name := range channels {
-		if err := writeQueryMsg(cn.buf, "LISTEN ?", F(name)); err != nil {
+	if err := l.listen(cn, channels...); err != nil {
+		if canRetry(err) {
+			l.discardConn()
+		}
+		return err
+	}
+	l.channels = append(l.channels, channels...)
+	return nil
+}
+
+func (l *Listener) listen(cn *conn, channels ...string) error {
+	for _, channel := range channels {
+		if err := writeQueryMsg(cn.buf, "LISTEN ?", F(channel)); err != nil {
 			return err
 		}
 	}
@@ -40,6 +67,14 @@ func (l *Listener) Receive() (channel string, payload string, err error) {
 }
 
 func (l *Listener) ReceiveTimeout(readTimeout time.Duration) (channel, payload string, err error) {
+	channel, payload, err = l.receiveTimeout(readTimeout)
+	if canRetry(err) {
+		l.discardConn()
+	}
+	return channel, payload, err
+}
+
+func (l *Listener) receiveTimeout(readTimeout time.Duration) (channel, payload string, err error) {
 	cn, err := l.conn(readTimeout)
 	if err != nil {
 		return "", "", err
@@ -88,11 +123,18 @@ func (l *Listener) ReceiveTimeout(readTimeout time.Duration) (channel, payload s
 	}
 }
 
+func (l *Listener) discardConn() (err error) {
+	if l._cn != nil {
+		err = l.db.pool.Remove(l._cn)
+		l._cn = nil
+	}
+	return err
+}
+
 func (l *Listener) Close() error {
-	if l._cn == nil {
+	if l.closed {
 		return errListenerClosed
 	}
-	err := l.db.pool.Remove(l._cn)
-	l._cn = nil
-	return err
+	l.closed = true
+	return l.discardConn()
 }
