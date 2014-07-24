@@ -227,14 +227,8 @@ func (db *DB) QueryOne(model interface{}, q string, args ...interface{}) (*Resul
 }
 
 func (db *DB) Listen(channels ...string) (*Listener, error) {
-	cn, err := db.conn()
-	if err != nil {
-		return nil, err
-	}
-
 	l := &Listener{
-		db:  db,
-		_cn: cn,
+		db: db,
 	}
 	if err := l.Listen(channels...); err != nil {
 		l.Close()
