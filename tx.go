@@ -33,6 +33,9 @@ func (db *DB) Begin() (*Tx, error) {
 	return tx, nil
 }
 
+// RunInTransaction runs a function in a transaction. If function
+// returns an error transaction is rollbacked, otherwise transaction
+// is committed.
 func (db *DB) RunInTransaction(fn func(*Tx) error) error {
 	tx, err := db.Begin()
 	if err != nil {
