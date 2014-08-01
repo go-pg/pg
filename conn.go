@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strconv"
 	"time"
 
 	"gopkg.in/bufio.v1"
@@ -30,6 +31,8 @@ type conn struct {
 	processId int32
 	secretKey int32
 
+	_id int64
+
 	elem *list.Element
 }
 
@@ -50,6 +53,11 @@ func newConnFunc(opt *Options) func() (*conn, error) {
 		}
 		return cn, nil
 	}
+}
+
+func (cn *conn) GenId() string {
+	cn._id++
+	return strconv.FormatInt(cn._id, 10)
 }
 
 func (cn *conn) IsIdle(dur time.Duration) bool {

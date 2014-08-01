@@ -8,13 +8,15 @@ import (
 type Stmt struct {
 	db      *DB
 	_cn     *conn
+	name    string
 	columns []string
 
 	err error
 }
 
 func prepare(db *DB, cn *conn, q string) (*Stmt, error) {
-	writeParseDescribeSyncMsg(cn.buf, q)
+	name := cn.GenId()
+	writeParseDescribeSyncMsg(cn.buf, name, q)
 	if err := cn.Flush(); err != nil {
 		db.freeConn(cn, err)
 		return nil, err
@@ -29,6 +31,7 @@ func prepare(db *DB, cn *conn, q string) (*Stmt, error) {
 	stmt := &Stmt{
 		db:      db,
 		_cn:     cn,
+		name:    name,
 		columns: columns,
 	}
 	return stmt, nil
@@ -48,12 +51,12 @@ func (stmt *Stmt) Exec(args ...interface{}) (res *Result, err error) {
 	for i := 0; i < 3; i++ {
 		var cn *conn
 
-		cn, err := stmt.conn()
+		cn, err = stmt.conn()
 		if err != nil {
 			return nil, err
 		}
 
-		res, err = extQuery(cn, args...)
+		res, err = extQuery(cn, stmt.name, args...)
 		if !canRetry(err) {
 			break
 		}
@@ -85,7 +88,7 @@ func (stmt *Stmt) Query(f Factory, args ...interface{}) (res *Result, err error)
 			break
 		}
 
-		res, err = extQueryData(cn, f, stmt.columns, args...)
+		res, err = extQueryData(cn, stmt.name, f, stmt.columns, args...)
 		if !canRetry(err) {
 			break
 		}
@@ -120,8 +123,8 @@ func (stmt *Stmt) Close() error {
 	return err
 }
 
-func extQuery(cn *conn, args ...interface{}) (*Result, error) {
-	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
+func extQuery(cn *conn, name string, args ...interface{}) (*Result, error) {
+	if err := writeBindExecuteMsg(cn.buf, name, args...); err != nil {
 		return nil, err
 	}
 	if err := cn.Flush(); err != nil {
@@ -130,8 +133,8 @@ func extQuery(cn *conn, args ...interface{}) (*Result, error) {
 	return readExtQuery(cn)
 }
 
-func extQueryData(cn *conn, f Factory, columns []string, args ...interface{}) (*Result, error) {
-	if err := writeBindExecuteMsg(cn.buf, args...); err != nil {
+func extQueryData(cn *conn, name string, f Factory, columns []string, args ...interface{}) (*Result, error) {
+	if err := writeBindExecuteMsg(cn.buf, name, args...); err != nil {
 		return nil, err
 	}
 	if err := cn.Flush(); err != nil {
