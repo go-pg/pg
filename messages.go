@@ -142,15 +142,15 @@ func writeQueryMsg(buf *buffer, q string, args ...interface{}) (err error) {
 	return nil
 }
 
-func writeParseDescribeSyncMsg(buf *buffer, q string) {
+func writeParseDescribeSyncMsg(buf *buffer, name, q string) {
 	buf.StartMessage(parseMsg)
-	buf.WriteString("")
+	buf.WriteString(name)
 	buf.WriteString(q)
 	buf.WriteInt16(0)
 
 	buf.StartMessage(describeMsg)
 	buf.WriteByte('S')
-	buf.WriteString("")
+	buf.WriteString(name)
 
 	buf.StartMessage(syncMsg)
 }
@@ -209,10 +209,10 @@ func readParseDescribeSync(cn *conn) (columns []string, e error) {
 }
 
 // Writes BIND, EXECUTE and SYNC messages.
-func writeBindExecuteMsg(buf *buffer, args ...interface{}) error {
+func writeBindExecuteMsg(buf *buffer, name string, args ...interface{}) error {
 	buf.StartMessage(bindMsg)
 	buf.WriteString("")
-	buf.WriteString("")
+	buf.WriteString(name)
 	buf.WriteInt16(0)
 	buf.WriteInt16(int16(len(args)))
 	for i := 0; i < len(args); i++ {
