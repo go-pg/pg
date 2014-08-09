@@ -13,7 +13,8 @@ func toLower(c byte) byte {
 	return c + 32
 }
 
-// Converts 'CamelCasedString' to 'camel_cased_string'. Used for converting struct field names to database column names.
+// Converts 'CamelCasedString' to 'camel_cased_string'. Used for
+// converting struct field names to database column names.
 func Underscore(s string) string {
 	b := []byte(s)
 	r := make([]byte, 0, len(b))
