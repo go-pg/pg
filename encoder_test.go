@@ -29,30 +29,6 @@ func (t *EncoderTest) TestUint64(c *C) {
 	c.Assert(string(q), Equals, "18446744073709551615")
 }
 
-func (t *EncoderTest) TestTypeAlias(c *C) {
-	type mystr string
-	q, err := pg.FormatQ("?", mystr("hello world"))
-	c.Assert(err, IsNil)
-	c.Assert(string(q), Equals, "'hello world'")
-}
-
-func (t *EncoderTest) TestPointers(c *C) {
-	var x *int
-	q, err := pg.FormatQ("?", x)
-	c.Assert(err, IsNil)
-	c.Assert(string(q), Equals, "NULL")
-
-	y := new(int)
-	*y = 42
-	q, err = pg.FormatQ("?", y)
-	c.Assert(err, IsNil)
-	c.Assert(string(q), Equals, "42")
-
-	q, err = pg.FormatQ("?", nil)
-	c.Assert(err, IsNil)
-	c.Assert(string(q), Equals, "NULL")
-}
-
 type structFormatter struct {
 	Foo string
 }
@@ -117,16 +93,4 @@ func (t *EncoderTest) TestStruct(c *C) {
 		c.Assert(err, IsNil)
 		c.Assert(string(q), Equals, "'bar' 'value' 'value2'")
 	}
-}
-
-func (t *EncoderTest) TestFormatInts(c *C) {
-	q, err := pg.FormatQ("?", pg.Ints{1, 2, 3})
-	c.Assert(err, IsNil)
-	c.Assert(string(q), Equals, "1,2,3")
-}
-
-func (t *EncoderTest) TestFormatStrings(c *C) {
-	q, err := pg.FormatQ("?", pg.Strings{"hello", "world"})
-	c.Assert(err, IsNil)
-	c.Assert(string(q), Equals, "'hello','world'")
 }

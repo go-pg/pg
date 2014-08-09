@@ -216,6 +216,9 @@ var (
 
 	timev   time.Time
 	timeptr *time.Time
+
+	pgints    pg.Ints
+	pgstrings pg.Strings
 )
 
 type jsonMap_ map[string]interface{}
@@ -326,6 +329,9 @@ var conversionTests = []conversionTest{
 	{src: nil, dst: &timeptr, pgtype: "timestamptz", wantnil: true},
 
 	{src: jsonMap_{"foo": "bar"}, dst: &jsonMap_{}, pgtype: "json"},
+
+	{src: pg.Ints{1, 2, 3}, dst: &pgints},
+	{src: pg.Strings{"hello", "world"}, dst: &pgstrings},
 }
 
 func (t *conversionTest) Assert(c *C) {
@@ -365,7 +371,7 @@ func (t *DBTest) TestTypes(c *C) {
 	defer t.db.Exec("DROP EXTENSION hstore")
 
 	for _, row := range conversionTests {
-		_, err := t.db.QueryOne(pg.LoadInto(row.dst), "SELECT ?", row.src)
+		_, err := t.db.QueryOne(pg.LoadInto(row.dst), "SELECT (?)", row.src)
 		c.Assert(err, IsNil)
 		row.Assert(c)
 	}
@@ -375,7 +381,7 @@ func (t *DBTest) TestTypes(c *C) {
 			continue
 		}
 
-		stmt, err := t.db.Prepare("SELECT $1::" + row.pgtype)
+		stmt, err := t.db.Prepare(fmt.Sprintf("SELECT ($1::%s)", row.pgtype))
 		c.Assert(err, IsNil)
 
 		_, err = stmt.QueryOne(pg.LoadInto(row.dst), row.src)
@@ -386,14 +392,14 @@ func (t *DBTest) TestTypes(c *C) {
 
 	for _, row := range conversionTests {
 		dst := struct{ Dst interface{} }{Dst: row.dst}
-		_, err := t.db.QueryOne(&dst, "SELECT ? AS dst", row.src)
+		_, err := t.db.QueryOne(&dst, "SELECT (?) AS dst", row.src)
 		c.Assert(err, IsNil, row.Comment())
 		row.Assert(c)
 	}
 
 	for _, row := range conversionTests {
 		dst := struct{ Dst interface{} }{Dst: row.dst}
-		_, err := t.db.QueryOne(&dst, "SELECT ? AS dst", row.src)
+		_, err := t.db.QueryOne(&dst, "SELECT (?) AS dst", row.src)
 		c.Assert(err, IsNil, row.Comment())
 		row.Assert(c)
 	}
@@ -403,7 +409,7 @@ func (t *DBTest) TestTypes(c *C) {
 			continue
 		}
 
-		stmt, err := t.db.Prepare(fmt.Sprintf("SELECT $1::%s AS dst", row.pgtype))
+		stmt, err := t.db.Prepare(fmt.Sprintf("SELECT ($1::%s) AS dst", row.pgtype))
 		c.Assert(err, IsNil)
 
 		dst := struct{ Dst interface{} }{Dst: row.dst}
