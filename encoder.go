@@ -146,15 +146,15 @@ func appendIface(dst []byte, srci interface{}) []byte {
 	case int:
 		return strconv.AppendInt(dst, int64(src), 10)
 	case uint8:
-		return strconv.AppendInt(dst, int64(src), 10)
+		return strconv.AppendUint(dst, uint64(src), 10)
 	case uint16:
-		return strconv.AppendInt(dst, int64(src), 10)
+		return strconv.AppendUint(dst, uint64(src), 10)
 	case uint32:
-		return strconv.AppendInt(dst, int64(src), 10)
+		return strconv.AppendUint(dst, uint64(src), 10)
 	case uint64:
-		return strconv.AppendInt(dst, int64(src), 10)
+		return strconv.AppendUint(dst, src, 10)
 	case uint:
-		return strconv.AppendInt(dst, int64(src), 10)
+		return strconv.AppendUint(dst, uint64(src), 10)
 	case float32:
 		return strconv.AppendFloat(dst, float64(src), 'f', -1, 32)
 	case float64:

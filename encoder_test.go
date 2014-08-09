@@ -26,7 +26,7 @@ func (t *EncoderTest) TestTooFewParamsError(c *C) {
 func (t *EncoderTest) TestUint64(c *C) {
 	q, err := pg.FormatQ("?", uint64(math.MaxUint64))
 	c.Assert(err, IsNil)
-	c.Assert(string(q), Equals, "-1")
+	c.Assert(string(q), Equals, "18446744073709551615")
 }
 
 func (t *EncoderTest) TestTypeAlias(c *C) {

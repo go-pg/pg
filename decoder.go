@@ -73,11 +73,11 @@ func DecodeValue(dst reflect.Value, f []byte) error {
 		dst.SetInt(n)
 		return nil
 	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		n, err := strconv.ParseInt(string(f), 10, 64)
+		n, err := strconv.ParseUint(string(f), 10, 64)
 		if err != nil {
 			return err
 		}
-		dst.SetUint(uint64(n))
+		dst.SetUint(n)
 		return nil
 	case reflect.Float32, reflect.Float64:
 		n, err := strconv.ParseFloat(string(f), 64)

@@ -273,7 +273,7 @@ var conversionTests = []conversionTest{
 	{src: uint8(math.MaxUint8), dst: &uint8v, pgtype: "smallint"},
 	{src: uint16(math.MaxUint16), dst: &uint16v, pgtype: "int"},
 	{src: uint32(math.MaxUint32), dst: &uint32v, pgtype: "bigint"},
-	{src: uint64(math.MaxUint32), dst: &uint64v, pgtype: "bigint"}, // math.MaxUint64 is not supported
+	{src: uint64(math.MaxUint64), dst: &uint64v},
 
 	{src: float32(math.MaxFloat32), dst: &f32v, pgtype: "decimal"},
 	{src: float32(math.SmallestNonzeroFloat32), dst: &f32v, pgtype: "decimal"},
@@ -379,8 +379,8 @@ func (t *DBTest) TestTypes(c *C) {
 		c.Assert(err, IsNil)
 
 		_, err = stmt.QueryOne(pg.LoadInto(row.dst), row.src)
-		c.Assert(err, IsNil)
-		c.Assert(stmt.Close(), IsNil)
+		c.Assert(err, IsNil, row.Comment())
+		c.Assert(stmt.Close(), IsNil, row.Comment())
 		row.Assert(c)
 	}
 
