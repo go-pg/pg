@@ -153,8 +153,15 @@ func (t *DBTest) TestIntegrityError(c *C) {
 	c.Assert(err, FitsTypeOf, &pg.IntegrityError{})
 }
 
-func deref(v interface{}) interface{} {
-	return reflect.Indirect(reflect.ValueOf(v)).Interface()
+func deref(viface interface{}) interface{} {
+	v := reflect.ValueOf(viface)
+	for v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	if v.IsValid() {
+		return v.Interface()
+	}
+	return nil
 }
 
 func zero(v interface{}) interface{} {
@@ -181,6 +188,7 @@ var (
 	bytesv    []byte
 
 	intv    int
+	intvptr *int
 	int8v   int8
 	int16v  int16
 	int32v  int32
@@ -194,9 +202,8 @@ var (
 	f32v float32
 	f64v float64
 
-	strslice    []string
-	strsliceptr *[]string
-	intslice    []int
+	strslice []string
+	intslice []int
 
 	strstrmap map[string]string
 
@@ -237,17 +244,23 @@ var conversionTests = []conversionTest{
 	{src: false, dst: &boolv, pgtype: "bool"},
 	{src: true, dst: &boolv, pgtype: "bool"},
 	{src: nil, dst: &boolv, pgtype: "bool", wantzero: true},
-	{src: nil, dst: boolptr, pgtype: "bool", wantnil: true},
+	{src: true, dst: &boolptr, pgtype: "bool"},
+	{src: nil, dst: &boolptr, pgtype: "bool", wantnil: true},
 
 	{src: "hello world", dst: &stringv, pgtype: "text"},
 	{src: nil, dst: &stringv, pgtype: "text", wantzero: true},
-	{src: nil, dst: stringptr, pgtype: "text", wantnil: true},
+	{src: "hello world", dst: &stringptr, pgtype: "text"},
+	{src: nil, dst: &stringptr, pgtype: "text", wantnil: true},
 
 	{src: []byte("hello world\000"), dst: &bytesv, pgtype: "bytea"},
-	{src: nil, dst: &bytesv, pgtype: "bytea", wantzero: true},
+	{src: []byte{}, dst: &bytesv, pgtype: "bytea", wantzero: true},
+	{src: nil, dst: &bytesv, pgtype: "bytea", wantnil: true},
 
 	{src: int(math.MaxInt32), dst: &intv, pgtype: "int"},
 	{src: int(math.MinInt32), dst: &intv, pgtype: "int"},
+	{src: nil, dst: &intv, pgtype: "int", wantzero: true},
+	{src: int(math.MaxInt32), dst: &intvptr, pgtype: "int"},
+	{src: nil, dst: &intvptr, pgtype: "int", wantnil: true},
 	{src: int8(math.MaxInt8), dst: &int8v, pgtype: "smallint"},
 	{src: int8(math.MinInt8), dst: &int8v, pgtype: "smallint"},
 	{src: int16(math.MaxInt16), dst: &int16v, pgtype: "smallint"},
@@ -267,10 +280,9 @@ var conversionTests = []conversionTest{
 	{src: float64(math.MaxFloat64), dst: &f64v, pgtype: "decimal"},
 	{src: float64(math.SmallestNonzeroFloat64), dst: &f64v, pgtype: "decimal"},
 
-	{src: []string{}, dst: &strslice, pgtype: "text[]"},
 	{src: []string{"foo\n", "bar {}", "'\\\""}, dst: &strslice, pgtype: "text[]"},
-	{src: nil, dst: &strslice, pgtype: "text[]", wantzero: true},
-	{src: nil, dst: strsliceptr, pgtype: "text[]", wantnil: true},
+	{src: []string{}, dst: &strslice, pgtype: "text[]", wantzero: true},
+	{src: nil, dst: &strslice, pgtype: "text[]", wantnil: true},
 
 	{src: []int{}, dst: &intslice, pgtype: "int[]"},
 	{src: []int{1, 2, 3}, dst: &intslice, pgtype: "int[]"},
@@ -303,36 +315,45 @@ var conversionTests = []conversionTest{
 	{src: time.Now(), dst: &timev, pgtype: "timestamp"},
 	{src: time.Now().UTC(), dst: &timev, pgtype: "timestamp"},
 	{src: nil, dst: &timev, pgtype: "timestamp", wantzero: true},
-	{src: nil, dst: timeptr, pgtype: "timestamp", wantnil: true},
+	{src: time.Now(), dst: &timeptr, pgtype: "timestamp"},
+	{src: nil, dst: &timeptr, pgtype: "timestamp", wantnil: true},
+
 	{src: time.Time{}, dst: &timev, pgtype: "timestamptz"},
 	{src: time.Now(), dst: &timev, pgtype: "timestamptz"},
 	{src: time.Now().UTC(), dst: &timev, pgtype: "timestamptz"},
 	{src: nil, dst: &timev, pgtype: "timestamptz", wantzero: true},
-	{src: nil, dst: timeptr, pgtype: "timestamptz", wantnil: true},
+	{src: time.Now(), dst: &timeptr, pgtype: "timestamptz"},
+	{src: nil, dst: &timeptr, pgtype: "timestamptz", wantnil: true},
 
 	{src: jsonMap_{"foo": "bar"}, dst: &jsonMap_{}, pgtype: "json"},
 }
 
 func (t *conversionTest) Assert(c *C) {
+	src := deref(t.src)
+	dst := deref(t.dst)
+
 	if t.wantzero {
-		if reflect.ValueOf(t.dst).Elem().Kind() == reflect.Slice {
-			c.Assert(t.dst, Not(IsNil))
-			c.Assert(deref(t.dst), HasLen, 0)
+		if reflect.ValueOf(dst).Kind() == reflect.Slice {
+			c.Assert(dst, Not(IsNil), t.Comment())
+			c.Assert(dst, HasLen, 0, t.Comment())
 		} else {
-			c.Assert(deref(t.dst), Equals, zero(t.dst), t.Comment())
+			c.Assert(dst, Equals, zero(t.dst), t.Comment())
 		}
 		return
 	}
+
 	if t.wantnil {
-		c.Assert(t.dst, IsNil)
+		c.Assert(reflect.ValueOf(t.dst).Elem().IsNil(), Equals, true, t.Comment())
 		return
 	}
-	if dsttm, ok := t.dst.(*time.Time); ok {
-		srctm := t.src.(time.Time)
-		c.Assert(dsttm.Unix(), Equals, srctm.Unix())
-	} else {
-		c.Assert(deref(t.dst), DeepEquals, deref(t.src))
+
+	if dsttm, ok := dst.(time.Time); ok {
+		srctm := src.(time.Time)
+		c.Assert(dsttm.Unix(), Equals, srctm.Unix(), t.Comment())
+		return
 	}
+
+	c.Assert(dst, DeepEquals, src, t.Comment())
 }
 
 func (t *conversionTest) Comment() CommentInterface {
@@ -591,30 +612,4 @@ func (t *DBTest) BenchmarkExecStmtStdlibPq(c *C) {
 			panic(err)
 		}
 	}
-}
-
-func (t *DBTest) TestOverwritingNullValuesNonPointer(c *C) {
-	rec := &struct {
-		X int
-	}{}
-	_, err := t.db.QueryOne(rec, "SELECT 1138 AS x")
-	c.Assert(err, IsNil)
-	c.Assert(rec.X, Equals, 1138)
-
-	_, err = t.db.QueryOne(rec, "SELECT NULL::int AS x")
-	c.Assert(err, IsNil)
-	c.Assert(rec.X, Equals, 0)
-}
-
-func (t *DBTest) TestOverwritingNullValuesPointer(c *C) {
-	rec := &struct {
-		X *int
-	}{}
-	_, err := t.db.QueryOne(rec, "SELECT 1138 AS x")
-	c.Assert(err, IsNil)
-	c.Assert(*rec.X, Equals, 1138)
-
-	_, err = t.db.QueryOne(rec, "SELECT NULL::int AS x")
-	c.Assert(err, IsNil)
-	c.Assert(rec.X, IsNil)
 }
