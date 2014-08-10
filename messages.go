@@ -203,7 +203,10 @@ func readParseDescribeSync(cn *conn) (columns []string, e error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readParseDescribeSync: unexpected message %q", c)
+			if e != nil {
+				return nil, e
+			}
+			return nil, fmt.Errorf("pg: readParseDescribeSync: unexpected message %#x", c)
 		}
 	}
 }
@@ -274,7 +277,10 @@ func readBindMsg(cn *conn) (e error) {
 				return err
 			}
 		default:
-			return fmt.Errorf("pg: readBindMsg: unexpected message %q", c)
+			if e != nil {
+				return e
+			}
+			return fmt.Errorf("pg: readBindMsg: unexpected message %#x", c)
 		}
 	}
 }
@@ -318,7 +324,10 @@ func readSimpleQuery(cn *conn) (res *Result, e error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readSimpleQuery: unexpected message %q", c)
+			if e != nil {
+				return nil, e
+			}
+			return nil, fmt.Errorf("pg: readSimpleQuery: unexpected message %#x", c)
 		}
 	}
 }
@@ -362,7 +371,10 @@ func readExtQuery(cn *conn) (res *Result, e error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readExtQuery: unexpected message %q", c)
+			if e != nil {
+				return nil, e
+			}
+			return nil, fmt.Errorf("pg: readExtQuery: unexpected message %#x", c)
 		}
 	}
 }
@@ -387,12 +399,16 @@ func readRowDescription(cn *conn) ([]string, error) {
 }
 
 func readDataRow(cn *conn, dst interface{}, columns []string) error {
+	var loadErr error
+
 	loader, ok := dst.(Loader)
 	if !ok {
 		var err error
 		loader, err = NewLoader(dst)
 		if err != nil {
-			return err
+			loadErr = err
+			// Loader is invalid, but try to read all data from connection.
+			loader = Discard
 		}
 	}
 
@@ -400,7 +416,6 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	if err != nil {
 		return err
 	}
-	var loadErr error
 	for colIdx := 0; colIdx < int(colNum); colIdx++ {
 		l, err := cn.ReadInt32()
 		if err != nil {
@@ -418,6 +433,7 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 		}
 
 	}
+
 	return loadErr
 }
 
@@ -465,7 +481,10 @@ func readSimpleQueryData(cn *conn, f Factory) (res *Result, e error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readSimpleQueryData: unexpected message %q", c)
+			if e != nil {
+				return nil, e
+			}
+			return nil, fmt.Errorf("pg: readSimpleQueryData: unexpected message %#x", c)
 		}
 	}
 }
@@ -513,7 +532,10 @@ func readExtQueryData(cn *conn, f Factory, columns []string) (res *Result, e err
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readExtQueryData: unexpected message %q", c)
+			if e != nil {
+				return nil, e
+			}
+			return nil, fmt.Errorf("pg: readExtQueryData: unexpected message %#x", c)
 		}
 	}
 }
@@ -546,7 +568,7 @@ func readCopyInResponse(cn *conn) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("pg: readCopyInResponse: unexpected message %q", c)
+			return fmt.Errorf("pg: readCopyInResponse: unexpected message %#x", c)
 		}
 	}
 }
@@ -579,7 +601,7 @@ func readCopyOutResponse(cn *conn) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("pg: readCopyOutResponse: unexpected message %q", c)
+			return fmt.Errorf("pg: readCopyOutResponse: unexpected message %#x", c)
 		}
 	}
 }
@@ -628,7 +650,7 @@ func readCopyData(cn *conn, w io.WriteCloser) (*Result, error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readCopyData: unexpected message %q", c)
+			return nil, fmt.Errorf("pg: readCopyData: unexpected message %#x", c)
 		}
 	}
 }
@@ -677,7 +699,10 @@ func readReadyForQuery(cn *conn) (res *Result, e error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readReadyForQuery: unexpected message %q", c)
+			if e != nil {
+				return nil, e
+			}
+			return nil, fmt.Errorf("pg: readReadyForQuery: unexpected message %#x", c)
 		}
 	}
 }

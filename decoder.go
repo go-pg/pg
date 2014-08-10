@@ -133,7 +133,7 @@ func DecodeValue(dst reflect.Value, f []byte) error {
 			return nil
 		}
 	}
-	return errorf("pg: unsupported dst: %v", dst)
+	return errorf("pg: unsupported dst: %s", dst.Type())
 }
 
 func tryDecodeInterfaces(dst interface{}, f []byte) (error, bool) {
@@ -178,7 +178,7 @@ func decodeSliceValue(dst reflect.Value, f []byte) error {
 		dst.Set(reflect.ValueOf(s))
 		return nil
 	}
-	return errorf("pg: unsupported dst: %s", dst)
+	return errorf("pg: unsupported dst: %s", dst.Type())
 }
 
 func decodeMapValue(dst reflect.Value, f []byte) error {
@@ -191,7 +191,7 @@ func decodeMapValue(dst reflect.Value, f []byte) error {
 		dst.Set(reflect.ValueOf(m))
 		return nil
 	}
-	return errorf("pg: unsupported dst: %s", dst)
+	return errorf("pg: unsupported dst: %s", dst.Type())
 }
 
 func decodeBytes(f []byte) ([]byte, error) {

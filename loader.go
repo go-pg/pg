@@ -140,15 +140,15 @@ func (set IntsSet) Load(colIdx int, colName string, b []byte) error {
 func NewLoader(dst interface{}) (Loader, error) {
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
-		return nil, errorf("pg: Decode(%s)", v)
+		return nil, decodeError(v)
 	}
 	if v.Kind() != reflect.Ptr {
-		return nil, errorf("pg: pointer expected")
+		return nil, decodeError(v)
 	}
 	v = v.Elem()
 	switch v.Kind() {
 	case reflect.Struct:
 		return newStructLoader(v), nil
 	}
-	return nil, errorf("pg: unsupported type %s", v.Type())
+	return nil, errorf("pg: unsupported dst %s", v.Type())
 }

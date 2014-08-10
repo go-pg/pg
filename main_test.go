@@ -174,8 +174,20 @@ func (s customStrSlice) Value() (driver.Value, error) {
 	return strings.Join(s, "\n"), nil
 }
 
-func (s *customStrSlice) Scan(value interface{}) error {
-	*s = strings.Split(string(value.([]byte)), "\n")
+func (s *customStrSlice) Scan(v interface{}) error {
+	if v == nil {
+		*s = nil
+		return nil
+	}
+
+	b := v.([]byte)
+
+	if len(b) == 0 {
+		*s = []string{}
+		return nil
+	}
+
+	*s = strings.Split(string(b), "\n")
 	return nil
 }
 
@@ -246,6 +258,7 @@ type conversionTest struct {
 
 var conversionTests = []conversionTest{
 	{src: true, dst: nil, wanterr: "pg: Decode(nil)"},
+	{src: true, dst: &struct{}{}, wanterr: "pg: unsupported dst: struct {}"},
 	{src: true, dst: boolv, wanterr: "pg: Decode(nonsettable bool)"},
 	{src: true, dst: boolptr, wanterr: "pg: Decode(nonsettable *bool)"},
 
@@ -317,6 +330,8 @@ var conversionTests = []conversionTest{
 	{src: &sql.NullFloat64{Valid: true}, dst: &nullFloat64, pgtype: "decimal"},
 	{src: &sql.NullFloat64{Valid: true, Float64: math.MaxFloat64}, dst: &nullFloat64, pgtype: "decimal"},
 
+	{src: customStrSlice{}, dst: &customStrSliceV, wantzero: true},
+	{src: nil, dst: &customStrSliceV, wantnil: true},
 	{src: customStrSlice{"one", "two"}, dst: &customStrSliceV},
 
 	{src: time.Time{}, dst: &timev, pgtype: "timestamp"},
@@ -345,7 +360,7 @@ func (t *conversionTest) Assert(c *C, err error) {
 		c.Assert(err.Error(), Equals, t.wanterr, t.Comment())
 		return
 	}
-	c.Assert(err, IsNil)
+	c.Assert(err, IsNil, t.Comment())
 
 	src := deref(t.src)
 	dst := deref(t.dst)
@@ -378,12 +393,12 @@ func (t *conversionTest) Comment() CommentInterface {
 	return Commentf("src: %#v, dst: %#v", t.src, t.dst)
 }
 
-func (t *DBTest) TestTypes(c *C) {
+func (t *DBTest) TestConversion(c *C) {
 	t.db.Exec("CREATE EXTENSION hstore")
 	defer t.db.Exec("DROP EXTENSION hstore")
 
 	for _, test := range conversionTests {
-		_, err := t.db.QueryOne(pg.LoadInto(test.dst), "SELECT (?)", test.src)
+		_, err := t.db.QueryOne(pg.LoadInto(test.dst), "SELECT (?) AS dst", test.src)
 		test.Assert(c, err)
 	}
 
@@ -392,7 +407,7 @@ func (t *DBTest) TestTypes(c *C) {
 			continue
 		}
 
-		stmt, err := t.db.Prepare(fmt.Sprintf("SELECT ($1::%s)", test.pgtype))
+		stmt, err := t.db.Prepare(fmt.Sprintf("SELECT ($1::%s) AS dst", test.pgtype))
 		c.Assert(err, IsNil)
 
 		_, err = stmt.QueryOne(pg.LoadInto(test.dst), test.src)
