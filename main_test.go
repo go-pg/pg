@@ -239,11 +239,16 @@ type conversionTest struct {
 	src, dst interface{}
 	pgtype   string
 
+	wanterr  string
 	wantnil  bool
 	wantzero bool
 }
 
 var conversionTests = []conversionTest{
+	{src: true, dst: nil, wanterr: "pg: Decode(nil)"},
+	{src: true, dst: boolv, wanterr: "pg: Decode(nonsettable bool)"},
+	{src: true, dst: boolptr, wanterr: "pg: Decode(nonsettable *bool)"},
+
 	{src: false, dst: &boolv, pgtype: "bool"},
 	{src: true, dst: &boolv, pgtype: "bool"},
 	{src: nil, dst: &boolv, pgtype: "bool", wantzero: true},
@@ -334,7 +339,14 @@ var conversionTests = []conversionTest{
 	{src: pg.Strings{"hello", "world"}, dst: &pgstrings},
 }
 
-func (t *conversionTest) Assert(c *C) {
+func (t *conversionTest) Assert(c *C, err error) {
+	if t.wanterr != "" {
+		c.Assert(err, Not(IsNil), t.Comment())
+		c.Assert(err.Error(), Equals, t.wanterr, t.Comment())
+		return
+	}
+	c.Assert(err, IsNil)
+
 	src := deref(t.src)
 	dst := deref(t.dst)
 
@@ -370,53 +382,42 @@ func (t *DBTest) TestTypes(c *C) {
 	t.db.Exec("CREATE EXTENSION hstore")
 	defer t.db.Exec("DROP EXTENSION hstore")
 
-	for _, row := range conversionTests {
-		_, err := t.db.QueryOne(pg.LoadInto(row.dst), "SELECT (?)", row.src)
-		c.Assert(err, IsNil)
-		row.Assert(c)
+	for _, test := range conversionTests {
+		_, err := t.db.QueryOne(pg.LoadInto(test.dst), "SELECT (?)", test.src)
+		test.Assert(c, err)
 	}
 
-	for _, row := range conversionTests {
-		if row.pgtype == "" {
+	for _, test := range conversionTests {
+		if test.pgtype == "" {
 			continue
 		}
 
-		stmt, err := t.db.Prepare(fmt.Sprintf("SELECT ($1::%s)", row.pgtype))
+		stmt, err := t.db.Prepare(fmt.Sprintf("SELECT ($1::%s)", test.pgtype))
 		c.Assert(err, IsNil)
 
-		_, err = stmt.QueryOne(pg.LoadInto(row.dst), row.src)
-		c.Assert(err, IsNil, row.Comment())
-		c.Assert(stmt.Close(), IsNil, row.Comment())
-		row.Assert(c)
+		_, err = stmt.QueryOne(pg.LoadInto(test.dst), test.src)
+		c.Assert(stmt.Close(), IsNil, test.Comment())
+		test.Assert(c, err)
 	}
 
-	for _, row := range conversionTests {
-		dst := struct{ Dst interface{} }{Dst: row.dst}
-		_, err := t.db.QueryOne(&dst, "SELECT (?) AS dst", row.src)
-		c.Assert(err, IsNil, row.Comment())
-		row.Assert(c)
+	for _, test := range conversionTests {
+		dst := struct{ Dst interface{} }{Dst: test.dst}
+		_, err := t.db.QueryOne(&dst, "SELECT (?) AS dst", test.src)
+		test.Assert(c, err)
 	}
 
-	for _, row := range conversionTests {
-		dst := struct{ Dst interface{} }{Dst: row.dst}
-		_, err := t.db.QueryOne(&dst, "SELECT (?) AS dst", row.src)
-		c.Assert(err, IsNil, row.Comment())
-		row.Assert(c)
-	}
-
-	for _, row := range conversionTests {
-		if row.pgtype == "" {
+	for _, test := range conversionTests {
+		if test.pgtype == "" {
 			continue
 		}
 
-		stmt, err := t.db.Prepare(fmt.Sprintf("SELECT ($1::%s) AS dst", row.pgtype))
+		stmt, err := t.db.Prepare(fmt.Sprintf("SELECT ($1::%s) AS dst", test.pgtype))
 		c.Assert(err, IsNil)
 
-		dst := struct{ Dst interface{} }{Dst: row.dst}
-		_, err = stmt.QueryOne(&dst, row.src)
-		c.Assert(err, IsNil)
+		dst := struct{ Dst interface{} }{Dst: test.dst}
+		_, err = stmt.QueryOne(&dst, test.src)
 		c.Assert(stmt.Close(), IsNil)
-		row.Assert(c)
+		test.Assert(c, err)
 	}
 }
 

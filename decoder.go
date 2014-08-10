@@ -13,19 +13,17 @@ var (
 	timeType    = timePtrType.Elem()
 )
 
-func Decode(dst interface{}, f []byte) error {
-	if err, ok := tryDecodeInterfaces(dst, f); ok {
-		return err
-	}
-
-	v := reflect.ValueOf(dst)
+func decodeError(v reflect.Value) error {
 	if !v.IsValid() {
-		return errorf("pg: Decode(%s)", v)
+		return errorf("pg: Decode(nil)")
 	}
-	if v.Kind() != reflect.Ptr {
-		return errorf("pg: pointer expected")
+	if !v.CanSet() {
+		return errorf("pg: Decode(nonsettable %s)", v.Type())
 	}
-	return DecodeValue(v.Elem(), f)
+	if v.Kind() == reflect.Interface {
+		return errorf("pg: Decode(nil)")
+	}
+	return errorf("pg: Decode(nil %s)", v.Type())
 }
 
 func decodeNull(dst reflect.Value) error {
@@ -43,18 +41,50 @@ func decodeNull(dst reflect.Value) error {
 	return nil
 }
 
+func Decode(dst interface{}, f []byte) error {
+	if err, ok := tryDecodeInterfaces(dst, f); ok {
+		return err
+	}
+
+	v := reflect.ValueOf(dst)
+	if !v.IsValid() || v.Kind() != reflect.Ptr {
+		return decodeError(v)
+	}
+	vv := v.Elem()
+	if !vv.IsValid() {
+		return decodeError(v)
+	}
+	return DecodeValue(vv, f)
+}
+
 func DecodeValue(dst reflect.Value, f []byte) error {
+	if !dst.IsValid() {
+		return decodeError(dst)
+	}
+
 	if f == nil {
 		return decodeNull(dst)
 	}
 
 	kind := dst.Kind()
-	if kind == reflect.Ptr && dst.IsNil() {
+	if kind == reflect.Ptr && dst.IsNil() && dst.CanSet() {
 		dst.Set(reflect.New(dst.Type().Elem()))
 	}
 
 	if err, ok := tryDecodeInterfaces(dst.Interface(), f); ok {
 		return err
+	}
+
+	if kind == reflect.Interface || kind == reflect.Ptr {
+		v := dst.Elem()
+		if !v.IsValid() {
+			return decodeError(dst)
+		}
+		return DecodeValue(v, f)
+	}
+
+	if !dst.CanSet() {
+		return decodeError(dst)
 	}
 
 	switch kind {
@@ -93,8 +123,6 @@ func DecodeValue(dst reflect.Value, f []byte) error {
 		return decodeSliceValue(dst, f)
 	case reflect.Map:
 		return decodeMapValue(dst, f)
-	case reflect.Interface, reflect.Ptr:
-		return DecodeValue(dst.Elem(), f)
 	case reflect.Struct:
 		if dst.Type() == timeType {
 			tm, err := decodeTime(f)
