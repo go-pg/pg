@@ -211,7 +211,7 @@ func decodeTime(f []byte) (time.Time, error) {
 	case l <= len(timeFormat):
 		return time.Parse(timeFormat, string(f))
 	default:
-		if c := f[len(f)-5]; c == '+' || c == '-' {
+		if c := f[len(f)-6]; c == '+' || c == '-' {
 			return time.Parse(timestamptzFormat, string(f))
 		}
 		if c := f[len(f)-3]; c == '+' || c == '-' {

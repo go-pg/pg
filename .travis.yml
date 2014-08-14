@@ -7,7 +7,6 @@ addons:
   postgresql: "9.3"
 
 go:
-  - 1.1
   - 1.2
   - 1.3
   - tip
