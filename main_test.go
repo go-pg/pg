@@ -14,7 +14,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
-	. "launchpad.net/gocheck"
+	. "gopkg.in/check.v1"
 
 	"gopkg.in/pg.v2"
 )

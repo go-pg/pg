@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	. "launchpad.net/gocheck"
+	. "gopkg.in/check.v1"
 
 	"gopkg.in/pg.v2"
 )
