@@ -15,7 +15,7 @@ const (
 	dateFormat         = "2006-01-02"
 	timeFormat         = "15:04:05.999999999"
 	timestampFormat    = "2006-01-02 15:04:05.999999999"
-	timestamptzFormat  = "2006-01-02 15:04:05.999999999-0700"
+	timestamptzFormat  = "2006-01-02 15:04:05.999999999-07:00"
 	timestamptzFormat2 = "2006-01-02 15:04:05.999999999-07"
 	timestamptzFormat3 = "2006-01-02 15:04:05.999999999-07:00:00"
 )
