@@ -22,6 +22,10 @@ func (t *PoolTest) SetUpTest(c *C) {
 		Database: "test",
 		PoolSize: 10,
 
+		Params: map[string]interface{}{
+			"statement_timeout": 3100,
+		},
+
 		DialTimeout:  3 * time.Second,
 		ReadTimeout:  3 * time.Second,
 		WriteTimeout: 3 * time.Second,
@@ -63,7 +67,7 @@ func (t *PoolTest) TestPoolMaxSize(c *C) {
 	c.Assert(t.db.Pool().Len(), Equals, 10)
 }
 
-func (t *PoolTest) TestTimeoutAndCancelRequest(c *C) {
+func (t *PoolTest) TestTimeoutAndStatementTimeout(c *C) {
 	_, err := t.db.Exec("SELECT pg_sleep(60)")
 	c.Assert(err.(net.Error).Timeout(), Equals, true)
 
@@ -75,7 +79,9 @@ func (t *PoolTest) TestTimeoutAndCancelRequest(c *C) {
 
 	// Unreliable check that previous query was cancelled.
 	var count int
-	_, err = t.db.QueryOne(pg.LoadInto(&count), "SELECT COUNT(*) FROM pg_stat_activity WHERE datname = 'test'")
+	_, err = t.db.QueryOne(pg.LoadInto(&count), `
+		SELECT COUNT(*) FROM pg_stat_activity WHERE datname = 'test'
+	`)
 	c.Assert(err, IsNil)
 	c.Assert(count, Equals, 1)
 }
