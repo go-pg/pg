@@ -4,8 +4,6 @@ import (
 	"io"
 	"net"
 	"time"
-
-	"github.com/golang/glog"
 )
 
 const defaultBackoff = 100 * time.Millisecond
@@ -18,6 +16,9 @@ type Options struct {
 	Password string
 	Database string
 	SSL      bool
+
+	// Params specify connection run-time configuration parameters.
+	Params map[string]interface{}
 
 	PoolSize int
 
@@ -127,9 +128,15 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) conn() (*conn, error) {
-	cn, _, err := db.pool.Get()
+	cn, isNew, err := db.pool.Get()
 	if err != nil {
 		return nil, err
+	}
+
+	if isNew {
+		if err := setParams(cn, db.opt.Params); err != nil {
+			return nil, err
+		}
 	}
 
 	cn.SetReadTimeout(db.opt.ReadTimeout)
@@ -149,11 +156,6 @@ func (db *DB) freeConn(cn *conn, e error) error {
 	}
 	if _, ok := e.(dbError); ok {
 		return db.pool.Put(cn)
-	}
-	if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
-		if err := db.cancelRequest(cn.processId, cn.secretKey); err != nil {
-			glog.Errorf("cancelRequest failed: %s", err)
-		}
 	}
 	return db.pool.Remove(cn)
 }
@@ -332,6 +334,16 @@ func (db *DB) CopyTo(w io.WriteCloser, q string, args ...interface{}) (*Result, 
 	}
 
 	return res, nil
+}
+
+func setParams(cn *conn, params map[string]interface{}) error {
+	for key, value := range params {
+		_, err := simpleQuery(cn, "SET ? = ?", F(key), value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (db *DB) cancelRequest(processId, secretKey int32) error {
