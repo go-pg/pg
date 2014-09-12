@@ -391,6 +391,10 @@ func appendRawValue(dst []byte, v reflect.Value) []byte {
 //------------------------------------------------------------------------------
 
 func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
+	if len(params) == 0 {
+		return append(dst, src...), nil
+	}
+
 	var structptr, structv reflect.Value
 	var fields map[string][]int
 	var methods map[string]int

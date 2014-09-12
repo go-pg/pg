@@ -22,6 +22,12 @@ func (t *EncoderTest) TestTooFewParamsError(c *C) {
 	c.Assert(err.Error(), Equals, "pg: expected at least 3 parameters, got 2")
 }
 
+func (t *EncoderTest) TestNoParams(c *C) {
+	q, err := pg.FormatQ("?")
+	c.Assert(err, IsNil)
+	c.Assert(string(q), Equals, "?")
+}
+
 // TODO: check for overflow?
 func (t *EncoderTest) TestUint64(c *C) {
 	q, err := pg.FormatQ("?", uint64(math.MaxUint64))
