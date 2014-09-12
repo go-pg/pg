@@ -46,6 +46,7 @@ var (
 )
 
 var formattingTests = []formattingTest{
+	{q: "?", wanted: "?"},
 	{q: "?", args: args{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
 	{q: "? ?foo ?", args: args{"one", "two", structv}, wanted: "'one' 'bar' 'two'"},
 	{q: "?foo ?Meth", args: args{structv}, wanted: "'bar' 'value'"},
