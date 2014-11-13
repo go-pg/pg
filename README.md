@@ -29,7 +29,11 @@ Install:
 Changelog
 ---------
 
-### 0.2
+### v3
+
+Not ready for production.
+
+### v2
 
 * Support for named placeholders:
 
@@ -57,7 +61,7 @@ func (articles *Articles) New() interface{} {
 }
 ```
 
-### 0.1
+### v1
 
 Initial release.
 
