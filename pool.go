@@ -50,9 +50,7 @@ func newConnPool(opt *Options) *connPool {
 }
 
 func (p *connPool) new() (*conn, error) {
-	select {
-	case <-p.rl.C:
-	default:
+	if !p.rl.Check() {
 		return nil, errRateLimited
 	}
 	return p.dial()
@@ -171,6 +169,7 @@ func (p *connPool) Close() error {
 	}
 	p.closed = true
 
+	p.rl.Close()
 	if p.idleCheckTicker != nil {
 		p.idleCheckTicker.Stop()
 	}
