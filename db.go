@@ -2,6 +2,7 @@ package pg
 
 import (
 	"io"
+	"log"
 	"net"
 	"time"
 )
@@ -156,6 +157,11 @@ func (db *DB) freeConn(cn *conn, e error) error {
 	}
 	if _, ok := e.(dbError); ok {
 		return db.pool.Put(cn)
+	}
+	if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
+		if err := db.cancelRequest(cn.processId, cn.secretKey); err != nil {
+			log.Printf("pg: cancelRequest failed: %s", err)
+		}
 	}
 	return db.pool.Remove(cn)
 }

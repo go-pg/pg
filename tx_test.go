@@ -20,6 +20,10 @@ func (t *TxTest) SetUpTest(c *C) {
 	})
 }
 
+func (t *TxTest) TearDownTest(c *C) {
+	c.Assert(t.db.Close(), IsNil)
+}
+
 func (t *TxTest) TestMultiPrepare(c *C) {
 	tx, err := t.db.Begin()
 	c.Assert(err, IsNil)
