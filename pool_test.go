@@ -3,12 +3,85 @@ package pg_test
 import (
 	"net"
 	"sync"
+	"testing"
 	"time"
 
 	. "gopkg.in/check.v1"
 
 	"gopkg.in/pg.v2"
 )
+
+func TestCancelRequestOnTimeout(t *testing.T) {
+	db := pg.Connect(&pg.Options{
+		User:        "postgres",
+		Database:    "test",
+		ReadTimeout: time.Second,
+	})
+	defer db.Close()
+
+	_, err := db.Exec("SELECT pg_sleep(60)")
+	if err == nil {
+		t.Errorf("err is nil")
+	}
+	neterr, ok := err.(net.Error)
+	if !ok {
+		t.Errorf("got %v, expected net.Error", err)
+	}
+	if !neterr.Timeout() {
+		t.Errorf("got %v, expected timeout", err)
+	}
+
+	if db.Pool().Size() != 0 || db.Pool().Len() != 0 {
+		t.Errorf("pool is not empty")
+	}
+
+	// Give PostgreSQL some time to cancel request.
+	time.Sleep(time.Second)
+
+	testNoActivity(t, db)
+}
+
+func TestStatementTimeout(t *testing.T) {
+	db := pg.Connect(&pg.Options{
+		User:     "postgres",
+		Database: "test",
+
+		Params: map[string]interface{}{
+			"statement_timeout": 1000,
+		},
+	})
+	defer db.Close()
+
+	_, err := db.Exec("SELECT pg_sleep(60)")
+	if err == nil {
+		t.Errorf("err is nil")
+	}
+	if err.Error() != "ERROR #57014 canceling statement due to statement timeout: " {
+		t.Errorf("got %q", err.Error())
+	}
+
+	if db.Pool().Size() != 1 || db.Pool().Len() != 1 {
+		t.Errorf("pool is empty")
+	}
+
+	// Give PostgreSQL some time to cancel request.
+	time.Sleep(time.Second)
+
+	testNoActivity(t, db)
+}
+
+func testNoActivity(t *testing.T, db *pg.DB) {
+	var queries pg.Strings
+	_, err := db.Query(&queries, `
+		SELECT query FROM pg_stat_activity WHERE datname = 'test'
+	`)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(queries) > 1 {
+		t.Errorf("there are active queries running: %v", queries)
+	}
+}
 
 var _ = Suite(&PoolTest{})
 
@@ -21,14 +94,6 @@ func (t *PoolTest) SetUpTest(c *C) {
 		User:     "postgres",
 		Database: "test",
 		PoolSize: 10,
-
-		Params: map[string]interface{}{
-			"statement_timeout": 3100,
-		},
-
-		DialTimeout:  3 * time.Second,
-		ReadTimeout:  3 * time.Second,
-		WriteTimeout: 3 * time.Second,
 
 		IdleTimeout:        time.Second,
 		IdleCheckFrequency: time.Second,
@@ -65,25 +130,6 @@ func (t *PoolTest) TestPoolMaxSize(c *C) {
 
 	c.Assert(t.db.Pool().Size(), Equals, 10)
 	c.Assert(t.db.Pool().Len(), Equals, 10)
-}
-
-func (t *PoolTest) TestTimeoutAndStatementTimeout(c *C) {
-	_, err := t.db.Exec("SELECT pg_sleep(60)")
-	c.Assert(err.(net.Error).Timeout(), Equals, true)
-
-	c.Assert(t.db.Pool().Size(), Equals, 0)
-	c.Assert(t.db.Pool().Len(), Equals, 0)
-
-	// Give PostgreSQL some time to cancel request.
-	time.Sleep(time.Second)
-
-	// Unreliable check that previous query was cancelled.
-	var count int
-	_, err = t.db.QueryOne(pg.LoadInto(&count), `
-		SELECT COUNT(*) FROM pg_stat_activity WHERE datname = 'test'
-	`)
-	c.Assert(err, IsNil)
-	c.Assert(count, Equals, 1)
 }
 
 func (t *PoolTest) TestCloseClosesAllConnections(c *C) {
