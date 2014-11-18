@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	"gopkg.in/pg.v2"
+	"gopkg.in/pg.v3"
 )
 
 type structFormatter struct {
@@ -48,6 +48,7 @@ var (
 var formattingTests = []formattingTest{
 	{q: "?", wanted: "?"},
 	{q: "?", args: args{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
+	{q: `\? ?`, args: args{1}, wanted: "? 1"},
 	{q: "? ?foo ?", args: args{"one", "two", structv}, wanted: "'one' 'bar' 'two'"},
 	{q: "?foo ?Meth", args: args{structv}, wanted: "'bar' 'value'"},
 	{q: "?foo ?Meth ?Meth2", args: args{embeddedStructv}, wanted: "'bar' 'value' 'value2'"},
