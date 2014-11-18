@@ -403,7 +403,14 @@ func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 	p := &parser{b: src}
 
 	for p.Valid() {
-		if ch := p.Next(); ch != '?' {
+		ch := p.Next()
+		if ch == '\\' {
+			if p.Peek() == '?' {
+				p.SkipNext()
+				dst = append(dst, '?')
+				continue
+			}
+		} else if ch != '?' {
 			dst = append(dst, ch)
 			continue
 		}
