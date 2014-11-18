@@ -31,18 +31,75 @@ func BenchmarkQueryRow(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		var dst numLoader
+		_, err := db.QueryOne(&dst, `SELECT ?::bigint AS num`, 1)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if dst.Num != 1 {
+			b.Fatalf("got %d, wanted 1", dst.Num)
+		}
+	}
+}
+
+func BenchmarkQueryRowWithoutParams(b *testing.B) {
+	db := pgdb()
+	defer db.Close()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var dst numLoader
+		_, err := db.QueryOne(&dst, `SELECT 1::bigint AS num`)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if dst.Num != 1 {
+			b.Fatalf("got %d, wanted 1", dst.Num)
+		}
+	}
+}
+
+func BenchmarkQueryRowStmt(b *testing.B) {
+	db := pgdb()
+	defer db.Close()
+
+	stmt, err := db.Prepare(`SELECT $1::bigint AS num`)
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer stmt.Close()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var dst numLoader
+		_, err := stmt.QueryOne(&dst, 1)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if dst.Num != 1 {
+			b.Fatalf("got %d, wanted 1", dst.Num)
+		}
+	}
+}
+
+func BenchmarkQueryRowLoadInto(b *testing.B) {
+	db := pgdb()
+	defer db.Close()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
 		var n int64
 		_, err := db.QueryOne(pg.LoadInto(&n), `SELECT ? AS num`, 1)
 		if err != nil {
 			b.Fatal(err)
 		}
 		if n != 1 {
-			b.Fatalf("n != 1")
+			b.Fatalf("got %d, wanted 1", n)
 		}
 	}
 }
 
-func BenchmarkQueryRowStmt(b *testing.B) {
+func BenchmarkQueryRowStmtLoadInto(b *testing.B) {
 	db := pgdb()
 	defer db.Close()
 
@@ -60,7 +117,7 @@ func BenchmarkQueryRowStmt(b *testing.B) {
 			b.Fatal(err)
 		}
 		if n != 1 {
-			b.Fatalf("n != 1")
+			b.Fatalf("got %d, wanted 1", n)
 		}
 	}
 }
@@ -80,7 +137,7 @@ func BenchmarkQueryRowStdlibPq(b *testing.B) {
 			b.Fatal(err)
 		}
 		if n != 1 {
-			b.Fatalf("n != 1")
+			b.Fatalf("got %d, wanted 1", n)
 		}
 	}
 }
