@@ -8,7 +8,7 @@ import (
 
 func TestRateLimiter(t *testing.T) {
 	const n = 100000
-	rl := newRateLimiter(time.Second, n)
+	rl := newRateLimiter(time.Minute, n)
 
 	wg := &sync.WaitGroup{}
 	for i := 0; i < n; i++ {
