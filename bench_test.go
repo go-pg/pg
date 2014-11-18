@@ -2,6 +2,7 @@ package pg_test
 
 import (
 	"database/sql"
+	"math/rand"
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -9,6 +10,16 @@ import (
 
 	"gopkg.in/pg.v3"
 )
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
 
 func pgdb() *pg.DB {
 	return pg.Connect(&pg.Options{
@@ -25,6 +36,110 @@ func mysqldb() (*sql.DB, error) {
 	return sql.Open("mysql", "root:root@tcp(localhost:3306)/test")
 }
 
+type record struct {
+	Num1, Num2, Num3 int64
+	Str1, Str2, Str3 string
+}
+
+type records []*record
+
+func (rs *records) New() interface{} {
+	r := &record{}
+	*rs = append(*rs, r)
+	return r
+}
+
+func seedDB(db *pg.DB) error {
+	_, err := db.Exec(`DROP TABLE IF EXISTS bench_test`)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`
+		CREATE TABLE bench_test(
+			num1 serial,
+			num2 serial,
+			num3 serial,
+			str1 text,
+			str2 text,
+			str3 text
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < 1000; i++ {
+		_, err := db.Exec(`
+			INSERT INTO bench_test (str1, str2, str3) VALUES (?, ?, ?)
+		`, randSeq(100), randSeq(200), randSeq(300))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func BenchmarkQuery(b *testing.B) {
+	db := pgdb()
+	defer db.Close()
+
+	if err := seedDB(db); err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var rs records
+		_, err := db.Query(&rs, `SELECT * FROM bench_test`)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if len(rs) != 1000 {
+			b.Fatalf("got %d, wanted 1000", len(rs))
+		}
+	}
+}
+
+func BenchmarkQueryStdlibPq(b *testing.B) {
+	db := pgdb()
+	defer db.Close()
+
+	if err := seedDB(db); err != nil {
+		b.Fatal(err)
+	}
+
+	pqdb, err := pqdb()
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer pqdb.Close()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		rows, err := pqdb.Query(`SELECT * FROM bench_test`)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		var rs []*record
+		for rows.Next() {
+			var rec record
+			err := rows.Scan(&rec.Num1, &rec.Num2, &rec.Num3, &rec.Str1, &rec.Str2, &rec.Str3)
+			if err != nil {
+				b.Fatal(err)
+			}
+			rs = append(rs, &rec)
+		}
+		rows.Close()
+
+		if len(rs) != 1000 {
+			b.Fatalf("got %d, wanted 1000", len(rs))
+		}
+	}
+}
+
 func BenchmarkQueryRow(b *testing.B) {
 	db := pgdb()
 	defer db.Close()
@@ -33,23 +148,6 @@ func BenchmarkQueryRow(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		var dst numLoader
 		_, err := db.QueryOne(&dst, `SELECT ?::bigint AS num`, 1)
-		if err != nil {
-			b.Fatal(err)
-		}
-		if dst.Num != 1 {
-			b.Fatalf("got %d, wanted 1", dst.Num)
-		}
-	}
-}
-
-func BenchmarkQueryRowWithoutParams(b *testing.B) {
-	db := pgdb()
-	defer db.Close()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		var dst numLoader
-		_, err := db.QueryOne(&dst, `SELECT 1::bigint AS num`)
 		if err != nil {
 			b.Fatal(err)
 		}
