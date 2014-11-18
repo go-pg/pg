@@ -37,34 +37,15 @@ func Test(t *testing.T) { TestingT(t) }
 var _ = Suite(&DBTest{})
 
 type DBTest struct {
-	db            *pg.DB
-	pqdb, mysqldb *sql.DB
+	db *pg.DB
 }
 
 func (t *DBTest) SetUpTest(c *C) {
-	t.db = pg.Connect(&pg.Options{
-		User:     "postgres",
-		Database: "test",
-		PoolSize: 2,
-
-		DialTimeout:  3 * time.Second,
-		ReadTimeout:  3 * time.Second,
-		WriteTimeout: 3 * time.Second,
-	})
-
-	pqdb, err := sql.Open("postgres", "user=test dbname=test")
-	c.Assert(err, IsNil)
-	t.pqdb = pqdb
-
-	mysqldb, err := sql.Open("mysql", "root:root@tcp(localhost:3306)/test")
-	c.Assert(err, IsNil)
-	t.mysqldb = mysqldb
+	t.db = pgdb()
 }
 
 func (t *DBTest) TearDownTest(c *C) {
 	c.Assert(t.db.Close(), IsNil)
-	c.Assert(t.pqdb.Close(), IsNil)
-	c.Assert(t.mysqldb.Close(), IsNil)
 }
 
 type discard struct{}
@@ -513,158 +494,4 @@ func (t *DBTest) TestCopyTo(c *C) {
 	res, err = t.db.CopyFrom(buf, "COPY test2 FROM STDIN")
 	c.Assert(err, IsNil)
 	c.Assert(res.Affected(), Equals, 1000000)
-}
-
-func (t *DBTest) BenchmarkFormatWithoutArgs(c *C) {
-	for i := 0; i < c.N; i++ {
-		_, err := pg.FormatQ("SELECT 'hello', 'world' WHERE 1=1 AND 2=2")
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-func (t *DBTest) BenchmarkFormatWithArgs(c *C) {
-	for i := 0; i < c.N; i++ {
-		_, err := pg.FormatQ("SELECT ?, ? WHERE 1=1 AND 2=2", "hello", "world")
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-func (t *DBTest) BenchmarkQueryRowStdlibPq(c *C) {
-	var n int64
-	for i := 0; i < c.N; i++ {
-		r := t.pqdb.QueryRow("SELECT $1::bigint AS num", 1)
-		if err := r.Scan(&n); err != nil {
-			panic(err)
-		}
-		if n != 1 {
-			panic("n != 1")
-		}
-	}
-}
-
-func (t *DBTest) BenchmarkQueryRowWithoutParamsStdlibPq(c *C) {
-	var n int64
-	for i := 0; i < c.N; i++ {
-		r := t.pqdb.QueryRow("SELECT 1::bigint AS num")
-		if err := r.Scan(&n); err != nil {
-			panic(err)
-		}
-		if n != 1 {
-			panic("n != 1")
-		}
-	}
-}
-
-func (t *DBTest) BenchmarkQueryRowStdlibMySQL(c *C) {
-	var n int64
-	for i := 0; i < c.N; i++ {
-		r := t.mysqldb.QueryRow("SELECT ? AS num", 1)
-		if err := r.Scan(&n); err != nil {
-			panic(err)
-		}
-		if n != 1 {
-			panic("n != 1")
-		}
-	}
-}
-
-func (t *DBTest) BenchmarkQueryRowStmtStdlibPq(c *C) {
-	stmt, err := t.pqdb.Prepare("SELECT $1::bigint AS num")
-	c.Assert(err, IsNil)
-	defer stmt.Close()
-
-	var n int64
-	for i := 0; i < c.N; i++ {
-		r := stmt.QueryRow(1)
-		if err := r.Scan(&n); err != nil {
-			panic(err)
-		}
-	}
-}
-
-func (t *DBTest) BenchmarkExec(c *C) {
-	_, err := t.db.Exec(
-		"CREATE TEMP TABLE exec_test(id bigint, name varchar(500))")
-	if err != nil {
-		panic(err)
-	}
-
-	c.ResetTimer()
-	for i := 0; i < c.N; i++ {
-		res, err := t.db.Exec("INSERT INTO exec_test(id, name) VALUES(?, ?)", 1, "hello world")
-		if err != nil {
-			panic(err)
-		}
-		if res.Affected() != 1 {
-			panic("res.Affected() != 1")
-		}
-	}
-}
-
-func (t *DBTest) BenchmarkExecWithError(c *C) {
-	_, err := t.db.Exec(
-		"CREATE TEMP TABLE exec_with_error_test(id bigint PRIMARY KEY, name varchar(500))")
-	if err != nil {
-		panic(err)
-	}
-
-	_, err = t.db.Exec(
-		"INSERT INTO exec_with_error_test(id, name) VALUES(?, ?)",
-		1, "hello world",
-	)
-	if err != nil {
-		panic(err)
-	}
-
-	c.ResetTimer()
-	for i := 0; i < c.N; i++ {
-		_, err := t.db.Exec("INSERT INTO exec_with_error_test(id) VALUES(?)", 1)
-		if err == nil {
-			panic("got nil error, expected IntegrityError")
-		} else if _, ok := err.(*pg.IntegrityError); !ok {
-			panic("got " + err.Error() + ", expected IntegrityError")
-		}
-	}
-}
-
-func (t *DBTest) BenchmarkExecStmt(c *C) {
-	_, err := t.db.Exec("CREATE TEMP TABLE statement_exec(id bigint, name varchar(500))")
-	if err != nil {
-		panic(err)
-	}
-
-	stmt, err := t.db.Prepare("INSERT INTO statement_exec(id, name) VALUES($1, $2)")
-	c.Assert(err, IsNil)
-	defer stmt.Close()
-
-	c.ResetTimer()
-	for i := 0; i < c.N; i++ {
-		_, err = stmt.Exec(1, "hello world")
-		if err != nil {
-			panic(err)
-		}
-	}
-}
-
-func (t *DBTest) BenchmarkExecStmtStdlibPq(c *C) {
-	_, err := t.pqdb.Exec("CREATE TEMP TABLE statement_exec(id bigint, name varchar(500))")
-	if err != nil {
-		panic(err)
-	}
-
-	stmt, err := t.pqdb.Prepare("INSERT INTO statement_exec(id, name) VALUES($1, $2)")
-	c.Assert(err, IsNil)
-	defer stmt.Close()
-
-	c.ResetTimer()
-	for i := 0; i < c.N; i++ {
-		_, err = stmt.Exec(1, "hello world")
-		if err != nil {
-			panic(err)
-		}
-	}
 }
