@@ -80,3 +80,21 @@ func TestFormatting(t *testing.T) {
 		}
 	}
 }
+
+func BenchmarkFormatQWithoutArgs(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, err := pg.FormatQ("SELECT 'hello', 'world' WHERE 1=1 AND 2=2")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkFormatQWithArgs(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, err := pg.FormatQ("SELECT ?, ? WHERE 1=1 AND 2=2", "hello", "world")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
