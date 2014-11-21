@@ -113,26 +113,15 @@ func appendIface(dst []byte, srci interface{}) []byte {
 }
 
 func appendValue(dst []byte, v reflect.Value) []byte {
-	switch v.Kind() {
+	switch kind := v.Kind(); kind {
 	case reflect.Ptr:
 		if v.IsNil() {
 			return append(dst, "NULL"...)
 		}
 		return appendValue(dst, v.Elem())
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
-		return strconv.AppendInt(dst, v.Int(), 10)
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		return strconv.AppendUint(dst, v.Uint(), 10)
-	case reflect.Float32, reflect.Float64:
-		return appendFloat(dst, v.Float())
-	case reflect.String:
-		return appendString(dst, v.String())
-	case reflect.Struct:
-		if v.Type() == timeType {
-			dst = append(dst, '\'')
-			dst = appendTime(dst, v.Interface().(time.Time))
-			dst = append(dst, '\'')
-			return dst
+	default:
+		if appender := valueAppenders[kind]; appender != nil {
+			return appender(dst, v)
 		}
 	}
 	panic(fmt.Sprintf("pg: unsupported src type: %s", v))
@@ -373,8 +362,8 @@ func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 	}
 
 	var structptr, structv reflect.Value
-	var fields map[string]valuer
-	var methods map[string]valuer
+	var fields map[string]*pgValue
+	var methods map[string]*pgValue
 	var paramInd int
 
 	p := &parser{b: src}

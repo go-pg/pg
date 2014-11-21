@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"database/sql"
 	"reflect"
 	"strconv"
 	"time"
@@ -198,4 +199,12 @@ func decodeNullValue(v reflect.Value) error {
 		return decodeNullValue(v.Elem())
 	}
 	return nil
+}
+
+func decodeScannerValue(v reflect.Value, b []byte) error {
+	return decodeScanner(v.Interface().(sql.Scanner), b)
+}
+
+func decodeScannerAddrValue(v reflect.Value, b []byte) error {
+	return decodeScanner(v.Addr().Interface().(sql.Scanner), b)
 }
