@@ -8,7 +8,8 @@ import (
 )
 
 type structFormatter struct {
-	Foo string
+	Foo       string
+	NullEmpty string `pg:",nullempty"`
 }
 
 func (structFormatter) Meth() string {
@@ -41,7 +42,7 @@ type formattingTest struct {
 type args []interface{}
 
 var (
-	structv         = &structFormatter{"bar"}
+	structv         = &structFormatter{Foo: "bar"}
 	embeddedStructv = &embeddedStructFormatter{structv}
 )
 
@@ -50,6 +51,7 @@ var formattingTests = []formattingTest{
 	{q: "?", args: args{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
 	{q: "?", args: args{pg.Q("query")}, wanted: "query"},
 	{q: "?", args: args{pg.F("field")}, wanted: `"field"`},
+	{q: "?null_empty", args: args{structv}, wanted: `NULL`},
 	{q: `\? ?`, args: args{1}, wanted: "? 1"},
 	{q: "? ?foo ?", args: args{"one", "two", structv}, wanted: "'one' 'bar' 'two'"},
 	{q: "?foo ?Meth", args: args{structv}, wanted: "'bar' 'value'"},

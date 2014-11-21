@@ -41,7 +41,7 @@ func MustFormatQ(src string, params ...interface{}) Q {
 
 func appendIface(dst []byte, srci interface{}) []byte {
 	if srci == nil {
-		return append(dst, "NULL"...)
+		return appendNull(dst)
 	}
 
 	switch src := srci.(type) {
@@ -116,7 +116,7 @@ func appendValue(dst []byte, v reflect.Value) []byte {
 	switch kind := v.Kind(); kind {
 	case reflect.Ptr:
 		if v.IsNil() {
-			return append(dst, "NULL"...)
+			return appendNull(dst)
 		}
 		return appendValue(dst, v.Elem())
 	default:
@@ -204,6 +204,10 @@ func appendValueRaw(dst []byte, v reflect.Value) []byte {
 		}
 	}
 	panic(fmt.Sprintf("pg: unsupported src type: %s", v))
+}
+
+func appendNull(dst []byte) []byte {
+	return append(dst, "NULL"...)
 }
 
 func appendBool(dst []byte, v bool) []byte {
@@ -340,7 +344,7 @@ func appendDriverValue(dst []byte, v driver.Valuer) []byte {
 	value, err := v.Value()
 	if err != nil {
 		log.Printf("%#v value failed: %s", v, err)
-		return append(dst, "NULL"...)
+		return appendNull(dst)
 	}
 	return appendIface(dst, value)
 }
