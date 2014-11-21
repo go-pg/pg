@@ -48,6 +48,8 @@ var (
 var formattingTests = []formattingTest{
 	{q: "?", wanted: "?"},
 	{q: "?", args: args{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
+	{q: "?", args: args{pg.Q("query")}, wanted: "query"},
+	{q: "?", args: args{pg.F("field")}, wanted: `"field"`},
 	{q: `\? ?`, args: args{1}, wanted: "? 1"},
 	{q: "? ?foo ?", args: args{"one", "two", structv}, wanted: "'one' 'bar' 'two'"},
 	{q: "?foo ?Meth", args: args{structv}, wanted: "'bar' 'value'"},
@@ -77,24 +79,6 @@ func TestFormatting(t *testing.T) {
 		}
 		if string(got) != test.wanted {
 			t.Errorf("got %q, wanted %q (q=%q args=%v)", got, test.wanted, test.q, test.args)
-		}
-	}
-}
-
-func BenchmarkFormatQWithoutArgs(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_, err := pg.FormatQ("SELECT 'hello', 'world' WHERE 1=1 AND 2=2")
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func BenchmarkFormatQWithArgs(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		_, err := pg.FormatQ("SELECT ?, ? WHERE 1=1 AND 2=2", "hello", "world")
-		if err != nil {
-			b.Fatal(err)
 		}
 	}
 }

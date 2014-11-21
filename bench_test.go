@@ -2,6 +2,7 @@ package pg_test
 
 import (
 	"database/sql"
+	"fmt"
 	"math/rand"
 	"testing"
 
@@ -11,74 +12,85 @@ import (
 	"gopkg.in/pg.v3"
 )
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func randSeq(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
+func BenchmarkFormatQWithoutArgs(b *testing.B) {
+	rec := &record{
+		Num1: 1,
+		Num2: 2,
+		Num3: 3,
+		Str1: randSeq(100),
+		Str2: randSeq(200),
+		Str3: randSeq(300),
 	}
-	return string(b)
-}
-
-func pgdb() *pg.DB {
-	return pg.Connect(&pg.Options{
-		User:     "postgres",
-		Database: "test",
-	})
-}
-
-func pqdb() (*sql.DB, error) {
-	return sql.Open("postgres", "user=postgres dbname=test")
-}
-
-func mysqldb() (*sql.DB, error) {
-	return sql.Open("mysql", "root:root@tcp(localhost:3306)/test")
-}
-
-type record struct {
-	Num1, Num2, Num3 int64
-	Str1, Str2, Str3 string
-}
-
-type records []*record
-
-func (rs *records) New() interface{} {
-	r := &record{}
-	*rs = append(*rs, r)
-	return r
-}
-
-func seedDB(db *pg.DB) error {
-	_, err := db.Exec(`DROP TABLE IF EXISTS bench_test`)
-	if err != nil {
-		return err
-	}
-
-	_, err = db.Exec(`
-		CREATE TABLE bench_test(
-			num1 serial,
-			num2 serial,
-			num3 serial,
-			str1 text,
-			str2 text,
-			str3 text
-		)
-	`)
-	if err != nil {
-		return err
-	}
-
-	for i := 0; i < 1000; i++ {
-		_, err := db.Exec(`
-			INSERT INTO bench_test (str1, str2, str3) VALUES (?, ?, ?)
-		`, randSeq(100), randSeq(200), randSeq(300))
+	q := fmt.Sprintf(`
+		SELECT %d, %d, %d, '%s', '%s', '%s'
+		WHERE 1=1 AND 2=2
+	`, rec.Num1, rec.Num2, rec.Num3, rec.Str1, rec.Str2, rec.Str3)
+	for i := 0; i < b.N; i++ {
+		_, err := pg.FormatQ(q)
 		if err != nil {
-			return err
+			b.Fatal(err)
 		}
 	}
+}
 
-	return nil
+func BenchmarkFormatQWithArgs(b *testing.B) {
+	rec := &record{
+		Num1: 1,
+		Num2: 2,
+		Num3: 3,
+		Str1: randSeq(100),
+		Str2: randSeq(200),
+		Str3: randSeq(300),
+	}
+	for i := 0; i < b.N; i++ {
+		_, err := pg.FormatQ(`
+			SELECT ?, ?, ?, ?, ?, ?
+			WHERE 1=1 AND 2=2
+		`, rec.Num1, rec.Num2, rec.Num3, rec.Str1, rec.Str2, rec.Str3)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkFormatQWithStructFields(b *testing.B) {
+	rec := &record{
+		Num1: 1,
+		Num2: 2,
+		Num3: 3,
+		Str1: randSeq(100),
+		Str2: randSeq(200),
+		Str3: randSeq(300),
+	}
+	for i := 0; i < b.N; i++ {
+		_, err := pg.FormatQ(`
+			SELECT ?num1, ?num2, ?num3, ?str1, ?str2, ?str3
+			WHERE 1=1 AND 2=2
+		`, rec)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkFormatQWithStructMethods(b *testing.B) {
+	rec := &record{
+		Num1: 1,
+		Num2: 2,
+		Num3: 3,
+		Str1: randSeq(100),
+		Str2: randSeq(200),
+		Str3: randSeq(300),
+	}
+	for i := 0; i < b.N; i++ {
+		_, err := pg.FormatQ(`
+			SELECT ?GetNum1, ?GetNum2, ?GetNum3, ?GetStr1, ?GetStr2, ?GetStr3
+			WHERE 1=1 AND 2=2
+		`, rec)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }
 
 func BenchmarkQuery(b *testing.B) {
@@ -399,4 +411,98 @@ func BenchmarkExecStmtStdlibPq(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
+}
+
+var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+
+func randSeq(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(b)
+}
+
+func pgdb() *pg.DB {
+	return pg.Connect(&pg.Options{
+		User:     "postgres",
+		Database: "test",
+	})
+}
+
+func pqdb() (*sql.DB, error) {
+	return sql.Open("postgres", "user=postgres dbname=test")
+}
+
+func mysqldb() (*sql.DB, error) {
+	return sql.Open("mysql", "root:root@tcp(localhost:3306)/test")
+}
+
+type record struct {
+	Num1, Num2, Num3 int64
+	Str1, Str2, Str3 string
+}
+
+func (r *record) GetNum1() int64 {
+	return r.Num1
+}
+
+func (r *record) GetNum2() int64 {
+	return r.Num2
+}
+
+func (r *record) GetNum3() int64 {
+	return r.Num3
+}
+
+func (r *record) GetStr1() string {
+	return r.Str1
+}
+
+func (r *record) GetStr2() string {
+	return r.Str2
+}
+
+func (r *record) GetStr3() string {
+	return r.Str3
+}
+
+type records []*record
+
+func (rs *records) New() interface{} {
+	r := &record{}
+	*rs = append(*rs, r)
+	return r
+}
+
+func seedDB(db *pg.DB) error {
+	_, err := db.Exec(`DROP TABLE IF EXISTS bench_test`)
+	if err != nil {
+		return err
+	}
+
+	_, err = db.Exec(`
+		CREATE TABLE bench_test(
+			num1 serial,
+			num2 serial,
+			num3 serial,
+			str1 text,
+			str2 text,
+			str3 text
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < 1000; i++ {
+		_, err := db.Exec(`
+			INSERT INTO bench_test (str1, str2, str3) VALUES (?, ?, ?)
+		`, randSeq(100), randSeq(200), randSeq(300))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
