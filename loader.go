@@ -34,7 +34,7 @@ func (discardLoader) Load(colIdx int, colName string, b []byte) error {
 
 type structLoader struct {
 	v      reflect.Value // reflect.Struct
-	fields map[string]valuer
+	fields map[string]*pgValue
 }
 
 func newStructLoader(v reflect.Value) *structLoader {
