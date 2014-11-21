@@ -26,6 +26,8 @@ type pgValue struct {
 	Type   reflect.Type
 	Index  []int
 
+	NullEmpty bool
+
 	appender valueAppender
 	decoder  valueDecoder
 }
@@ -77,6 +79,9 @@ func newPGValue(src interface{}, index []int) *pgValue {
 
 func (pgv *pgValue) AppendValue(dst []byte, v reflect.Value) []byte {
 	fv := pgv.getValue(v)
+	if pgv.NullEmpty && isEmptyValue(fv) {
+		return appendNull(dst)
+	}
 	if pgv.appender != nil {
 		return pgv.appender(dst, fv)
 	}
@@ -178,7 +183,7 @@ func fields(typ reflect.Type) map[string]*pgValue {
 			continue
 		}
 
-		name, _ := parseTag(f.Tag.Get("pg"))
+		name, opts := parseTag(f.Tag.Get("pg"))
 		if name == "-" {
 			continue
 		}
@@ -194,6 +199,9 @@ func fields(typ reflect.Type) map[string]*pgValue {
 		}
 
 		val := newPGValue(f, f.Index)
+		if opts.Contains("nullempty") {
+			val.NullEmpty = true
+		}
 		dst[name] = val
 	}
 	return dst
