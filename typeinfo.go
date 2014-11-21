@@ -90,6 +90,9 @@ func (pgv *pgValue) AppendValue(dst []byte, v reflect.Value) []byte {
 
 func (pgv *pgValue) DecodeValue(v reflect.Value, b []byte) error {
 	fv := pgv.getValue(v)
+	if b == nil {
+		return decodeNullValue(fv)
+	}
 	if pgv.decoder != nil {
 		return pgv.decoder(fv, b)
 	}

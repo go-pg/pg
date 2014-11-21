@@ -52,6 +52,13 @@ func (t *LoaderTest) TestQuery(c *C) {
 	c.Assert(dst.Num, Equals, 1)
 }
 
+func (t *LoaderTest) TestQueryNull(c *C) {
+	dst := &numLoader{}
+	_, err := t.db.Query(dst, "SELECT NULL AS num")
+	c.Assert(err, IsNil)
+	c.Assert(dst.Num, Equals, 0)
+}
+
 func (t *LoaderTest) TestQueryEmbeddedStruct(c *C) {
 	src := &embeddedLoader{
 		numLoader: &numLoader{

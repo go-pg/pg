@@ -85,9 +85,6 @@ func decodeBoolValue(v reflect.Value, b []byte) error {
 }
 
 func decodeIntValue(v reflect.Value, b []byte) error {
-	if b == nil {
-		return decodeNullValue(v)
-	}
 	n, err := strconv.ParseInt(string(b), 10, 64)
 	if err != nil {
 		return err
@@ -97,9 +94,6 @@ func decodeIntValue(v reflect.Value, b []byte) error {
 }
 
 func decodeUintValue(v reflect.Value, b []byte) error {
-	if b == nil {
-		return decodeNullValue(v)
-	}
 	n, err := strconv.ParseUint(string(b), 10, 64)
 	if err != nil {
 		return err
