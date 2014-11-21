@@ -221,7 +221,7 @@ func writeBindExecuteMsg(buf *buffer, name string, args ...interface{}) error {
 	for i := 0; i < len(args); i++ {
 		pos := len(buf.B)
 		buf.Grow(4)
-		newB := appendRawIface(buf.B, args[i])
+		newB := appendIfaceRaw(buf.B, args[i])
 		l := -1
 		if newB != nil {
 			buf.B = newB
@@ -407,7 +407,7 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 		loader, err = NewLoader(dst)
 		if err != nil {
 			loadErr = err
-			// Loader is invalid, but try to read all data from connection.
+			// Loader is broken, but try to read all data from connection.
 			loader = Discard
 		}
 	}

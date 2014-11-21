@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	Discard Loader = discardLoader{}
+	Discard = discardLoader{}
 
 	_ Loader = &structLoader{}
 	_ Loader = &valuesLoader{}
@@ -22,6 +22,10 @@ type Loader interface {
 
 type discardLoader struct{}
 
+func (l discardLoader) New() interface{} {
+	return l
+}
+
 func (discardLoader) Load(colIdx int, colName string, b []byte) error {
 	return nil
 }
@@ -29,8 +33,8 @@ func (discardLoader) Load(colIdx int, colName string, b []byte) error {
 //------------------------------------------------------------------------------
 
 type structLoader struct {
-	v      reflect.Value
-	fields map[string][]int
+	v      reflect.Value // reflect.Struct
+	fields map[string]valuer
 }
 
 func newStructLoader(v reflect.Value) *structLoader {
@@ -41,11 +45,11 @@ func newStructLoader(v reflect.Value) *structLoader {
 }
 
 func (l *structLoader) Load(colIdx int, colName string, b []byte) error {
-	indx, ok := l.fields[colName]
+	field, ok := l.fields[colName]
 	if !ok {
 		return errorf("pg: cannot map field %q", colName)
 	}
-	return DecodeValue(l.v.FieldByIndex(indx).Addr(), b)
+	return field.DecodeValue(l.v, b)
 }
 
 //------------------------------------------------------------------------------
