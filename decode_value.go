@@ -2,6 +2,7 @@ package pg
 
 import (
 	"database/sql"
+	"encoding/json"
 	"reflect"
 	"strconv"
 	"time"
@@ -73,6 +74,10 @@ func DecodeValue(dst reflect.Value, f []byte) error {
 		return decodeError(dst)
 	}
 
+	if dst.Type() == timeType {
+		return decodeTimeValue(dst, f)
+	}
+
 	if decoder := valueDecoders[kind]; decoder != nil {
 		return decoder(dst, f)
 	}
@@ -117,10 +122,7 @@ func decodeStringValue(v reflect.Value, b []byte) error {
 }
 
 func decodeStructValue(v reflect.Value, b []byte) error {
-	if v.Type() == timeType {
-		return decodeTimeValue(v, b)
-	}
-	return errorf("pg: unsupported dst: %s", v.Type())
+	return json.Unmarshal(b, v.Addr().Interface())
 }
 
 func decodeTimeValue(v reflect.Value, b []byte) error {
