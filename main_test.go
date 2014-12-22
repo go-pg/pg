@@ -180,17 +180,18 @@ var (
 	stringptr *string
 	bytesv    []byte
 
-	intv    int
-	intvptr *int
-	int8v   int8
-	int16v  int16
-	int32v  int32
-	int64v  int64
-	uintv   uint
-	uint8v  uint8
-	uint16v uint16
-	uint32v uint32
-	uint64v uint64
+	intv     int
+	intvptr  *int
+	int8v    int8
+	int16v   int16
+	int32v   int32
+	int64v   int64
+	uintv    uint
+	uint8v   uint8
+	uint16v  uint16
+	uint32v  uint32
+	uint64v  uint64
+	uintptrv uintptr
 
 	f32v float32
 	f64v float64
@@ -214,6 +215,10 @@ var (
 	pgstrings pg.Strings
 )
 
+type jsonStruct struct {
+	Foo string
+}
+
 type jsonMap_ map[string]interface{}
 
 func (m *jsonMap_) Scan(value interface{}) error {
@@ -229,8 +234,8 @@ func (m jsonMap_) Value() (driver.Value, error) {
 }
 
 type conversionTest struct {
-	src, dst interface{}
-	pgtype   string
+	src, dst, wanted interface{}
+	pgtype           string
 
 	wanterr  string
 	wantnil  bool
@@ -239,7 +244,7 @@ type conversionTest struct {
 
 var conversionTests = []conversionTest{
 	{src: true, dst: nil, wanterr: "pg: Decode(nil)"},
-	{src: true, dst: &struct{}{}, wanterr: "pg: unsupported dst: struct {}"},
+	{src: true, dst: &uintptrv, wanterr: "pg: unsupported dst: uintptr"},
 	{src: true, dst: boolv, wanterr: "pg: Decode(nonsettable bool)"},
 	{src: true, dst: boolptr, wanterr: "pg: Decode(nonsettable *bool)"},
 
@@ -329,6 +334,7 @@ var conversionTests = []conversionTest{
 	{src: time.Now(), dst: &timeptr, pgtype: "timestamptz"},
 	{src: nil, dst: &timeptr, pgtype: "timestamptz", wantnil: true},
 
+	{src: `{"foo": "bar"}`, dst: &jsonStruct{}, wanted: jsonStruct{Foo: "bar"}},
 	{src: jsonMap_{"foo": "bar"}, dst: &jsonMap_{}, pgtype: "json"},
 
 	{src: pg.Ints{1, 2, 3}, dst: &pgints},
@@ -367,7 +373,11 @@ func (t *conversionTest) Assert(c *C, err error) {
 		return
 	}
 
-	c.Assert(dst, DeepEquals, src, t.Comment())
+	if t.wanted != nil {
+		c.Assert(dst, DeepEquals, t.wanted, t.Comment())
+	} else {
+		c.Assert(dst, DeepEquals, src, t.Comment())
+	}
 }
 
 func (t *conversionTest) Comment() CommentInterface {
