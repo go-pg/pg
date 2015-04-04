@@ -210,6 +210,7 @@ var (
 
 	timev   time.Time
 	timeptr *time.Time
+	now     = time.Now()
 
 	pgints    pg.Ints
 	pgstrings pg.Strings
@@ -329,6 +330,7 @@ var conversionTests = []conversionTest{
 
 	{src: time.Time{}, dst: &timev, pgtype: "timestamptz"},
 	{src: time.Now(), dst: &timev, pgtype: "timestamptz"},
+	{src: &now, dst: &timev, pgtype: "timestamptz"},
 	{src: time.Now().UTC(), dst: &timev, pgtype: "timestamptz"},
 	{src: nil, dst: &timev, pgtype: "timestamptz", wantzero: true},
 	{src: time.Now(), dst: &timeptr, pgtype: "timestamptz"},

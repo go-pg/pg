@@ -35,7 +35,7 @@ var valueAppenders = [...]valueAppender{
 	reflect.Ptr:           nil,
 	reflect.Slice:         nil,
 	reflect.String:        appendStringValue,
-	reflect.Struct:        nil,
+	reflect.Struct:        appendStructValue,
 	reflect.UnsafePointer: nil,
 }
 
