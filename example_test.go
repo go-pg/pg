@@ -34,10 +34,35 @@ func ExampleDB_QueryOne() {
         WITH users (name) AS (VALUES (?))
         SELECT * FROM users
     `, "admin")
-	fmt.Println(res.Affected(), err)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(res.Affected())
 	fmt.Println(user)
-	// Output: 1 <nil>
+	// Output: 1
 	// {admin}
+}
+
+func ExampleDB_QueryOne_2() {
+	var user struct {
+		Id   int32
+		Name string
+	}
+
+	_, err := db.Exec(`CREATE TEMP TABLE users(id serial, name varchar(500))`)
+	if err != nil {
+		panic(err)
+	}
+
+	user.Name = "admin"
+	_, err = db.QueryOne(&user, `
+        INSERT INTO users (name) VALUES (?name) RETURNING id
+    `, user)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(user)
+	// Output: {1 admin}
 }
 
 func ExampleDB_Exec() {
