@@ -26,7 +26,9 @@ func TestUnixSocket(t *testing.T) {
 		User:     "postgres",
 		Database: "test",
 	})
-	_, err := db.Exec("SELECT 1")
+	defer db.Close()
+
+	_, err := db.Exec("SELECT 'test_unix_socket'")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -65,7 +67,7 @@ func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
 }
 
 func (t *DBTest) TestExecOne(c *C) {
-	res, err := t.db.ExecOne("SELECT 1")
+	res, err := t.db.ExecOne("SELECT 'test_exec_one'")
 	c.Assert(err, IsNil)
 	c.Assert(res.Affected(), Equals, 1)
 }

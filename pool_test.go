@@ -1,8 +1,10 @@
 package pg_test
 
 import (
+	"fmt"
 	"net"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -31,14 +33,19 @@ func TestCancelRequestOnTimeout(t *testing.T) {
 		t.Errorf("got %v, expected timeout", err)
 	}
 
-	if db.Pool().Size() != 0 || db.Pool().Len() != 0 {
-		t.Errorf("pool is not empty")
+	if db.Pool().FreeLen() != 1 {
+		t.Errorf("len is %d", db.Pool().FreeLen())
+	}
+	if db.Pool().Len() != 1 {
+		t.Errorf("size is %d", db.Pool().Len())
 	}
 
-	// Give PostgreSQL some time to cancel request.
-	time.Sleep(time.Second)
-
-	testNoActivity(t, db)
+	err = eventually(func() error {
+		return verifyNoActivity(db)
+	}, 10*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func TestStatementTimeout(t *testing.T) {
@@ -60,27 +67,30 @@ func TestStatementTimeout(t *testing.T) {
 		t.Errorf("got %q", err.Error())
 	}
 
-	if db.Pool().Size() != 1 || db.Pool().Len() != 1 {
+	if db.Pool().Len() != 1 || db.Pool().FreeLen() != 1 {
 		t.Errorf("pool is empty")
 	}
 
-	// Give PostgreSQL some time to cancel request.
-	time.Sleep(time.Second)
-
-	testNoActivity(t, db)
+	err = eventually(func() error {
+		return verifyNoActivity(db)
+	}, 10*time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
-func testNoActivity(t *testing.T, db *pg.DB) {
+func verifyNoActivity(db *pg.DB) error {
 	var queries pg.Strings
 	_, err := db.Query(&queries, `
 		SELECT query FROM pg_stat_activity WHERE datname = 'test'
 	`)
 	if err != nil {
-		t.Error(err)
+		return err
 	}
 	if len(queries) > 1 {
-		t.Errorf("there are active queries running: %v", queries)
+		return fmt.Errorf("there are active queries running: %v", queries)
 	}
+	return nil
 }
 
 var _ = Suite(&PoolTest{})
@@ -106,12 +116,12 @@ func (t *PoolTest) TearDownTest(c *C) {
 
 func (t *PoolTest) TestPoolReusesConnection(c *C) {
 	for i := 0; i < 100; i++ {
-		_, err := t.db.Exec("SELECT 1")
+		_, err := t.db.Exec("SELECT 'test_pool_reuses_connection'")
 		c.Assert(err, IsNil)
 	}
 
-	c.Assert(t.db.Pool().Size(), Equals, 1)
 	c.Assert(t.db.Pool().Len(), Equals, 1)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 1)
 }
 
 func (t *PoolTest) TestPoolMaxSize(c *C) {
@@ -121,50 +131,72 @@ func (t *PoolTest) TestPoolMaxSize(c *C) {
 	wg.Add(N)
 	for i := 0; i < 1000; i++ {
 		go func() {
-			_, err := t.db.Exec("SELECT 1")
-			c.Assert(err, IsNil)
+			_, _ = t.db.Exec("SELECT 'test_pool_max_size'")
+			//			c.Assert(err, IsNil)
 			wg.Done()
 		}()
 	}
-	wg.Wait()
 
-	c.Assert(t.db.Pool().Size(), Equals, 10)
+	wait := make(chan struct{}, 1)
+	go func() {
+		wg.Wait()
+		wait <- struct{}{}
+	}()
+
+	select {
+	case <-wait:
+		// ok
+	case <-time.After(3 * time.Second):
+		c.Fatal("timeout")
+	}
+
 	c.Assert(t.db.Pool().Len(), Equals, 10)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 10)
 }
 
 func (t *PoolTest) TestCloseClosesAllConnections(c *C) {
 	ln, err := t.db.Listen("test_channel")
 	c.Assert(err, IsNil)
 
-	started := make(chan struct{})
-	done := make(chan struct{})
+	wait := make(chan struct{}, 1)
 	go func() {
-		close(started)
+		wait <- struct{}{}
 		_, _, err := ln.Receive()
-		c.Assert(err, Not(IsNil))
-		c.Assert(err.Error(), Equals, "read tcp 127.0.0.1:5432: use of closed network connection")
-		close(done)
+		c.Assert(err, ErrorMatches, `^(.*use of closed network connection|EOF)$`)
+		wait <- struct{}{}
 	}()
 
-	<-started
-	c.Assert(t.db.Close(), IsNil)
-	<-done
+	select {
+	case <-wait:
+		// ok
+	case <-time.After(3 * time.Second):
+		c.Fatal("timeout")
+	}
 
-	c.Assert(t.db.Pool().Size(), Equals, 0)
+	c.Assert(t.db.Close(), IsNil)
+
+	select {
+	case <-wait:
+		// ok
+	case <-time.After(3 * time.Second):
+		c.Fatal("timeout")
+	}
+
 	c.Assert(t.db.Pool().Len(), Equals, 0)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
 }
 
 func (t *PoolTest) TestClosedDB(c *C) {
 	c.Assert(t.db.Close(), IsNil)
 
-	c.Assert(t.db.Pool().Size(), Equals, 0)
 	c.Assert(t.db.Pool().Len(), Equals, 0)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
 
 	err := t.db.Close()
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: database is closed")
 
-	_, err = t.db.Exec("SELECT 1")
+	_, err = t.db.Exec("SELECT 'test_closed_db'")
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: database is closed")
 }
@@ -173,19 +205,19 @@ func (t *PoolTest) TestClosedListener(c *C) {
 	ln, err := t.db.Listen("test_channel")
 	c.Assert(err, IsNil)
 
-	c.Assert(t.db.Pool().Size(), Equals, 1)
-	c.Assert(t.db.Pool().Len(), Equals, 0)
+	c.Assert(t.db.Pool().Len(), Equals, 1)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
 
 	c.Assert(ln.Close(), IsNil)
 
-	c.Assert(t.db.Pool().Size(), Equals, 0)
-	c.Assert(t.db.Pool().Len(), Equals, 0)
+	c.Assert(t.db.Pool().Len(), Equals, 1)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 1)
 
 	err = ln.Close()
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: listener is closed")
 
-	_, _, err = ln.Receive()
+	_, _, err = ln.ReceiveTimeout(time.Second)
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: listener is closed")
 }
@@ -194,19 +226,19 @@ func (t *PoolTest) TestClosedTx(c *C) {
 	tx, err := t.db.Begin()
 	c.Assert(err, IsNil)
 
-	c.Assert(t.db.Pool().Size(), Equals, 1)
-	c.Assert(t.db.Pool().Len(), Equals, 0)
+	c.Assert(t.db.Pool().Len(), Equals, 1)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
 
 	c.Assert(tx.Rollback(), IsNil)
 
-	c.Assert(t.db.Pool().Size(), Equals, 1)
 	c.Assert(t.db.Pool().Len(), Equals, 1)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 1)
 
 	err = tx.Rollback()
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: transaction has already been committed or rolled back")
 
-	_, err = tx.Exec("SELECT 1")
+	_, err = tx.Exec("SELECT 'test_closed_tx'")
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: transaction has already been committed or rolled back")
 }
@@ -215,13 +247,13 @@ func (t *PoolTest) TestClosedStmt(c *C) {
 	stmt, err := t.db.Prepare("SELECT $1::int")
 	c.Assert(err, IsNil)
 
-	c.Assert(t.db.Pool().Size(), Equals, 1)
-	c.Assert(t.db.Pool().Len(), Equals, 0)
+	c.Assert(t.db.Pool().Len(), Equals, 1)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
 
 	c.Assert(stmt.Close(), IsNil)
 
-	c.Assert(t.db.Pool().Size(), Equals, 1)
 	c.Assert(t.db.Pool().Len(), Equals, 1)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 1)
 
 	err = stmt.Close()
 	c.Assert(err, Not(IsNil))
@@ -232,15 +264,40 @@ func (t *PoolTest) TestClosedStmt(c *C) {
 }
 
 func (t *PoolTest) TestIdleConnectionsAreClosed(c *C) {
-	_, err := t.db.Exec("SELECT 1")
+	_, err := t.db.Exec("SELECT 'test_idle_connections_are_closed'")
 	c.Assert(err, IsNil)
 
-	c.Assert(t.db.Pool().Size(), Equals, 1)
 	c.Assert(t.db.Pool().Len(), Equals, 1)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 1)
 
-	// Give pg time to close idle connections.
-	time.Sleep(2 * time.Second)
+	err = eventually(func() error {
+		if t.db.Pool().Len() != 0 {
+			return fmt.Errorf("pool len is %d, wanted 0")
+		}
+		return nil
+	}, 10*time.Second)
+	c.Assert(err, IsNil)
+}
 
-	c.Assert(t.db.Pool().Size(), Equals, 0)
-	c.Assert(t.db.Pool().Len(), Equals, 0)
+func eventually(fn func() error, timeout time.Duration) (err error) {
+	done := make(chan struct{}, 1)
+	var exit int32
+	go func() {
+		for atomic.LoadInt32(&exit) == 0 {
+			err = fn()
+			if err == nil {
+				done <- struct{}{}
+				return
+			}
+			time.Sleep(timeout / 100)
+		}
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-time.After(timeout):
+		atomic.StoreInt32(&exit, 1)
+	}
+	return err
 }

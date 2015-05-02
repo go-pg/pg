@@ -36,7 +36,7 @@ type conn struct {
 	elem *list.Element
 }
 
-func newConnFunc(opt *Options) func() (*conn, error) {
+func newConnDialer(opt *Options) func() (*conn, error) {
 	return func() (*conn, error) {
 		netcn, err := dial(opt)
 		if err != nil {
@@ -51,6 +51,9 @@ func newConnFunc(opt *Options) func() (*conn, error) {
 		if err := cn.Startup(); err != nil {
 			return nil, err
 		}
+		if err := setParams(cn, opt.Params); err != nil {
+			return nil, err
+		}
 		return cn, nil
 	}
 }
@@ -58,10 +61,6 @@ func newConnFunc(opt *Options) func() (*conn, error) {
 func (cn *conn) GenId() string {
 	cn._id++
 	return strconv.FormatInt(cn._id, 10)
-}
-
-func (cn *conn) IsIdle(dur time.Duration) bool {
-	return time.Since(cn.usedAt) > dur
 }
 
 func (cn *conn) SetReadTimeout(dur time.Duration) {
