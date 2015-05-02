@@ -28,7 +28,8 @@ Install:
 
 Quickstart
 ----------
-```
+
+```go
 package pg_test
 
 import (
