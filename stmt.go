@@ -78,7 +78,7 @@ func (stmt *Stmt) ExecOne(args ...interface{}) (*Result, error) {
 	return assertOneAffected(res)
 }
 
-func (stmt *Stmt) Query(f Factory, args ...interface{}) (res *Result, err error) {
+func (stmt *Stmt) Query(coll Collection, args ...interface{}) (res *Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		var cn *conn
@@ -88,7 +88,7 @@ func (stmt *Stmt) Query(f Factory, args ...interface{}) (res *Result, err error)
 			break
 		}
 
-		res, err = extQueryData(cn, stmt.name, f, stmt.columns, args...)
+		res, err = extQueryData(cn, stmt.name, coll, stmt.columns, args...)
 		if !canRetry(err) {
 			break
 		}
@@ -102,8 +102,8 @@ func (stmt *Stmt) Query(f Factory, args ...interface{}) (res *Result, err error)
 	return
 }
 
-func (stmt *Stmt) QueryOne(model interface{}, args ...interface{}) (*Result, error) {
-	res, err := stmt.Query(&singleFactory{model}, args...)
+func (stmt *Stmt) QueryOne(record interface{}, args ...interface{}) (*Result, error) {
+	res, err := stmt.Query(&singleRecordCollection{record}, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -133,12 +133,12 @@ func extQuery(cn *conn, name string, args ...interface{}) (*Result, error) {
 	return readExtQuery(cn)
 }
 
-func extQueryData(cn *conn, name string, f Factory, columns []string, args ...interface{}) (*Result, error) {
+func extQueryData(cn *conn, name string, coll Collection, columns []string, args ...interface{}) (*Result, error) {
 	if err := writeBindExecuteMsg(cn.buf, name, args...); err != nil {
 		return nil, err
 	}
 	if err := cn.Flush(); err != nil {
 		return nil, err
 	}
-	return readExtQueryData(cn, f, columns)
+	return readExtQueryData(cn, coll, columns)
 }

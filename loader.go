@@ -7,26 +7,32 @@ import (
 
 var (
 	Discard = discardLoader{}
-
-	_ Loader = &structLoader{}
-	_ Loader = &valuesLoader{}
-	_ Loader = &Strings{}
-	_ Loader = &Ints{}
 )
 
-type Loader interface {
-	Load(colIdx int, colName string, b []byte) error
+//------------------------------------------------------------------------------
+
+type singleRecordCollection struct {
+	v interface{}
+}
+
+var _ Collection = &singleRecordCollection{}
+
+func (f *singleRecordCollection) NewRecord() interface{} {
+	return f.v
 }
 
 //------------------------------------------------------------------------------
 
 type discardLoader struct{}
 
-func (l discardLoader) New() interface{} {
+var _ Collection = &discardLoader{}
+var _ ColumnLoader = &discardLoader{}
+
+func (l discardLoader) NewRecord() interface{} {
 	return l
 }
 
-func (discardLoader) Load(colIdx int, colName string, b []byte) error {
+func (discardLoader) LoadColumn(colIdx int, colName string, b []byte) error {
 	return nil
 }
 
@@ -37,6 +43,8 @@ type structLoader struct {
 	fields map[string]*pgValue
 }
 
+var _ ColumnLoader = &structLoader{}
+
 func newStructLoader(v reflect.Value) *structLoader {
 	return &structLoader{
 		v:      v,
@@ -44,7 +52,7 @@ func newStructLoader(v reflect.Value) *structLoader {
 	}
 }
 
-func (l *structLoader) Load(colIdx int, colName string, b []byte) error {
+func (l *structLoader) LoadColumn(colIdx int, colName string, b []byte) error {
 	field, ok := l.fields[colName]
 	if !ok {
 		return errorf("pg: cannot map field %q", colName)
@@ -58,11 +66,13 @@ type valuesLoader struct {
 	values []interface{}
 }
 
-func LoadInto(values ...interface{}) Loader {
+var _ ColumnLoader = &valuesLoader{}
+
+func LoadInto(values ...interface{}) ColumnLoader {
 	return &valuesLoader{values}
 }
 
-func (l *valuesLoader) Load(colIdx int, colName string, b []byte) error {
+func (l *valuesLoader) LoadColumn(colIdx int, _ string, b []byte) error {
 	return Decode(l.values[colIdx], b)
 }
 
@@ -70,16 +80,19 @@ func (l *valuesLoader) Load(colIdx int, colName string, b []byte) error {
 
 type Strings []string
 
-func (strings *Strings) New() interface{} {
+var _ Collection = &Strings{}
+var _ ColumnLoader = &Strings{}
+
+func (strings *Strings) NewRecord() interface{} {
 	return strings
 }
 
-func (strings *Strings) Load(colIdx int, colName string, b []byte) error {
+func (strings *Strings) LoadColumn(colIdx int, _ string, b []byte) error {
 	*strings = append(*strings, string(b))
 	return nil
 }
 
-func (strings Strings) Append(dst []byte) []byte {
+func (strings Strings) AppendQuery(dst []byte) []byte {
 	if len(strings) <= 0 {
 		return dst
 	}
@@ -96,11 +109,14 @@ func (strings Strings) Append(dst []byte) []byte {
 
 type Ints []int64
 
-func (ints *Ints) New() interface{} {
+var _ Collection = &Ints{}
+var _ ColumnLoader = &Ints{}
+
+func (ints *Ints) NewRecord() interface{} {
 	return ints
 }
 
-func (ints *Ints) Load(colIdx int, colName string, b []byte) error {
+func (ints *Ints) LoadColumn(colIdx int, colName string, b []byte) error {
 	n, err := strconv.ParseInt(string(b), 10, 64)
 	if err != nil {
 		return err
@@ -109,7 +125,7 @@ func (ints *Ints) Load(colIdx int, colName string, b []byte) error {
 	return nil
 }
 
-func (ints Ints) Append(dst []byte) []byte {
+func (ints Ints) AppendQuery(dst []byte) []byte {
 	if len(ints) <= 0 {
 		return dst
 	}
@@ -124,13 +140,16 @@ func (ints Ints) Append(dst []byte) []byte {
 
 //------------------------------------------------------------------------------
 
-type IntsSet map[int64]struct{}
+type IntSet map[int64]struct{}
 
-func (set IntsSet) New() interface{} {
+var _ Collection = &IntSet{}
+var _ ColumnLoader = &IntSet{}
+
+func (set IntSet) NewRecord() interface{} {
 	return set
 }
 
-func (set IntsSet) Load(colIdx int, colName string, b []byte) error {
+func (set IntSet) LoadColumn(colIdx int, colName string, b []byte) error {
 	n, err := strconv.ParseInt(string(b), 10, 64)
 	if err != nil {
 		return err
@@ -141,7 +160,7 @@ func (set IntsSet) Load(colIdx int, colName string, b []byte) error {
 
 //------------------------------------------------------------------------------
 
-func NewLoader(dst interface{}) (Loader, error) {
+func NewColumnLoader(dst interface{}) (ColumnLoader, error) {
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
 		return nil, decodeError(v)

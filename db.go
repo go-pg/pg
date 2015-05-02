@@ -204,7 +204,7 @@ func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
 	return assertOneAffected(res)
 }
 
-func (db *DB) Query(f Factory, q string, args ...interface{}) (res *Result, err error) {
+func (db *DB) Query(coll Collection, q string, args ...interface{}) (res *Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		var cn *conn
@@ -214,7 +214,7 @@ func (db *DB) Query(f Factory, q string, args ...interface{}) (res *Result, err 
 			break
 		}
 
-		res, err = simpleQueryData(cn, f, q, args...)
+		res, err = simpleQueryData(cn, coll, q, args...)
 		db.freeConn(cn, err)
 		if !canRetry(err) {
 			break
@@ -226,8 +226,8 @@ func (db *DB) Query(f Factory, q string, args ...interface{}) (res *Result, err 
 	return
 }
 
-func (db *DB) QueryOne(model interface{}, q string, args ...interface{}) (*Result, error) {
-	res, err := db.Query(&singleFactory{model}, q, args...)
+func (db *DB) QueryOne(record interface{}, q string, args ...interface{}) (*Result, error) {
+	res, err := db.Query(&singleRecordCollection{record}, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -385,7 +385,7 @@ func simpleQuery(cn *conn, q string, args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
-func simpleQueryData(cn *conn, f Factory, q string, args ...interface{}) (*Result, error) {
+func simpleQueryData(cn *conn, coll Collection, q string, args ...interface{}) (*Result, error) {
 	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
 		return nil, err
 	}
@@ -394,7 +394,7 @@ func simpleQueryData(cn *conn, f Factory, q string, args ...interface{}) (*Resul
 		return nil, err
 	}
 
-	res, err := readSimpleQueryData(cn, f)
+	res, err := readSimpleQueryData(cn, coll)
 	if err != nil {
 		return nil, err
 	}

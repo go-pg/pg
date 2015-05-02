@@ -1,40 +1,41 @@
 package pg
 
-type Factory interface {
-	New() interface{}
+type Collection interface {
+	NewRecord() interface{}
 }
 
-type singleFactory struct {
-	v interface{}
+type ColumnLoader interface {
+	LoadColumn(colIdx int, colName string, b []byte) error
 }
 
-func (f *singleFactory) New() interface{} {
-	return f.v
+type QueryAppender interface {
+	AppendQuery([]byte) []byte
 }
 
-type Appender interface {
-	Append([]byte) []byte
-}
-
-type RawAppender interface {
-	AppendRaw([]byte) []byte
+type RawQueryAppender interface {
+	AppendRawQuery([]byte) []byte
 }
 
 // Raw SQL query.
 type Q string
 
-func (q Q) Append(dst []byte) []byte {
+var _ QueryAppender = Q("")
+var _ RawQueryAppender = Q("")
+
+func (q Q) AppendQuery(dst []byte) []byte {
 	return append(dst, string(q)...)
 }
 
-func (q Q) AppendRaw(dst []byte) []byte {
-	return q.Append(dst)
+func (q Q) AppendRawQuery(dst []byte) []byte {
+	return q.AppendQuery(dst)
 }
 
-// SQL field.
+// SQL field, e.g. table or column name.
 type F string
 
-func (f F) Append(dst []byte) []byte {
+var _ QueryAppender = F("")
+
+func (f F) AppendQuery(dst []byte) []byte {
 	dst = append(dst, '"')
 	for _, c := range []byte(f) {
 		if c == '"' {

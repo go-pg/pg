@@ -88,13 +88,13 @@ func (tx *Tx) ExecOne(q string, args ...interface{}) (*Result, error) {
 	return assertOneAffected(res)
 }
 
-func (tx *Tx) Query(f Factory, q string, args ...interface{}) (*Result, error) {
+func (tx *Tx) Query(coll Collection, q string, args ...interface{}) (*Result, error) {
 	if tx.done {
 		return nil, errTxDone
 	}
 
 	cn := tx.conn()
-	res, err := simpleQueryData(cn, f, q, args...)
+	res, err := simpleQueryData(cn, coll, q, args...)
 	if err != nil {
 		tx.setErr(err)
 		return nil, err
@@ -102,8 +102,8 @@ func (tx *Tx) Query(f Factory, q string, args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
-func (tx *Tx) QueryOne(model interface{}, q string, args ...interface{}) (*Result, error) {
-	res, err := tx.Query(&singleFactory{model}, q, args...)
+func (tx *Tx) QueryOne(record interface{}, q string, args ...interface{}) (*Result, error) {
+	res, err := tx.Query(&singleRecordCollection{record}, q, args...)
 	if err != nil {
 		return nil, err
 	}

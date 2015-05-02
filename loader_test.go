@@ -29,7 +29,9 @@ type numLoader struct {
 	Num int
 }
 
-func (l *numLoader) New() interface{} {
+var _ pg.Collection = &numLoader{}
+
+func (l *numLoader) NewRecord() interface{} {
 	return l
 }
 
@@ -118,7 +120,9 @@ func (t *LoaderTest) TestQueryStrings(c *C) {
 
 type errLoader string
 
-func (l errLoader) Load(colIdx int, colName string, b []byte) error {
+var _ pg.ColumnLoader = errLoader("")
+
+func (l errLoader) LoadColumn(int, string, []byte) error {
 	return errors.New(string(l))
 }
 

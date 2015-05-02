@@ -401,10 +401,10 @@ func readRowDescription(cn *conn) ([]string, error) {
 func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	var loadErr error
 
-	loader, ok := dst.(Loader)
+	loader, ok := dst.(ColumnLoader)
 	if !ok {
 		var err error
-		loader, err = NewLoader(dst)
+		loader, err = NewColumnLoader(dst)
 		if err != nil {
 			loadErr = err
 			// Loader is broken, but try to read all data from connection.
@@ -428,7 +428,7 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 				return err
 			}
 		}
-		if err := loader.Load(colIdx, columns[colIdx], b); err != nil {
+		if err := loader.LoadColumn(colIdx, columns[colIdx], b); err != nil {
 			loadErr = err
 		}
 
@@ -437,7 +437,7 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	return loadErr
 }
 
-func readSimpleQueryData(cn *conn, f Factory) (res *Result, e error) {
+func readSimpleQueryData(cn *conn, coll Collection) (res *Result, e error) {
 	var columns []string
 	for {
 		c, msgLen, err := cn.ReadMsgType()
@@ -451,7 +451,7 @@ func readSimpleQueryData(cn *conn, f Factory) (res *Result, e error) {
 				return nil, err
 			}
 		case dataRowMsg:
-			if err := readDataRow(cn, f.New(), columns); err != nil {
+			if err := readDataRow(cn, coll.NewRecord(), columns); err != nil {
 				e = err
 			}
 		case commandCompleteMsg:
@@ -489,7 +489,7 @@ func readSimpleQueryData(cn *conn, f Factory) (res *Result, e error) {
 	}
 }
 
-func readExtQueryData(cn *conn, f Factory, columns []string) (res *Result, e error) {
+func readExtQueryData(cn *conn, coll Collection, columns []string) (res *Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -502,7 +502,7 @@ func readExtQueryData(cn *conn, f Factory, columns []string) (res *Result, e err
 				return nil, err
 			}
 		case dataRowMsg:
-			if err := readDataRow(cn, f.New(), columns); err != nil {
+			if err := readDataRow(cn, coll.NewRecord(), columns); err != nil {
 				e = err
 			}
 		case commandCompleteMsg: // Response to the EXECUTE message.

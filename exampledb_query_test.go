@@ -13,7 +13,9 @@ type User struct {
 
 type Users []*User
 
-func (users *Users) New() interface{} {
+var _ pg.Collection = &Users{}
+
+func (users *Users) NewRecord() interface{} {
 	u := &User{}
 	*users = append(*users, u)
 	return u

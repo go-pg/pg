@@ -29,7 +29,9 @@ type Item struct {
 
 type Items []*Item
 
-func (items *Items) New() interface{} {
+var _ pg.Collection = &Items{}
+
+func (items *Items) NewRecord() interface{} {
 	i := &Item{}
 	*items = append(*items, i)
 	return i

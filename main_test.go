@@ -48,29 +48,19 @@ func (t *DBTest) TearDownTest(c *C) {
 	c.Assert(t.db.Close(), IsNil)
 }
 
-type discard struct{}
-
-func (l *discard) New() interface{} {
-	return l
-}
-
-func (l *discard) Load(colIdx int, colName string, b []byte) error {
-	return nil
-}
-
 func (t *DBTest) TestQueryZeroRows(c *C) {
-	res, err := t.db.Query(&discard{}, "SELECT 1 WHERE 1 != 1")
+	res, err := t.db.Query(pg.Discard, "SELECT 1 WHERE 1 != 1")
 	c.Assert(err, IsNil)
 	c.Assert(res.Affected(), Equals, 0)
 }
 
 func (t *DBTest) TestQueryOneErrNoRows(c *C) {
-	_, err := t.db.QueryOne(&discard{}, "SELECT 1 WHERE 1 != 1")
+	_, err := t.db.QueryOne(pg.Discard, "SELECT 1 WHERE 1 != 1")
 	c.Assert(err, Equals, pg.ErrNoRows)
 }
 
 func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
-	_, err := t.db.QueryOne(&discard{}, "SELECT generate_series(0, 1)")
+	_, err := t.db.QueryOne(pg.Discard, "SELECT generate_series(0, 1)")
 	c.Assert(err, Equals, pg.ErrMultiRows)
 }
 

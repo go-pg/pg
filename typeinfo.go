@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	appenderType     = reflect.TypeOf(new(Appender)).Elem()
+	appenderType     = reflect.TypeOf(new(QueryAppender)).Elem()
 	scannerType      = reflect.TypeOf(new(sql.Scanner)).Elem()
 	driverValuerType = reflect.TypeOf(new(driver.Valuer)).Elem()
 )

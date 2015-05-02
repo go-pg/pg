@@ -103,8 +103,8 @@ func appendIface(dst []byte, srci interface{}) []byte {
 		dst = appendStringStringMap(dst, src, false)
 		dst = append(dst, '\'')
 		return dst
-	case Appender:
-		return src.Append(dst)
+	case QueryAppender:
+		return src.AppendQuery(dst)
 	case driver.Valuer:
 		return appendDriverValue(dst, src)
 	default:
@@ -174,8 +174,8 @@ func appendIfaceRaw(dst []byte, srci interface{}) []byte {
 		return appendInt64Slice(dst, src)
 	case map[string]string:
 		return appendStringStringMap(dst, src, true)
-	case RawAppender:
-		return src.AppendRaw(dst)
+	case RawQueryAppender:
+		return src.AppendRawQuery(dst)
 	case driver.Valuer:
 		return appendDriverValueRaw(dst, src)
 	default:

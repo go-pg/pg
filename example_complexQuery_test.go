@@ -34,7 +34,9 @@ type Article struct {
 
 type Articles []*Article
 
-func (articles *Articles) New() interface{} {
+var _ pg.Collection = &Articles{}
+
+func (articles *Articles) NewRecord() interface{} {
 	a := &Article{}
 	*articles = append(*articles, a)
 	return a

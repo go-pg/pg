@@ -469,7 +469,9 @@ func (r *record) GetStr3() string {
 
 type records []*record
 
-func (rs *records) New() interface{} {
+var _ pg.Collection = &records{}
+
+func (rs *records) NewRecord() interface{} {
 	r := &record{}
 	*rs = append(*rs, r)
 	return r

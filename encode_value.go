@@ -75,7 +75,7 @@ func appendTimeValue(dst []byte, v reflect.Value) []byte {
 }
 
 func appendAppenderValue(dst []byte, v reflect.Value) []byte {
-	return v.Interface().(Appender).Append(dst)
+	return v.Interface().(QueryAppender).AppendQuery(dst)
 }
 
 func appendDriverValuerValue(dst []byte, v reflect.Value) []byte {
