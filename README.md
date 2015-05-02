@@ -17,21 +17,118 @@ Supports:
 - Queries are retried when possible.
 - PostgreSQL to Go struct mapping.
 
-API docs: http://godoc.org/gopkg.in/pg.v2. Make sure to check examples: http://godoc.org/gopkg.in/pg.v2#pkg-examples.
+API docs: http://godoc.org/gopkg.in/pg.v3.
 
 Installation
 ------------
 
 Install:
 
-    go get gopkg.in/pg.v2
+    go get gopkg.in/pg.v3
+
+Quickstart
+----------
+```
+package pg_test
+
+import (
+	"fmt"
+
+	"gopkg.in/pg.v3"
+)
+
+type User struct {
+	Id     int64
+	Name   string
+	Emails []string
+}
+
+type Users []*User
+
+var _ pg.Collection = &Users{}
+
+func (users *Users) NewRecord() interface{} {
+	u := &User{}
+	*users = append(*users, u)
+	return u
+}
+
+func CreateUser(db *pg.DB, user *User) error {
+	_, err := db.QueryOne(user, `
+		INSERT INTO users (name, emails) VALUES (?name, ?emails)
+		RETURNING id
+	`, user)
+	return err
+}
+
+func GetUser(db *pg.DB, id int64) (*User, error) {
+	var user User
+	_, err := db.QueryOne(&user, `SELECT * FROM users WHERE id = ?`, id)
+	return &user, err
+}
+
+func GetUsers(db *pg.DB) ([]*User, error) {
+	var users Users
+	_, err := db.Query(&users, `SELECT * FROM users`)
+	return users, err
+}
+
+func ExampleDB_Query() {
+	db := pg.Connect(&pg.Options{
+		User: "postgres",
+	})
+
+	_, err := db.Exec(`CREATE TEMP TABLE users (id serial, name text, emails text[])`)
+	if err != nil {
+		panic(err)
+	}
+
+	err = CreateUser(db, &User{
+		Name:   "admin",
+		Emails: []string{"admin1@admin", "admin2@admin"},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	err = CreateUser(db, &User{
+		Name:   "root",
+		Emails: []string{"root1@root", "root2@root"},
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	user, err := GetUser(db, 1)
+	if err != nil {
+		panic(err)
+	}
+
+	users, err := GetUsers(db)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(user)
+	fmt.Println(users[0], users[1])
+	// Output: &{1 admin [admin1@admin admin2@admin]}
+	// &{1 admin [admin1@admin admin2@admin]} &{2 root [root1@root root2@root]}
+}
+```
+
+Howto
+-----
+
+Please go through [examples](http://godoc.org/gopkg.in/pg.v3#pkg-examples) to get the idea how to use this package.
 
 Changelog
 ---------
 
-### v3
+### v3 (beta)
 
-Not ready for production.
+* `pg.Factory` renamed to `pg.Collection`. `Factory.New` renamed to `Collection.NewRecord`.
+* `pg.Loader` renamed to `pg.ColumnLoader`. `ColumnLoader.Load` renamed to `ColumnLoader.LoadColumn`.
+* `pg.Appender` renamed to `pg.QueryAppender`. `QueryAppender.Append` renamed to `QueryAppender.AppendQuery`.
 
 ### v2
 
@@ -64,72 +161,3 @@ func (articles *Articles) New() interface{} {
 ### v1
 
 Initial release.
-
-Example
--------
-```go
-package pg_test
-
-import (
-	"fmt"
-
-	"gopkg.in/pg.v2"
-)
-
-type User struct {
-	Name   string
-	Emails []string
-}
-
-type Users []*User
-
-func (users *Users) New() interface{} {
-	u := &User{}
-	*users = append(*users, u)
-	return u
-}
-
-func CreateUser(db *pg.DB, user *User) error {
-	_, err := db.ExecOne(`INSERT INTO users VALUES (?name, ?emails)`, user)
-	return err
-}
-
-func GetUsers(db *pg.DB) ([]*User, error) {
-	var users Users
-	_, err := db.Query(&users, `SELECT * FROM users`)
-	if err != nil {
-		return nil, err
-	}
-	return users, nil
-}
-
-func ExampleDB_Query() {
-	db := pg.Connect(&pg.Options{
-		User: "postgres",
-	})
-	defer db.Close()
-
-	_, err := db.Exec(`CREATE TEMP TABLE users (name text, emails text[])`)
-	if err != nil {
-		panic(err)
-	}
-
-	err = CreateUser(db, &User{"admin", []string{"admin1@admin", "admin2@admin"}})
-	if err != nil {
-		panic(err)
-	}
-
-	err = CreateUser(db, &User{"root", []string{"root1@root", "root2@root"}})
-	if err != nil {
-		panic(err)
-	}
-
-	users, err := GetUsers(db)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(users[0], users[1])
-	// Output: &{admin [admin1@admin admin2@admin]} &{root [root1@root root2@root]}
-}
-```
