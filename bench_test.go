@@ -93,7 +93,7 @@ func BenchmarkFormatQWithStructMethods(b *testing.B) {
 	}
 }
 
-func BenchmarkQuery(b *testing.B) {
+func BenchmarkQueryRows(b *testing.B) {
 	db := pgdb()
 	defer db.Close()
 
@@ -102,19 +102,22 @@ func BenchmarkQuery(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		var rs records
-		_, err := db.Query(&rs, `SELECT * FROM bench_test`)
-		if err != nil {
-			b.Fatal(err)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var rs records
+			_, err := db.Query(&rs, `SELECT * FROM bench_test`)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if len(rs) != 1000 {
+				b.Fatalf("got %d, wanted 1000", len(rs))
+			}
 		}
-		if len(rs) != 1000 {
-			b.Fatalf("got %d, wanted 1000", len(rs))
-		}
-	}
+	})
 }
 
-func BenchmarkQueryStdlibPq(b *testing.B) {
+func BenchmarkQueryRowsStdlibPq(b *testing.B) {
 	db := pgdb()
 	defer db.Close()
 
@@ -129,27 +132,30 @@ func BenchmarkQueryStdlibPq(b *testing.B) {
 	defer pqdb.Close()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		rows, err := pqdb.Query(`SELECT * FROM bench_test`)
-		if err != nil {
-			b.Fatal(err)
-		}
 
-		var rs []*record
-		for rows.Next() {
-			var rec record
-			err := rows.Scan(&rec.Num1, &rec.Num2, &rec.Num3, &rec.Str1, &rec.Str2, &rec.Str3)
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			rows, err := pqdb.Query(`SELECT * FROM bench_test`)
 			if err != nil {
 				b.Fatal(err)
 			}
-			rs = append(rs, &rec)
-		}
-		rows.Close()
 
-		if len(rs) != 1000 {
-			b.Fatalf("got %d, wanted 1000", len(rs))
+			var rs []*record
+			for rows.Next() {
+				var rec record
+				err := rows.Scan(&rec.Num1, &rec.Num2, &rec.Num3, &rec.Str1, &rec.Str2, &rec.Str3)
+				if err != nil {
+					b.Fatal(err)
+				}
+				rs = append(rs, &rec)
+			}
+			rows.Close()
+
+			if len(rs) != 1000 {
+				b.Fatalf("got %d, wanted 1000", len(rs))
+			}
 		}
-	}
+	})
 }
 
 func BenchmarkQueryRow(b *testing.B) {
@@ -157,6 +163,7 @@ func BenchmarkQueryRow(b *testing.B) {
 	defer db.Close()
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		var dst numLoader
 		_, err := db.QueryOne(&dst, `SELECT ?::bigint AS num`, 1)
@@ -180,6 +187,7 @@ func BenchmarkQueryRowStmt(b *testing.B) {
 	defer stmt.Close()
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		var dst numLoader
 		_, err := stmt.QueryOne(&dst, 1)
@@ -197,16 +205,19 @@ func BenchmarkQueryRowLoadInto(b *testing.B) {
 	defer db.Close()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		var n int64
-		_, err := db.QueryOne(pg.LoadInto(&n), `SELECT ? AS num`, 1)
-		if err != nil {
-			b.Fatal(err)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var n int64
+			_, err := db.QueryOne(pg.LoadInto(&n), `SELECT ? AS num`, 1)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if n != 1 {
+				b.Fatalf("got %d, wanted 1", n)
+			}
 		}
-		if n != 1 {
-			b.Fatalf("got %d, wanted 1", n)
-		}
-	}
+	})
 }
 
 func BenchmarkQueryRowStmtLoadInto(b *testing.B) {
@@ -220,6 +231,7 @@ func BenchmarkQueryRowStmtLoadInto(b *testing.B) {
 	defer stmt.Close()
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		var n int64
 		_, err := stmt.QueryOne(pg.LoadInto(&n), 1)
@@ -240,16 +252,19 @@ func BenchmarkQueryRowStdlibPq(b *testing.B) {
 	defer db.Close()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		var n int64
-		r := db.QueryRow(`SELECT $1::bigint AS num`, 1)
-		if err := r.Scan(&n); err != nil {
-			b.Fatal(err)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var n int64
+			r := db.QueryRow(`SELECT $1::bigint AS num`, 1)
+			if err := r.Scan(&n); err != nil {
+				b.Fatal(err)
+			}
+			if n != 1 {
+				b.Fatalf("got %d, wanted 1", n)
+			}
 		}
-		if n != 1 {
-			b.Fatalf("got %d, wanted 1", n)
-		}
-	}
+	})
 }
 
 func BenchmarkQueryRowWithoutParamsStdlibPq(b *testing.B) {
@@ -260,16 +275,19 @@ func BenchmarkQueryRowWithoutParamsStdlibPq(b *testing.B) {
 	defer db.Close()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		var n int64
-		r := db.QueryRow("SELECT 1::bigint AS num")
-		if err := r.Scan(&n); err != nil {
-			b.Fatal(err)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var n int64
+			r := db.QueryRow("SELECT 1::bigint AS num")
+			if err := r.Scan(&n); err != nil {
+				b.Fatal(err)
+			}
+			if n != 1 {
+				b.Fatalf("got %d, wanted 1", n)
+			}
 		}
-		if n != 1 {
-			b.Fatalf("got %d, wanted 1", n)
-		}
-	}
+	})
 }
 
 func BenchmarkQueryRowStdlibMySQL(b *testing.B) {
@@ -280,16 +298,19 @@ func BenchmarkQueryRowStdlibMySQL(b *testing.B) {
 	defer db.Close()
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		var n int64
-		r := db.QueryRow("SELECT ? AS num", 1)
-		if err := r.Scan(&n); err != nil {
-			b.Fatal(err)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var n int64
+			r := db.QueryRow("SELECT ? AS num", 1)
+			if err := r.Scan(&n); err != nil {
+				b.Fatal(err)
+			}
+			if n != 1 {
+				b.Fatalf("got %d, wanted 1", n)
+			}
 		}
-		if n != 1 {
-			b.Fatalf("got %d, wanted 1", n)
-		}
-	}
+	})
 }
 
 func BenchmarkQueryRowStmtStdlibPq(b *testing.B) {
@@ -306,6 +327,7 @@ func BenchmarkQueryRowStmtStdlibPq(b *testing.B) {
 	defer stmt.Close()
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		var n int64
 		r := stmt.QueryRow(1)
@@ -320,18 +342,22 @@ func BenchmarkExec(b *testing.B) {
 	defer db.Close()
 
 	_, err := db.Exec(
-		`CREATE TEMP TABLE exec_test(id bigint, name varchar(500))`)
+		`CREATE TABLE exec_test(id bigint, name varchar(500))`)
 	if err != nil {
 		b.Fatal(err)
 	}
+	defer db.Exec(`DROP TABLE exec_test`)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := db.Exec(`INSERT INTO exec_test(id, name) VALUES(?, ?)`, 1, "hello world")
-		if err != nil {
-			b.Fatal(err)
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := db.Exec(`INSERT INTO exec_test(id, name) VALUES(?, ?)`, 1, "hello world")
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
-	}
+	})
 }
 
 func BenchmarkExecWithError(b *testing.B) {
@@ -339,7 +365,7 @@ func BenchmarkExecWithError(b *testing.B) {
 	defer db.Close()
 
 	_, err := db.Exec(
-		`CREATE TEMP TABLE exec_with_error_test(id bigint PRIMARY KEY, name varchar(500))`)
+		`CREATE TABLE exec_with_error_test(id bigint PRIMARY KEY, name varchar(500))`)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -350,16 +376,20 @@ func BenchmarkExecWithError(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
+	defer db.Exec(`DROP TABLE exec_with_error_test`)
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := db.Exec(`INSERT INTO exec_with_error_test(id) VALUES(?)`, 1)
-		if err == nil {
-			b.Fatalf("got nil error, expected IntegrityError")
-		} else if _, ok := err.(*pg.IntegrityError); !ok {
-			b.Fatalf("got " + err.Error() + ", expected IntegrityError")
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			_, err := db.Exec(`INSERT INTO exec_with_error_test(id) VALUES(?)`, 1)
+			if err == nil {
+				b.Fatalf("got nil error, expected IntegrityError")
+			} else if _, ok := err.(*pg.IntegrityError); !ok {
+				b.Fatalf("got " + err.Error() + ", expected IntegrityError")
+			}
 		}
-	}
+	})
 }
 
 func BenchmarkExecStmt(b *testing.B) {
@@ -378,6 +408,7 @@ func BenchmarkExecStmt(b *testing.B) {
 	defer stmt.Close()
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, err := stmt.Exec(1, "hello world")
 		if err != nil {
@@ -405,6 +436,7 @@ func BenchmarkExecStmtStdlibPq(b *testing.B) {
 	defer stmt.Close()
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		_, err := stmt.Exec(1, "hello world")
 		if err != nil {
@@ -467,14 +499,14 @@ func (r *record) GetStr3() string {
 	return r.Str3
 }
 
-type records []*record
+type records []record
 
 var _ pg.Collection = &records{}
 
 func (rs *records) NewRecord() interface{} {
-	r := &record{}
+	r := record{}
 	*rs = append(*rs, r)
-	return r
+	return &r
 }
 
 func seedDB(db *pg.DB) error {

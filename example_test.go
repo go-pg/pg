@@ -75,7 +75,7 @@ func ExampleDB_Begin() {
 		panic(err)
 	}
 
-	_, err = tx.Exec("CREATE TEMP TABLE test()")
+	_, err = tx.Exec("CREATE TEMP TABLE test1()")
 	if err != nil {
 		panic(err)
 	}
@@ -85,9 +85,9 @@ func ExampleDB_Begin() {
 		panic(err)
 	}
 
-	_, err = db.Exec("SELECT * FROM test")
+	_, err = db.Exec("SELECT * FROM test1")
 	fmt.Println(err)
-	// Output: ERROR #42P01 relation "test" does not exist:
+	// Output: ERROR #42P01 relation "test1" does not exist:
 }
 
 func ExampleDB_Prepare() {
