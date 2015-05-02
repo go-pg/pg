@@ -58,8 +58,8 @@ func DecodeValue(dst reflect.Value, f []byte) error {
 		dst.Set(reflect.New(dst.Type().Elem()))
 	}
 
-	if err, ok := tryDecodeInterfaces(dst.Interface(), f); ok {
-		return err
+	if scanner, ok := dst.Interface().(sql.Scanner); ok {
+		return decodeScanner(scanner, f)
 	}
 
 	if kind == reflect.Interface || kind == reflect.Ptr {

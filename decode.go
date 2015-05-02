@@ -9,8 +9,8 @@ import (
 )
 
 func Decode(dst interface{}, f []byte) error {
-	if err, ok := tryDecodeInterfaces(dst, f); ok {
-		return err
+	if scanner, ok := dst.(sql.Scanner); ok {
+		return decodeScanner(scanner, f)
 	}
 
 	v := reflect.ValueOf(dst)
@@ -35,13 +35,6 @@ func decodeError(v reflect.Value) error {
 		return errorf("pg: Decode(nil)")
 	}
 	return errorf("pg: Decode(nil %s)", v.Type())
-}
-
-func tryDecodeInterfaces(dst interface{}, b []byte) (error, bool) {
-	if scanner, ok := dst.(sql.Scanner); ok {
-		return decodeScanner(scanner, b), true
-	}
-	return nil, false
 }
 
 func decodeScanner(scanner sql.Scanner, b []byte) error {
