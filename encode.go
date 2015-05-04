@@ -8,15 +8,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
-)
 
-const (
-	dateFormat         = "2006-01-02"
-	timeFormat         = "15:04:05.999999999"
-	timestampFormat    = "2006-01-02 15:04:05.999999999"
-	timestamptzFormat  = "2006-01-02 15:04:05.999999999-07:00"
-	timestamptzFormat2 = "2006-01-02 15:04:05.999999999-07"
-	timestamptzFormat3 = "2006-01-02 15:04:05.999999999-07:00:00"
+	"gopkg.in/pg.v3/pgutil"
 )
 
 func AppendQ(dst []byte, src string, params ...interface{}) ([]byte, error) {
@@ -75,7 +68,7 @@ func appendIface(dst []byte, srci interface{}) []byte {
 		return appendString(dst, src)
 	case time.Time:
 		dst = append(dst, '\'')
-		dst = appendTime(dst, src)
+		dst = pgutil.AppendTime(dst, src)
 		dst = append(dst, '\'')
 		return dst
 	case []byte:
@@ -163,7 +156,7 @@ func appendIfaceRaw(dst []byte, srci interface{}) []byte {
 	case string:
 		return appendStringRaw(dst, src)
 	case time.Time:
-		return appendTime(dst, src)
+		return pgutil.AppendTime(dst, src)
 	case []byte:
 		return appendBytes(dst, src)
 	case []string:
@@ -200,7 +193,7 @@ func appendValueRaw(dst []byte, v reflect.Value) []byte {
 		return appendStringRaw(dst, v.String())
 	case reflect.Struct:
 		if v.Type() == timeType {
-			return appendTime(dst, v.Interface().(time.Time))
+			return pgutil.AppendTime(dst, v.Interface().(time.Time))
 		}
 	}
 	panic(fmt.Sprintf("pg: unsupported src type: %s", v))
@@ -334,10 +327,6 @@ func appendInt64Slice(dst []byte, v []int64) []byte {
 	}
 	dst[len(dst)-1] = '}' // Replace trailing comma.
 	return dst
-}
-
-func appendTime(dst []byte, tm time.Time) []byte {
-	return append(dst, tm.Local().Format(timestamptzFormat)...)
 }
 
 func appendDriverValue(dst []byte, v driver.Valuer) []byte {
