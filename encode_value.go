@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	"gopkg.in/pg.v3/pgutil"
 )
 
 type valueAppender func([]byte, reflect.Value) []byte
@@ -69,7 +71,7 @@ func appendStructValue(dst []byte, v reflect.Value) []byte {
 
 func appendTimeValue(dst []byte, v reflect.Value) []byte {
 	dst = append(dst, '\'')
-	dst = appendTime(dst, v.Interface().(time.Time))
+	dst = pgutil.AppendTime(dst, v.Interface().(time.Time))
 	dst = append(dst, '\'')
 	return dst
 }

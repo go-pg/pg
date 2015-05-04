@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	"gopkg.in/pg.v3/pgutil"
 )
 
 var (
@@ -126,7 +128,7 @@ func decodeStructValue(v reflect.Value, b []byte) error {
 }
 
 func decodeTimeValue(v reflect.Value, b []byte) error {
-	tm, err := decodeTime(b)
+	tm, err := pgutil.ParseTime(b)
 	if err != nil {
 		return err
 	}

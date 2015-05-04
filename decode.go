@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"reflect"
 	"strconv"
-	"time"
 )
 
 func Decode(dst interface{}, f []byte) error {
@@ -52,26 +51,6 @@ func decodeBytes(f []byte) ([]byte, error) {
 		return nil, err
 	}
 	return b, nil
-}
-
-func decodeTime(f []byte) (time.Time, error) {
-	switch l := len(f); {
-	case l <= len(dateFormat):
-		return time.Parse(dateFormat, string(f))
-	case l <= len(timeFormat):
-		return time.Parse(timeFormat, string(f))
-	default:
-		if c := f[len(f)-6]; c == '+' || c == '-' {
-			return time.Parse(timestamptzFormat, string(f))
-		}
-		if c := f[len(f)-3]; c == '+' || c == '-' {
-			return time.Parse(timestamptzFormat2, string(f))
-		}
-		if c := f[len(f)-9]; c == '+' || c == '-' {
-			return time.Parse(timestamptzFormat3, string(f))
-		}
-		return time.ParseInLocation(timestampFormat, string(f), time.Local)
-	}
 }
 
 func decodeIntSlice(f []byte) ([]int, error) {
