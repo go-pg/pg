@@ -32,14 +32,15 @@ type Article struct {
 	CategoryId int
 }
 
-type Articles []*Article
+type Articles struct {
+	C []Article
+}
 
 var _ pg.Collection = &Articles{}
 
 func (articles *Articles) NewRecord() interface{} {
-	a := &Article{}
-	*articles = append(*articles, a)
-	return a
+	articles.C = append(articles.C, Article{})
+	return &articles.C[len(articles.C)-1]
 }
 
 func CreateArticle(db *pg.DB, article *Article) error {
@@ -56,7 +57,7 @@ func GetArticle(db *pg.DB, id int64) (*Article, error) {
 	return article, err
 }
 
-func GetArticles(db *pg.DB, f *ArticleFilter) ([]*Article, error) {
+func GetArticles(db *pg.DB, f *ArticleFilter) ([]Article, error) {
 	var articles Articles
 	_, err := db.Query(&articles, `
 		SELECT * FROM articles WHERE 1=1 ?FilterName ?FilterCategory
@@ -64,7 +65,7 @@ func GetArticles(db *pg.DB, f *ArticleFilter) ([]*Article, error) {
 	if err != nil {
 		return nil, err
 	}
-	return articles, nil
+	return articles.C, nil
 }
 
 func Example_complexQuery() {
@@ -100,6 +101,6 @@ func Example_complexQuery() {
 	}
 	fmt.Printf("%d %v\n", len(articles), articles[0])
 
-	// Output: 2 &{1 article1 1} &{2 article2 2}
-	// 1 &{1 article1 1}
+	// Output: 2 {1 article1 1} {2 article2 2}
+	// 1 {1 article1 1}
 }
