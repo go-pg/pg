@@ -84,7 +84,7 @@ func ExampleListener() {
 		panic(err)
 	}
 
-	wait := make(chan struct{})
+	wait := make(chan struct{}, 2)
 	go func() {
 		wait <- struct{}{}
 		channel, payload, err := ln.Receive()

@@ -131,13 +131,13 @@ func (t *PoolTest) TestPoolMaxSize(c *C) {
 	wg.Add(N)
 	for i := 0; i < 1000; i++ {
 		go func() {
-			_, _ = t.db.Exec("SELECT 'test_pool_max_size'")
-			//			c.Assert(err, IsNil)
+			_, err := t.db.Exec("SELECT 'test_pool_max_size'")
+			c.Assert(err, IsNil)
 			wg.Done()
 		}()
 	}
 
-	wait := make(chan struct{}, 1)
+	wait := make(chan struct{}, 2)
 	go func() {
 		wg.Wait()
 		wait <- struct{}{}
@@ -158,7 +158,7 @@ func (t *PoolTest) TestCloseClosesAllConnections(c *C) {
 	ln, err := t.db.Listen("test_channel")
 	c.Assert(err, IsNil)
 
-	wait := make(chan struct{}, 1)
+	wait := make(chan struct{}, 2)
 	go func() {
 		wait <- struct{}{}
 		_, _, err := ln.Receive()
