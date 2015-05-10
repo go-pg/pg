@@ -33,7 +33,7 @@ func (t *ListenerTest) TearDownTest(c *C) {
 }
 
 func (t *ListenerTest) TestListenNotify(c *C) {
-	wait := make(chan struct{}, 1)
+	wait := make(chan struct{}, 2)
 	go func() {
 		wait <- struct{}{}
 		channel, payload, err := t.ln.Receive()
@@ -62,7 +62,8 @@ func (t *ListenerTest) TestListenNotify(c *C) {
 }
 
 func (t *ListenerTest) TestCloseAbortsListener(c *C) {
-	wait := make(chan struct{}, 1)
+	wait := make(chan struct{}, 2)
+
 	go func() {
 		wait <- struct{}{}
 		_, _, err := t.ln.Receive()
@@ -75,6 +76,13 @@ func (t *ListenerTest) TestCloseAbortsListener(c *C) {
 		// ok
 	case <-time.After(3 * time.Second):
 		c.Fatal("timeout")
+	}
+
+	select {
+	case <-wait:
+		c.Fatal("Receive is not blocked")
+	case <-time.After(time.Second):
+		// ok
 	}
 
 	c.Assert(t.ln.Close(), IsNil)
@@ -117,7 +125,7 @@ func (t *ListenerTest) TestReconnectOnReceiveError(c *C) {
 	_, _, err = t.ln.ReceiveTimeout(time.Second)
 	c.Assert(err.(net.Error).Timeout(), Equals, true)
 
-	wait := make(chan struct{}, 1)
+	wait := make(chan struct{}, 2)
 	go func() {
 		wait <- struct{}{}
 		_, _, err := t.ln.Receive()
@@ -130,6 +138,13 @@ func (t *ListenerTest) TestReconnectOnReceiveError(c *C) {
 		// ok
 	case <-time.After(3 * time.Second):
 		c.Fatal("timeout")
+	}
+
+	select {
+	case <-wait:
+		c.Fatal("Receive is not blocked")
+	case <-time.After(time.Second):
+		// ok
 	}
 
 	_, err = t.db.Exec("NOTIFY test_channel")

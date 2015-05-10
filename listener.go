@@ -3,7 +3,6 @@ package pg
 import (
 	"fmt"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -13,19 +12,18 @@ type Listener struct {
 
 	db *DB
 
-	cnMtx sync.Mutex
-	_cn   *conn
-
-	_closed int64
+	_cn    *conn
+	closed bool
+	mx     sync.Mutex
 }
 
 func (l *Listener) conn(readTimeout time.Duration) (*conn, error) {
-	if l.closed() {
+	defer l.mx.Unlock()
+	l.mx.Lock()
+
+	if l.closed {
 		return nil, errListenerClosed
 	}
-
-	defer l.cnMtx.Unlock()
-	l.cnMtx.Lock()
 
 	if l._cn == nil {
 		cn, err := l.db.conn()
@@ -133,22 +131,22 @@ func (l *Listener) receiveTimeout(readTimeout time.Duration) (channel, payload s
 }
 
 func (l *Listener) discardConn() (err error) {
-	l.cnMtx.Lock()
+	l.mx.Lock()
 	if l._cn != nil {
 		err = l.db.pool.Remove(l._cn)
 		l._cn = nil
 	}
-	l.cnMtx.Unlock()
+	l.mx.Unlock()
 	return err
 }
 
 func (l *Listener) Close() error {
-	if !atomic.CompareAndSwapInt64(&l._closed, 0, 1) {
+	l.mx.Lock()
+	closed := l.closed
+	l.closed = true
+	l.mx.Unlock()
+	if closed {
 		return errListenerClosed
 	}
 	return l.discardConn()
-}
-
-func (l *Listener) closed() bool {
-	return atomic.LoadInt64(&l._closed) == 1
 }
