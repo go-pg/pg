@@ -92,7 +92,7 @@ func (opt *Options) getPoolSize() int {
 
 func (opt *Options) getPoolTimeout() time.Duration {
 	if opt == nil || opt.PoolTimeout == 0 {
-		return 3 * time.Second
+		return time.Second
 	}
 	return opt.PoolTimeout
 }

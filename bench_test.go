@@ -110,8 +110,8 @@ func BenchmarkQueryRows(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			if len(rs) != 1000 {
-				b.Fatalf("got %d, wanted 1000", len(rs))
+			if len(rs.C) != 1000 {
+				b.Fatalf("got %d, wanted 1000", len(rs.C))
 			}
 		}
 	})
@@ -499,14 +499,15 @@ func (r *record) GetStr3() string {
 	return r.Str3
 }
 
-type records []record
+type records struct {
+	C []record
+}
 
 var _ pg.Collection = &records{}
 
 func (rs *records) NewRecord() interface{} {
-	r := record{}
-	*rs = append(*rs, r)
-	return &r
+	rs.C = append(rs.C, record{})
+	return &rs.C[len(rs.C)-1]
 }
 
 func seedDB(db *pg.DB) error {

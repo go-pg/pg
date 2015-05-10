@@ -12,14 +12,15 @@ type User struct {
 	Emails []string
 }
 
-type Users []*User
+type Users struct {
+	C []User
+}
 
 var _ pg.Collection = &Users{}
 
 func (users *Users) NewRecord() interface{} {
-	u := &User{}
-	*users = append(*users, u)
-	return u
+	users.C = append(users.C, User{})
+	return &users.C[len(users.C)-1]
 }
 
 func CreateUser(db *pg.DB, user *User) error {
@@ -36,10 +37,10 @@ func GetUser(db *pg.DB, id int64) (*User, error) {
 	return &user, err
 }
 
-func GetUsers(db *pg.DB) ([]*User, error) {
+func GetUsers(db *pg.DB) ([]User, error) {
 	var users Users
 	_, err := db.Query(&users, `SELECT * FROM users`)
-	return users, err
+	return users.C, err
 }
 
 func ExampleDB_Query() {
@@ -81,5 +82,5 @@ func ExampleDB_Query() {
 	fmt.Println(user)
 	fmt.Println(users[0], users[1])
 	// Output: &{1 admin [admin1@admin admin2@admin]}
-	// &{1 admin [admin1@admin admin2@admin]} &{2 root [root1@root root2@root]}
+	// {1 admin [admin1@admin admin2@admin]} {2 root [root1@root root2@root]}
 }
