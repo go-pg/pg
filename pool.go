@@ -12,7 +12,6 @@ import (
 )
 
 var (
-	errRateLimited = errors.New("pg: you open connections too fast")
 	errPoolTimeout = errors.New("pg: connection pool timeout")
 )
 
