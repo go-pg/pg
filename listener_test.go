@@ -33,32 +33,58 @@ func (t *ListenerTest) TearDownTest(c *C) {
 }
 
 func (t *ListenerTest) TestListenNotify(c *C) {
-	_, err := t.db.Exec("NOTIFY test_channel")
-	c.Assert(err, IsNil)
-
-	channel, payload, err := t.ln.Receive()
-	c.Assert(err, IsNil)
-	c.Assert(channel, Equals, "test_channel")
-	c.Assert(payload, Equals, "")
-}
-
-func (t *ListenerTest) TestCloseAbortsListener(c *C) {
-	done := make(chan struct{})
+	wait := make(chan struct{}, 1)
 	go func() {
-		_, _, err := t.ln.Receive()
-		c.Assert(err.Error(), Equals, "read tcp 127.0.0.1:5432: use of closed network connection")
-		close(done)
+		wait <- struct{}{}
+		channel, payload, err := t.ln.Receive()
+		c.Assert(err, IsNil)
+		c.Assert(channel, Equals, "test_channel")
+		c.Assert(payload, Equals, "")
+		wait <- struct{}{}
 	}()
 
 	select {
-	case <-done:
-		c.Fail()
-	case <-time.After(1 * time.Second):
+	case <-wait:
 		// ok
+	case <-time.After(3 * time.Second):
+		c.Fatal("timeout")
+	}
+
+	_, err := t.db.Exec("NOTIFY test_channel")
+	c.Assert(err, IsNil)
+
+	select {
+	case <-wait:
+		// ok
+	case <-time.After(3 * time.Second):
+		c.Fatal("timeout")
+	}
+}
+
+func (t *ListenerTest) TestCloseAbortsListener(c *C) {
+	wait := make(chan struct{}, 1)
+	go func() {
+		wait <- struct{}{}
+		_, _, err := t.ln.Receive()
+		c.Assert(err, ErrorMatches, `^(.*use of closed network connection|EOF)$`)
+		wait <- struct{}{}
+	}()
+
+	select {
+	case <-wait:
+		// ok
+	case <-time.After(3 * time.Second):
+		c.Fatal("timeout")
 	}
 
 	c.Assert(t.ln.Close(), IsNil)
-	<-done
+
+	select {
+	case <-wait:
+		// ok
+	case <-time.After(3 * time.Second):
+		c.Fatal("timeout")
+	}
 }
 
 func (t *ListenerTest) TestListenTimeout(c *C) {
@@ -74,7 +100,7 @@ func (t *ListenerTest) TestReconnectOnListenError(c *C) {
 	c.Assert(cn.Close(), IsNil)
 
 	err := t.ln.Listen("test_channel2")
-	c.Assert(err.Error(), Equals, "use of closed network connection")
+	c.Assert(err, ErrorMatches, `^(.*use of closed network connection|EOF)$`)
 
 	err = t.ln.Listen("test_channel2")
 	c.Assert(err, IsNil)
@@ -86,25 +112,33 @@ func (t *ListenerTest) TestReconnectOnReceiveError(c *C) {
 	c.Assert(cn.Close(), IsNil)
 
 	_, _, err := t.ln.ReceiveTimeout(time.Second)
-	c.Assert(err.Error(), Equals, "use of closed network connection")
+	c.Assert(err, ErrorMatches, `^(.*use of closed network connection|EOF)$`)
 
 	_, _, err = t.ln.ReceiveTimeout(time.Second)
 	c.Assert(err.(net.Error).Timeout(), Equals, true)
 
-	done := make(chan struct{})
+	wait := make(chan struct{}, 1)
 	go func() {
+		wait <- struct{}{}
 		_, _, err := t.ln.Receive()
 		c.Assert(err, IsNil)
-		close(done)
+		wait <- struct{}{}
 	}()
+
+	select {
+	case <-wait:
+		// ok
+	case <-time.After(3 * time.Second):
+		c.Fatal("timeout")
+	}
 
 	_, err = t.db.Exec("NOTIFY test_channel")
 	c.Assert(err, IsNil)
 
 	select {
-	case <-done:
+	case <-wait:
 		// ok
-	case <-time.After(1 * time.Second):
-		c.Fail()
+	case <-time.After(3 * time.Second):
+		c.Fatal("timeout")
 	}
 }

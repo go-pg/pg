@@ -21,7 +21,8 @@ type Options struct {
 	// Params specify connection run-time configuration parameters.
 	Params map[string]interface{}
 
-	PoolSize int
+	PoolSize    int
+	PoolTimeout time.Duration
 
 	DialTimeout  time.Duration
 	ReadTimeout  time.Duration
@@ -89,6 +90,13 @@ func (opt *Options) getPoolSize() int {
 	return opt.PoolSize
 }
 
+func (opt *Options) getPoolTimeout() time.Duration {
+	if opt == nil || opt.PoolTimeout == 0 {
+		return 3 * time.Second
+	}
+	return opt.PoolTimeout
+}
+
 func (opt *Options) getDialTimeout() time.Duration {
 	if opt.DialTimeout == 0 {
 		return 5 * time.Second
@@ -113,8 +121,14 @@ func (opt *Options) getSSL() bool {
 
 func Connect(opt *Options) *DB {
 	return &DB{
-		opt:  opt,
-		pool: newConnPool(opt),
+		opt: opt,
+		pool: newConnPool(&connPoolOptions{
+			Dialer:             newConnDialer(opt),
+			PoolSize:           opt.getPoolSize(),
+			PoolTimeout:        opt.getPoolTimeout(),
+			IdleTimeout:        opt.getIdleTimeout(),
+			IdleCheckFrequency: opt.getIdleCheckFrequency(),
+		}),
 	}
 }
 
@@ -129,15 +143,9 @@ func (db *DB) Close() error {
 }
 
 func (db *DB) conn() (*conn, error) {
-	cn, isNew, err := db.pool.Get()
+	cn, err := db.pool.Get()
 	if err != nil {
 		return nil, err
-	}
-
-	if isNew {
-		if err := setParams(cn, db.opt.Params); err != nil {
-			return nil, err
-		}
 	}
 
 	cn.SetReadTimeout(db.opt.ReadTimeout)

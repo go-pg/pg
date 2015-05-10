@@ -28,21 +28,21 @@ func (t *TxTest) TestMultiPrepare(c *C) {
 	tx, err := t.db.Begin()
 	c.Assert(err, IsNil)
 
-	stmt1, err := tx.Prepare(`SELECT 1`)
+	stmt1, err := tx.Prepare(`SELECT 'test_multi_prepare_tx1'`)
 	c.Assert(err, IsNil)
 
-	stmt2, err := tx.Prepare(`SELECT 2`)
+	stmt2, err := tx.Prepare(`SELECT 'test_multi_prepare_tx2'`)
 	c.Assert(err, IsNil)
 
-	var n1 int
-	_, err = stmt1.QueryOne(pg.LoadInto(&n1))
+	var s1 string
+	_, err = stmt1.QueryOne(pg.LoadInto(&s1))
 	c.Assert(err, IsNil)
-	c.Assert(n1, Equals, 1)
+	c.Assert(s1, Equals, "test_multi_prepare_tx1")
 
-	var n2 int
-	_, err = stmt2.QueryOne(pg.LoadInto(&n2))
+	var s2 string
+	_, err = stmt2.QueryOne(pg.LoadInto(&s2))
 	c.Assert(err, IsNil)
-	c.Assert(n2, Equals, 2)
+	c.Assert(s2, Equals, "test_multi_prepare_tx2")
 
 	c.Assert(tx.Rollback(), IsNil)
 }

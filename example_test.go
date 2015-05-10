@@ -86,11 +86,13 @@ func ExampleListener() {
 
 	wait := make(chan struct{})
 	go func() {
+		wait <- struct{}{}
 		channel, payload, err := ln.Receive()
 		fmt.Printf("%s %q %v", channel, payload, err)
 		wait <- struct{}{}
 	}()
 
+	<-wait
 	db.Exec("NOTIFY mychan, ?", "hello world")
 	<-wait
 
