@@ -21,6 +21,54 @@ var (
 
 var structs = newStructCache()
 
+func _appendValue(dst []byte, v reflect.Value) []byte {
+	return appendIface(dst, v.Interface())
+}
+
+func getAppender(typ reflect.Type) valueAppender {
+	switch typ {
+	case timeType:
+		return appendTimeValue
+	}
+
+	if typ.Implements(appenderType) {
+		return appendAppenderValue
+	}
+
+	if typ.Implements(driverValuerType) {
+		return appendDriverValuerValue
+	}
+
+	kind := typ.Kind()
+	if appender := valueAppenders[kind]; appender != nil {
+		return appender
+	}
+
+	return _appendValue
+}
+
+func getDecoder(typ reflect.Type) valueDecoder {
+	switch typ {
+	case timeType:
+		return decodeTimeValue
+	}
+
+	if reflect.PtrTo(typ).Implements(scannerType) {
+		return decodeScannerAddrValue
+	}
+
+	if typ.Implements(scannerType) {
+		return decodeScannerValue
+	}
+
+	kind := typ.Kind()
+	if dec := valueDecoders[kind]; dec != nil {
+		return dec
+	}
+
+	return nil
+}
+
 type pgValue struct {
 	Source interface{}
 	Type   reflect.Type
@@ -43,38 +91,14 @@ func newPGValue(src interface{}, index []int) *pgValue {
 		panic("not reached")
 	}
 
-	pgv := &pgValue{
+	return &pgValue{
 		Source: src,
 		Type:   typ,
 		Index:  index,
+
+		appender: getAppender(typ),
+		decoder:  getDecoder(typ),
 	}
-
-	switch typ {
-	case timeType:
-		pgv.appender = appendTimeValue
-		pgv.decoder = decodeTimeValue
-		return pgv
-	}
-
-	kind := typ.Kind()
-
-	if typ.Implements(appenderType) {
-		pgv.appender = appendAppenderValue
-	} else if typ.Implements(driverValuerType) {
-		pgv.appender = appendDriverValuerValue
-	} else if appender := valueAppenders[kind]; appender != nil {
-		pgv.appender = appender
-	}
-
-	if reflect.PtrTo(typ).Implements(scannerType) {
-		pgv.decoder = decodeScannerAddrValue
-	} else if typ.Implements(scannerType) {
-		pgv.decoder = decodeScannerValue
-	} else if dec := valueDecoders[kind]; dec != nil {
-		pgv.decoder = dec
-	}
-
-	return pgv
 }
 
 func (pgv *pgValue) AppendValue(dst []byte, v reflect.Value) []byte {
@@ -82,10 +106,7 @@ func (pgv *pgValue) AppendValue(dst []byte, v reflect.Value) []byte {
 	if pgv.NullEmpty && isEmptyValue(fv) {
 		return appendNull(dst)
 	}
-	if pgv.appender != nil {
-		return pgv.appender(dst, fv)
-	}
-	return appendIface(dst, fv.Interface())
+	return pgv.appender(dst, fv)
 }
 
 func (pgv *pgValue) DecodeValue(v reflect.Value, b []byte) error {
@@ -93,10 +114,7 @@ func (pgv *pgValue) DecodeValue(v reflect.Value, b []byte) error {
 	if b == nil {
 		return decodeNullValue(fv)
 	}
-	if pgv.decoder != nil {
-		return pgv.decoder(fv, b)
-	}
-	return DecodeValue(fv.Addr(), b)
+	return pgv.decoder(fv, b)
 }
 
 func (pgv *pgValue) getValue(v reflect.Value) reflect.Value {
