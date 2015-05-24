@@ -99,7 +99,7 @@ func appendIface(dst []byte, srci interface{}) []byte {
 	case QueryAppender:
 		return src.AppendQuery(dst)
 	case driver.Valuer:
-		return appendDriverValue(dst, src)
+		return appendDriverValuer(dst, src)
 	default:
 		return appendValue(dst, reflect.ValueOf(srci))
 	}
@@ -329,7 +329,7 @@ func appendInt64Slice(dst []byte, v []int64) []byte {
 	return dst
 }
 
-func appendDriverValue(dst []byte, v driver.Valuer) []byte {
+func appendDriverValuer(dst []byte, v driver.Valuer) []byte {
 	value, err := v.Value()
 	if err != nil {
 		log.Printf("%#v value failed: %s", v, err)

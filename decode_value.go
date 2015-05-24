@@ -17,76 +17,63 @@ var (
 
 type valueDecoder func(reflect.Value, []byte) error
 
-var valueDecoders = [...]valueDecoder{
-	reflect.Bool:          decodeBoolValue,
-	reflect.Int:           decodeIntValue,
-	reflect.Int8:          decodeIntValue,
-	reflect.Int16:         decodeIntValue,
-	reflect.Int32:         decodeIntValue,
-	reflect.Int64:         decodeIntValue,
-	reflect.Uint:          decodeUintValue,
-	reflect.Uint8:         decodeUintValue,
-	reflect.Uint16:        decodeUintValue,
-	reflect.Uint32:        decodeUintValue,
-	reflect.Uint64:        decodeUintValue,
-	reflect.Uintptr:       nil,
-	reflect.Float32:       decodeFloatValue,
-	reflect.Float64:       decodeFloatValue,
-	reflect.Complex64:     nil,
-	reflect.Complex128:    nil,
-	reflect.Array:         nil,
-	reflect.Chan:          nil,
-	reflect.Func:          nil,
-	reflect.Interface:     nil,
-	reflect.Map:           decodeMapValue,
-	reflect.Ptr:           nil,
-	reflect.Slice:         decodeSliceValue,
-	reflect.String:        decodeStringValue,
-	reflect.Struct:        decodeStructValue,
-	reflect.UnsafePointer: nil,
+var valueDecoders []valueDecoder
+
+func init() {
+	valueDecoders = []valueDecoder{
+		reflect.Bool:          decodeBoolValue,
+		reflect.Int:           decodeIntValue,
+		reflect.Int8:          decodeIntValue,
+		reflect.Int16:         decodeIntValue,
+		reflect.Int32:         decodeIntValue,
+		reflect.Int64:         decodeIntValue,
+		reflect.Uint:          decodeUintValue,
+		reflect.Uint8:         decodeUintValue,
+		reflect.Uint16:        decodeUintValue,
+		reflect.Uint32:        decodeUintValue,
+		reflect.Uint64:        decodeUintValue,
+		reflect.Uintptr:       nil,
+		reflect.Float32:       decodeFloatValue,
+		reflect.Float64:       decodeFloatValue,
+		reflect.Complex64:     nil,
+		reflect.Complex128:    nil,
+		reflect.Array:         nil,
+		reflect.Chan:          nil,
+		reflect.Func:          nil,
+		reflect.Interface:     decodeInterfaceValue,
+		reflect.Map:           decodeMapValue,
+		reflect.Ptr:           decodePtrValue,
+		reflect.Slice:         decodeSliceValue,
+		reflect.String:        decodeStringValue,
+		reflect.Struct:        decodeStructValue,
+		reflect.UnsafePointer: nil,
+	}
 }
 
-func DecodeValue(dst reflect.Value, f []byte) error {
-	if !dst.IsValid() {
-		return decodeError(dst)
+func DecodeValue(v reflect.Value, b []byte) error {
+	if !v.IsValid() {
+		return errorf("pg: Decode(nil)")
 	}
 
-	if f == nil {
-		return decodeNullValue(dst)
+	if b == nil {
+		return decodeNullValue(v)
 	}
 
-	kind := dst.Kind()
-	if kind == reflect.Ptr && dst.IsNil() && dst.CanSet() {
-		dst.Set(reflect.New(dst.Type().Elem()))
+	decoder := getDecoder(v.Type())
+	if decoder != nil {
+		return decoder(v, b)
 	}
 
-	if scanner, ok := dst.Interface().(sql.Scanner); ok {
-		return decodeScanner(scanner, f)
+	if v.Kind() == reflect.Interface {
+		return errorf("pg: Decode(nil)")
 	}
-
-	if kind == reflect.Interface || kind == reflect.Ptr {
-		v := dst.Elem()
-		if !v.IsValid() {
-			return decodeError(dst)
-		}
-		return DecodeValue(v, f)
-	}
-
-	if !dst.CanSet() {
-		return decodeError(dst)
-	}
-
-	if dst.Type() == timeType {
-		return decodeTimeValue(dst, f)
-	}
-
-	if decoder := valueDecoders[kind]; decoder != nil {
-		return decoder(dst, f)
-	}
-	return errorf("pg: unsupported dst: %s", dst.Type())
+	return errorf("pg: Decode(unsupported %s)", v.Type())
 }
 
 func decodeBoolValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return errorf("pg: Decode(nonsettable %s)", v.Type())
+	}
 	v.SetBool(len(b) == 1 && b[0] == 't')
 	return nil
 }
@@ -136,52 +123,70 @@ func decodeTimeValue(v reflect.Value, b []byte) error {
 	return nil
 }
 
-func decodeSliceValue(dst reflect.Value, f []byte) error {
-	elemType := dst.Type().Elem()
-	switch elemType.Kind() {
-	case reflect.Uint8:
-		b, err := decodeBytes(f)
-		if err != nil {
-			return err
+func decodePtrValue(v reflect.Value, b []byte) error {
+	if v.IsNil() {
+		if !v.CanSet() {
+			return errorf("pg: Decode(nonsettable %s)", v.Type())
 		}
-		dst.SetBytes(b)
-		return nil
-	case reflect.String:
-		s, err := decodeStringSlice(f)
-		if err != nil {
-			return err
-		}
-		dst.Set(reflect.ValueOf(s))
-		return nil
-	case reflect.Int:
-		s, err := decodeIntSlice(f)
-		if err != nil {
-			return err
-		}
-		dst.Set(reflect.ValueOf(s))
-		return nil
-	case reflect.Int64:
-		s, err := decodeInt64Slice(f)
-		if err != nil {
-			return err
-		}
-		dst.Set(reflect.ValueOf(s))
-		return nil
+		vv := reflect.New(v.Type().Elem())
+		v.Set(vv)
 	}
-	return errorf("pg: unsupported dst: %s", dst.Type())
+	return DecodeValue(v.Elem(), b)
 }
 
-func decodeMapValue(dst reflect.Value, f []byte) error {
-	typ := dst.Type()
-	if typ.Key().Kind() == reflect.String && typ.Elem().Kind() == reflect.String {
-		m, err := decodeStringStringMap(f)
+func decodeSliceValue(v reflect.Value, b []byte) error {
+	elemType := v.Type().Elem()
+	switch elemType.Kind() {
+	case reflect.Uint8:
+		bs, err := decodeBytes(b)
 		if err != nil {
 			return err
 		}
-		dst.Set(reflect.ValueOf(m))
+		v.SetBytes(bs)
+		return nil
+	case reflect.String:
+		s, err := decodeStringSlice(b)
+		if err != nil {
+			return err
+		}
+		v.Set(reflect.ValueOf(s))
+		return nil
+	case reflect.Int:
+		s, err := decodeIntSlice(b)
+		if err != nil {
+			return err
+		}
+		v.Set(reflect.ValueOf(s))
+		return nil
+	case reflect.Int64:
+		s, err := decodeInt64Slice(b)
+		if err != nil {
+			return err
+		}
+		v.Set(reflect.ValueOf(s))
 		return nil
 	}
-	return errorf("pg: unsupported dst: %s", dst.Type())
+	return errorf("pg: Decode(unsupported %s)", v.Type())
+}
+
+func decodeInterfaceValue(v reflect.Value, b []byte) error {
+	if v.IsNil() {
+		return errorf("pg: Decode(nil)")
+	}
+	return DecodeValue(v.Elem(), b)
+}
+
+func decodeMapValue(v reflect.Value, b []byte) error {
+	typ := v.Type()
+	if typ.Key().Kind() == reflect.String && typ.Elem().Kind() == reflect.String {
+		m, err := decodeStringStringMap(b)
+		if err != nil {
+			return err
+		}
+		v.Set(reflect.ValueOf(m))
+		return nil
+	}
+	return errorf("pg: Decode(unsupported %s)", v.Type())
 }
 
 func decodeNullValue(v reflect.Value) error {
@@ -200,6 +205,9 @@ func decodeNullValue(v reflect.Value) error {
 }
 
 func decodeScannerValue(v reflect.Value, b []byte) error {
+	if v.IsNil() {
+		v.Set(reflect.New(v.Type().Elem()))
+	}
 	return decodeScanner(v.Interface().(sql.Scanner), b)
 }
 

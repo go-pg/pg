@@ -7,33 +7,19 @@ import (
 	"strconv"
 )
 
-func Decode(dst interface{}, f []byte) error {
-	if scanner, ok := dst.(sql.Scanner); ok {
-		return decodeScanner(scanner, f)
-	}
-
+func Decode(dst interface{}, b []byte) error {
 	v := reflect.ValueOf(dst)
-	if !v.IsValid() || v.Kind() != reflect.Ptr {
-		return decodeError(v)
-	}
-	vv := v.Elem()
-	if !vv.IsValid() {
-		return decodeError(v)
-	}
-	return DecodeValue(vv, f)
-}
-
-func decodeError(v reflect.Value) error {
 	if !v.IsValid() {
 		return errorf("pg: Decode(nil)")
 	}
-	if !v.CanSet() {
-		return errorf("pg: Decode(nonsettable %s)", v.Type())
+	if v.Kind() != reflect.Ptr {
+		return errorf("pg: Decode(nonsettable %T)", dst)
 	}
-	if v.Kind() == reflect.Interface {
-		return errorf("pg: Decode(nil)")
+	vv := v.Elem()
+	if !vv.IsValid() {
+		return errorf("pg: Decode(nonsettable %T)", dst)
 	}
-	return errorf("pg: Decode(nil %s)", v.Type())
+	return DecodeValue(vv, b)
 }
 
 func decodeScanner(scanner sql.Scanner, b []byte) error {

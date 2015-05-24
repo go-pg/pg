@@ -1,4 +1,4 @@
-package pg
+package pg // import "gopkg.in/pg.v3"
 
 type Collection interface {
 	NewRecord() interface{}

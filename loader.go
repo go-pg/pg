@@ -163,15 +163,15 @@ func (set IntSet) LoadColumn(colIdx int, colName string, b []byte) error {
 func NewColumnLoader(dst interface{}) (ColumnLoader, error) {
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
-		return nil, decodeError(v)
+		return nil, errorf("pg: Decode(nil)")
 	}
 	if v.Kind() != reflect.Ptr {
-		return nil, decodeError(v)
+		return nil, errorf("pg: Decode(nonsettable %T)", dst)
 	}
-	v = v.Elem()
-	switch v.Kind() {
+	vv := v.Elem()
+	switch vv.Kind() {
 	case reflect.Struct:
-		return newStructLoader(v), nil
+		return newStructLoader(vv), nil
 	}
-	return nil, errorf("pg: unsupported dst %s", v.Type())
+	return nil, errorf("pg: Decode(unsupported %T)", dst)
 }

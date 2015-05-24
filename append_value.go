@@ -81,7 +81,7 @@ func appendAppenderValue(dst []byte, v reflect.Value) []byte {
 }
 
 func appendDriverValuerValue(dst []byte, v reflect.Value) []byte {
-	return appendDriverValue(dst, v.Interface().(driver.Valuer))
+	return appendDriverValuer(dst, v.Interface().(driver.Valuer))
 }
 
 func isEmptyValue(v reflect.Value) bool {
