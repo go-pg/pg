@@ -91,6 +91,11 @@ func appendIface(dst []byte, srci interface{}) []byte {
 		dst = appendInt64Slice(dst, src)
 		dst = append(dst, '\'')
 		return dst
+	case []float64:
+		dst = append(dst, '\'')
+		dst = appendFloat64Slice(dst, src)
+		dst = append(dst, '\'')
+		return dst
 	case map[string]string:
 		dst = append(dst, '\'')
 		dst = appendStringStringMap(dst, src, false)
@@ -165,6 +170,8 @@ func appendIfaceRaw(dst []byte, srci interface{}) []byte {
 		return appendIntSlice(dst, src)
 	case []int64:
 		return appendInt64Slice(dst, src)
+	case []float64:
+		return appendFloat64Slice(dst, src)
 	case map[string]string:
 		return appendStringStringMap(dst, src, true)
 	case RawQueryAppender:
@@ -339,6 +346,20 @@ func appendInt64Slice(dst []byte, v []int64) []byte {
 	dst = append(dst, "{"...)
 	for _, n := range v {
 		dst = strconv.AppendInt(dst, n, 10)
+		dst = append(dst, ',')
+	}
+	dst[len(dst)-1] = '}' // Replace trailing comma.
+	return dst
+}
+
+func appendFloat64Slice(dst []byte, v []float64) []byte {
+	if len(v) == 0 {
+		return append(dst, "{}"...)
+	}
+
+	dst = append(dst, "{"...)
+	for _, n := range v {
+		dst = appendFloat(dst, n)
 		dst = append(dst, ',')
 	}
 	dst[len(dst)-1] = '}' // Replace trailing comma.

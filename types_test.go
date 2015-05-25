@@ -63,8 +63,10 @@ var (
 	f32v float32
 	f64v float64
 
-	strSlice []string
-	intSlice []int
+	strSlice     []string
+	intSlice     []int
+	int64Slice   []int64
+	float64Slice []float64
 
 	strStrMap map[string]string
 
@@ -139,12 +141,14 @@ var conversionTests = []conversionTest{
 	{src: float64(math.MaxFloat64), dst: &f64v, pgtype: "decimal"},
 	{src: float64(math.SmallestNonzeroFloat64), dst: &f64v, pgtype: "decimal"},
 
+	{src: []int{}, dst: &intSlice, pgtype: "int[]"},
+	{src: []int{1, 2, 3}, dst: &intSlice, pgtype: "int[]"},
+	{src: []int64{1, 2, 3}, dst: &int64Slice, pgtype: "bigint[]"},
+	{src: []float64{1.1, 2.22, 3.333}, dst: &float64Slice, pgtype: "double precision[]"},
+
 	{src: []string{"foo\n", "bar {}", "'\\\""}, dst: &strSlice, pgtype: "text[]"},
 	{src: []string{}, dst: &strSlice, pgtype: "text[]", wantzero: true},
 	{src: nil, dst: &strSlice, pgtype: "text[]", wantnil: true},
-
-	{src: []int{}, dst: &intSlice, pgtype: "int[]"},
-	{src: []int{1, 2, 3}, dst: &intSlice, pgtype: "int[]"},
 
 	{
 		src:    map[string]string{"foo\n =>": "bar\n =>", "'\\\"": "'\\\""},

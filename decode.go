@@ -79,6 +79,26 @@ func decodeInt64Slice(f []byte) ([]int64, error) {
 	return s, nil
 }
 
+func decodeFloat64Slice(b []byte) ([]float64, error) {
+	p := newArrayParser(b[1 : len(b)-1])
+	slice := make([]float64, 0)
+	for p.Valid() {
+		elem, err := p.NextElem()
+		if err != nil {
+			return nil, err
+		}
+		if elem == nil {
+			return nil, errorf("pg: unexpected NULL: %q", b)
+		}
+		n, err := strconv.ParseFloat(string(elem), 64)
+		if err != nil {
+			return nil, err
+		}
+		slice = append(slice, n)
+	}
+	return slice, nil
+}
+
 func decodeStringSlice(f []byte) ([]string, error) {
 	p := newArrayParser(f[1 : len(f)-1])
 	s := make([]string, 0)

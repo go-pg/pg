@@ -145,25 +145,32 @@ func decodeSliceValue(v reflect.Value, b []byte) error {
 		v.SetBytes(bs)
 		return nil
 	case reflect.String:
-		s, err := decodeStringSlice(b)
+		slice, err := decodeStringSlice(b)
 		if err != nil {
 			return err
 		}
-		v.Set(reflect.ValueOf(s))
+		v.Set(reflect.ValueOf(slice))
 		return nil
 	case reflect.Int:
-		s, err := decodeIntSlice(b)
+		slice, err := decodeIntSlice(b)
 		if err != nil {
 			return err
 		}
-		v.Set(reflect.ValueOf(s))
+		v.Set(reflect.ValueOf(slice))
 		return nil
 	case reflect.Int64:
-		s, err := decodeInt64Slice(b)
+		slice, err := decodeInt64Slice(b)
 		if err != nil {
 			return err
 		}
-		v.Set(reflect.ValueOf(s))
+		v.Set(reflect.ValueOf(slice))
+		return nil
+	case reflect.Float64:
+		slice, err := decodeFloat64Slice(b)
+		if err != nil {
+			return err
+		}
+		v.Set(reflect.ValueOf(slice))
 		return nil
 	}
 	return errorf("pg: Decode(unsupported %s)", v.Type())
