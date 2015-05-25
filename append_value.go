@@ -2,7 +2,7 @@ package pg
 
 import (
 	"database/sql/driver"
-	"fmt"
+	"encoding/json"
 	"reflect"
 	"strconv"
 	"time"
@@ -66,7 +66,11 @@ func appendStructValue(dst []byte, v reflect.Value) []byte {
 	case timeType:
 		return appendTimeValue(dst, v)
 	}
-	panic(fmt.Sprintf("pg: unsupported src type: %s", v))
+	b, err := json.Marshal(v.Interface())
+	if err != nil {
+		panic(err)
+	}
+	return append(dst, b...)
 }
 
 func appendTimeValue(dst []byte, v reflect.Value) []byte {

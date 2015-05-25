@@ -117,7 +117,7 @@ func appendValue(dst []byte, v reflect.Value) []byte {
 			return appender(dst, v)
 		}
 	}
-	panic(fmt.Sprintf("pg: unsupported src type: %s", v))
+	panic(fmt.Sprintf("pg: Format(unsupported %s)", v.Type()))
 }
 
 // Returns nil when src is NULL.
@@ -196,7 +196,7 @@ func appendValueRaw(dst []byte, v reflect.Value) []byte {
 			return pgutil.AppendTime(dst, v.Interface().(time.Time))
 		}
 	}
-	panic(fmt.Sprintf("pg: unsupported src type: %s", v))
+	panic(fmt.Sprintf("pg: Format(unsupported %s)", v.Type()))
 }
 
 func appendNull(dst []byte) []byte {
