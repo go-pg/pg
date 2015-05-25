@@ -230,6 +230,22 @@ func appendString(dst []byte, src string) []byte {
 	return dst
 }
 
+func appendStringBytes(dst []byte, src []byte) []byte {
+	dst = append(dst, '\'')
+	for _, c := range src {
+		switch c {
+		case '\'':
+			dst = append(dst, "''"...)
+		case '\000':
+			continue
+		default:
+			dst = append(dst, c)
+		}
+	}
+	dst = append(dst, '\'')
+	return dst
+}
+
 func appendStringRaw(dst []byte, src string) []byte {
 	for _, c := range []byte(src) {
 		if c != '\000' {

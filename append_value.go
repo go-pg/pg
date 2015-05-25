@@ -70,7 +70,7 @@ func appendStructValue(dst []byte, v reflect.Value) []byte {
 	if err != nil {
 		panic(err)
 	}
-	return append(dst, b...)
+	return appendStringBytes(dst, b)
 }
 
 func appendTimeValue(dst []byte, v reflect.Value) []byte {
