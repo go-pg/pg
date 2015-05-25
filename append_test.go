@@ -52,6 +52,7 @@ var formattingTests = []formattingTest{
 	{q: "?", args: args{pg.Q("query")}, wanted: "query"},
 	{q: "?", args: args{pg.F("field")}, wanted: `"field"`},
 	{q: "?null_empty", args: args{structv}, wanted: `NULL`},
+	{q: "?", args: args{structv}, wanted: `{"Foo":"bar","NullEmpty":""}`},
 	{q: `\? ?`, args: args{1}, wanted: "? 1"},
 	{q: "? ?foo ?", args: args{"one", "two", structv}, wanted: "'one' 'bar' 'two'"},
 	{q: "?foo ?Meth", args: args{structv}, wanted: "'bar' 'value'"},

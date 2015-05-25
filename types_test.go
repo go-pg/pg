@@ -311,7 +311,6 @@ func TestConversion(t *testing.T) {
 	}
 
 	for _, test := range conversionTests {
-		fmt.Println(test)
 		dst := struct{ Dst interface{} }{Dst: test.dst}
 		_, err := db.QueryOne(&dst, "SELECT (?) AS dst", test.src)
 		test.Assert(t, err)
