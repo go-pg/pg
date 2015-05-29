@@ -145,11 +145,17 @@ type IntSet map[int64]struct{}
 var _ Collection = &IntSet{}
 var _ ColumnLoader = &IntSet{}
 
-func (set IntSet) NewRecord() interface{} {
+func (set *IntSet) NewRecord() interface{} {
 	return set
 }
 
-func (set IntSet) LoadColumn(colIdx int, colName string, b []byte) error {
+func (setptr *IntSet) LoadColumn(colIdx int, colName string, b []byte) error {
+	set := *setptr
+	if set == nil {
+		*setptr = make(IntSet)
+		set = *setptr
+	}
+
 	n, err := strconv.ParseInt(string(b), 10, 64)
 	if err != nil {
 		return err
