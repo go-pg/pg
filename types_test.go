@@ -39,54 +39,6 @@ type JSONRecord2 struct {
 	Field *JSONField
 }
 
-var (
-	boolv   bool
-	boolptr *bool
-
-	stringv   string
-	stringptr *string
-	bytesv    []byte
-
-	intv     int
-	intvptr  *int
-	int8v    int8
-	int16v   int16
-	int32v   int32
-	int64v   int64
-	uintv    uint
-	uint8v   uint8
-	uint16v  uint16
-	uint32v  uint32
-	uint64v  uint64
-	uintptrv uintptr
-
-	f32v float32
-	f64v float64
-
-	strSlice     []string
-	intSlice     []int
-	int64Slice   []int64
-	float64Slice []float64
-
-	strStrMap map[string]string
-
-	nullBool    sql.NullBool
-	nullString  sql.NullString
-	nullInt64   sql.NullInt64
-	nullFloat64 sql.NullFloat64
-
-	customStrSliceV customStrSlice
-
-	timeptr *time.Time
-	now     = time.Now()
-
-	pgInts    pg.Ints
-	pgStrings pg.Strings
-
-	jsonMapPtr   *JSONMap
-	jsonFieldPtr *JSONField
-)
-
 type conversionTest struct {
 	src, dst, wanted interface{}
 	pgtype           string
@@ -94,111 +46,6 @@ type conversionTest struct {
 	wanterr  string
 	wantnil  bool
 	wantzero bool
-}
-
-var conversionTests = []conversionTest{
-	{src: true, dst: nil, wanterr: "pg: Decode(nil)"},
-	{src: true, dst: &uintptrv, wanterr: "pg: Decode(unsupported uintptr)"},
-	{src: true, dst: boolv, wanterr: "pg: Decode(nonsettable bool)"},
-	{src: true, dst: boolptr, wanterr: "pg: Decode(nonsettable *bool)"},
-
-	{src: false, dst: &boolv, pgtype: "bool"},
-	{src: true, dst: &boolv, pgtype: "bool"},
-	{src: nil, dst: &boolv, pgtype: "bool", wantzero: true},
-	{src: true, dst: &boolptr, pgtype: "bool"},
-	{src: nil, dst: &boolptr, pgtype: "bool", wantnil: true},
-
-	{src: "hello world", dst: &stringv, pgtype: "text"},
-	{src: nil, dst: &stringv, pgtype: "text", wantzero: true},
-	{src: "hello world", dst: &stringptr, pgtype: "text"},
-	{src: nil, dst: &stringptr, pgtype: "text", wantnil: true},
-
-	{src: []byte("hello world\000"), dst: &bytesv, pgtype: "bytea"},
-	{src: []byte{}, dst: &bytesv, pgtype: "bytea", wantzero: true},
-	{src: nil, dst: &bytesv, pgtype: "bytea", wantnil: true},
-
-	{src: int(math.MaxInt32), dst: &intv, pgtype: "int"},
-	{src: int(math.MinInt32), dst: &intv, pgtype: "int"},
-	{src: nil, dst: &intv, pgtype: "int", wantzero: true},
-	{src: int(math.MaxInt32), dst: &intvptr, pgtype: "int"},
-	{src: nil, dst: &intvptr, pgtype: "int", wantnil: true},
-	{src: int8(math.MaxInt8), dst: &int8v, pgtype: "smallint"},
-	{src: int8(math.MinInt8), dst: &int8v, pgtype: "smallint"},
-	{src: int16(math.MaxInt16), dst: &int16v, pgtype: "smallint"},
-	{src: int16(math.MinInt16), dst: &int16v, pgtype: "smallint"},
-	{src: int32(math.MaxInt32), dst: &int32v, pgtype: "int"},
-	{src: int32(math.MinInt32), dst: &int32v, pgtype: "int"},
-	{src: int64(math.MaxInt64), dst: &int64v, pgtype: "bigint"},
-	{src: int64(math.MinInt64), dst: &int64v, pgtype: "bigint"},
-	{src: uint(math.MaxUint32), dst: &uintv, pgtype: "bigint"},
-	{src: uint8(math.MaxUint8), dst: &uint8v, pgtype: "smallint"},
-	{src: uint16(math.MaxUint16), dst: &uint16v, pgtype: "int"},
-	{src: uint32(math.MaxUint32), dst: &uint32v, pgtype: "bigint"},
-	{src: uint64(math.MaxUint64), dst: &uint64v},
-
-	{src: float32(math.MaxFloat32), dst: &f32v, pgtype: "decimal"},
-	{src: float32(math.SmallestNonzeroFloat32), dst: &f32v, pgtype: "decimal"},
-	{src: float64(math.MaxFloat64), dst: &f64v, pgtype: "decimal"},
-	{src: float64(math.SmallestNonzeroFloat64), dst: &f64v, pgtype: "decimal"},
-
-	{src: []int{}, dst: &intSlice, pgtype: "int[]"},
-	{src: []int{1, 2, 3}, dst: &intSlice, pgtype: "int[]"},
-	{src: []int64{1, 2, 3}, dst: &int64Slice, pgtype: "bigint[]"},
-	{src: []float64{1.1, 2.22, 3.333}, dst: &float64Slice, pgtype: "double precision[]"},
-
-	{src: []string{"foo\n", "bar {}", "'\\\""}, dst: &strSlice, pgtype: "text[]"},
-	{src: []string{}, dst: &strSlice, pgtype: "text[]", wantzero: true},
-	{src: nil, dst: &strSlice, pgtype: "text[]", wantnil: true},
-
-	{
-		src:    map[string]string{"foo\n =>": "bar\n =>", "'\\\"": "'\\\""},
-		dst:    &strStrMap,
-		pgtype: "hstore",
-	},
-
-	{src: &sql.NullBool{}, dst: &nullBool, pgtype: "bool"},
-	{src: &sql.NullBool{Valid: true}, dst: &nullBool, pgtype: "bool"},
-	{src: &sql.NullBool{Valid: true, Bool: true}, dst: &nullBool, pgtype: "bool"},
-
-	{src: &sql.NullString{}, dst: &nullString, pgtype: "text"},
-	{src: &sql.NullString{Valid: true}, dst: &nullString, pgtype: "text"},
-	{src: &sql.NullString{Valid: true, String: "foo"}, dst: &nullString, pgtype: "text"},
-
-	{src: &sql.NullInt64{}, dst: &nullInt64, pgtype: "bigint"},
-	{src: &sql.NullInt64{Valid: true}, dst: &nullInt64, pgtype: "bigint"},
-	{src: &sql.NullInt64{Valid: true, Int64: math.MaxInt64}, dst: &nullInt64, pgtype: "bigint"},
-
-	{src: &sql.NullFloat64{}, dst: &nullFloat64, pgtype: "decimal"},
-	{src: &sql.NullFloat64{Valid: true}, dst: &nullFloat64, pgtype: "decimal"},
-	{src: &sql.NullFloat64{Valid: true, Float64: math.MaxFloat64}, dst: &nullFloat64, pgtype: "decimal"},
-
-	{src: customStrSlice{}, dst: &customStrSliceV, wantzero: true},
-	{src: nil, dst: &customStrSliceV, wantnil: true},
-	{src: customStrSlice{"one", "two"}, dst: &customStrSliceV},
-
-	{src: time.Time{}, dst: &time.Time{}, pgtype: "timestamp"},
-	{src: time.Now(), dst: &time.Time{}, pgtype: "timestamp"},
-	{src: time.Now().UTC(), dst: &time.Time{}, pgtype: "timestamp"},
-	{src: nil, dst: &time.Time{}, pgtype: "timestamp", wantzero: true},
-	{src: time.Now(), dst: &timeptr, pgtype: "timestamp"},
-	{src: nil, dst: &timeptr, pgtype: "timestamp", wantnil: true},
-
-	{src: time.Time{}, dst: &time.Time{}, pgtype: "timestamptz"},
-	{src: time.Now(), dst: &time.Time{}, pgtype: "timestamptz"},
-	{src: &now, dst: &time.Time{}, pgtype: "timestamptz"},
-	{src: time.Now().UTC(), dst: &time.Time{}, pgtype: "timestamptz"},
-	{src: nil, dst: &time.Time{}, pgtype: "timestamptz", wantzero: true},
-	{src: time.Now(), dst: &timeptr, pgtype: "timestamptz"},
-	{src: nil, dst: &timeptr, pgtype: "timestamptz", wantnil: true},
-
-	{src: pg.Ints{1, 2, 3}, dst: &pgInts},
-	{src: pg.Strings{"hello", "world"}, dst: &pgStrings},
-
-	{src: JSONMap{"foo": "bar"}, dst: &JSONMap{}, pgtype: "json"},
-	{src: JSONMap{"foo": "bar"}, dst: &jsonMapPtr, pgtype: "json"},
-	{src: nil, dst: &jsonMapPtr, wantnil: true, pgtype: "json"},
-	{src: `{"foo": "bar"}`, dst: &JSONField{}, wanted: JSONField{Foo: "bar"}},
-	{src: `{"foo": "bar"}`, dst: &jsonFieldPtr, wanted: JSONField{Foo: "bar"}},
 }
 
 func deref(viface interface{}) interface{} {
@@ -287,16 +134,162 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 }
 
 func TestConversion(t *testing.T) {
+	conversionTests := []conversionTest{
+		{src: true, dst: nil, wanterr: "pg: Decode(nil)"},
+		{src: true, dst: new(uintptr), wanterr: "pg: Decode(unsupported uintptr)"},
+		{src: true, dst: true, wanterr: "pg: Decode(nonsettable bool)"},
+		{src: true, dst: (*bool)(nil), wanterr: "pg: Decode(nonsettable *bool)"},
+
+		{src: false, dst: new(bool), pgtype: "bool"},
+		{src: true, dst: new(bool), pgtype: "bool"},
+		{src: nil, dst: new(bool), pgtype: "bool", wantzero: true},
+		{src: true, dst: new(*bool), pgtype: "bool"},
+		{src: nil, dst: new(*bool), pgtype: "bool", wantnil: true},
+
+		{src: "hello world", dst: new(string), pgtype: "text"},
+		{src: nil, dst: new(string), pgtype: "text", wantzero: true},
+		{src: "hello world", dst: new(*string), pgtype: "text"},
+		{src: nil, dst: new(*string), pgtype: "text", wantnil: true},
+
+		{src: []byte("hello world\000"), dst: new([]byte), pgtype: "bytea"},
+		{src: []byte{}, dst: new([]byte), pgtype: "bytea", wantzero: true},
+		{src: nil, dst: new([]byte), pgtype: "bytea", wantnil: true},
+
+		{src: int(math.MaxInt32), dst: new(int), pgtype: "int"},
+		{src: int(math.MinInt32), dst: new(int), pgtype: "int"},
+		{src: nil, dst: new(int), pgtype: "int", wantzero: true},
+		{src: int(math.MaxInt32), dst: new(*int), pgtype: "int"},
+		{src: nil, dst: new(*int), pgtype: "int", wantnil: true},
+		{src: int8(math.MaxInt8), dst: new(int8), pgtype: "smallint"},
+		{src: int8(math.MinInt8), dst: new(int8), pgtype: "smallint"},
+		{src: int16(math.MaxInt16), dst: new(int16), pgtype: "smallint"},
+		{src: int16(math.MinInt16), dst: new(int16), pgtype: "smallint"},
+		{src: int32(math.MaxInt32), dst: new(int32), pgtype: "int"},
+		{src: int32(math.MinInt32), dst: new(int32), pgtype: "int"},
+		{src: int64(math.MaxInt64), dst: new(int64), pgtype: "bigint"},
+		{src: int64(math.MinInt64), dst: new(int64), pgtype: "bigint"},
+		{src: uint(math.MaxUint32), dst: new(uint), pgtype: "bigint"},
+		{src: uint8(math.MaxUint8), dst: new(uint8), pgtype: "smallint"},
+		{src: uint16(math.MaxUint16), dst: new(uint16), pgtype: "int"},
+		{src: uint32(math.MaxUint32), dst: new(uint32), pgtype: "bigint"},
+		{src: uint64(math.MaxUint64), dst: new(uint64)},
+
+		{src: float32(math.MaxFloat32), dst: new(float32), pgtype: "decimal"},
+		{src: float32(math.SmallestNonzeroFloat32), dst: new(float32), pgtype: "decimal"},
+		{src: float64(math.MaxFloat64), dst: new(float64), pgtype: "decimal"},
+		{src: float64(math.SmallestNonzeroFloat64), dst: new(float64), pgtype: "decimal"},
+
+		{src: []int{}, dst: new([]int), pgtype: "int[]"},
+		{src: []int{1, 2, 3}, dst: new([]int), pgtype: "int[]"},
+		{src: []int64{1, 2, 3}, dst: new([]int64), pgtype: "bigint[]"},
+		{src: []float64{1.1, 2.22, 3.333}, dst: new([]float64), pgtype: "double precision[]"},
+
+		{src: []string{"foo\n", "bar {}", "'\\\""}, dst: new([]string), pgtype: "text[]"},
+		{src: []string{}, dst: new([]string), pgtype: "text[]", wantzero: true},
+		{src: nil, dst: new([]string), pgtype: "text[]", wantnil: true},
+
+		{
+			src:    map[string]string{"foo\n =>": "bar\n =>", "'\\\"": "'\\\""},
+			dst:    new(map[string]string),
+			pgtype: "hstore",
+		},
+
+		{src: &sql.NullBool{}, dst: &sql.NullBool{}, pgtype: "bool"},
+		{src: &sql.NullBool{Valid: true}, dst: &sql.NullBool{}, pgtype: "bool"},
+		{src: &sql.NullBool{Valid: true, Bool: true}, dst: &sql.NullBool{}, pgtype: "bool"},
+
+		{src: &sql.NullString{}, dst: &sql.NullString{}, pgtype: "text"},
+		{src: &sql.NullString{Valid: true}, dst: &sql.NullString{}, pgtype: "text"},
+		{src: &sql.NullString{Valid: true, String: "foo"}, dst: &sql.NullString{}, pgtype: "text"},
+
+		{src: &sql.NullInt64{}, dst: &sql.NullInt64{}, pgtype: "bigint"},
+		{src: &sql.NullInt64{Valid: true}, dst: &sql.NullInt64{}, pgtype: "bigint"},
+		{src: &sql.NullInt64{Valid: true, Int64: math.MaxInt64}, dst: &sql.NullInt64{}, pgtype: "bigint"},
+
+		{src: &sql.NullFloat64{}, dst: &sql.NullFloat64{}, pgtype: "decimal"},
+		{src: &sql.NullFloat64{Valid: true}, dst: &sql.NullFloat64{}, pgtype: "decimal"},
+		{src: &sql.NullFloat64{Valid: true, Float64: math.MaxFloat64}, dst: &sql.NullFloat64{}, pgtype: "decimal"},
+
+		{src: customStrSlice{}, dst: &customStrSlice{}, wantzero: true},
+		{src: nil, dst: &customStrSlice{}, wantnil: true},
+		{src: customStrSlice{"one", "two"}, dst: &customStrSlice{}},
+
+		{src: time.Time{}, dst: &time.Time{}, pgtype: "timestamp"},
+		{src: time.Now(), dst: &time.Time{}, pgtype: "timestamp"},
+		{src: time.Now().UTC(), dst: &time.Time{}, pgtype: "timestamp"},
+		{src: nil, dst: &time.Time{}, pgtype: "timestamp", wantzero: true},
+		{src: time.Now(), dst: new(*time.Time), pgtype: "timestamp"},
+		{src: nil, dst: new(*time.Time), pgtype: "timestamp", wantnil: true},
+
+		{src: time.Time{}, dst: &time.Time{}, pgtype: "timestamptz"},
+		{src: time.Now(), dst: &time.Time{}, pgtype: "timestamptz"},
+		{src: time.Now().UTC(), dst: &time.Time{}, pgtype: "timestamptz"},
+		{src: nil, dst: &time.Time{}, pgtype: "timestamptz", wantzero: true},
+		{src: time.Now(), dst: new(*time.Time), pgtype: "timestamptz"},
+		{src: nil, dst: new(*time.Time), pgtype: "timestamptz", wantnil: true},
+
+		{src: 1, dst: new(pg.Ints), wanted: pg.Ints{1}},
+		{src: "hello", dst: new(pg.Strings), wanted: pg.Strings{"hello"}},
+		{src: 1, dst: new(pg.IntSet), wanted: pg.IntSet{1: struct{}{}}},
+
+		{src: JSONMap{"foo": "bar"}, dst: &JSONMap{}, pgtype: "json"},
+		{src: JSONMap{"foo": "bar"}, dst: new(*JSONMap), pgtype: "json"},
+		{src: nil, dst: new(*JSONMap), wantnil: true, pgtype: "json"},
+		{src: `{"foo": "bar"}`, dst: &JSONField{}, wanted: JSONField{Foo: "bar"}},
+		{src: `{"foo": "bar"}`, dst: new(*JSONField), wanted: JSONField{Foo: "bar"}},
+	}
+
 	db := pgdb()
 	db.Exec("CREATE EXTENSION hstore")
 	defer db.Exec("DROP EXTENSION hstore")
 
 	for _, test := range conversionTests {
+		var err error
+		if _, ok := test.dst.(pg.ColumnLoader); ok {
+			_, err = db.QueryOne(test.dst, "SELECT (?) AS dst", test.src)
+		} else {
+			dst := struct{ Dst interface{} }{Dst: test.dst}
+			_, err = db.QueryOne(&dst, "SELECT (?) AS dst", test.src)
+		}
+		test.Assert(t, err)
+	}
+
+	for _, test := range conversionTests {
+		if test.pgtype == "" {
+			continue
+		}
+
+		stmt, err := db.Prepare(fmt.Sprintf("SELECT ($1::%s) AS dst", test.pgtype))
+		if err != nil {
+			test.Fatalf(t, err)
+		}
+
+		if _, ok := test.dst.(pg.ColumnLoader); ok {
+			_, err = stmt.QueryOne(test.dst, test.src)
+		} else {
+			dst := struct{ Dst interface{} }{Dst: test.dst}
+			_, err = stmt.QueryOne(&dst, test.src)
+		}
+		test.Assert(t, err)
+
+		if err := stmt.Close(); err != nil {
+			test.Fatalf(t, err)
+		}
+	}
+
+	for _, test := range conversionTests {
+		if _, ok := test.dst.(pg.ColumnLoader); ok {
+			continue
+		}
+
 		_, err := db.QueryOne(pg.LoadInto(test.dst), "SELECT (?) AS dst", test.src)
 		test.Assert(t, err)
 	}
 
 	for _, test := range conversionTests {
+		if _, ok := test.dst.(pg.ColumnLoader); ok {
+			continue
+		}
 		if test.pgtype == "" {
 			continue
 		}
@@ -307,31 +300,6 @@ func TestConversion(t *testing.T) {
 		}
 
 		_, err = stmt.QueryOne(pg.LoadInto(test.dst), test.src)
-		test.Assert(t, err)
-
-		if err := stmt.Close(); err != nil {
-			test.Fatalf(t, err)
-		}
-	}
-
-	for _, test := range conversionTests {
-		dst := struct{ Dst interface{} }{Dst: test.dst}
-		_, err := db.QueryOne(&dst, "SELECT (?) AS dst", test.src)
-		test.Assert(t, err)
-	}
-
-	for _, test := range conversionTests {
-		if test.pgtype == "" {
-			continue
-		}
-
-		stmt, err := db.Prepare(fmt.Sprintf("SELECT ($1::%s) AS dst", test.pgtype))
-		if err != nil {
-			test.Fatalf(t, err)
-		}
-
-		dst := struct{ Dst interface{} }{Dst: test.dst}
-		_, err = stmt.QueryOne(&dst, test.src)
 		test.Assert(t, err)
 
 		if err := stmt.Close(); err != nil {

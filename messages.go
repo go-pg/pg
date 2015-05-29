@@ -400,7 +400,6 @@ func readRowDescription(cn *conn) ([]string, error) {
 
 func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	var loadErr error
-
 	loader, ok := dst.(ColumnLoader)
 	if !ok {
 		var err error
