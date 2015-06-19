@@ -142,6 +142,17 @@ func (db *DB) Close() error {
 	return db.pool.Close()
 }
 
+// UseTimeout returns a DB that uses d as the read/write timeout.
+func (db *DB) UseTimeout(d time.Duration) *DB {
+	newopt := *db.opt
+	newopt.ReadTimeout = d
+	newopt.WriteTimeout = d
+	return &DB{
+		opt:  &newopt,
+		pool: db.pool,
+	}
+}
+
 func (db *DB) conn() (*conn, error) {
 	cn, err := db.pool.Get()
 	if err != nil {

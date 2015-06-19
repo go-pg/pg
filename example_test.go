@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"time"
 
 	"gopkg.in/pg.v3"
 )
@@ -174,4 +175,15 @@ func ExampleDB_CopyFrom() {
 	fmt.Println(buf.String())
 	// Output: hello,5
 	// foo,3
+}
+
+func Example_queryTimeout() {
+	var count int
+	// Use bigger timeout since this query is known to be slow.
+	_, err := db.UseTimeout(time.Minute).QueryOne(pg.LoadInto(&count), `
+		SELECT count(*) FROM big_table
+	`)
+	if err != nil {
+		panic(err)
+	}
 }
