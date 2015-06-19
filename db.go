@@ -10,25 +10,45 @@ import (
 const defaultBackoff = 100 * time.Millisecond
 
 type Options struct {
+	// The network type, either tcp or unix.
+	// Default is tcp.
 	Network  string
 	Host     string
 	Port     string
 	User     string
 	Password string
 	Database string
-	SSL      bool
+	// Whether to use secure TCP/IP connections (TLS).
+	SSL bool
 
-	// Params specify connection run-time configuration parameters.
+	// Run-time configuration parameters to be set on connection.
 	Params map[string]interface{}
 
-	PoolSize    int
-	PoolTimeout time.Duration
-
-	DialTimeout  time.Duration
-	ReadTimeout  time.Duration
+	// The deadline for establishing new connections. If reached,
+	// dial will fail with a timeout.
+	// Default is 5 seconds.
+	DialTimeout time.Duration
+	// The timeout for socket reads. If reached, commands will fail
+	// with a timeout error instead of blocking.
+	// Default is no timeout.
+	ReadTimeout time.Duration
+	// The timeout for socket writes. If reached, commands will fail
+	// with a timeout error instead of blocking.
+	// Default is no timeout.
 	WriteTimeout time.Duration
 
-	IdleTimeout        time.Duration
+	// The maximum number of open socket connections.
+	// Default is 10 connections.
+	PoolSize int
+	// The amount of time client waits for free connection if all
+	// connections are busy before returning an error.
+	// Default is 1 second.
+	PoolTimeout time.Duration
+	// The amount of time after which client closes idle connections.
+	// Default is to not close idle connections.
+	IdleTimeout time.Duration
+	// The frequency of idle checks.
+	// Default is 1 minute.
 	IdleCheckFrequency time.Duration
 }
 
@@ -109,6 +129,9 @@ func (opt *Options) getIdleTimeout() time.Duration {
 }
 
 func (opt *Options) getIdleCheckFrequency() time.Duration {
+	if opt.IdleCheckFrequency == 0 {
+		return time.Minute
+	}
 	return opt.IdleCheckFrequency
 }
 
@@ -138,6 +161,7 @@ type DB struct {
 	pool *connPool
 }
 
+// Close closes the client, releasing any open resources.
 func (db *DB) Close() error {
 	return db.pool.Close()
 }
