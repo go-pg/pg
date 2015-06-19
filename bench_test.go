@@ -456,10 +456,7 @@ func randSeq(n int) string {
 }
 
 func pgdb() *pg.DB {
-	return pg.Connect(&pg.Options{
-		User:     "postgres",
-		Database: "test",
-	})
+	return pg.Connect(pgOptions())
 }
 
 func pqdb() (*sql.DB, error) {
