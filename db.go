@@ -42,7 +42,7 @@ type Options struct {
 	PoolSize int
 	// The amount of time client waits for free connection if all
 	// connections are busy before returning an error.
-	// Default is 1 second.
+	// Default is 5 seconds.
 	PoolTimeout time.Duration
 	// The amount of time after which client closes idle connections.
 	// Default is to not close idle connections.
@@ -112,7 +112,7 @@ func (opt *Options) getPoolSize() int {
 
 func (opt *Options) getPoolTimeout() time.Duration {
 	if opt == nil || opt.PoolTimeout == 0 {
-		return time.Second
+		return 5 * time.Second
 	}
 	return opt.PoolTimeout
 }
