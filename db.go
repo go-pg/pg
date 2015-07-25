@@ -219,17 +219,6 @@ func (db *DB) freeConn(cn *conn, err error) error {
 	return db.pool.Remove(cn)
 }
 
-// Prepare creates a prepared statement for later queries or
-// executions. Multiple queries or executions may be run concurrently
-// from the returned statement.
-func (db *DB) Prepare(q string) (*Stmt, error) {
-	cn, err := db.conn()
-	if err != nil {
-		return nil, err
-	}
-	return prepare(db, cn, q)
-}
-
 // Exec executes a query ignoring returned rows. The args are for
 // any placeholder parameters in the query.
 func (db *DB) Exec(q string, args ...interface{}) (res *Result, err error) {

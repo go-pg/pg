@@ -1,13 +1,18 @@
 package pg
 
 import (
+	"sync"
 	"time"
 )
 
-// Not thread-safe.
+// Stmt is a prepared statement. Stmt is safe for concurrent use by
+// multiple goroutines.
 type Stmt struct {
-	db      *DB
-	_cn     *conn
+	db *DB
+
+	mu  sync.Mutex
+	_cn *conn
+
 	name    string
 	columns []string
 
@@ -37,6 +42,17 @@ func prepare(db *DB, cn *conn, q string) (*Stmt, error) {
 	return stmt, nil
 }
 
+// Prepare creates a prepared statement for later queries or
+// executions. Multiple queries or executions may be run concurrently
+// from the returned statement.
+func (db *DB) Prepare(q string) (*Stmt, error) {
+	cn, err := db.conn()
+	if err != nil {
+		return nil, err
+	}
+	return prepare(db, cn, q)
+}
+
 func (stmt *Stmt) conn() (*conn, error) {
 	if stmt._cn == nil {
 		return nil, errStmtClosed
@@ -46,17 +62,22 @@ func (stmt *Stmt) conn() (*conn, error) {
 	return stmt._cn, nil
 }
 
+func (stmt *Stmt) exec(args ...interface{}) (*Result, error) {
+	defer stmt.mu.Unlock()
+	stmt.mu.Lock()
+
+	cn, err := stmt.conn()
+	if err != nil {
+		return nil, err
+	}
+	return extQuery(cn, stmt.name, args...)
+}
+
+// Exec executes a prepared statement with the given arguments.
 func (stmt *Stmt) Exec(args ...interface{}) (res *Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
-		var cn *conn
-
-		cn, err = stmt.conn()
-		if err != nil {
-			return nil, err
-		}
-
-		res, err = extQuery(cn, stmt.name, args...)
+		res, err = stmt.exec(args...)
 		if !canRetry(err) {
 			break
 		}
@@ -70,6 +91,9 @@ func (stmt *Stmt) Exec(args ...interface{}) (res *Result, err error) {
 	return
 }
 
+// ExecOne acts like Exec, but query must affect only one row. It
+// returns ErrNoRows error when query returns zero rows or
+// ErrMultiRows when query returns multiple rows.
 func (stmt *Stmt) ExecOne(args ...interface{}) (*Result, error) {
 	res, err := stmt.Exec(args...)
 	if err != nil {
@@ -78,17 +102,22 @@ func (stmt *Stmt) ExecOne(args ...interface{}) (*Result, error) {
 	return assertOneAffected(res)
 }
 
+func (stmt *Stmt) query(coll Collection, args ...interface{}) (*Result, error) {
+	defer stmt.mu.Unlock()
+	stmt.mu.Lock()
+
+	cn, err := stmt.conn()
+	if err != nil {
+		return nil, err
+	}
+	return extQueryData(cn, stmt.name, coll, stmt.columns, args...)
+}
+
+// Query executes a prepared query statement with the given arguments.
 func (stmt *Stmt) Query(coll Collection, args ...interface{}) (res *Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
-		var cn *conn
-
-		cn, err = stmt.conn()
-		if err != nil {
-			break
-		}
-
-		res, err = extQueryData(cn, stmt.name, coll, stmt.columns, args...)
+		res, err = stmt.query(coll, args...)
 		if !canRetry(err) {
 			break
 		}
@@ -102,6 +131,9 @@ func (stmt *Stmt) Query(coll Collection, args ...interface{}) (res *Result, err 
 	return
 }
 
+// QueryOne acts like Query, but query must return only one row. It
+// returns ErrNoRows error when query returns zero rows or
+// ErrMultiRows when query returns multiple rows.
 func (stmt *Stmt) QueryOne(record interface{}, args ...interface{}) (*Result, error) {
 	res, err := stmt.Query(&singleRecordCollection{record}, args...)
 	if err != nil {
@@ -114,6 +146,7 @@ func (stmt *Stmt) setErr(e error) {
 	stmt.err = e
 }
 
+// Close closes the statement.
 func (stmt *Stmt) Close() error {
 	if stmt._cn == nil {
 		return errStmtClosed
