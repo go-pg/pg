@@ -8,14 +8,14 @@ Supports:
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
 - Arrays.
 - Partially hstore.
-- Transactions.
-- Prepared statements.
-- Notifications: `LISTEN`/`NOTIFY`.
-- `COPY FROM` and `COPY TO`.
-- Timeouts. Client sends `CancelRequest` message on timeout.
+- [Transactions](http://godoc.org/gopkg.in/pg.v3#example-DB-Begin).
+- [Prepared statements](http://godoc.org/gopkg.in/pg.v3#example-DB-Prepare).
+- [Notifications](http://godoc.org/gopkg.in/pg.v3#example-Listener) using `LISTEN` and `NOTIFY`.
+- [Copying data](http://godoc.org/gopkg.in/pg.v3#example-DB-CopyFrom) using `COPY FROM` and `COPY TO`.
+- [Timeouts](http://godoc.org/gopkg.in/pg.v3#Options). Client sends `CancelRequest` message on timeout.
 - Connection pool.
-- Queries are retried when possible.
-- PostgreSQL to Go struct mapping.
+- Retrying queries on network errors.
+- PostgreSQL to Go [struct mapping](http://godoc.org/gopkg.in/pg.v3#example-DB-Query).
 
 API docs: http://godoc.org/gopkg.in/pg.v3.
 
@@ -122,44 +122,3 @@ Howto
 -----
 
 Please go through [examples](http://godoc.org/gopkg.in/pg.v3#pkg-examples) to get the idea how to use this package.
-
-Changelog
----------
-
-### v3 (beta)
-
-* `pg.Factory` renamed to `pg.Collection`. `Factory.New` renamed to `Collection.NewRecord`.
-* `pg.Loader` renamed to `pg.ColumnLoader`. `ColumnLoader.Load` renamed to `ColumnLoader.LoadColumn`.
-* `pg.Appender` renamed to `pg.QueryAppender`. `QueryAppender.Append` renamed to `QueryAppender.AppendQuery`.
-
-### v2
-
-* Support for named placeholders:
-
-```go
-a := &Article{Id: 1, Name: "Hello world"}
-_, err := db.ExecOne(`UPDATE articles SET name = ?name WHERE id = ?id`, a)
-```
-
-* CopyFrom/CopyTo support:
-
-```go
-r := strings.NewReader("hello\t5\nworld\t5\nfoo\t3\nbar\t3\n")
-res, err := t.db.CopyFrom(r, "COPY test FROM STDIN")
-```
-
-* Simplify collections:
-
-```go
-type Articles []*Article
-
-func (articles *Articles) New() interface{} {
-    a := &Article{}
-    *articles = append(*articles, a)
-    return a
-}
-```
-
-### v1
-
-Initial release.
