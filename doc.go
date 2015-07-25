@@ -1,4 +1,4 @@
 /*
-Package github.com/vmihailenco/pg implements a PostgreSQL client.
+Package gopkg.in/pg.v3 implements a PostgreSQL client.
 */
 package pg
