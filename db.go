@@ -9,6 +9,7 @@ import (
 
 const defaultBackoff = 100 * time.Millisecond
 
+// Database connection options.
 type Options struct {
 	// The network type, either tcp or unix.
 	// Default is tcp.
@@ -142,6 +143,10 @@ func (opt *Options) getSSL() bool {
 	return opt.SSL
 }
 
+// Connect connects to a database using provided options.
+//
+// The returned DB is safe for concurrent use by multiple goroutines
+// and maintains its own connection pool.
 func Connect(opt *Options) *DB {
 	return &DB{
 		opt: opt,
@@ -155,13 +160,18 @@ func Connect(opt *Options) *DB {
 	}
 }
 
-// Thread-safe.
+// DB is a database handle representing a pool of zero or more
+// underlying connections. It's safe for concurrent use by multiple
+// goroutines.
 type DB struct {
 	opt  *Options
 	pool *connPool
 }
 
-// Close closes the client, releasing any open resources.
+// Close closes the database client, releasing any open resources.
+//
+// It is rare to Close a DB, as the DB handle is meant to be
+// long-lived and shared between many goroutines.
 func (db *DB) Close() error {
 	return db.pool.Close()
 }
@@ -209,6 +219,9 @@ func (db *DB) freeConn(cn *conn, err error) error {
 	return db.pool.Remove(cn)
 }
 
+// Prepare creates a prepared statement for later queries or
+// executions. Multiple queries or executions may be run concurrently
+// from the returned statement.
 func (db *DB) Prepare(q string) (*Stmt, error) {
 	cn, err := db.conn()
 	if err != nil {
@@ -217,6 +230,8 @@ func (db *DB) Prepare(q string) (*Stmt, error) {
 	return prepare(db, cn, q)
 }
 
+// Exec executes a query ignoring returned rows. The args are for
+// any placeholder parameters in the query.
 func (db *DB) Exec(q string, args ...interface{}) (res *Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
@@ -239,6 +254,9 @@ func (db *DB) Exec(q string, args ...interface{}) (res *Result, err error) {
 	return
 }
 
+// ExecOne acts like Exec, but query must affect only one row. It
+// returns ErrNoRows error when query returns zero rows or
+// ErrMultiRows when query returns multiple rows.
 func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
 	res, err := db.Exec(q, args...)
 	if err != nil {
@@ -247,6 +265,8 @@ func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
 	return assertOneAffected(res)
 }
 
+// Query executes a query that returns rows, typically a SELECT. The
+// args are for any placeholder parameters in the query.
 func (db *DB) Query(coll Collection, q string, args ...interface{}) (res *Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
@@ -269,6 +289,9 @@ func (db *DB) Query(coll Collection, q string, args ...interface{}) (res *Result
 	return
 }
 
+// QueryOne acts like Query, but query must return only one row. It
+// returns ErrNoRows error when query returns zero rows or
+// ErrMultiRows when query returns multiple rows.
 func (db *DB) QueryOne(record interface{}, q string, args ...interface{}) (*Result, error) {
 	res, err := db.Query(&singleRecordCollection{record}, q, args...)
 	if err != nil {
@@ -277,6 +300,7 @@ func (db *DB) QueryOne(record interface{}, q string, args ...interface{}) (*Resu
 	return assertOneAffected(res)
 }
 
+// Listen listens for notifications sent by NOTIFY statement.
 func (db *DB) Listen(channels ...string) (*Listener, error) {
 	l := &Listener{
 		db: db,
@@ -288,6 +312,7 @@ func (db *DB) Listen(channels ...string) (*Listener, error) {
 	return l, nil
 }
 
+// CopyFrom copies data from reader to a table.
 func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (*Result, error) {
 	cn, err := db.conn()
 	if err != nil {
@@ -355,6 +380,7 @@ func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (*Result, err
 	return res, nil
 }
 
+// CopyTo copies data from a table to writer.
 func (db *DB) CopyTo(w io.WriteCloser, q string, args ...interface{}) (*Result, error) {
 	cn, err := db.conn()
 	if err != nil {
