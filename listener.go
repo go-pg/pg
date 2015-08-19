@@ -1,7 +1,6 @@
 package pg
 
 import (
-	"fmt"
 	"sync"
 	"time"
 )
@@ -86,48 +85,7 @@ func (l *Listener) receiveTimeout(readTimeout time.Duration) (channel, payload s
 	if err != nil {
 		return "", "", err
 	}
-
-	for {
-		c, msgLen, err := cn.ReadMsgType()
-		if err != nil {
-			return "", "", err
-		}
-
-		switch c {
-		case commandCompleteMsg:
-			_, err := cn.ReadN(msgLen)
-			if err != nil {
-				return "", "", err
-			}
-		case readyForQueryMsg:
-			_, err := cn.ReadN(msgLen)
-			if err != nil {
-				return "", "", err
-			}
-		case errorResponseMsg:
-			e, err := cn.ReadError()
-			if err != nil {
-				return "", "", err
-			}
-			return "", "", e
-		case notificationResponseMsg:
-			_, err := cn.ReadInt32()
-			if err != nil {
-				return "", "", err
-			}
-			channel, err = cn.ReadString()
-			if err != nil {
-				return "", "", err
-			}
-			payload, err = cn.ReadString()
-			if err != nil {
-				return "", "", err
-			}
-			return channel, payload, nil
-		default:
-			return "", "", fmt.Errorf("pg: unexpected message %q", c)
-		}
-	}
+	return readNotification(cn)
 }
 
 func (l *Listener) discardConn() (err error) {
