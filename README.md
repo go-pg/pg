@@ -1,5 +1,4 @@
-PostgreSQL client for Golang [![Build Status](https://travis-ci.org/go-pg/pg.svg)](https://travis-ci.org/go-pg/pg)
-===
+# PostgreSQL client for Golang [![Build Status](https://travis-ci.org/go-pg/pg.svg)](https://travis-ci.org/go-pg/pg)
 
 Supports:
 
@@ -13,21 +12,21 @@ Supports:
 - [Notifications](http://godoc.org/gopkg.in/pg.v3#example-Listener) using `LISTEN` and `NOTIFY`.
 - [Copying data](http://godoc.org/gopkg.in/pg.v3#example-DB-CopyFrom) using `COPY FROM` and `COPY TO`.
 - [Timeouts](http://godoc.org/gopkg.in/pg.v3#Options). Client sends `CancelRequest` message on timeout.
-- Connection pool.
-- Retrying queries on network errors.
+- Automatic and safe connection pool.
+- Queries retries on network errors.
 - PostgreSQL to Go [struct mapping](http://godoc.org/gopkg.in/pg.v3#example-DB-Query).
+- [Migrations](https://github.com/go-pg/migrations).
 
 API docs: http://godoc.org/gopkg.in/pg.v3.
+Examples: http://godoc.org/gopkg.in/pg.v3#pkg-examples.
 
-Installation
-------------
+## Installation
 
 Install:
 
     go get gopkg.in/pg.v3
 
-Quickstart
-----------
+## Quickstart
 
 ```go
 package pg_test
@@ -118,7 +117,6 @@ func ExampleDB_Query() {
 }
 ```
 
-Howto
------
+## Howto
 
 Please go through [examples](http://godoc.org/gopkg.in/pg.v3#pkg-examples) to get the idea how to use this package.
