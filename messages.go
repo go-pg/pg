@@ -705,3 +705,51 @@ func readReadyForQuery(cn *conn) (res *Result, e error) {
 		}
 	}
 }
+
+func readNotification(cn *conn) (channel, payload string, err error) {
+	for {
+		c, msgLen, err := cn.ReadMsgType()
+		if err != nil {
+			return "", "", err
+		}
+
+		switch c {
+		case commandCompleteMsg:
+			_, err := cn.ReadN(msgLen)
+			if err != nil {
+				return "", "", err
+			}
+		case readyForQueryMsg:
+			_, err := cn.ReadN(msgLen)
+			if err != nil {
+				return "", "", err
+			}
+		case errorResponseMsg:
+			e, err := cn.ReadError()
+			if err != nil {
+				return "", "", err
+			}
+			return "", "", e
+		case noticeResponseMsg:
+			if err := logNotice(cn, msgLen); err != nil {
+				return "", "", err
+			}
+		case notificationResponseMsg:
+			_, err := cn.ReadInt32()
+			if err != nil {
+				return "", "", err
+			}
+			channel, err = cn.ReadString()
+			if err != nil {
+				return "", "", err
+			}
+			payload, err = cn.ReadString()
+			if err != nil {
+				return "", "", err
+			}
+			return channel, payload, nil
+		default:
+			return "", "", fmt.Errorf("pg: unexpected message %q", c)
+		}
+	}
+}
