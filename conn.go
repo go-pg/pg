@@ -13,7 +13,7 @@ import (
 	"gopkg.in/bufio.v1"
 )
 
-var zeroTime = time.Time{}
+var noDeadline = time.Time{}
 
 func dial(opt *Options) (net.Conn, error) {
 	return net.DialTimeout(opt.getNetwork(), opt.getAddr(), opt.getDialTimeout())
@@ -65,7 +65,7 @@ func (cn *conn) GenId() string {
 
 func (cn *conn) SetReadTimeout(dur time.Duration) {
 	if dur == 0 {
-		cn.cn.SetReadDeadline(zeroTime)
+		cn.cn.SetReadDeadline(noDeadline)
 	} else {
 		cn.cn.SetReadDeadline(time.Now().Add(dur))
 	}
@@ -73,7 +73,7 @@ func (cn *conn) SetReadTimeout(dur time.Duration) {
 
 func (cn *conn) SetWriteTimeout(dur time.Duration) {
 	if dur == 0 {
-		cn.cn.SetWriteDeadline(zeroTime)
+		cn.cn.SetWriteDeadline(noDeadline)
 	} else {
 		cn.cn.SetWriteDeadline(time.Now().Add(dur))
 	}

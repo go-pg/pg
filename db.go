@@ -166,14 +166,7 @@ func Connect(opt *Options) *DB {
 type DB struct {
 	opt  *Options
 	pool *connPool
-}
-
-// Close closes the database client, releasing any open resources.
-//
-// It is rare to Close a DB, as the DB handle is meant to be
-// long-lived and shared between many goroutines.
-func (db *DB) Close() error {
-	return db.pool.Close()
+	cn   *conn
 }
 
 // UseTimeout returns a DB that uses d as the read/write timeout.
@@ -188,14 +181,32 @@ func (db *DB) UseTimeout(d time.Duration) *DB {
 }
 
 func (db *DB) conn() (*conn, error) {
-	cn, err := db.pool.Get()
-	if err != nil {
-		return nil, err
+	cn := db.cn
+	if cn == nil {
+		var err error
+		cn, err = db.pool.Get()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cn.SetReadTimeout(db.opt.ReadTimeout)
 	cn.SetWriteTimeout(db.opt.WriteTimeout)
 	return cn, nil
+}
+
+// Conn returns a DB that uses reserved PostgreSQL connection to
+// execute queries. It can be used to set non-standard PostgreSQL
+// parameters such as statement_timeout. Connection is returned to
+// pool on Close and DISCARD ALL query is used to reset parameters.
+func (db *DB) Conn() (*DB, error) {
+	cn, err := db.conn()
+	if err != nil {
+		return nil, err
+	}
+	newdb := *db
+	newdb.cn = cn
+	return &newdb, nil
 }
 
 func (db *DB) freeConn(cn *conn, err error) error {
@@ -217,6 +228,20 @@ func (db *DB) freeConn(cn *conn, err error) error {
 		}
 	}
 	return db.pool.Remove(cn)
+}
+
+// Close closes the database client, releasing any open resources.
+//
+// It is rare to Close a DB, as the DB handle is meant to be
+// long-lived and shared between many goroutines.
+func (db *DB) Close() error {
+	if db.cn != nil {
+		_, err := db.Exec("DISCARD ALL")
+		err = db.freeConn(db.cn, err)
+		db.cn = nil
+		return err
+	}
+	return db.pool.Close()
 }
 
 // Exec executes a query ignoring returned rows. The args are for
