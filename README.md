@@ -16,6 +16,7 @@ Supports:
 - Queries retries on network errors.
 - PostgreSQL to Go [struct mapping](http://godoc.org/gopkg.in/pg.v3#example-DB-Query).
 - [Migrations](https://github.com/go-pg/migrations).
+- [Sharding](https://github.com/go-pg/sharding).
 
 API docs: http://godoc.org/gopkg.in/pg.v3.
 Examples: http://godoc.org/gopkg.in/pg.v3#pkg-examples.
