@@ -103,7 +103,7 @@ func (t *ListenerTest) TestListenTimeout(c *C) {
 }
 
 func (t *ListenerTest) TestReconnectOnListenError(c *C) {
-	cn := t.ln.Conn()
+	cn := t.ln.CurrentConn()
 	c.Assert(cn, Not(IsNil))
 	c.Assert(cn.Close(), IsNil)
 
@@ -115,7 +115,7 @@ func (t *ListenerTest) TestReconnectOnListenError(c *C) {
 }
 
 func (t *ListenerTest) TestReconnectOnReceiveError(c *C) {
-	cn := t.ln.Conn()
+	cn := t.ln.CurrentConn()
 	c.Assert(cn, Not(IsNil))
 	c.Assert(cn.Close(), IsNil)
 

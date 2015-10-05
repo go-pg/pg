@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	Discard = discardLoader{}
+	Discard discardLoader
 )
 
 //------------------------------------------------------------------------------
@@ -25,8 +25,8 @@ func (f *singleRecordCollection) NewRecord() interface{} {
 
 type discardLoader struct{}
 
-var _ Collection = &discardLoader{}
-var _ ColumnLoader = &discardLoader{}
+var _ Collection = (*discardLoader)(nil)
+var _ ColumnLoader = (*discardLoader)(nil)
 
 func (l discardLoader) NewRecord() interface{} {
 	return l
@@ -43,7 +43,7 @@ type structLoader struct {
 	fields map[string]*pgValue
 }
 
-var _ ColumnLoader = &structLoader{}
+var _ ColumnLoader = (*structLoader)(nil)
 
 func newStructLoader(v reflect.Value) *structLoader {
 	return &structLoader{
@@ -66,7 +66,7 @@ type valuesLoader struct {
 	values []interface{}
 }
 
-var _ ColumnLoader = &valuesLoader{}
+var _ ColumnLoader = (*valuesLoader)(nil)
 
 func LoadInto(values ...interface{}) ColumnLoader {
 	return &valuesLoader{values}
@@ -80,8 +80,8 @@ func (l *valuesLoader) LoadColumn(colIdx int, _ string, b []byte) error {
 
 type Strings []string
 
-var _ Collection = &Strings{}
-var _ ColumnLoader = &Strings{}
+var _ Collection = (*Strings)(nil)
+var _ ColumnLoader = (*Strings)(nil)
 
 func (strings *Strings) NewRecord() interface{} {
 	return strings
@@ -109,8 +109,8 @@ func (strings Strings) AppendQuery(dst []byte) []byte {
 
 type Ints []int64
 
-var _ Collection = &Ints{}
-var _ ColumnLoader = &Ints{}
+var _ Collection = (*Ints)(nil)
+var _ ColumnLoader = (*Ints)(nil)
 
 func (ints *Ints) NewRecord() interface{} {
 	return ints
@@ -142,8 +142,8 @@ func (ints Ints) AppendQuery(dst []byte) []byte {
 
 type IntSet map[int64]struct{}
 
-var _ Collection = &IntSet{}
-var _ ColumnLoader = &IntSet{}
+var _ Collection = (*IntSet)(nil)
+var _ ColumnLoader = (*IntSet)(nil)
 
 func (set *IntSet) NewRecord() interface{} {
 	return set

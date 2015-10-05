@@ -210,6 +210,9 @@ func (db *DB) Conn() (*DB, error) {
 }
 
 func (db *DB) freeConn(cn *conn, err error) error {
+	if db.cn != nil {
+		return nil
+	}
 	if err == nil {
 		return db.pool.Put(cn)
 	}
@@ -230,16 +233,34 @@ func (db *DB) freeConn(cn *conn, err error) error {
 	return db.pool.Remove(cn)
 }
 
+func (db *DB) isTransaction() bool {
+	var txid1, txid2 int64
+	_, err := db.QueryOne(LoadInto(&txid1), `SELECT txid_current()`)
+	if err != nil {
+		return false
+	}
+	_, err = db.QueryOne(LoadInto(&txid2), `SELECT txid_current()`)
+	if err != nil {
+		return false
+	}
+	return txid1 == txid2
+}
+
 // Close closes the database client, releasing any open resources.
 //
 // It is rare to Close a DB, as the DB handle is meant to be
 // long-lived and shared between many goroutines.
 func (db *DB) Close() error {
 	if db.cn != nil {
-		_, err := db.Exec("DISCARD ALL")
-		err = db.freeConn(db.cn, err)
+		var err error
+		if !db.isTransaction() {
+			_, err = db.Exec("DISCARD ALL")
+		}
+
+		cn := db.cn
 		db.cn = nil
-		return err
+
+		return db.freeConn(cn, err)
 	}
 	return db.pool.Close()
 }
