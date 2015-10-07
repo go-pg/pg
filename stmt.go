@@ -99,7 +99,7 @@ func (stmt *Stmt) ExecOne(args ...interface{}) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res)
+	return assertOneAffected(res, nil)
 }
 
 func (stmt *Stmt) query(coll Collection, args ...interface{}) (*Result, error) {
@@ -135,11 +135,12 @@ func (stmt *Stmt) Query(coll Collection, args ...interface{}) (res *Result, err 
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (stmt *Stmt) QueryOne(record interface{}, args ...interface{}) (*Result, error) {
-	res, err := stmt.Query(&singleRecordCollection{record}, args...)
+	coll := &singleRecordCollection{record: record}
+	res, err := stmt.Query(coll, args...)
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res)
+	return assertOneAffected(res, coll)
 }
 
 func (stmt *Stmt) setErr(e error) {

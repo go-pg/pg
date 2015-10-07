@@ -71,10 +71,10 @@ var _ = Describe("db.Conn", func() {
 		_, err = cn.Exec(`SET statement_timeout = 12345`)
 		Expect(err).NotTo(HaveOccurred())
 
-		var timeout pg.Strings
-		_, err = cn.Query(&timeout, `SHOW statement_timeout`)
+		var timeout string
+		_, err = cn.QueryOne(pg.LoadInto(&timeout), `SHOW statement_timeout`)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(timeout[0]).To(Equal("12345ms"))
+		Expect(timeout).To(Equal("12345ms"))
 	})
 
 	It("frees connection on close", func() {

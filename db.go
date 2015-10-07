@@ -297,7 +297,7 @@ func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res)
+	return assertOneAffected(res, nil)
 }
 
 // Query executes a query that returns rows, typically a SELECT. The
@@ -328,11 +328,12 @@ func (db *DB) Query(coll Collection, q string, args ...interface{}) (res *Result
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (db *DB) QueryOne(record interface{}, q string, args ...interface{}) (*Result, error) {
-	res, err := db.Query(&singleRecordCollection{record}, q, args...)
+	coll := &singleRecordCollection{record: record}
+	res, err := db.Query(coll, q, args...)
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res)
+	return assertOneAffected(res, coll)
 }
 
 // Listen listens for notifications sent by NOTIFY statement.
@@ -506,12 +507,25 @@ func simpleQueryData(cn *conn, coll Collection, q string, args ...interface{}) (
 	return res, nil
 }
 
-func assertOneAffected(res *Result) (*Result, error) {
-	switch affected := res.Affected(); {
-	case affected == 0:
-		return nil, ErrNoRows
-	case affected > 1:
-		return nil, ErrMultiRows
+func assertOne(l int) error {
+	switch {
+	case l == 0:
+		return ErrNoRows
+	case l > 1:
+		return ErrMultiRows
+	default:
+		return nil
+	}
+}
+
+func assertOneAffected(res *Result, coll *singleRecordCollection) (*Result, error) {
+	if err := assertOne(res.Affected()); err != nil {
+		return nil, err
+	}
+	if coll != nil {
+		if err := assertOne(coll.Len()); err != nil {
+			return nil, err
+		}
 	}
 	return res, nil
 }
