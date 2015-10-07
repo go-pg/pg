@@ -85,7 +85,7 @@ func (tx *Tx) ExecOne(q string, args ...interface{}) (*Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res)
+	return assertOneAffected(res, nil)
 }
 
 func (tx *Tx) Query(coll Collection, q string, args ...interface{}) (*Result, error) {
@@ -103,11 +103,12 @@ func (tx *Tx) Query(coll Collection, q string, args ...interface{}) (*Result, er
 }
 
 func (tx *Tx) QueryOne(record interface{}, q string, args ...interface{}) (*Result, error) {
-	res, err := tx.Query(&singleRecordCollection{record}, q, args...)
+	coll := &singleRecordCollection{record: record}
+	res, err := tx.Query(coll, q, args...)
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res)
+	return assertOneAffected(res, coll)
 }
 
 func (tx *Tx) Commit() error {

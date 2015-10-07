@@ -12,13 +12,19 @@ var (
 //------------------------------------------------------------------------------
 
 type singleRecordCollection struct {
-	v interface{}
+	record interface{}
+	len    int
 }
 
-var _ Collection = &singleRecordCollection{}
+var _ Collection = (*singleRecordCollection)(nil)
 
-func (f *singleRecordCollection) NewRecord() interface{} {
-	return f.v
+func (coll *singleRecordCollection) NewRecord() interface{} {
+	coll.len++
+	return coll.record
+}
+
+func (coll *singleRecordCollection) Len() int {
+	return coll.len
 }
 
 //------------------------------------------------------------------------------

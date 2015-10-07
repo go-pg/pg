@@ -69,7 +69,7 @@ func ExampleDB_QueryOne_2() {
 func ExampleDB_Exec() {
 	res, err := db.Exec(`CREATE TEMP TABLE test()`)
 	fmt.Println(res.Affected(), err)
-	// Output: 0 <nil>
+	// Output: -1 <nil>
 }
 
 func ExampleLoadInto() {
