@@ -44,12 +44,15 @@ type User struct {
 	Emails []string
 }
 
+// go-pg users collection.
 type Users struct {
 	C []User
 }
 
+// Implements pg.Collection.
 var _ pg.Collection = &Users{}
 
+// NewRecord returns new user and is used by go-pg to load multiple users.
 func (users *Users) NewRecord() interface{} {
 	users.C = append(users.C, User{})
 	return &users.C[len(users.C)-1]
@@ -117,6 +120,13 @@ func ExampleDB_Query() {
 	// {1 admin [admin1@admin admin2@admin]} {2 root [root1@root root2@root]}
 }
 ```
+
+## Why not database/sql and lib/pq
+
+- On some queries go-pg is 2x faster, because it can load data in 1 client/server round-trip.
+- You don't need to use `rows.Close` to manage connections.
+- go-pg manages memory more efficiently than ORMs for database/sql.
+- Placeholders support allows you to write [complex queries](https://godoc.org/gopkg.in/pg.v3#example-package--ComplexQuery) and stick with SQL.
 
 ## Howto
 

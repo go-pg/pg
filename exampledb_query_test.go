@@ -12,12 +12,15 @@ type User struct {
 	Emails []string
 }
 
+// go-pg users collection.
 type Users struct {
 	C []User
 }
 
+// Implements pg.Collection.
 var _ pg.Collection = &Users{}
 
+// NewRecord returns new user and is used by go-pg to load multiple users.
 func (users *Users) NewRecord() interface{} {
 	users.C = append(users.C, User{})
 	return &users.C[len(users.C)-1]
