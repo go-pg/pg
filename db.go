@@ -166,7 +166,6 @@ func Connect(opt *Options) *DB {
 type DB struct {
 	opt  *Options
 	pool *connPool
-	cn   *conn
 }
 
 // UseTimeout returns a DB that uses d as the read/write timeout.
@@ -181,13 +180,9 @@ func (db *DB) UseTimeout(d time.Duration) *DB {
 }
 
 func (db *DB) conn() (*conn, error) {
-	cn := db.cn
-	if cn == nil {
-		var err error
-		cn, err = db.pool.Get()
-		if err != nil {
-			return nil, err
-		}
+	cn, err := db.pool.Get()
+	if err != nil {
+		return nil, err
 	}
 
 	cn.SetReadTimeout(db.opt.ReadTimeout)
@@ -195,24 +190,7 @@ func (db *DB) conn() (*conn, error) {
 	return cn, nil
 }
 
-// Conn returns a DB that uses reserved PostgreSQL connection to
-// execute queries. It can be used to set non-standard PostgreSQL
-// parameters such as statement_timeout. Connection is returned to
-// pool on Close and DISCARD ALL query is used to reset parameters.
-func (db *DB) Conn() (*DB, error) {
-	cn, err := db.conn()
-	if err != nil {
-		return nil, err
-	}
-	newdb := *db
-	newdb.cn = cn
-	return &newdb, nil
-}
-
 func (db *DB) freeConn(cn *conn, err error) error {
-	if db.cn != nil {
-		return nil
-	}
 	if err == nil {
 		return db.pool.Put(cn)
 	}
@@ -233,35 +211,11 @@ func (db *DB) freeConn(cn *conn, err error) error {
 	return db.pool.Remove(cn)
 }
 
-func (db *DB) isTransaction() bool {
-	var txid1, txid2 int64
-	_, err := db.QueryOne(LoadInto(&txid1), `SELECT txid_current()`)
-	if err != nil {
-		return false
-	}
-	_, err = db.QueryOne(LoadInto(&txid2), `SELECT txid_current()`)
-	if err != nil {
-		return false
-	}
-	return txid1 == txid2
-}
-
 // Close closes the database client, releasing any open resources.
 //
 // It is rare to Close a DB, as the DB handle is meant to be
 // long-lived and shared between many goroutines.
 func (db *DB) Close() error {
-	if db.cn != nil {
-		var err error
-		if !db.isTransaction() {
-			_, err = db.Exec("DISCARD ALL")
-		}
-
-		cn := db.cn
-		db.cn = nil
-
-		return db.freeConn(cn, err)
-	}
 	return db.pool.Close()
 }
 
