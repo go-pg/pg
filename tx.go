@@ -1,11 +1,5 @@
 package pg
 
-import (
-	"runtime"
-
-	"github.com/golang/glog"
-)
-
 // Not thread-safe.
 type Tx struct {
 	db  *DB
@@ -29,7 +23,6 @@ func (db *DB) Begin() (*Tx, error) {
 		tx.close()
 		return nil, err
 	}
-	runtime.SetFinalizer(tx, txFinalizer)
 	return tx, nil
 }
 
@@ -111,26 +104,30 @@ func (tx *Tx) QueryOne(record interface{}, q string, args ...interface{}) (*Resu
 	return assertOneAffected(res, coll)
 }
 
-func (tx *Tx) Commit() error {
+func (tx *Tx) Commit() (err error) {
 	if tx.done {
 		return errTxDone
 	}
-	_, err := tx.Exec("COMMIT")
+
+	_, err = tx.Exec("COMMIT")
 	if err != nil {
 		tx.setErr(err)
 	}
+
 	tx.close()
 	return err
 }
 
-func (tx *Tx) Rollback() error {
+func (tx *Tx) Rollback() (err error) {
 	if tx.done {
 		return errTxDone
 	}
-	_, err := tx.Exec("ROLLBACK")
+
+	_, err = tx.Exec("ROLLBACK")
 	if err != nil {
 		tx.setErr(err)
 	}
+
 	tx.close()
 	return err
 }
@@ -145,10 +142,4 @@ func (tx *Tx) close() error {
 	}
 	tx.done = true
 	return tx.db.freeConn(tx._cn, tx.err)
-}
-
-func txFinalizer(tx *Tx) {
-	if !tx.done {
-		glog.Errorf("transaction was neither commited or rollbacked")
-	}
 }
