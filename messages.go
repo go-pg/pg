@@ -218,10 +218,10 @@ func writeBindExecuteMsg(buf *buffer, name string, args ...interface{}) error {
 	buf.WriteString(name)
 	buf.WriteInt16(0)
 	buf.WriteInt16(int16(len(args)))
-	for i := 0; i < len(args); i++ {
+	for _, arg := range args {
 		pos := len(buf.B)
 		buf.Grow(4)
-		newB := appendIfaceRaw(buf.B, args[i])
+		newB := appendIfaceRaw(buf.B, arg)
 		l := -1
 		if newB != nil {
 			buf.B = newB
@@ -344,6 +344,11 @@ func readExtQuery(cn *conn) (res *Result, e error) {
 			if err != nil {
 				return nil, err
 			}
+		case dataRowMsg:
+			_, err := cn.ReadN(msgLen)
+			if err != nil {
+				return nil, err
+			}
 		case commandCompleteMsg: // Response to the EXECUTE message.
 			b, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -406,7 +411,7 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 		loader, err = NewColumnLoader(dst)
 		if err != nil {
 			loadErr = err
-			// Loader is broken, but try to read all data from connection.
+			// Loader is broken, but try to read all data from the connection.
 			loader = Discard
 		}
 	}

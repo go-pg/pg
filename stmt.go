@@ -171,8 +171,10 @@ func extQueryData(cn *conn, name string, coll Collection, columns []string, args
 	if err := writeBindExecuteMsg(cn.buf, name, args...); err != nil {
 		return nil, err
 	}
+
 	if err := cn.Flush(); err != nil {
 		return nil, err
 	}
+
 	return readExtQueryData(cn, coll, columns)
 }
