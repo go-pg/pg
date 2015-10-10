@@ -1,5 +1,16 @@
 package pg
 
+import "os"
+
+// When true Tx does not issue BEGIN, COMMIT, and ROLLBACK.
+// It is primarily useful for testing and can be enabled with
+// GO_PG_NO_TX environment variable.
+var noTx bool
+
+func init() {
+	noTx = os.Getenv("GO_PG_NO_TX") != ""
+}
+
 // Not thread-safe.
 type Tx struct {
 	db  *DB
@@ -19,9 +30,11 @@ func (db *DB) Begin() (*Tx, error) {
 		db:  db,
 		_cn: cn,
 	}
-	if _, err := tx.Exec("BEGIN"); err != nil {
-		tx.close()
-		return nil, err
+	if !noTx {
+		if _, err := tx.Exec("BEGIN"); err != nil {
+			tx.close()
+			return nil, err
+		}
 	}
 	return tx, nil
 }
@@ -109,9 +122,11 @@ func (tx *Tx) Commit() (err error) {
 		return errTxDone
 	}
 
-	_, err = tx.Exec("COMMIT")
-	if err != nil {
-		tx.setErr(err)
+	if !noTx {
+		_, err = tx.Exec("COMMIT")
+		if err != nil {
+			tx.setErr(err)
+		}
 	}
 
 	tx.close()
@@ -123,9 +138,11 @@ func (tx *Tx) Rollback() (err error) {
 		return errTxDone
 	}
 
-	_, err = tx.Exec("ROLLBACK")
-	if err != nil {
-		tx.setErr(err)
+	if !noTx {
+		_, err = tx.Exec("ROLLBACK")
+		if err != nil {
+			tx.setErr(err)
+		}
 	}
 
 	tx.close()
