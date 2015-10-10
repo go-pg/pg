@@ -5,9 +5,50 @@ import (
 	"encoding/hex"
 	"reflect"
 	"strconv"
+	"time"
+
+	"gopkg.in/pg.v3/pgutil"
 )
 
 func Decode(dst interface{}, b []byte) error {
+	switch v := dst.(type) {
+	case *string:
+		*v = string(b)
+		return nil
+	case *int:
+		if b == nil {
+			*v = 0
+			return nil
+		}
+		var err error
+		*v, err = strconv.Atoi(string(b))
+		return err
+	case *int32:
+		if b == nil {
+			*v = 0
+			return nil
+		}
+		n, err := strconv.ParseInt(string(b), 10, 32)
+		*v = int32(n)
+		return err
+	case *int64:
+		if b == nil {
+			*v = 0
+			return nil
+		}
+		var err error
+		*v, err = strconv.ParseInt(string(b), 10, 64)
+		return err
+	case *time.Time:
+		if b == nil {
+			*v = time.Time{}
+			return nil
+		}
+		var err error
+		*v, err = pgutil.ParseTime(b)
+		return err
+	}
+
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
 		return errorf("pg: Decode(nil)")
