@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	// Discard can be used with Query and QueryOne to discard rows.
 	Discard discardLoader
 )
 
@@ -74,6 +75,10 @@ type valuesLoader struct {
 
 var _ ColumnLoader = (*valuesLoader)(nil)
 
+// LoadInto returns ColumnLoader that copies the columns in the
+// row into the values.
+//
+// TODO(vmihailenco): rename to Scan
 func LoadInto(values ...interface{}) ColumnLoader {
 	return &valuesLoader{values}
 }
