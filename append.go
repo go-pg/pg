@@ -77,30 +77,15 @@ func appendIface(dst []byte, srci interface{}) []byte {
 		dst = append(dst, '\'')
 		return dst
 	case []string:
-		dst = append(dst, '\'')
-		dst = appendStringSlice(dst, src, false)
-		dst = append(dst, '\'')
-		return dst
+		return appendStringSlice(dst, src)
 	case []int:
-		dst = append(dst, '\'')
-		dst = appendIntSlice(dst, src)
-		dst = append(dst, '\'')
-		return dst
+		return appendIntSlice(dst, src)
 	case []int64:
-		dst = append(dst, '\'')
-		dst = appendInt64Slice(dst, src)
-		dst = append(dst, '\'')
-		return dst
+		return appendInt64Slice(dst, src)
 	case []float64:
-		dst = append(dst, '\'')
-		dst = appendFloat64Slice(dst, src)
-		dst = append(dst, '\'')
-		return dst
+		return appendFloat64Slice(dst, src)
 	case map[string]string:
-		dst = append(dst, '\'')
-		dst = appendStringStringMap(dst, src, false)
-		dst = append(dst, '\'')
-		return dst
+		return appendStringStringMap(dst, src, false)
 	case QueryAppender:
 		return src.AppendQuery(dst)
 	case driver.Valuer:
@@ -165,15 +150,15 @@ func appendIfaceRaw(dst []byte, srci interface{}) []byte {
 	case []byte:
 		return appendBytes(dst, src)
 	case []string:
-		return appendStringSlice(dst, src, true)
+		return appendStringSliceRaw(dst, src, true)
 	case []int:
-		return appendIntSlice(dst, src)
+		return appendIntSliceRaw(dst, src)
 	case []int64:
-		return appendInt64Slice(dst, src)
+		return appendInt64SliceRaw(dst, src)
 	case []float64:
-		return appendFloat64Slice(dst, src)
+		return appendFloat64SliceRaw(dst, src)
 	case map[string]string:
-		return appendStringStringMap(dst, src, true)
+		return appendStringStringMapRaw(dst, src, true)
 	case RawQueryAppender:
 		return src.AppendRawQuery(dst)
 	case driver.Valuer:
@@ -295,12 +280,25 @@ func appendBytes(dst []byte, v []byte) []byte {
 	return dst
 }
 
-func appendStringStringMap(dst []byte, v map[string]string, raw bool) []byte {
-	if len(v) == 0 {
+func appendStringStringMap(dst []byte, m map[string]string, raw bool) []byte {
+	if m == nil {
+		return appendNull(dst)
+	}
+	dst = append(dst, '\'')
+	dst = appendStringStringMapRaw(dst, m, false)
+	dst = append(dst, '\'')
+	return dst
+}
+
+func appendStringStringMapRaw(dst []byte, m map[string]string, raw bool) []byte {
+	if m == nil {
+		return nil
+	}
+	if len(m) == 0 {
 		return dst
 	}
 
-	for key, value := range v {
+	for key, value := range m {
 		dst = appendSubstring(dst, key, raw)
 		dst = append(dst, '=', '>')
 		dst = appendSubstring(dst, value, raw)
@@ -310,13 +308,26 @@ func appendStringStringMap(dst []byte, v map[string]string, raw bool) []byte {
 	return dst
 }
 
-func appendStringSlice(dst []byte, v []string, raw bool) []byte {
-	if len(v) == 0 {
+func appendStringSlice(dst []byte, ss []string) []byte {
+	if ss == nil {
+		return appendNull(dst)
+	}
+	dst = append(dst, '\'')
+	dst = appendStringSliceRaw(dst, ss, false)
+	dst = append(dst, '\'')
+	return dst
+}
+
+func appendStringSliceRaw(dst []byte, ss []string, raw bool) []byte {
+	if ss == nil {
+		return nil
+	}
+	if len(ss) == 0 {
 		return append(dst, "{}"...)
 	}
 
 	dst = append(dst, '{')
-	for _, s := range v {
+	for _, s := range ss {
 		dst = appendSubstring(dst, s, raw)
 		dst = append(dst, ',')
 	}
@@ -324,13 +335,26 @@ func appendStringSlice(dst []byte, v []string, raw bool) []byte {
 	return dst
 }
 
-func appendIntSlice(dst []byte, v []int) []byte {
-	if len(v) == 0 {
+func appendIntSlice(dst []byte, ints []int) []byte {
+	if ints == nil {
+		return appendNull(dst)
+	}
+	dst = append(dst, '\'')
+	dst = appendIntSliceRaw(dst, ints)
+	dst = append(dst, '\'')
+	return dst
+}
+
+func appendIntSliceRaw(dst []byte, ints []int) []byte {
+	if ints == nil {
+		return nil
+	}
+	if len(ints) == 0 {
 		return append(dst, "{}"...)
 	}
 
 	dst = append(dst, '{')
-	for _, n := range v {
+	for _, n := range ints {
 		dst = strconv.AppendInt(dst, int64(n), 10)
 		dst = append(dst, ',')
 	}
@@ -338,13 +362,26 @@ func appendIntSlice(dst []byte, v []int) []byte {
 	return dst
 }
 
-func appendInt64Slice(dst []byte, v []int64) []byte {
-	if len(v) == 0 {
+func appendInt64Slice(dst []byte, ints []int64) []byte {
+	if ints == nil {
+		return appendNull(dst)
+	}
+	dst = append(dst, '\'')
+	dst = appendInt64SliceRaw(dst, ints)
+	dst = append(dst, '\'')
+	return dst
+}
+
+func appendInt64SliceRaw(dst []byte, ints []int64) []byte {
+	if ints == nil {
+		return nil
+	}
+	if len(ints) == 0 {
 		return append(dst, "{}"...)
 	}
 
 	dst = append(dst, "{"...)
-	for _, n := range v {
+	for _, n := range ints {
 		dst = strconv.AppendInt(dst, n, 10)
 		dst = append(dst, ',')
 	}
@@ -352,13 +389,26 @@ func appendInt64Slice(dst []byte, v []int64) []byte {
 	return dst
 }
 
-func appendFloat64Slice(dst []byte, v []float64) []byte {
-	if len(v) == 0 {
+func appendFloat64Slice(dst []byte, floats []float64) []byte {
+	if floats == nil {
+		return appendNull(dst)
+	}
+	dst = append(dst, '\'')
+	dst = appendFloat64SliceRaw(dst, floats)
+	dst = append(dst, '\'')
+	return dst
+}
+
+func appendFloat64SliceRaw(dst []byte, floats []float64) []byte {
+	if floats == nil {
+		return nil
+	}
+	if len(floats) == 0 {
 		return append(dst, "{}"...)
 	}
 
 	dst = append(dst, "{"...)
-	for _, n := range v {
+	for _, n := range floats {
 		dst = appendFloat(dst, n)
 		dst = append(dst, ',')
 	}

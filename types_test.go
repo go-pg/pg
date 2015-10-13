@@ -40,6 +40,7 @@ type JSONRecord2 struct {
 }
 
 type conversionTest struct {
+	i                int
 	src, dst, wanted interface{}
 	pgtype           string
 
@@ -64,7 +65,7 @@ func zero(v interface{}) interface{} {
 }
 
 func (test *conversionTest) String() string {
-	return fmt.Sprintf("src=%#v dst=%#v", test.src, test.dst)
+	return fmt.Sprintf("#%d src=%#v dst=%#v", test.i, test.src, test.dst)
 }
 
 func (test *conversionTest) Fatalf(t *testing.T, s interface{}, args ...interface{}) {
@@ -182,15 +183,35 @@ func TestConversion(t *testing.T) {
 		{src: float64(math.SmallestNonzeroFloat64), dst: new(float64), pgtype: "decimal"},
 
 		{src: nil, dst: new([]int), pgtype: "int[]", wantnil: true},
+		{src: []int(nil), dst: new([]int), pgtype: "int[]", wantnil: true},
 		{src: []int{}, dst: new([]int), pgtype: "int[]", wantzero: true},
 		{src: []int{1, 2, 3}, dst: new([]int), pgtype: "int[]"},
+
+		{src: nil, dst: new([]int64), pgtype: "bigint[]", wantnil: true},
+		{src: []int64(nil), dst: new([]int64), pgtype: "bigint[]", wantnil: true},
 		{src: []int64{1, 2, 3}, dst: new([]int64), pgtype: "bigint[]"},
+
+		{src: nil, dst: new([]float64), pgtype: "double precision[]", wantnil: true},
+		{src: []float64(nil), dst: new([]float64), pgtype: "double precision[]", wantnil: true},
 		{src: []float64{1.1, 2.22, 3.333}, dst: new([]float64), pgtype: "double precision[]"},
 
 		{src: nil, dst: new([]string), pgtype: "text[]", wantnil: true},
+		{src: []string(nil), dst: new([]string), pgtype: "text[]", wantnil: true},
 		{src: []string{}, dst: new([]string), pgtype: "text[]", wantzero: true},
 		{src: []string{"foo\n", "bar {}", "'\\\""}, dst: new([]string), pgtype: "text[]"},
 
+		{
+			src:     nil,
+			dst:     new(map[string]string),
+			pgtype:  "hstore",
+			wantnil: true,
+		},
+		{
+			src:     map[string]string(nil),
+			dst:     new(map[string]string),
+			pgtype:  "hstore",
+			wantnil: true,
+		},
 		{
 			src:    map[string]string{"foo\n =>": "bar\n =>", "'\\\"": "'\\\""},
 			dst:    new(map[string]string),
@@ -246,7 +267,9 @@ func TestConversion(t *testing.T) {
 	db.Exec("CREATE EXTENSION hstore")
 	defer db.Exec("DROP EXTENSION hstore")
 
-	for _, test := range conversionTests {
+	for i, test := range conversionTests {
+		test.i = i
+
 		var err error
 		if _, ok := test.dst.(pg.ColumnLoader); ok {
 			_, err = db.QueryOne(test.dst, "SELECT (?) AS dst", test.src)
@@ -257,7 +280,9 @@ func TestConversion(t *testing.T) {
 		test.Assert(t, err)
 	}
 
-	for _, test := range conversionTests {
+	for i, test := range conversionTests {
+		test.i = i
+
 		if test.pgtype == "" {
 			continue
 		}
@@ -280,7 +305,9 @@ func TestConversion(t *testing.T) {
 		}
 	}
 
-	for _, test := range conversionTests {
+	for i, test := range conversionTests {
+		test.i = i
+
 		if _, ok := test.dst.(pg.ColumnLoader); ok {
 			continue
 		}
@@ -289,7 +316,9 @@ func TestConversion(t *testing.T) {
 		test.Assert(t, err)
 	}
 
-	for _, test := range conversionTests {
+	for i, test := range conversionTests {
+		test.i = i
+
 		if _, ok := test.dst.(pg.ColumnLoader); ok {
 			continue
 		}

@@ -198,7 +198,8 @@ func decodeMapValue(v reflect.Value, b []byte) error {
 
 func decodeNullValue(v reflect.Value) error {
 	kind := v.Kind()
-	if kind == reflect.Interface {
+	switch kind {
+	case reflect.Interface:
 		return decodeNullValue(v.Elem())
 	}
 	if v.CanSet() {
