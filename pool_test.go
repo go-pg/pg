@@ -88,7 +88,7 @@ func verifyNoActivity(db *pg.DB) error {
 		return err
 	}
 	if len(queries) > 1 {
-		return fmt.Errorf("there are active queries running: %v", queries)
+		return fmt.Errorf("there are %d active queries running: %#v", len(queries), queries)
 	}
 	return nil
 }
@@ -280,13 +280,13 @@ func (t *PoolTest) TestIdleConnectionsAreClosed(c *C) {
 }
 
 func eventually(fn func() error, timeout time.Duration) (err error) {
-	done := make(chan struct{}, 1)
+	done := make(chan struct{})
 	var exit int32
 	go func() {
 		for atomic.LoadInt32(&exit) == 0 {
 			err = fn()
 			if err == nil {
-				done <- struct{}{}
+				close(done)
 				return
 			}
 			time.Sleep(timeout / 100)
@@ -298,6 +298,6 @@ func eventually(fn func() error, timeout time.Duration) (err error) {
 		return nil
 	case <-time.After(timeout):
 		atomic.StoreInt32(&exit, 1)
+		return err
 	}
-	return err
 }
