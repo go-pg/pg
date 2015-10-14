@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -29,14 +30,13 @@ func (l *Listener) conn(readTimeout time.Duration) (*conn, error) {
 		if err != nil {
 			return nil, err
 		}
+		l._cn = cn
 
 		if len(l.channels) > 0 {
 			if err := l.listen(cn, l.channels...); err != nil {
 				return nil, err
 			}
 		}
-
-		l._cn = cn
 	}
 
 	l._cn.SetReadTimeout(readTimeout)
@@ -50,8 +50,8 @@ func (l *Listener) Listen(channels ...string) error {
 		return err
 	}
 	if err := l.listen(cn, channels...); err != nil {
-		if canRetry(err) {
-			l.discardConn()
+		if err != nil {
+			l.freeConn(err)
 		}
 		return err
 	}
@@ -74,8 +74,8 @@ func (l *Listener) Receive() (channel string, payload string, err error) {
 
 func (l *Listener) ReceiveTimeout(readTimeout time.Duration) (channel, payload string, err error) {
 	channel, payload, err = l.receiveTimeout(readTimeout)
-	if canRetry(err) {
-		l.discardConn()
+	if err != nil {
+		l.freeConn(err)
 	}
 	return channel, payload, err
 }
@@ -88,14 +88,21 @@ func (l *Listener) receiveTimeout(readTimeout time.Duration) (channel, payload s
 	return readNotification(cn)
 }
 
-func (l *Listener) discardConn() (err error) {
+func (l *Listener) freeConn(err error) (retErr error) {
+	if err != nil {
+		if !canRetry(err) {
+			return nil
+		}
+		log.Printf("pg: discarding bad listener connection: %s", err)
+	}
+
 	l.mx.Lock()
 	if l._cn != nil {
-		err = l.db.pool.Remove(l._cn)
+		retErr = l.db.pool.Remove(l._cn)
 		l._cn = nil
 	}
 	l.mx.Unlock()
-	return err
+	return retErr
 }
 
 func (l *Listener) Close() error {
@@ -106,5 +113,5 @@ func (l *Listener) Close() error {
 	if closed {
 		return errListenerClosed
 	}
-	return l.discardConn()
+	return l.freeConn(nil)
 }

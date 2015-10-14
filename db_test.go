@@ -48,3 +48,31 @@ var _ = Describe("read/write timeout", func() {
 		})
 	})
 })
+
+var _ = Describe("Listener.ReceiveTimeout", func() {
+	var db *pg.DB
+	var ln *pg.Listener
+
+	BeforeEach(func() {
+		opt := pgOptions()
+		opt.PoolSize = 1
+		db = pg.Connect(opt)
+
+		var err error
+		ln, err = db.Listen("test_channel")
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		err := db.Close()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("reuses connection", func() {
+		for i := 0; i < 100; i++ {
+			_, _, err := ln.ReceiveTimeout(time.Millisecond)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(MatchRegexp(".+ i/o timeout"))
+		}
+	})
+})
