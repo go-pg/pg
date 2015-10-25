@@ -106,7 +106,7 @@ func (opt *Options) getDatabase() string {
 
 func (opt *Options) getPoolSize() int {
 	if opt == nil || opt.PoolSize == 0 {
-		return 5
+		return 10
 	}
 	return opt.PoolSize
 }
@@ -256,7 +256,7 @@ func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
 
 // Query executes a query that returns rows, typically a SELECT. The
 // args are for any placeholder parameters in the query.
-func (db *DB) Query(coll Collection, q string, args ...interface{}) (res *Result, err error) {
+func (db *DB) Query(coll interface{}, q string, args ...interface{}) (res *Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		var cn *conn
@@ -444,7 +444,7 @@ func simpleQuery(cn *conn, q string, args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
-func simpleQueryData(cn *conn, coll Collection, q string, args ...interface{}) (*Result, error) {
+func simpleQueryData(cn *conn, coll interface{}, q string, args ...interface{}) (*Result, error) {
 	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
 		return nil, err
 	}

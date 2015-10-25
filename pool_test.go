@@ -14,11 +14,9 @@ import (
 )
 
 func TestCancelRequestOnTimeout(t *testing.T) {
-	db := pg.Connect(&pg.Options{
-		User:        "postgres",
-		Database:    "test",
-		ReadTimeout: time.Second,
-	})
+	opt := pgOptions()
+	opt.ReadTimeout = time.Second
+	db := pg.Connect(opt)
 	defer db.Close()
 
 	_, err := db.Exec("SELECT pg_sleep(60)")
@@ -49,14 +47,11 @@ func TestCancelRequestOnTimeout(t *testing.T) {
 }
 
 func TestStatementTimeout(t *testing.T) {
-	db := pg.Connect(&pg.Options{
-		User:     "postgres",
-		Database: "test",
-
-		Params: map[string]interface{}{
-			"statement_timeout": 1000,
-		},
-	})
+	opt := pgOptions()
+	opt.Params = map[string]interface{}{
+		"statement_timeout": 1000,
+	}
+	db := pg.Connect(opt)
 	defer db.Close()
 
 	_, err := db.Exec("SELECT pg_sleep(60)")
@@ -100,18 +95,14 @@ type PoolTest struct {
 }
 
 func (t *PoolTest) SetUpTest(c *C) {
-	t.db = pg.Connect(&pg.Options{
-		User:     "postgres",
-		Database: "test",
-		PoolSize: 10,
-
-		IdleTimeout:        time.Second,
-		IdleCheckFrequency: time.Second,
-	})
+	opt := pgOptions()
+	opt.IdleTimeout = time.Second
+	opt.IdleCheckFrequency = time.Second
+	t.db = pg.Connect(opt)
 }
 
 func (t *PoolTest) TearDownTest(c *C) {
-	t.db.Close()
+	_ = t.db.Close()
 }
 
 func (t *PoolTest) TestPoolReusesConnection(c *C) {

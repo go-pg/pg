@@ -62,7 +62,7 @@ func newStructLoader(v reflect.Value) *structLoader {
 func (l *structLoader) LoadColumn(colIdx int, colName string, b []byte) error {
 	field, ok := l.fields[colName]
 	if !ok {
-		return errorf("pg: cannot map field %q", colName)
+		return errorf("pg: cannot find field %q in %s", colName, l.v.Type())
 	}
 	return field.DecodeValue(l.v, b)
 }
@@ -191,4 +191,60 @@ func NewColumnLoader(dst interface{}) (ColumnLoader, error) {
 		return newStructLoader(vv), nil
 	}
 	return nil, errorf("pg: Decode(unsupported %T)", dst)
+}
+
+//------------------------------------------------------------------------------
+
+// Slice of structs.
+type collection struct {
+	v reflect.Value // reflect.Slice
+}
+
+var _ Collection = (*collection)(nil)
+
+func (coll *collection) NewRecord() interface{} {
+	coll.v.Set(reflect.Append(coll.v, reflect.New(coll.v.Type().Elem()).Elem()))
+	elem := coll.v.Index(coll.v.Len() - 1)
+	return newStructLoader(elem)
+}
+
+// Slice of struct pointers.
+type ptrCollection struct {
+	v reflect.Value // reflect.Slice
+}
+
+var _ Collection = (*ptrCollection)(nil)
+
+func (coll *ptrCollection) NewRecord() interface{} {
+	elem := reflect.New(coll.v.Type().Elem().Elem())
+	coll.v.Set(reflect.Append(coll.v, elem))
+	return newStructLoader(elem.Elem())
+}
+
+func newCollection(dst interface{}) (Collection, error) {
+	v := reflect.ValueOf(dst)
+	if !v.IsValid() {
+		return nil, errorf("pg: Decode(nil)")
+	}
+	if v.Kind() != reflect.Ptr {
+		return nil, errorf("pg: Decode(nonsettable %T)", dst)
+	}
+
+	v = v.Elem()
+	if v.Kind() != reflect.Slice {
+		return nil, errorf("pg: Decode(unsupported %T)", dst)
+	}
+
+	elem := v.Type().Elem()
+	switch elem.Kind() {
+	case reflect.Struct:
+		return &collection{v}, nil
+	case reflect.Ptr:
+		if elem.Elem().Kind() != reflect.Struct {
+			return nil, errorf("pg: Decode(unsupported %T)", dst)
+		}
+		return &ptrCollection{v}, nil
+	default:
+		return nil, errorf("pg: Decode(unsupported %T)", dst)
+	}
 }

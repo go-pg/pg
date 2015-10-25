@@ -441,7 +441,15 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	return loadErr
 }
 
-func readSimpleQueryData(cn *conn, coll Collection) (res *Result, e error) {
+func readSimpleQueryData(cn *conn, collection interface{}) (res *Result, e error) {
+	coll, ok := collection.(Collection)
+	if !ok {
+		coll, e = newCollection(collection)
+		if e != nil {
+			coll = Discard
+		}
+	}
+
 	var columns []string
 	for {
 		c, msgLen, err := cn.ReadMsgType()
@@ -493,7 +501,15 @@ func readSimpleQueryData(cn *conn, coll Collection) (res *Result, e error) {
 	}
 }
 
-func readExtQueryData(cn *conn, coll Collection, columns []string) (res *Result, e error) {
+func readExtQueryData(cn *conn, collection interface{}, columns []string) (res *Result, e error) {
+	coll, ok := collection.(Collection)
+	if !ok {
+		coll, e = newCollection(collection)
+		if e != nil {
+			coll = Discard
+		}
+	}
+
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {

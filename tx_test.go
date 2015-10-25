@@ -13,11 +13,7 @@ type TxTest struct {
 }
 
 func (t *TxTest) SetUpTest(c *C) {
-	t.db = pg.Connect(&pg.Options{
-		User:     "postgres",
-		Database: "test",
-		PoolSize: 10,
-	})
+	t.db = pg.Connect(pgOptions())
 }
 
 func (t *TxTest) TearDownTest(c *C) {
