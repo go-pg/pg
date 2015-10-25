@@ -17,11 +17,9 @@ type ListenerTest struct {
 }
 
 func (t *ListenerTest) SetUpTest(c *C) {
-	t.db = pg.Connect(&pg.Options{
-		User:     "postgres",
-		Database: "test",
-		PoolSize: 2,
-	})
+	opt := pgOptions()
+	opt.PoolSize = 2
+	t.db = pg.Connect(opt)
 
 	ln, err := t.db.Listen("test_channel")
 	c.Assert(err, IsNil)

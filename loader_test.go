@@ -15,10 +15,7 @@ type LoaderTest struct {
 var _ = Suite(&LoaderTest{})
 
 func (t *LoaderTest) SetUpTest(c *C) {
-	t.db = pg.Connect(&pg.Options{
-		User:     "postgres",
-		Database: "test",
-	})
+	t.db = pg.Connect(pgOptions())
 }
 
 func (t *LoaderTest) TearDownTest(c *C) {

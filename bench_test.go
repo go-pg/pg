@@ -7,13 +7,14 @@ import (
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
 	"gopkg.in/pg.v3"
 )
 
 func BenchmarkFormatQWithoutArgs(b *testing.B) {
-	rec := &record{
+	rec := &Record{
 		Num1: 1,
 		Num2: 2,
 		Num3: 3,
@@ -34,7 +35,7 @@ func BenchmarkFormatQWithoutArgs(b *testing.B) {
 }
 
 func BenchmarkFormatQWithArgs(b *testing.B) {
-	rec := &record{
+	rec := &Record{
 		Num1: 1,
 		Num2: 2,
 		Num3: 3,
@@ -54,7 +55,7 @@ func BenchmarkFormatQWithArgs(b *testing.B) {
 }
 
 func BenchmarkFormatQWithStructFields(b *testing.B) {
-	rec := &record{
+	rec := &Record{
 		Num1: 1,
 		Num2: 2,
 		Num3: 3,
@@ -74,7 +75,7 @@ func BenchmarkFormatQWithStructFields(b *testing.B) {
 }
 
 func BenchmarkFormatQWithStructMethods(b *testing.B) {
-	rec := &record{
+	rec := &Record{
 		Num1: 1,
 		Num2: 2,
 		Num3: 3,
@@ -94,7 +95,7 @@ func BenchmarkFormatQWithStructMethods(b *testing.B) {
 }
 
 func BenchmarkQueryRows(b *testing.B) {
-	db := pgdb()
+	db := pg.Connect(pgOptions())
 	defer db.Close()
 
 	if err := seedDB(db); err != nil {
@@ -105,26 +106,43 @@ func BenchmarkQueryRows(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			var rs records
-			_, err := db.Query(&rs, `SELECT * FROM bench_test`)
+			var rs Records
+			_, err := db.Query(&rs, `SELECT * FROM records LIMIT 100`)
 			if err != nil {
 				b.Fatal(err)
 			}
-			if len(rs.C) != 1000 {
-				b.Fatalf("got %d, wanted 1000", len(rs.C))
+			if len(rs.C) != 100 {
+				b.Fatalf("got %d, wanted 100", len(rs.C))
 			}
 		}
 	})
 }
 
-func BenchmarkQueryRowsStdlibPq(b *testing.B) {
-	db := pgdb()
+func BenchmarkQueryRowsReflect(b *testing.B) {
+	db := pg.Connect(pgOptions())
 	defer db.Close()
 
 	if err := seedDB(db); err != nil {
 		b.Fatal(err)
 	}
 
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var rs []Record
+			_, err := db.Query(&rs, `SELECT * FROM records LIMIT 100`)
+			if err != nil {
+				b.Fatal(err)
+			}
+			if len(rs) != 100 {
+				b.Fatalf("got %d, wanted 100", len(rs))
+			}
+		}
+	})
+}
+
+func BenchmarkQueryRowsStdlibPq(b *testing.B) {
 	pqdb, err := pqdb()
 	if err != nil {
 		b.Fatal(err)
@@ -135,31 +153,54 @@ func BenchmarkQueryRowsStdlibPq(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			rows, err := pqdb.Query(`SELECT * FROM bench_test`)
+			rows, err := pqdb.Query(`SELECT * FROM records LIMIT 100`)
 			if err != nil {
 				b.Fatal(err)
 			}
 
-			var rs []*record
+			var rs []Record
 			for rows.Next() {
-				var rec record
+				rs = append(rs, Record{})
+				rec := &rs[len(rs)-1]
+
 				err := rows.Scan(&rec.Num1, &rec.Num2, &rec.Num3, &rec.Str1, &rec.Str2, &rec.Str3)
 				if err != nil {
 					b.Fatal(err)
 				}
-				rs = append(rs, &rec)
 			}
 			rows.Close()
 
-			if len(rs) != 1000 {
-				b.Fatalf("got %d, wanted 1000", len(rs))
+			if len(rs) != 100 {
+				b.Fatalf("got %d, wanted 100", len(rs))
+			}
+		}
+	})
+}
+
+func BenchmarkQueryRowsGORM(b *testing.B) {
+	db, err := gormdb()
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer db.Close()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var rs []Record
+			err := db.Limit(100).Find(&rs).Error
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			if len(rs) != 100 {
+				b.Fatalf("got %d, wanted 100", len(rs))
 			}
 		}
 	})
 }
 
 func BenchmarkQueryRow(b *testing.B) {
-	db := pgdb()
+	db := pg.Connect(pgOptions())
 	defer db.Close()
 
 	b.ResetTimer()
@@ -177,7 +218,7 @@ func BenchmarkQueryRow(b *testing.B) {
 }
 
 func BenchmarkQueryRowStmt(b *testing.B) {
-	db := pgdb()
+	db := pg.Connect(pgOptions())
 	defer db.Close()
 
 	stmt, err := db.Prepare(`SELECT $1::bigint AS num`)
@@ -201,7 +242,7 @@ func BenchmarkQueryRowStmt(b *testing.B) {
 }
 
 func BenchmarkQueryRowLoadInto(b *testing.B) {
-	db := pgdb()
+	db := pg.Connect(pgOptions())
 	defer db.Close()
 
 	b.ResetTimer()
@@ -221,7 +262,7 @@ func BenchmarkQueryRowLoadInto(b *testing.B) {
 }
 
 func BenchmarkQueryRowStmtLoadInto(b *testing.B) {
-	db := pgdb()
+	db := pg.Connect(pgOptions())
 	defer db.Close()
 
 	stmt, err := db.Prepare(`SELECT $1::bigint AS num`)
@@ -338,7 +379,7 @@ func BenchmarkQueryRowStmtStdlibPq(b *testing.B) {
 }
 
 func BenchmarkExec(b *testing.B) {
-	db := pgdb()
+	db := pg.Connect(pgOptions())
 	defer db.Close()
 
 	_, err := db.Exec(
@@ -361,7 +402,7 @@ func BenchmarkExec(b *testing.B) {
 }
 
 func BenchmarkExecWithError(b *testing.B) {
-	db := pgdb()
+	db := pg.Connect(pgOptions())
 	defer db.Close()
 
 	_, err := db.Exec(
@@ -393,7 +434,7 @@ func BenchmarkExecWithError(b *testing.B) {
 }
 
 func BenchmarkExecStmt(b *testing.B) {
-	db := pgdb()
+	db := pg.Connect(pgOptions())
 	defer db.Close()
 
 	_, err := db.Exec(`CREATE TEMP TABLE statement_exec(id bigint, name varchar(500))`)
@@ -455,66 +496,66 @@ func randSeq(n int) string {
 	return string(b)
 }
 
-func pgdb() *pg.DB {
-	return pg.Connect(pgOptions())
-}
-
 func pqdb() (*sql.DB, error) {
-	return sql.Open("postgres", "user=postgres dbname=test")
+	return sql.Open("postgres", "user=postgres dbname=postgres sslmode=disable")
 }
 
 func mysqldb() (*sql.DB, error) {
 	return sql.Open("mysql", "root:root@tcp(localhost:3306)/test")
 }
 
-type record struct {
+func gormdb() (gorm.DB, error) {
+	return gorm.Open("postgres", "user=postgres dbname=postgres sslmode=disable")
+}
+
+type Record struct {
 	Num1, Num2, Num3 int64
 	Str1, Str2, Str3 string
 }
 
-func (r *record) GetNum1() int64 {
+func (r *Record) GetNum1() int64 {
 	return r.Num1
 }
 
-func (r *record) GetNum2() int64 {
+func (r *Record) GetNum2() int64 {
 	return r.Num2
 }
 
-func (r *record) GetNum3() int64 {
+func (r *Record) GetNum3() int64 {
 	return r.Num3
 }
 
-func (r *record) GetStr1() string {
+func (r *Record) GetStr1() string {
 	return r.Str1
 }
 
-func (r *record) GetStr2() string {
+func (r *Record) GetStr2() string {
 	return r.Str2
 }
 
-func (r *record) GetStr3() string {
+func (r *Record) GetStr3() string {
 	return r.Str3
 }
 
-type records struct {
-	C []record
+type Records struct {
+	C []Record
 }
 
-var _ pg.Collection = &records{}
+var _ pg.Collection = &Records{}
 
-func (rs *records) NewRecord() interface{} {
-	rs.C = append(rs.C, record{})
+func (rs *Records) NewRecord() interface{} {
+	rs.C = append(rs.C, Record{})
 	return &rs.C[len(rs.C)-1]
 }
 
 func seedDB(db *pg.DB) error {
-	_, err := db.Exec(`DROP TABLE IF EXISTS bench_test`)
+	_, err := db.Exec(`DROP TABLE IF EXISTS records`)
 	if err != nil {
 		return err
 	}
 
 	_, err = db.Exec(`
-		CREATE TABLE bench_test(
+		CREATE TABLE records(
 			num1 serial,
 			num2 serial,
 			num3 serial,
@@ -529,7 +570,7 @@ func seedDB(db *pg.DB) error {
 
 	for i := 0; i < 1000; i++ {
 		_, err := db.Exec(`
-			INSERT INTO bench_test (str1, str2, str3) VALUES (?, ?, ?)
+			INSERT INTO records (str1, str2, str3) VALUES (?, ?, ?)
 		`, randSeq(100), randSeq(200), randSeq(300))
 		if err != nil {
 			return err

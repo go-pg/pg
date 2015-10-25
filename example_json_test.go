@@ -27,36 +27,25 @@ type Item struct {
 	Data jsonMap
 }
 
-type Items struct {
-	C []Item
-}
-
-var _ pg.Collection = &Items{}
-
-func (items *Items) NewRecord() interface{} {
-	items.C = append(items.C, Item{})
-	return &items.C[len(items.C)-1]
-}
-
 func CreateItem(db *pg.DB, item *Item) error {
 	_, err := db.ExecOne(`INSERT INTO items VALUES (?id, ?data)`, item)
 	return err
 }
 
 func GetItem(db *pg.DB, id int64) (*Item, error) {
-	item := &Item{}
-	_, err := db.QueryOne(item, `
+	var item Item
+	_, err := db.QueryOne(&item, `
 		SELECT * FROM items WHERE id = ?
 	`, id)
-	return item, err
+	return &item, err
 }
 
 func GetItems(db *pg.DB) ([]Item, error) {
-	var items Items
+	var items []Item
 	_, err := db.Query(&items, `
 		SELECT * FROM items
 	`)
-	return items.C, err
+	return items, err
 }
 
 func Example_json() {

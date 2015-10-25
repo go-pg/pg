@@ -12,20 +12,6 @@ type User struct {
 	Emails []string
 }
 
-// go-pg users collection.
-type Users struct {
-	C []User
-}
-
-// Implements pg.Collection.
-var _ pg.Collection = &Users{}
-
-// NewRecord returns new user and is used by go-pg to load multiple users.
-func (users *Users) NewRecord() interface{} {
-	users.C = append(users.C, User{})
-	return &users.C[len(users.C)-1]
-}
-
 func CreateUser(db *pg.DB, user *User) error {
 	_, err := db.QueryOne(user, `
 		INSERT INTO users (name, emails) VALUES (?name, ?emails)
@@ -41,9 +27,15 @@ func GetUser(db *pg.DB, id int64) (*User, error) {
 }
 
 func GetUsers(db *pg.DB) ([]User, error) {
-	var users Users
+	var users []User
 	_, err := db.Query(&users, `SELECT * FROM users`)
-	return users.C, err
+	return users, err
+}
+
+func GetUsersByIds(db *pg.DB, ids []int64) ([]User, error) {
+	var users []User
+	_, err := db.Query(&users, `SELECT * FROM users WHERE id IN (?)`, pg.Ints(ids))
+	return users, err
 }
 
 func ExampleDB_Query() {

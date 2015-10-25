@@ -263,7 +263,7 @@ func TestConversion(t *testing.T) {
 		{src: `{"foo": "bar"}`, dst: new(*JSONField), wanted: JSONField{Foo: "bar"}},
 	}
 
-	db := pgdb()
+	db := pg.Connect(pgOptions())
 	db.Exec("CREATE EXTENSION hstore")
 	defer db.Exec("DROP EXTENSION hstore")
 

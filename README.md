@@ -44,20 +44,6 @@ type User struct {
 	Emails []string
 }
 
-// go-pg users collection.
-type Users struct {
-	C []User
-}
-
-// Implements pg.Collection.
-var _ pg.Collection = &Users{}
-
-// NewRecord returns new user and is used by go-pg to load multiple users.
-func (users *Users) NewRecord() interface{} {
-	users.C = append(users.C, User{})
-	return &users.C[len(users.C)-1]
-}
-
 func CreateUser(db *pg.DB, user *User) error {
 	_, err := db.QueryOne(user, `
 		INSERT INTO users (name, emails) VALUES (?name, ?emails)
@@ -73,9 +59,15 @@ func GetUser(db *pg.DB, id int64) (*User, error) {
 }
 
 func GetUsers(db *pg.DB) ([]User, error) {
-	var users Users
+	var users []User
 	_, err := db.Query(&users, `SELECT * FROM users`)
-	return users.C, err
+	return users, err
+}
+
+func GetUsersByIds(db *pg.DB, ids []int64) ([]User, error) {
+	var users []User
+	_, err := db.Query(&users, `SELECT * FROM users WHERE id IN (?)`, pg.Ints(ids))
+	return users, err
 }
 
 func ExampleDB_Query() {
@@ -126,7 +118,7 @@ func ExampleDB_Query() {
 - On some queries go-pg is 2x faster, because it can load data in 1 client/server round-trip.
 - You don't need to use `rows.Close` to manage connections.
 - go-pg manages memory more efficiently than ORMs for database/sql.
-- Placeholders support allows you to write [complex queries](https://godoc.org/gopkg.in/pg.v3#example-package--ComplexQuery) and stick with SQL.
+- Placeholders support allows you to write [complex queries](https://godoc.org/gopkg.in/pg.v3#example-package--ComplexQuery) and stay with SQL.
 
 ## Howto
 

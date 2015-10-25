@@ -19,9 +19,64 @@ func TestPG(t *testing.T) {
 func pgOptions() *pg.Options {
 	return &pg.Options{
 		User:     "postgres",
-		Database: "test",
+		Database: "postgres",
 	}
 }
+
+var _ = Describe("Collection", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+	})
+
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
+	It("supports slice of values", func() {
+		coll := []struct {
+			Id int
+		}{}
+		_, err := db.Query(&coll, `
+			WITH data (id) AS (VALUES (1), (2), (3))
+			SELECT id FROM data
+		`)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(coll).To(HaveLen(3))
+		Expect(coll[0].Id).To(Equal(1))
+		Expect(coll[1].Id).To(Equal(2))
+		Expect(coll[2].Id).To(Equal(3))
+	})
+
+	It("supports slice of pointers", func() {
+		coll := []*struct {
+			Id int
+		}{}
+		_, err := db.Query(&coll, `
+			WITH data (id) AS (VALUES (1), (2), (3))
+			SELECT id FROM data
+		`)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(coll).To(HaveLen(3))
+		Expect(coll[0].Id).To(Equal(1))
+		Expect(coll[1].Id).To(Equal(2))
+		Expect(coll[2].Id).To(Equal(3))
+	})
+
+	It("supports Collection", func() {
+		var coll pg.Ints
+		_, err := db.Query(&coll, `
+			WITH data (id) AS (VALUES (1), (2), (3))
+			SELECT id FROM data
+		`)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(coll).To(HaveLen(3))
+		Expect(coll[0]).To(Equal(int64(1)))
+		Expect(coll[1]).To(Equal(int64(2)))
+		Expect(coll[2]).To(Equal(int64(3)))
+	})
+})
 
 var _ = Describe("read/write timeout", func() {
 	var db *pg.DB

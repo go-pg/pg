@@ -102,7 +102,7 @@ func (stmt *Stmt) ExecOne(args ...interface{}) (*Result, error) {
 	return assertOneAffected(res, nil)
 }
 
-func (stmt *Stmt) query(coll Collection, args ...interface{}) (*Result, error) {
+func (stmt *Stmt) query(coll interface{}, args ...interface{}) (*Result, error) {
 	defer stmt.mu.Unlock()
 	stmt.mu.Lock()
 
@@ -114,7 +114,7 @@ func (stmt *Stmt) query(coll Collection, args ...interface{}) (*Result, error) {
 }
 
 // Query executes a prepared query statement with the given arguments.
-func (stmt *Stmt) Query(coll Collection, args ...interface{}) (res *Result, err error) {
+func (stmt *Stmt) Query(coll interface{}, args ...interface{}) (res *Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		res, err = stmt.query(coll, args...)
@@ -167,7 +167,7 @@ func extQuery(cn *conn, name string, args ...interface{}) (*Result, error) {
 	return readExtQuery(cn)
 }
 
-func extQueryData(cn *conn, name string, coll Collection, columns []string, args ...interface{}) (*Result, error) {
+func extQueryData(cn *conn, name string, coll interface{}, columns []string, args ...interface{}) (*Result, error) {
 	if err := writeBindExecuteMsg(cn.buf, name, args...); err != nil {
 		return nil, err
 	}

@@ -16,10 +16,9 @@ import (
 
 func TestUnixSocket(t *testing.T) {
 	db := pg.Connect(&pg.Options{
-		Network:  "unix",
-		Host:     "/var/run/postgresql/.s.PGSQL.5432",
-		User:     "postgres",
-		Database: "test",
+		Network: "unix",
+		Host:    "/var/run/postgresql/.s.PGSQL.5432",
+		User:    "postgres",
 	})
 	defer db.Close()
 
@@ -38,7 +37,7 @@ type DBTest struct {
 }
 
 func (t *DBTest) SetUpTest(c *C) {
-	t.db = pgdb()
+	t.db = pg.Connect(pgOptions())
 }
 
 func (t *DBTest) TearDownTest(c *C) {

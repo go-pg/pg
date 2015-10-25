@@ -94,7 +94,7 @@ func (tx *Tx) ExecOne(q string, args ...interface{}) (*Result, error) {
 	return assertOneAffected(res, nil)
 }
 
-func (tx *Tx) Query(coll Collection, q string, args ...interface{}) (*Result, error) {
+func (tx *Tx) Query(coll interface{}, q string, args ...interface{}) (*Result, error) {
 	if tx.done {
 		return nil, errTxDone
 	}
