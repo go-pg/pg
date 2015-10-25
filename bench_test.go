@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math/rand"
+	"strconv"
 	"testing"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -12,6 +13,15 @@ import (
 
 	"gopkg.in/pg.v3"
 )
+
+func init() {
+	db := pg.Connect(pgOptions())
+	defer db.Close()
+
+	if err := seedDB(db); err != nil {
+		panic(err)
+	}
+}
 
 func BenchmarkFormatQWithoutArgs(b *testing.B) {
 	rec := &Record{
@@ -94,19 +104,31 @@ func BenchmarkFormatQWithStructMethods(b *testing.B) {
 	}
 }
 
-func BenchmarkQueryRows(b *testing.B) {
+func BenchmarkQueryRowsDiscard(b *testing.B) {
 	db := pg.Connect(pgOptions())
 	defer db.Close()
-
-	if err := seedDB(db); err != nil {
-		b.Fatal(err)
-	}
 
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			var rs Records
+			_, err := db.Query(pg.Discard, `SELECT * FROM records LIMIT 100`)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
+
+func BenchmarkQueryRowsOptimized(b *testing.B) {
+	db := pg.Connect(pgOptions())
+	defer db.Close()
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var rs OptRecords
 			_, err := db.Query(&rs, `SELECT * FROM records LIMIT 100`)
 			if err != nil {
 				b.Fatal(err)
@@ -121,10 +143,6 @@ func BenchmarkQueryRows(b *testing.B) {
 func BenchmarkQueryRowsReflect(b *testing.B) {
 	db := pg.Connect(pgOptions())
 	defer db.Close()
-
-	if err := seedDB(db); err != nil {
-		b.Fatal(err)
-	}
 
 	b.ResetTimer()
 
@@ -537,14 +555,42 @@ func (r *Record) GetStr3() string {
 	return r.Str3
 }
 
-type Records struct {
-	C []Record
+type OptRecord struct {
+	Num1, Num2, Num3 int64
+	Str1, Str2, Str3 string
 }
 
-var _ pg.Collection = &Records{}
+var _ pg.ColumnLoader = (*OptRecord)(nil)
 
-func (rs *Records) NewRecord() interface{} {
-	rs.C = append(rs.C, Record{})
+func (r *OptRecord) LoadColumn(colIdx int, colName string, b []byte) error {
+	var err error
+	switch colName {
+	case "num1":
+		r.Num1, err = strconv.ParseInt(string(b), 10, 64)
+	case "num2":
+		r.Num2, err = strconv.ParseInt(string(b), 10, 64)
+	case "num3":
+		r.Num3, err = strconv.ParseInt(string(b), 10, 64)
+	case "str1":
+		r.Str1 = string(b)
+	case "str2":
+		r.Str2 = string(b)
+	case "str3":
+		r.Str3 = string(b)
+	default:
+		return fmt.Errorf("unknown column: %q", colName)
+	}
+	return err
+}
+
+type OptRecords struct {
+	C []OptRecord
+}
+
+var _ pg.Collection = (*OptRecords)(nil)
+
+func (rs *OptRecords) NewRecord() interface{} {
+	rs.C = append(rs.C, OptRecord{})
 	return &rs.C[len(rs.C)-1]
 }
 

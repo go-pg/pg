@@ -113,12 +113,21 @@ func ExampleDB_Query() {
 }
 ```
 
-## Why not database/sql and lib/pq
+## Why not database/sql, lib/pq, or GORM
 
-- On some queries go-pg is 2x faster, because it can load data in 1 client/server round-trip.
-- You don't need to use `rows.Close` to manage connections.
-- go-pg manages memory more efficiently than ORMs for database/sql.
-- Placeholders support allows you to write [complex queries](https://godoc.org/gopkg.in/pg.v3#example-package--ComplexQuery) and stay with SQL.
+- No `rows.Close` to manually manage connections.
+- go-pg can automatically map rows on Go structs.
+- go-pg is at least 3x faster than GORM on querying 100 rows from table.
+- go-pg supports client-side placeholders that allow you to write [complex queries](https://godoc.org/gopkg.in/pg.v3#example-package--ComplexQuery) and have full power of SQL.
+
+## Benchmark
+
+```
+BenchmarkQueryRowsOptimized-4	   10000	    154480 ns/op	   87789 B/op	     624 allocs/op
+BenchmarkQueryRowsReflect-4  	   10000	    196261 ns/op	  102224 B/op	     925 allocs/op
+BenchmarkQueryRowsStdlibPq-4 	    5000	    236584 ns/op	  166528 B/op	    1324 allocs/op
+BenchmarkQueryRowsGORM-4     	    2000	    690532 ns/op	  399661 B/op	    6171 allocs/op
+```
 
 ## Howto
 
