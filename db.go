@@ -168,8 +168,8 @@ type DB struct {
 	pool *connPool
 }
 
-// UseTimeout returns a DB that uses d as the read/write timeout.
-func (db *DB) UseTimeout(d time.Duration) *DB {
+// WithTimeout returns a DB that uses d as the read/write timeout.
+func (db *DB) WithTimeout(d time.Duration) *DB {
 	newopt := *db.opt
 	newopt.ReadTimeout = d
 	newopt.WriteTimeout = d
