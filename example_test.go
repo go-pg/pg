@@ -177,10 +177,10 @@ func ExampleDB_CopyFrom() {
 	// foo,3
 }
 
-func Example_queryTimeout() {
+func ExampleDB_WithTimeout() {
 	var count int
 	// Use bigger timeout since this query is known to be slow.
-	_, err := db.UseTimeout(time.Minute).QueryOne(pg.LoadInto(&count), `
+	_, err := db.WithTimeout(time.Minute).QueryOne(pg.LoadInto(&count), `
 		SELECT count(*) FROM big_table
 	`)
 	if err != nil {

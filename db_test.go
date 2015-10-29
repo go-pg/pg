@@ -96,9 +96,9 @@ var _ = Describe("read/write timeout", func() {
 		Expect(err.(net.Error).Timeout()).To(BeTrue())
 	})
 
-	Describe("with UseTimeout", func() {
+	Describe("with WithTimeout", func() {
 		It("slow query passes", func() {
-			_, err := db.UseTimeout(time.Minute).Exec(`SELECT pg_sleep(1)`)
+			_, err := db.WithTimeout(time.Minute).Exec(`SELECT pg_sleep(1)`)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
