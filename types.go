@@ -109,12 +109,28 @@ func (pgv *pgValue) AppendValue(dst []byte, v reflect.Value) []byte {
 	return pgv.appender(dst, fv)
 }
 
-func (pgv *pgValue) DecodeValue(v reflect.Value, b []byte) error {
-	fv := pgv.getValue(v)
-	if b == nil {
-		return decodeNullValue(fv)
+func fieldByIndex(v reflect.Value, index []int) reflect.Value {
+	if len(index) == 1 {
+		return v.Field(index[0])
 	}
-	return pgv.decoder(fv, b)
+	for i, x := range index {
+		if i > 0 && v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				v.Set(reflect.New(v.Type().Elem()))
+			}
+			v = v.Elem()
+		}
+		v = v.Field(x)
+	}
+	return v
+}
+
+func (pgv *pgValue) DecodeValue(v reflect.Value, b []byte) error {
+	v = fieldByIndex(v, pgv.Index)
+	if b == nil {
+		return decodeNullValue(v)
+	}
+	return pgv.decoder(v, b)
 }
 
 func (pgv *pgValue) getValue(v reflect.Value) reflect.Value {

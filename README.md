@@ -2,11 +2,11 @@
 
 Supports:
 
-- Basic types: integers, floats, string, bool, time.Time, and pointers to these types.
-- sql.NullBool, sql.NullString, sql.NullInt64 and sql.Float64.
+- Basic types: integers, floats, string, bool, time.Time.
+- sql.NullBool, sql.NullString, sql.NullInt64 and sql.NullFloat64.
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
-- Arrays.
-- Partially hstore.
+- PostgreSQL Arrays.
+- Partially PostgreSQL hstore.
 - [JSON](https://godoc.org/gopkg.in/pg.v3#ex-package--Json).
 - [Transactions](http://godoc.org/gopkg.in/pg.v3#example-DB-Begin).
 - [Prepared statements](http://godoc.org/gopkg.in/pg.v3#example-DB-Prepare).
@@ -15,7 +15,7 @@ Supports:
 - [Timeouts](http://godoc.org/gopkg.in/pg.v3#Options). Client sends `CancelRequest` message on timeout.
 - Automatic and safe connection pool.
 - Queries retries on network errors.
-- PostgreSQL to Go [struct mapping](http://godoc.org/gopkg.in/pg.v3#example-DB-Query).
+- Advanced PostgreSQL to Go [struct mapping](http://godoc.org/gopkg.in/pg.v3#example-DB-Query).
 - [Migrations](https://github.com/go-pg/migrations).
 - [Sharding](https://github.com/go-pg/sharding).
 
@@ -45,6 +45,10 @@ type User struct {
 	Emails []string
 }
 
+func (u User) String() string {
+	return fmt.Sprintf("User<%d %s %v>", u.Id, u.Name, u.Emails)
+}
+
 func CreateUser(db *pg.DB, user *User) error {
 	_, err := db.QueryOne(user, `
 		INSERT INTO users (name, emails) VALUES (?name, ?emails)
@@ -71,20 +75,66 @@ func GetUsersByIds(db *pg.DB, ids []int64) ([]User, error) {
 	return users, err
 }
 
+type Story struct {
+	Id     int64
+	Title  string
+	UserId int64
+	User   *User
+}
+
+func (s Story) String() string {
+	return fmt.Sprintf("Story<%d %s %s>", s.Id, s.Title, s.User)
+}
+
+func CreateStory(db *pg.DB, story *Story) error {
+	_, err := db.QueryOne(story, `
+		INSERT INTO stories (title, user_id) VALUES (?title, ?user_id)
+		RETURNING id
+	`, story)
+	return err
+}
+
+// GetStory returns story with associated user (author of the story).
+func GetStory(db *pg.DB, id int64) (*Story, error) {
+	var story Story
+	_, err := db.QueryOne(&story, `
+		SELECT s.*,
+			u.id AS user__id, u.name AS user__name, u.emails AS user__emails
+		FROM stories AS s, users AS u
+		WHERE s.id = ? AND u.id = s.user_id
+	`, id)
+	return &story, err
+}
+
+func createSchema(db *pg.DB) error {
+	queries := []string{
+		`CREATE TEMP TABLE users (id serial, name text, emails text[])`,
+		`CREATE TEMP TABLE stories (id serial, title text, user_id bigint)`,
+	}
+	for _, q := range queries {
+		_, err := db.Exec(q)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func ExampleDB_Query() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
 	})
 
-	_, err := db.Exec(`CREATE TEMP TABLE users (id serial, name text, emails text[])`)
+	err := createSchema(db)
 	if err != nil {
 		panic(err)
 	}
 
-	err = CreateUser(db, &User{
+	user1 := &User{
 		Name:   "admin",
 		Emails: []string{"admin1@admin", "admin2@admin"},
-	})
+	}
+	err = CreateUser(db, user1)
 	if err != nil {
 		panic(err)
 	}
@@ -97,7 +147,13 @@ func ExampleDB_Query() {
 		panic(err)
 	}
 
-	user, err := GetUser(db, 1)
+	story1 := &Story{
+		Title:  "Cool story",
+		UserId: user1.Id,
+	}
+	err = CreateStory(db, story1)
+
+	user, err := GetUser(db, user1.Id)
 	if err != nil {
 		panic(err)
 	}
@@ -107,10 +163,17 @@ func ExampleDB_Query() {
 		panic(err)
 	}
 
+	story, err := GetStory(db, story1.Id)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(story)
+
 	fmt.Println(user)
 	fmt.Println(users[0], users[1])
-	// Output: &{1 admin [admin1@admin admin2@admin]}
-	// {1 admin [admin1@admin admin2@admin]} {2 root [root1@root root2@root]}
+	// Output: Story<1 Cool story User<1 admin [admin1@admin admin2@admin]>>
+	// User<1 admin [admin1@admin admin2@admin]>
+	// User<1 admin [admin1@admin admin2@admin]> User<2 root [root1@root root2@root]>
 }
 ```
 
