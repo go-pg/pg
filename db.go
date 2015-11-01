@@ -314,7 +314,7 @@ func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (*Result, err
 		return nil, err
 	}
 
-	if err := cn.Flush(); err != nil {
+	if err := cn.FlushWrite(); err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
@@ -343,7 +343,7 @@ func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (*Result, err
 			break
 		}
 
-		if err := cn.Flush(); err != nil {
+		if err := cn.FlushWrite(); err != nil {
 			db.freeConn(cn, err)
 			return nil, err
 		}
@@ -355,7 +355,7 @@ func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (*Result, err
 	}
 
 	writeCopyDone(cn.buf)
-	if err := cn.Flush(); err != nil {
+	if err := cn.FlushWrite(); err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
@@ -382,7 +382,7 @@ func (db *DB) CopyTo(w io.WriteCloser, q string, args ...interface{}) (*Result, 
 		return nil, err
 	}
 
-	if err := cn.Flush(); err != nil {
+	if err := cn.FlushWrite(); err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
@@ -432,7 +432,7 @@ func simpleQuery(cn *conn, q string, args ...interface{}) (*Result, error) {
 		return nil, err
 	}
 
-	if err := cn.Flush(); err != nil {
+	if err := cn.FlushWrite(); err != nil {
 		return nil, err
 	}
 
@@ -449,7 +449,7 @@ func simpleQueryData(cn *conn, coll interface{}, q string, args ...interface{}) 
 		return nil, err
 	}
 
-	if err := cn.Flush(); err != nil {
+	if err := cn.FlushWrite(); err != nil {
 		return nil, err
 	}
 

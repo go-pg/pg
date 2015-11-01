@@ -22,7 +22,7 @@ type Stmt struct {
 func prepare(db *DB, cn *conn, q string) (*Stmt, error) {
 	name := cn.GenId()
 	writeParseDescribeSyncMsg(cn.buf, name, q)
-	if err := cn.Flush(); err != nil {
+	if err := cn.FlushWrite(); err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
@@ -161,7 +161,7 @@ func extQuery(cn *conn, name string, args ...interface{}) (*Result, error) {
 	if err := writeBindExecuteMsg(cn.buf, name, args...); err != nil {
 		return nil, err
 	}
-	if err := cn.Flush(); err != nil {
+	if err := cn.FlushWrite(); err != nil {
 		return nil, err
 	}
 	return readExtQuery(cn)
@@ -172,7 +172,7 @@ func extQueryData(cn *conn, name string, coll interface{}, columns []string, arg
 		return nil, err
 	}
 
-	if err := cn.Flush(); err != nil {
+	if err := cn.FlushWrite(); err != nil {
 		return nil, err
 	}
 

@@ -22,8 +22,8 @@ func dial(opt *Options) (net.Conn, error) {
 type conn struct {
 	opt *Options
 	cn  net.Conn
-	br  *bufio.Reader
-	buf *buffer
+	br  *bufio.Reader // read buffer
+	buf *buffer       // write buffer
 
 	inUse  bool
 	usedAt time.Time
@@ -89,14 +89,13 @@ func (cn *conn) Write(b []byte) (int, error) {
 
 func (cn *conn) Close() error {
 	writeTerminateMsg(cn.buf)
-	_ = cn.Flush()
+	_ = cn.FlushWrite()
 	return cn.cn.Close()
 }
 
 func (cn *conn) ssl() error {
-	cn.buf.StartMessage(0)
-	cn.buf.WriteInt32(80877103)
-	if err := cn.Flush(); err != nil {
+	writeSSLMsg(cn.buf)
+	if err := cn.FlushWrite(); err != nil {
 		return err
 	}
 
@@ -125,7 +124,7 @@ func (cn *conn) Startup() error {
 	}
 
 	writeStartupMsg(cn.buf, cn.opt.getUser(), cn.opt.getDatabase())
-	if err := cn.Flush(); err != nil {
+	if err := cn.FlushWrite(); err != nil {
 		return err
 	}
 
@@ -182,7 +181,7 @@ func (cn *conn) auth() error {
 		return nil
 	case 3:
 		writePasswordMsg(cn.buf, cn.opt.getPassword())
-		if err := cn.Flush(); err != nil {
+		if err := cn.FlushWrite(); err != nil {
 			return err
 		}
 
@@ -217,7 +216,7 @@ func (cn *conn) auth() error {
 
 		secret := "md5" + md5s(md5s(cn.opt.getPassword()+cn.opt.getUser())+string(b))
 		writePasswordMsg(cn.buf, secret)
-		if err := cn.Flush(); err != nil {
+		if err := cn.FlushWrite(); err != nil {
 			return err
 		}
 
@@ -333,7 +332,7 @@ func (cn *conn) ReadError() (error, error) {
 	return e, nil
 }
 
-func (cn *conn) Flush() error {
+func (cn *conn) FlushWrite() error {
 	b := cn.buf.Flush()
 	n, err := cn.cn.Write(b)
 	if n == len(b) {
