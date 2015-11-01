@@ -7,6 +7,7 @@ Supports:
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
 - Arrays.
 - Partially hstore.
+- [JSON](https://godoc.org/gopkg.in/pg.v3#ex-package--Json).
 - [Transactions](http://godoc.org/gopkg.in/pg.v3#example-DB-Begin).
 - [Prepared statements](http://godoc.org/gopkg.in/pg.v3#example-DB-Prepare).
 - [Notifications](http://godoc.org/gopkg.in/pg.v3#example-Listener) using `LISTEN` and `NOTIFY`.
