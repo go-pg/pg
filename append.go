@@ -419,7 +419,7 @@ func appendFloat64SliceRaw(dst []byte, floats []float64) []byte {
 func appendDriverValuer(dst []byte, v driver.Valuer) []byte {
 	value, err := v.Value()
 	if err != nil {
-		log.Printf("%#v value failed: %s", v, err)
+		log.Printf("%T value failed: %s", v, err)
 		return appendNull(dst)
 	}
 	return appendIface(dst, value)
@@ -428,7 +428,7 @@ func appendDriverValuer(dst []byte, v driver.Valuer) []byte {
 func appendDriverValueRaw(dst []byte, v driver.Valuer) []byte {
 	value, err := v.Value()
 	if err != nil {
-		log.Printf("%#v value failed: %s", v, err)
+		log.Printf("%T value failed: %s", v, err)
 		return nil
 	}
 	return appendIfaceRaw(dst, value)

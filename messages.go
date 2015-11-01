@@ -1,7 +1,6 @@
 package pg
 
 import (
-	"encoding/binary"
 	"fmt"
 	"io"
 
@@ -118,6 +117,13 @@ func writeStartupMsg(buf *buffer, user, database string) {
 	buf.WriteString("database")
 	buf.WriteString(database)
 	buf.WriteString("")
+	buf.FinishMessage()
+}
+
+func writeSSLMsg(buf *buffer) {
+	buf.StartMessage(0)
+	buf.WriteInt32(80877103)
+	buf.FinishMessage()
 }
 
 func writeCancelRequestMsg(buf *buffer, processId, secretKey int32) {
@@ -125,20 +131,23 @@ func writeCancelRequestMsg(buf *buffer, processId, secretKey int32) {
 	buf.WriteInt32(80877102)
 	buf.WriteInt32(processId)
 	buf.WriteInt32(secretKey)
+	buf.FinishMessage()
 }
 
 func writePasswordMsg(buf *buffer, password string) {
 	buf.StartMessage(passwordMessageMsg)
 	buf.WriteString(password)
+	buf.FinishMessage()
 }
 
 func writeQueryMsg(buf *buffer, q string, args ...interface{}) (err error) {
 	buf.StartMessage(queryMsg)
-	buf.B, err = AppendQ(buf.B, q, args...)
+	buf.Bytes, err = AppendQ(buf.Bytes, q, args...)
 	if err != nil {
 		return err
 	}
 	buf.WriteByte(0x0)
+	buf.FinishMessage()
 	return nil
 }
 
@@ -147,12 +156,15 @@ func writeParseDescribeSyncMsg(buf *buffer, name, q string) {
 	buf.WriteString(name)
 	buf.WriteString(q)
 	buf.WriteInt16(0)
+	buf.FinishMessage()
 
 	buf.StartMessage(describeMsg)
 	buf.WriteByte('S')
 	buf.WriteString(name)
+	buf.FinishMessage()
 
 	buf.StartMessage(syncMsg)
+	buf.FinishMessage()
 }
 
 func readParseDescribeSync(cn *conn) (columns []string, e error) {
@@ -213,35 +225,40 @@ func readParseDescribeSync(cn *conn) (columns []string, e error) {
 
 // Writes BIND, EXECUTE and SYNC messages.
 func writeBindExecuteMsg(buf *buffer, name string, args ...interface{}) error {
+	const paramLenWidth = 4
+
 	buf.StartMessage(bindMsg)
 	buf.WriteString("")
 	buf.WriteString(name)
 	buf.WriteInt16(0)
 	buf.WriteInt16(int16(len(args)))
 	for _, arg := range args {
-		pos := len(buf.B)
-		buf.Grow(4)
-		newB := appendIfaceRaw(buf.B, arg)
-		l := -1
-		if newB != nil {
-			buf.B = newB
-			l = len(buf.B) - pos - 4
+		buf.StartParam()
+		bytes := appendIfaceRaw(buf.Bytes, arg)
+		if bytes != nil {
+			buf.Bytes = bytes
+			buf.FinishParam()
+		} else {
+			buf.FinishNullParam()
 		}
-		binary.BigEndian.PutUint32(buf.B[pos:], uint32(l))
 	}
 	buf.WriteInt16(0)
+	buf.FinishMessage()
 
 	buf.StartMessage(executeMsg)
 	buf.WriteString("")
 	buf.WriteInt32(0)
+	buf.FinishMessage()
 
 	buf.StartMessage(syncMsg)
+	buf.FinishMessage()
 
 	return nil
 }
 
 func writeTerminateMsg(buf *buffer) {
 	buf.StartMessage(terminateMsg)
+	buf.FinishMessage()
 }
 
 func readBindMsg(cn *conn) (e error) {
@@ -678,11 +695,13 @@ func readCopyData(cn *conn, w io.WriteCloser) (*Result, error) {
 func writeCopyData(buf *buffer, r io.Reader) (int64, error) {
 	buf.StartMessage(copyDataMsg)
 	n, err := buf.ReadFrom(r)
+	buf.FinishMessage()
 	return n, err
 }
 
 func writeCopyDone(buf *buffer) {
 	buf.StartMessage(copyDoneMsg)
+	buf.FinishMessage()
 }
 
 func readReadyForQuery(cn *conn) (res *Result, e error) {

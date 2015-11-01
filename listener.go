@@ -65,7 +65,7 @@ func (l *Listener) listen(cn *conn, channels ...string) error {
 			return err
 		}
 	}
-	return cn.Flush()
+	return cn.FlushWrite()
 }
 
 func (l *Listener) Receive() (channel string, payload string, err error) {
