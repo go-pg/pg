@@ -302,7 +302,7 @@ func readBindMsg(cn *conn) (e error) {
 	}
 }
 
-func readSimpleQuery(cn *conn) (res *Result, e error) {
+func readSimpleQuery(cn *conn) (res Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -349,7 +349,7 @@ func readSimpleQuery(cn *conn) (res *Result, e error) {
 	}
 }
 
-func readExtQuery(cn *conn) (res *Result, e error) {
+func readExtQuery(cn *conn) (res Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -458,7 +458,7 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	return loadErr
 }
 
-func readSimpleQueryData(cn *conn, collection interface{}) (res *Result, e error) {
+func readSimpleQueryData(cn *conn, collection interface{}) (res Result, e error) {
 	coll, ok := collection.(Collection)
 	if !ok {
 		coll, e = newCollection(collection)
@@ -518,7 +518,7 @@ func readSimpleQueryData(cn *conn, collection interface{}) (res *Result, e error
 	}
 }
 
-func readExtQueryData(cn *conn, collection interface{}, columns []string) (res *Result, e error) {
+func readExtQueryData(cn *conn, collection interface{}, columns []string) (res Result, e error) {
 	coll, ok := collection.(Collection)
 	if !ok {
 		coll, e = newCollection(collection)
@@ -643,7 +643,7 @@ func readCopyOutResponse(cn *conn) error {
 	}
 }
 
-func readCopyData(cn *conn, w io.WriteCloser) (*Result, error) {
+func readCopyData(cn *conn, w io.WriteCloser) (Result, error) {
 	defer w.Close()
 	for {
 		c, msgLen, err := cn.ReadMsgType()
@@ -704,7 +704,7 @@ func writeCopyDone(buf *buffer) {
 	buf.FinishMessage()
 }
 
-func readReadyForQuery(cn *conn) (res *Result, e error) {
+func readReadyForQuery(cn *conn) (res Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {

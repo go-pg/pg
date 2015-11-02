@@ -71,7 +71,7 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 	return prepare(tx.db, cn, q)
 }
 
-func (tx *Tx) Exec(q string, args ...interface{}) (*Result, error) {
+func (tx *Tx) Exec(q string, args ...interface{}) (Result, error) {
 	if tx.done {
 		return nil, errTxDone
 	}
@@ -86,7 +86,7 @@ func (tx *Tx) Exec(q string, args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
-func (tx *Tx) ExecOne(q string, args ...interface{}) (*Result, error) {
+func (tx *Tx) ExecOne(q string, args ...interface{}) (Result, error) {
 	res, err := tx.Exec(q, args...)
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func (tx *Tx) ExecOne(q string, args ...interface{}) (*Result, error) {
 	return assertOneAffected(res, nil)
 }
 
-func (tx *Tx) Query(coll interface{}, q string, args ...interface{}) (*Result, error) {
+func (tx *Tx) Query(coll interface{}, q string, args ...interface{}) (Result, error) {
 	if tx.done {
 		return nil, errTxDone
 	}
@@ -108,7 +108,7 @@ func (tx *Tx) Query(coll interface{}, q string, args ...interface{}) (*Result, e
 	return res, nil
 }
 
-func (tx *Tx) QueryOne(record interface{}, q string, args ...interface{}) (*Result, error) {
+func (tx *Tx) QueryOne(record interface{}, q string, args ...interface{}) (Result, error) {
 	coll := &singleRecordCollection{record: record}
 	res, err := tx.Query(coll, q, args...)
 	if err != nil {

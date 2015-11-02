@@ -221,7 +221,7 @@ func (db *DB) Close() error {
 
 // Exec executes a query ignoring returned rows. The args are for
 // any placeholder parameters in the query.
-func (db *DB) Exec(q string, args ...interface{}) (res *Result, err error) {
+func (db *DB) Exec(q string, args ...interface{}) (res Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		var cn *conn
@@ -246,7 +246,7 @@ func (db *DB) Exec(q string, args ...interface{}) (res *Result, err error) {
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
+func (db *DB) ExecOne(q string, args ...interface{}) (Result, error) {
 	res, err := db.Exec(q, args...)
 	if err != nil {
 		return nil, err
@@ -256,7 +256,7 @@ func (db *DB) ExecOne(q string, args ...interface{}) (*Result, error) {
 
 // Query executes a query that returns rows, typically a SELECT. The
 // args are for any placeholder parameters in the query.
-func (db *DB) Query(coll interface{}, q string, args ...interface{}) (res *Result, err error) {
+func (db *DB) Query(coll interface{}, q string, args ...interface{}) (res Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		var cn *conn
@@ -281,7 +281,7 @@ func (db *DB) Query(coll interface{}, q string, args ...interface{}) (res *Resul
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (db *DB) QueryOne(record interface{}, q string, args ...interface{}) (*Result, error) {
+func (db *DB) QueryOne(record interface{}, q string, args ...interface{}) (Result, error) {
 	coll := &singleRecordCollection{record: record}
 	res, err := db.Query(coll, q, args...)
 	if err != nil {
@@ -303,7 +303,7 @@ func (db *DB) Listen(channels ...string) (*Listener, error) {
 }
 
 // CopyFrom copies data from reader to a table.
-func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (*Result, error) {
+func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
@@ -325,7 +325,7 @@ func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (*Result, err
 	}
 
 	ready := make(chan struct{})
-	var res *Result
+	var res Result
 	go func() {
 		res, err = readReadyForQuery(cn)
 		close(ready)
@@ -371,7 +371,7 @@ func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (*Result, err
 }
 
 // CopyTo copies data from a table to writer.
-func (db *DB) CopyTo(w io.WriteCloser, q string, args ...interface{}) (*Result, error) {
+func (db *DB) CopyTo(w io.WriteCloser, q string, args ...interface{}) (Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
@@ -427,7 +427,7 @@ func (db *DB) cancelRequest(processId, secretKey int32) error {
 	return cn.Close()
 }
 
-func simpleQuery(cn *conn, q string, args ...interface{}) (*Result, error) {
+func simpleQuery(cn *conn, q string, args ...interface{}) (Result, error) {
 	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
 		return nil, err
 	}
@@ -444,7 +444,7 @@ func simpleQuery(cn *conn, q string, args ...interface{}) (*Result, error) {
 	return res, nil
 }
 
-func simpleQueryData(cn *conn, coll interface{}, q string, args ...interface{}) (*Result, error) {
+func simpleQueryData(cn *conn, coll interface{}, q string, args ...interface{}) (Result, error) {
 	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
 		return nil, err
 	}
@@ -472,7 +472,7 @@ func assertOne(l int) error {
 	}
 }
 
-func assertOneAffected(res *Result, coll *singleRecordCollection) (*Result, error) {
+func assertOneAffected(res Result, coll *singleRecordCollection) (Result, error) {
 	if err := assertOne(res.Affected()); err != nil {
 		return nil, err
 	}
