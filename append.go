@@ -32,167 +32,82 @@ func MustFormatQ(src string, params ...interface{}) Q {
 	return q
 }
 
-func appendIface(dst []byte, srci interface{}) []byte {
-	if srci == nil {
-		return appendNull(dst)
-	}
-
-	switch src := srci.(type) {
+func appendIface(b []byte, vi interface{}, quote bool) []byte {
+	switch v := vi.(type) {
+	case nil:
+		return appendNull(b, quote)
 	case bool:
-		return appendBool(dst, src)
+		return appendBool(b, v)
 	case int8:
-		return strconv.AppendInt(dst, int64(src), 10)
+		return strconv.AppendInt(b, int64(v), 10)
 	case int16:
-		return strconv.AppendInt(dst, int64(src), 10)
+		return strconv.AppendInt(b, int64(v), 10)
 	case int32:
-		return strconv.AppendInt(dst, int64(src), 10)
+		return strconv.AppendInt(b, int64(v), 10)
 	case int64:
-		return strconv.AppendInt(dst, int64(src), 10)
+		return strconv.AppendInt(b, int64(v), 10)
 	case int:
-		return strconv.AppendInt(dst, int64(src), 10)
+		return strconv.AppendInt(b, int64(v), 10)
 	case uint8:
-		return strconv.AppendUint(dst, uint64(src), 10)
+		return strconv.AppendUint(b, uint64(v), 10)
 	case uint16:
-		return strconv.AppendUint(dst, uint64(src), 10)
+		return strconv.AppendUint(b, uint64(v), 10)
 	case uint32:
-		return strconv.AppendUint(dst, uint64(src), 10)
+		return strconv.AppendUint(b, uint64(v), 10)
 	case uint64:
-		return strconv.AppendUint(dst, src, 10)
+		return strconv.AppendUint(b, v, 10)
 	case uint:
-		return strconv.AppendUint(dst, uint64(src), 10)
+		return strconv.AppendUint(b, uint64(v), 10)
 	case float32:
-		return appendFloat(dst, float64(src))
+		return appendFloat(b, float64(v))
 	case float64:
-		return appendFloat(dst, src)
+		return appendFloat(b, v)
 	case string:
-		return appendString(dst, src)
+		return appendString(b, v, quote)
 	case time.Time:
-		dst = append(dst, '\'')
-		dst = pgutil.AppendTime(dst, src)
-		dst = append(dst, '\'')
-		return dst
+		return appendTime(b, v, quote)
 	case []byte:
-		dst = append(dst, '\'')
-		dst = appendBytes(dst, src)
-		dst = append(dst, '\'')
-		return dst
+		return appendBytes(b, v, quote)
 	case []string:
-		return appendStringSlice(dst, src)
+		return appendStringSlice(b, v, quote)
 	case []int:
-		return appendIntSlice(dst, src)
+		return appendIntSlice(b, v, quote)
 	case []int64:
-		return appendInt64Slice(dst, src)
+		return appendInt64Slice(b, v, quote)
 	case []float64:
-		return appendFloat64Slice(dst, src)
+		return appendFloat64Slice(b, v, quote)
 	case map[string]string:
-		return appendStringStringMap(dst, src, false)
+		return appendStringStringMap(b, v, quote)
 	case QueryAppender:
-		return src.AppendQuery(dst)
+		return v.AppendQuery(b)
 	case driver.Valuer:
-		return appendDriverValuer(dst, src)
+		return appendDriverValuer(b, v, quote)
 	default:
-		return appendValue(dst, reflect.ValueOf(srci))
+		return appendValue(b, reflect.ValueOf(vi), quote)
 	}
 }
 
-func appendValue(dst []byte, v reflect.Value) []byte {
+func appendValue(b []byte, v reflect.Value, quote bool) []byte {
 	switch kind := v.Kind(); kind {
 	case reflect.Ptr:
 		if v.IsNil() {
-			return appendNull(dst)
+			return appendNull(b, quote)
 		}
-		return appendValue(dst, v.Elem())
+		return appendValue(b, v.Elem(), quote)
 	default:
 		if appender := valueAppenders[kind]; appender != nil {
-			return appender(dst, v)
+			return appender(b, v, quote)
 		}
 	}
 	panic(fmt.Sprintf("pg: Format(unsupported %s)", v.Type()))
 }
 
-// Returns nil when src is NULL.
-func appendIfaceRaw(dst []byte, srci interface{}) []byte {
-	if srci == nil {
+func appendNull(b []byte, quote bool) []byte {
+	if quote {
+		return append(b, "NULL"...)
+	} else {
 		return nil
 	}
-
-	switch src := srci.(type) {
-	case bool:
-		return appendBool(dst, src)
-	case int8:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case int16:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case int32:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case int64:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case int:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case uint8:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case uint16:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case uint32:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case uint64:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case uint:
-		return strconv.AppendInt(dst, int64(src), 10)
-	case float32:
-		return appendFloat(dst, float64(src))
-	case float64:
-		return appendFloat(dst, src)
-	case string:
-		return appendStringRaw(dst, src)
-	case time.Time:
-		return pgutil.AppendTime(dst, src)
-	case []byte:
-		return appendBytes(dst, src)
-	case []string:
-		return appendStringSliceRaw(dst, src, true)
-	case []int:
-		return appendIntSliceRaw(dst, src)
-	case []int64:
-		return appendInt64SliceRaw(dst, src)
-	case []float64:
-		return appendFloat64SliceRaw(dst, src)
-	case map[string]string:
-		return appendStringStringMapRaw(dst, src, true)
-	case RawQueryAppender:
-		return src.AppendRawQuery(dst)
-	case driver.Valuer:
-		return appendDriverValueRaw(dst, src)
-	default:
-		return appendValueRaw(dst, reflect.ValueOf(srci))
-	}
-}
-
-func appendValueRaw(dst []byte, v reflect.Value) []byte {
-	switch v.Kind() {
-	case reflect.Ptr:
-		if v.IsNil() {
-			return nil
-		}
-		return appendValueRaw(dst, v.Elem())
-	case reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64, reflect.Int:
-		return strconv.AppendInt(dst, v.Int(), 10)
-	case reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uint:
-		return strconv.AppendUint(dst, v.Uint(), 10)
-	case reflect.Float32, reflect.Float64:
-		return appendFloat(dst, v.Float())
-	case reflect.String:
-		return appendStringRaw(dst, v.String())
-	case reflect.Struct:
-		if v.Type() == timeType {
-			return pgutil.AppendTime(dst, v.Interface().(time.Time))
-		}
-	}
-	panic(fmt.Sprintf("pg: Format(unsupported %s)", v.Type()))
-}
-
-func appendNull(dst []byte) []byte {
-	return append(dst, "NULL"...)
 }
 
 func appendBool(dst []byte, v bool) []byte {
@@ -206,245 +121,247 @@ func appendFloat(dst []byte, v float64) []byte {
 	return strconv.AppendFloat(dst, v, 'f', -1, 64)
 }
 
-func appendString(dst []byte, src string) []byte {
-	dst = append(dst, '\'')
-	for _, c := range []byte(src) {
-		switch c {
-		case '\'':
-			dst = append(dst, "''"...)
-		case '\000':
-			continue
-		default:
-			dst = append(dst, c)
-		}
-	}
-	dst = append(dst, '\'')
-	return dst
+func appendString(b []byte, s string, quote bool) []byte {
+	return appendStringBytes(b, []byte(s), quote)
 }
 
-func appendStringBytes(dst []byte, src []byte) []byte {
-	dst = append(dst, '\'')
-	for _, c := range src {
+func appendStringBytes(b []byte, bytes []byte, quote bool) []byte {
+	if quote {
+		b = append(b, '\'')
+	}
+
+	for _, c := range bytes {
 		switch c {
 		case '\'':
-			dst = append(dst, "''"...)
-		case '\000':
-			continue
-		default:
-			dst = append(dst, c)
-		}
-	}
-	dst = append(dst, '\'')
-	return dst
-}
-
-func appendStringRaw(dst []byte, src string) []byte {
-	for _, c := range []byte(src) {
-		if c != '\000' {
-			dst = append(dst, c)
-		}
-	}
-	return dst
-}
-
-func appendSubstring(dst []byte, src string, raw bool) []byte {
-	dst = append(dst, '"')
-	for _, c := range []byte(src) {
-		switch c {
-		case '\'':
-			if raw {
-				dst = append(dst, '\'')
+			if quote {
+				b = append(b, '\'', '\'')
 			} else {
-				dst = append(dst, '\'', '\'')
+				b = append(b, '\'')
+			}
+		case '\000':
+			continue
+		default:
+			b = append(b, c)
+		}
+	}
+
+	if quote {
+		b = append(b, '\'')
+	}
+
+	return b
+}
+
+func appendSubstring(b []byte, src string, quote bool) []byte {
+	b = append(b, '"')
+	for _, c := range []byte(src) {
+		switch c {
+		case '\'':
+			if quote {
+				b = append(b, '\'', '\'')
+			} else {
+				b = append(b, '\'')
 			}
 		case '\000':
 			continue
 		case '\\':
-			dst = append(dst, '\\', '\\')
+			b = append(b, '\\', '\\')
 		case '"':
-			dst = append(dst, '\\', '"')
+			b = append(b, '\\', '"')
 		default:
-			dst = append(dst, c)
+			b = append(b, c)
 		}
 	}
-	dst = append(dst, '"')
-	return dst
+	b = append(b, '"')
+	return b
 }
 
-func appendBytes(dst []byte, v []byte) []byte {
-	tmp := make([]byte, hex.EncodedLen(len(v)))
-	hex.Encode(tmp, v)
-
-	dst = append(dst, "\\x"...)
-	dst = append(dst, tmp...)
-	return dst
-}
-
-func appendStringStringMap(dst []byte, m map[string]string, raw bool) []byte {
-	if m == nil {
-		return appendNull(dst)
+func appendBytes(b []byte, bytes []byte, quote bool) []byte {
+	if bytes == nil {
+		return appendNull(b, quote)
 	}
-	dst = append(dst, '\'')
-	dst = appendStringStringMapRaw(dst, m, false)
-	dst = append(dst, '\'')
-	return dst
+
+	if quote {
+		b = append(b, '\'')
+	}
+
+	tmp := make([]byte, hex.EncodedLen(len(bytes)))
+	hex.Encode(tmp, bytes)
+	b = append(b, "\\x"...)
+	b = append(b, tmp...)
+
+	if quote {
+		b = append(b, '\'')
+	}
+
+	return b
 }
 
-func appendStringStringMapRaw(dst []byte, m map[string]string, raw bool) []byte {
+func appendStringStringMap(b []byte, m map[string]string, quote bool) []byte {
 	if m == nil {
-		return nil
+		return appendNull(b, quote)
 	}
-	if len(m) == 0 {
-		return dst
+
+	if quote {
+		b = append(b, '\'')
 	}
 
 	for key, value := range m {
-		dst = appendSubstring(dst, key, raw)
-		dst = append(dst, '=', '>')
-		dst = appendSubstring(dst, value, raw)
-		dst = append(dst, ',')
+		b = appendSubstring(b, key, quote)
+		b = append(b, '=', '>')
+		b = appendSubstring(b, value, quote)
+		b = append(b, ',')
 	}
-	dst = dst[:len(dst)-1] // Strip trailing comma.
-	return dst
+	if len(m) > 0 {
+		b = b[:len(b)-1] // Strip trailing comma.
+	}
+
+	if quote {
+		b = append(b, '\'')
+	}
+
+	return b
 }
 
-func appendStringSlice(dst []byte, ss []string) []byte {
+func appendStringSlice(b []byte, ss []string, quote bool) []byte {
 	if ss == nil {
-		return appendNull(dst)
-	}
-	dst = append(dst, '\'')
-	dst = appendStringSliceRaw(dst, ss, false)
-	dst = append(dst, '\'')
-	return dst
-}
-
-func appendStringSliceRaw(dst []byte, ss []string, raw bool) []byte {
-	if ss == nil {
-		return nil
-	}
-	if len(ss) == 0 {
-		return append(dst, "{}"...)
+		return appendNull(b, quote)
 	}
 
-	dst = append(dst, '{')
+	if quote {
+		b = append(b, '\'')
+	}
+
+	b = append(b, '{')
 	for _, s := range ss {
-		dst = appendSubstring(dst, s, raw)
-		dst = append(dst, ',')
+		b = appendSubstring(b, s, quote)
+		b = append(b, ',')
 	}
-	dst[len(dst)-1] = '}' // Replace trailing comma.
-	return dst
+	if len(ss) > 0 {
+		b[len(b)-1] = '}' // Replace trailing comma.
+	} else {
+		b = append(b, '}')
+	}
+
+	if quote {
+		b = append(b, '\'')
+	}
+
+	return b
 }
 
-func appendIntSlice(dst []byte, ints []int) []byte {
+func appendIntSlice(b []byte, ints []int, quote bool) []byte {
 	if ints == nil {
-		return appendNull(dst)
-	}
-	dst = append(dst, '\'')
-	dst = appendIntSliceRaw(dst, ints)
-	dst = append(dst, '\'')
-	return dst
-}
-
-func appendIntSliceRaw(dst []byte, ints []int) []byte {
-	if ints == nil {
-		return nil
-	}
-	if len(ints) == 0 {
-		return append(dst, "{}"...)
+		return appendNull(b, quote)
 	}
 
-	dst = append(dst, '{')
+	if quote {
+		b = append(b, '\'')
+	}
+
+	b = append(b, '{')
 	for _, n := range ints {
-		dst = strconv.AppendInt(dst, int64(n), 10)
-		dst = append(dst, ',')
+		b = strconv.AppendInt(b, int64(n), 10)
+		b = append(b, ',')
 	}
-	dst[len(dst)-1] = '}' // Replace trailing comma.
-	return dst
+	if len(ints) > 0 {
+		b[len(b)-1] = '}' // Replace trailing comma.
+	} else {
+		b = append(b, '}')
+	}
+
+	if quote {
+		b = append(b, '\'')
+	}
+
+	return b
 }
 
-func appendInt64Slice(dst []byte, ints []int64) []byte {
+func appendInt64Slice(b []byte, ints []int64, quote bool) []byte {
 	if ints == nil {
-		return appendNull(dst)
-	}
-	dst = append(dst, '\'')
-	dst = appendInt64SliceRaw(dst, ints)
-	dst = append(dst, '\'')
-	return dst
-}
-
-func appendInt64SliceRaw(dst []byte, ints []int64) []byte {
-	if ints == nil {
-		return nil
-	}
-	if len(ints) == 0 {
-		return append(dst, "{}"...)
+		return appendNull(b, quote)
 	}
 
-	dst = append(dst, "{"...)
+	if quote {
+		b = append(b, '\'')
+	}
+
+	b = append(b, "{"...)
 	for _, n := range ints {
-		dst = strconv.AppendInt(dst, n, 10)
-		dst = append(dst, ',')
+		b = strconv.AppendInt(b, n, 10)
+		b = append(b, ',')
 	}
-	dst[len(dst)-1] = '}' // Replace trailing comma.
-	return dst
+	if len(ints) > 0 {
+		b[len(b)-1] = '}' // Replace trailing comma.
+	} else {
+		b = append(b, '}')
+	}
+
+	if quote {
+		b = append(b, '\'')
+	}
+
+	return b
 }
 
-func appendFloat64Slice(dst []byte, floats []float64) []byte {
+func appendFloat64Slice(b []byte, floats []float64, quote bool) []byte {
 	if floats == nil {
-		return appendNull(dst)
-	}
-	dst = append(dst, '\'')
-	dst = appendFloat64SliceRaw(dst, floats)
-	dst = append(dst, '\'')
-	return dst
-}
-
-func appendFloat64SliceRaw(dst []byte, floats []float64) []byte {
-	if floats == nil {
-		return nil
-	}
-	if len(floats) == 0 {
-		return append(dst, "{}"...)
+		return appendNull(b, quote)
 	}
 
-	dst = append(dst, "{"...)
+	if quote {
+		b = append(b, '\'')
+	}
+
+	b = append(b, "{"...)
 	for _, n := range floats {
-		dst = appendFloat(dst, n)
-		dst = append(dst, ',')
+		b = appendFloat(b, n)
+		b = append(b, ',')
 	}
-	dst[len(dst)-1] = '}' // Replace trailing comma.
-	return dst
+	if len(floats) > 0 {
+		b[len(b)-1] = '}' // Replace trailing comma.
+	} else {
+		b = append(b, '}')
+	}
+
+	if quote {
+		b = append(b, '\'')
+	}
+
+	return b
 }
 
-func appendDriverValuer(dst []byte, v driver.Valuer) []byte {
+func appendDriverValuer(b []byte, v driver.Valuer, quote bool) []byte {
 	value, err := v.Value()
 	if err != nil {
 		log.Printf("%T value failed: %s", v, err)
-		return appendNull(dst)
+		return appendNull(b, quote)
 	}
-	return appendIface(dst, value)
+	return appendIface(b, value, quote)
 }
 
-func appendDriverValueRaw(dst []byte, v driver.Valuer) []byte {
-	value, err := v.Value()
-	if err != nil {
-		log.Printf("%T value failed: %s", v, err)
-		return nil
-	}
-	return appendIfaceRaw(dst, value)
-}
-
-func appendField(dst []byte, f string) []byte {
-	dst = append(dst, '"')
+func appendField(b []byte, f string) []byte {
+	b = append(b, '"')
 	for _, c := range []byte(f) {
 		if c == '"' {
-			dst = append(dst, '"', '"')
+			b = append(b, '"', '"')
 		} else {
-			dst = append(dst, c)
+			b = append(b, c)
 		}
 	}
-	dst = append(dst, '"')
-	return dst
+	b = append(b, '"')
+	return b
+}
+
+func appendTime(b []byte, tm time.Time, quote bool) []byte {
+	if quote {
+		b = append(b, '\'')
+	}
+	b = pgutil.AppendTime(b, tm)
+	if quote {
+		b = append(b, '\'')
+	}
+	return b
 }
 
 //------------------------------------------------------------------------------
@@ -500,7 +417,7 @@ func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 				)
 			}
 
-			dst = appendIface(dst, params[paramInd])
+			dst = appendIface(dst, params[paramInd], true)
 			paramInd++
 		}
 	}

@@ -109,7 +109,7 @@ func (strings Strings) AppendQuery(dst []byte) []byte {
 	}
 
 	for _, s := range strings {
-		dst = appendString(dst, s)
+		dst = appendString(dst, s, true)
 		dst = append(dst, ',')
 	}
 	dst = dst[:len(dst)-1]

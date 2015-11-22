@@ -34,13 +34,13 @@ func (m model) AppendColumn(b []byte, v reflect.Value, name string) ([]byte, err
 
 	fields := structs.Fields(v.Type()).Table
 	if field, ok := fields[name]; ok {
-		return field.AppendValue(b, v), nil
+		return field.AppendValue(b, v, true), nil
 	}
 
 	v = v.Addr()
 	methods := structs.Methods(v.Type())
 	if method, ok := methods[name]; ok {
-		return method.AppendValue(b, v), nil
+		return method.AppendValue(b, v, true), nil
 	}
 
 	return nil, errorf("pg: cannot map %q on %s", name, v.Type())
@@ -225,7 +225,7 @@ func (m *Model) appendValues(b []byte) []byte {
 		if f.Is(nullEmpty) && f.IsEmpty(m.v) {
 			continue
 		}
-		b = f.AppendValue(b, m.v)
+		b = f.AppendValue(b, m.v, true)
 		b = append(b, ',', ' ')
 	}
 	if len(b) != start {

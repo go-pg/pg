@@ -6,11 +6,13 @@ import (
 	"reflect"
 	"strconv"
 	"time"
-
-	"gopkg.in/pg.v3/pgutil"
 )
 
-type valueAppender func([]byte, reflect.Value) []byte
+var (
+	stringSliceType = reflect.TypeOf([]string(nil))
+)
+
+type valueAppender func([]byte, reflect.Value, bool) []byte
 
 var valueAppenders = [...]valueAppender{
 	reflect.Bool:          appendBoolValue,
@@ -35,57 +37,77 @@ var valueAppenders = [...]valueAppender{
 	reflect.Interface:     nil,
 	reflect.Map:           nil,
 	reflect.Ptr:           nil,
-	reflect.Slice:         nil,
+	reflect.Slice:         appendSliceValue,
 	reflect.String:        appendStringValue,
 	reflect.Struct:        appendStructValue,
 	reflect.UnsafePointer: nil,
 }
 
-func appendBoolValue(dst []byte, v reflect.Value) []byte {
-	return appendBool(dst, v.Bool())
+func appendBoolValue(b []byte, v reflect.Value, _ bool) []byte {
+	return appendBool(b, v.Bool())
 }
 
-func appendIntValue(dst []byte, v reflect.Value) []byte {
-	return strconv.AppendInt(dst, v.Int(), 10)
+func appendIntValue(b []byte, v reflect.Value, _ bool) []byte {
+	return strconv.AppendInt(b, v.Int(), 10)
 }
 
-func appendUintValue(dst []byte, v reflect.Value) []byte {
-	return strconv.AppendUint(dst, v.Uint(), 10)
+func appendUintValue(b []byte, v reflect.Value, _ bool) []byte {
+	return strconv.AppendUint(b, v.Uint(), 10)
 }
 
-func appendFloatValue(dst []byte, v reflect.Value) []byte {
-	return appendFloat(dst, v.Float())
+func appendFloatValue(b []byte, v reflect.Value, _ bool) []byte {
+	return appendFloat(b, v.Float())
 }
 
-func appendStringValue(dst []byte, v reflect.Value) []byte {
-	return appendString(dst, v.String())
+func appendSliceValue(b []byte, v reflect.Value, quote bool) []byte {
+	elemType := v.Type().Elem()
+	switch elemType.Kind() {
+	case reflect.Uint8:
+		return appendBytes(b, v.Bytes(), quote)
+	case reflect.String:
+		ss := v.Convert(stringSliceType).Interface().([]string)
+		return appendStringSlice(b, ss, quote)
+	case reflect.Int:
+		return nil
+	case reflect.Int64:
+		return nil
+	case reflect.Float64:
+		return nil
+	}
+	panic(errorf("pg: Decode(unsupported %s)", v.Type()))
 }
 
-func appendStructValue(dst []byte, v reflect.Value) []byte {
+func appendStringValue(b []byte, v reflect.Value, quote bool) []byte {
+	return appendString(b, v.String(), quote)
+}
+
+func appendStructValue(b []byte, v reflect.Value, quote bool) []byte {
 	switch v.Type() {
 	case timeType:
-		return appendTimeValue(dst, v)
+		return appendTimeValue(b, v, quote)
 	}
-	b, err := json.Marshal(v.Interface())
+	bytes, err := json.Marshal(v.Interface())
 	if err != nil {
 		panic(err)
 	}
-	return appendStringBytes(dst, b)
+	return appendStringBytes(b, bytes, quote)
 }
 
-func appendTimeValue(dst []byte, v reflect.Value) []byte {
-	dst = append(dst, '\'')
-	dst = pgutil.AppendTime(dst, v.Interface().(time.Time))
-	dst = append(dst, '\'')
-	return dst
+func appendTimeValue(b []byte, v reflect.Value, quote bool) []byte {
+	tm := v.Interface().(time.Time)
+	return appendTime(b, tm, quote)
 }
 
-func appendAppenderValue(dst []byte, v reflect.Value) []byte {
-	return v.Interface().(QueryAppender).AppendQuery(dst)
+func appendAppenderValue(b []byte, v reflect.Value, quote bool) []byte {
+	if quote {
+		return v.Interface().(QueryAppender).AppendQuery(b)
+	} else {
+		return v.Interface().(RawQueryAppender).AppendRawQuery(b)
+	}
 }
 
-func appendDriverValuerValue(dst []byte, v reflect.Value) []byte {
-	return appendDriverValuer(dst, v.Interface().(driver.Valuer))
+func appendDriverValuerValue(b []byte, v reflect.Value, quote bool) []byte {
+	return appendDriverValuer(b, v.Interface().(driver.Valuer), quote)
 }
 
 func isEmptyValue(v reflect.Value) bool {
