@@ -73,7 +73,7 @@ func (t *LoaderTest) TestQueryEmbeddedStruct(c *C) {
 	c.Assert(dst, DeepEquals, src)
 }
 
-func (t *LoaderTest) TestQueryMultipleStructs(c *C) {
+func (t *LoaderTest) TestQueryNestedStructs(c *C) {
 	src := &multipleLoader{}
 	src.One.Num = 1
 	src.Num = 2

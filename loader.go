@@ -46,21 +46,21 @@ func (discardLoader) LoadColumn(colIdx int, colName string, b []byte) error {
 //------------------------------------------------------------------------------
 
 type structLoader struct {
-	v      reflect.Value // reflect.Struct
-	fields map[string]*pgValue
+	v  reflect.Value // reflect.Struct
+	fs map[string]*field
 }
 
 var _ ColumnLoader = (*structLoader)(nil)
 
 func newStructLoader(v reflect.Value) *structLoader {
 	return &structLoader{
-		v:      v,
-		fields: structs.Fields(v.Type()),
+		v:  v,
+		fs: structs.Fields(v.Type()).Table,
 	}
 }
 
 func (l *structLoader) LoadColumn(colIdx int, colName string, b []byte) error {
-	field, ok := l.fields[colName]
+	field, ok := l.fs[colName]
 	if !ok {
 		return errorf("pg: cannot find field %q in %s", colName, l.v.Type())
 	}
@@ -195,56 +195,59 @@ func NewColumnLoader(dst interface{}) (ColumnLoader, error) {
 
 //------------------------------------------------------------------------------
 
-// Slice of structs.
-type collection struct {
+type sliceCollection struct {
 	v reflect.Value // reflect.Slice
 }
 
-var _ Collection = (*collection)(nil)
+var _ Collection = (*sliceCollection)(nil)
 
-func (coll *collection) NewRecord() interface{} {
-	coll.v.Set(reflect.Append(coll.v, reflect.New(coll.v.Type().Elem()).Elem()))
-	elem := coll.v.Index(coll.v.Len() - 1)
-	return newStructLoader(elem)
+func (coll *sliceCollection) newValue() reflect.Value {
+	switch coll.v.Type().Elem().Kind() {
+	case reflect.Ptr:
+		elem := reflect.New(coll.v.Type().Elem().Elem())
+		coll.v.Set(reflect.Append(coll.v, elem))
+		return elem.Elem()
+	case reflect.Struct:
+		elem := reflect.New(coll.v.Type().Elem()).Elem()
+		coll.v.Set(reflect.Append(coll.v, elem))
+		elem = coll.v.Index(coll.v.Len() - 1)
+		return elem
+	default:
+		panic("not reached")
+	}
 }
 
-// Slice of struct pointers.
-type ptrCollection struct {
-	v reflect.Value // reflect.Slice
+func (coll *sliceCollection) NewRecord() interface{} {
+	return newStructLoader(coll.newValue())
 }
 
-var _ Collection = (*ptrCollection)(nil)
-
-func (coll *ptrCollection) NewRecord() interface{} {
-	elem := reflect.New(coll.v.Type().Elem().Elem())
-	coll.v.Set(reflect.Append(coll.v, elem))
-	return newStructLoader(elem.Elem())
-}
-
-func newCollection(dst interface{}) (Collection, error) {
-	v := reflect.ValueOf(dst)
+func newCollection(vi interface{}) (*sliceCollection, error) {
+	v := reflect.ValueOf(vi)
 	if !v.IsValid() {
 		return nil, errorf("pg: Decode(nil)")
 	}
 	if v.Kind() != reflect.Ptr {
-		return nil, errorf("pg: Decode(nonsettable %T)", dst)
+		return nil, errorf("pg: Decode(nonsettable %T)", vi)
 	}
 
-	v = v.Elem()
+	return newCollectionValue(v.Elem())
+}
+
+func newCollectionValue(v reflect.Value) (*sliceCollection, error) {
 	if v.Kind() != reflect.Slice {
-		return nil, errorf("pg: Decode(unsupported %T)", dst)
+		return nil, errorf("pg: Decode(unsupported %s)", v.Type())
 	}
 
 	elem := v.Type().Elem()
 	switch elem.Kind() {
 	case reflect.Struct:
-		return &collection{v}, nil
+		return &sliceCollection{v}, nil
 	case reflect.Ptr:
 		if elem.Elem().Kind() != reflect.Struct {
-			return nil, errorf("pg: Decode(unsupported %T)", dst)
+			return nil, errorf("pg: Decode(unsupported %s)", v.Type())
 		}
-		return &ptrCollection{v}, nil
+		return &sliceCollection{v}, nil
 	default:
-		return nil, errorf("pg: Decode(unsupported %T)", dst)
+		return nil, errorf("pg: Decode(unsupported %s)", v.Type())
 	}
 }

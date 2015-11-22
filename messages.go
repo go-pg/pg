@@ -140,12 +140,14 @@ func writePasswordMsg(buf *buffer, password string) {
 	buf.FinishMessage()
 }
 
-func writeQueryMsg(buf *buffer, q string, args ...interface{}) (err error) {
+func writeQueryMsg(buf *buffer, q string, args ...interface{}) error {
 	buf.StartMessage(queryMsg)
-	buf.Bytes, err = AppendQ(buf.Bytes, q, args...)
+	bytes, err := AppendQ(buf.Bytes, q, args...)
 	if err != nil {
+		buf.Reset()
 		return err
 	}
+	buf.Bytes = bytes
 	buf.WriteByte(0x0)
 	buf.FinishMessage()
 	return nil

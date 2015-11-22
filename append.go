@@ -434,6 +434,19 @@ func appendDriverValueRaw(dst []byte, v driver.Valuer) []byte {
 	return appendIfaceRaw(dst, value)
 }
 
+func appendField(dst []byte, f string) []byte {
+	dst = append(dst, '"')
+	for _, c := range []byte(f) {
+		if c == '"' {
+			dst = append(dst, '"', '"')
+		} else {
+			dst = append(dst, c)
+		}
+	}
+	dst = append(dst, '"')
+	return dst
+}
+
 //------------------------------------------------------------------------------
 
 func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
@@ -441,9 +454,7 @@ func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 		return append(dst, src...), nil
 	}
 
-	var structptr, structv reflect.Value
-	var fields map[string]*pgValue
-	var methods map[string]*pgValue
+	var model *Model
 	var paramInd int
 
 	p := &parser{b: src}
@@ -463,33 +474,23 @@ func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
 
 		name := p.ReadName()
 		if name != "" {
-			// Lazily initialize named params.
-			if fields == nil {
+			// Lazily initialize Model.
+			if model == nil {
 				if len(params) == 0 {
 					return nil, errorf("pg: expected at least one parameter, got nothing")
 				}
-				structptr = reflect.ValueOf(params[len(params)-1])
+				last := params[len(params)-1]
 				params = params[:len(params)-1]
-				if structptr.Kind() == reflect.Ptr {
-					structv = structptr.Elem()
+				if v, ok := last.(*Model); ok {
+					model = v
 				} else {
-					structv = structptr
+					model = NewModel(last, "")
 				}
-				if structv.Kind() != reflect.Struct {
-					return nil, errorf("pg: expected struct, got %s", structv.Kind())
-				}
-				fields = structs.Fields(structv.Type())
-				methods = structs.Methods(structptr.Type())
 			}
-
-			if field, ok := fields[name]; ok {
-				dst = field.AppendValue(dst, structv)
-				continue
-			} else if field, ok := methods[name]; ok {
-				dst = field.AppendValue(dst, structptr)
-				continue
-			} else {
-				return nil, errorf("pg: cannot map %q", name)
+			var err error
+			dst, err = model.appendName(dst, name)
+			if err != nil {
+				return nil, err
 			}
 		} else {
 			if paramInd >= len(params) {
