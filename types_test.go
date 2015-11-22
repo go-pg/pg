@@ -39,6 +39,12 @@ type JSONRecord2 struct {
 	Field *JSONField
 }
 
+type StringSliceAlias []string
+
+type Struct struct {
+	Foo string
+}
+
 type conversionTest struct {
 	i                int
 	src, dst, wanted interface{}
@@ -97,20 +103,21 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 		return
 	}
 
-	// Remove any intermediate pointers to compare values, not pointers.
+	// Remove any intermediate pointers to compare values.
 	dst = deref(dst)
 	src := deref(test.src)
 
 	if test.wantzero {
 		dstValue := reflect.ValueOf(dst)
-		if dstValue.Kind() == reflect.Slice {
+		switch dstValue.Kind() {
+		case reflect.Slice, reflect.Map:
 			if dstValue.IsNil() {
 				test.Fatalf(t, "got nil, wanted zero value")
 			}
 			if dstValue.Len() != 0 {
 				test.Fatalf(t, "got %d items, wanted 0", dstValue.Len())
 			}
-		} else {
+		default:
 			zero := zero(test.dst)
 			if dst != zero {
 				test.Fatalf(t, "%#v != %#v", dst, zero)
@@ -199,6 +206,7 @@ func TestConversion(t *testing.T) {
 		{src: []string(nil), dst: new([]string), pgtype: "text[]", wantnil: true},
 		{src: []string{}, dst: new([]string), pgtype: "text[]", wantzero: true},
 		{src: []string{"foo\n", "bar {}", "'\\\""}, dst: new([]string), pgtype: "text[]"},
+		{src: StringSliceAlias{"foo", "bar"}, dst: new(StringSliceAlias), pgtype: "text[]"},
 
 		{
 			src:     nil,
@@ -256,11 +264,19 @@ func TestConversion(t *testing.T) {
 		{src: "hello", dst: new(pg.Strings), wanted: pg.Strings{"hello"}},
 		{src: 1, dst: new(pg.IntSet), wanted: pg.IntSet{1: struct{}{}}},
 
+		{src: nil, dst: new(*JSONMap), wantnil: true, pgtype: "json"},
+		{src: nil, dst: new(JSONMap), wantnil: true, pgtype: "json"},
+		{src: JSONMap{}, dst: &JSONMap{}, pgtype: "json"},
 		{src: JSONMap{"foo": "bar"}, dst: &JSONMap{}, pgtype: "json"},
 		{src: JSONMap{"foo": "bar"}, dst: new(*JSONMap), pgtype: "json"},
-		{src: nil, dst: new(*JSONMap), wantnil: true, pgtype: "json"},
 		{src: `{"foo": "bar"}`, dst: &JSONField{}, wanted: JSONField{Foo: "bar"}},
-		{src: `{"foo": "bar"}`, dst: new(*JSONField), wanted: JSONField{Foo: "bar"}},
+
+		{src: nil, dst: new(*Struct), wantnil: true, pgtype: "json"},
+		{src: nil, dst: new(Struct), wantzero: true, pgtype: "json"},
+		{src: Struct{}, dst: &Struct{}, pgtype: "json"},
+		{src: Struct{Foo: "bar"}, dst: &Struct{}, pgtype: "json"},
+		{src: Struct{Foo: "bar"}, dst: new(*Struct), pgtype: "json"},
+		{src: `{"foo": "bar"}`, dst: new(Struct), wanted: Struct{Foo: "bar"}},
 	}
 
 	db := pg.Connect(pgOptions())

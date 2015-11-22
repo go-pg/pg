@@ -70,18 +70,19 @@ func decodeScanner(scanner sql.Scanner, b []byte) error {
 	return scanner.Scan(b)
 }
 
-func decodeBytes(f []byte) ([]byte, error) {
-	f = f[2:] // Trim off "\\x".
-	b := make([]byte, hex.DecodedLen(len(f)))
-	_, err := hex.Decode(b, f)
-	if err != nil {
-		return nil, err
+func decodeBytes(b []byte) ([]byte, error) {
+	if len(b) < 2 {
+		return nil, errorf("pg: can't parse bytes: %q", b)
 	}
-	return b, nil
+
+	b = b[2:] // Trim off "\\x".
+	tmp := make([]byte, hex.DecodedLen(len(b)))
+	_, err := hex.Decode(tmp, b)
+	return tmp, err
 }
 
-func decodeIntSlice(f []byte) ([]int, error) {
-	p := newArrayParser(f[1 : len(f)-1])
+func decodeIntSlice(b []byte) ([]int, error) {
+	p := newArrayParser(b)
 	s := make([]int, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
@@ -89,7 +90,7 @@ func decodeIntSlice(f []byte) ([]int, error) {
 			return nil, err
 		}
 		if elem == nil {
-			return nil, errorf("pg: unexpected NULL: %q", f)
+			return nil, errorf("pg: unexpected NULL: %q", b)
 		}
 		n, err := strconv.Atoi(string(elem))
 		if err != nil {
@@ -100,8 +101,8 @@ func decodeIntSlice(f []byte) ([]int, error) {
 	return s, nil
 }
 
-func decodeInt64Slice(f []byte) ([]int64, error) {
-	p := newArrayParser(f[1 : len(f)-1])
+func decodeInt64Slice(b []byte) ([]int64, error) {
+	p := newArrayParser(b)
 	s := make([]int64, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
@@ -109,7 +110,7 @@ func decodeInt64Slice(f []byte) ([]int64, error) {
 			return nil, err
 		}
 		if elem == nil {
-			return nil, errorf("pg: unexpected NULL: %q", f)
+			return nil, errorf("pg: unexpected NULL: %q", b)
 		}
 		n, err := strconv.ParseInt(string(elem), 10, 64)
 		if err != nil {
@@ -121,7 +122,7 @@ func decodeInt64Slice(f []byte) ([]int64, error) {
 }
 
 func decodeFloat64Slice(b []byte) ([]float64, error) {
-	p := newArrayParser(b[1 : len(b)-1])
+	p := newArrayParser(b)
 	slice := make([]float64, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
@@ -140,8 +141,8 @@ func decodeFloat64Slice(b []byte) ([]float64, error) {
 	return slice, nil
 }
 
-func decodeStringSlice(f []byte) ([]string, error) {
-	p := newArrayParser(f[1 : len(f)-1])
+func decodeStringSlice(b []byte) ([]string, error) {
+	p := newArrayParser(b)
 	s := make([]string, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
@@ -149,7 +150,7 @@ func decodeStringSlice(f []byte) ([]string, error) {
 			return nil, err
 		}
 		if elem == nil {
-			return nil, errorf("pg: unexpected NULL: %q", f)
+			return nil, errorf("pg: unexpected NULL: %q", b)
 		}
 		s = append(s, string(elem))
 	}

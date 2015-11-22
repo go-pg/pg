@@ -1,3 +1,4 @@
+sudo: false
 language: go
 
 services:
@@ -10,6 +11,11 @@ go:
   - 1.3
   - 1.4
   - 1.5
+  - tip
+
+matrix:
+  allow_failures:
+    - go: tip
 
 install:
   - go get gopkg.in/bufio.v1

@@ -236,7 +236,7 @@ func writeBindExecuteMsg(buf *buffer, name string, args ...interface{}) error {
 	buf.WriteInt16(int16(len(args)))
 	for _, arg := range args {
 		buf.StartParam()
-		bytes := appendIfaceRaw(buf.Bytes, arg)
+		bytes := appendIface(buf.Bytes, arg, false)
 		if bytes != nil {
 			buf.Bytes = bytes
 			buf.FinishParam()

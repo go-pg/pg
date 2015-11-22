@@ -21,8 +21,8 @@ var (
 
 var structs = newStructCache()
 
-func _appendValue(dst []byte, v reflect.Value) []byte {
-	return appendIface(dst, v.Interface())
+func appendIfaceValue(dst []byte, v reflect.Value, quote bool) []byte {
+	return appendIface(dst, v.Interface(), quote)
 }
 
 func getAppender(typ reflect.Type) valueAppender {
@@ -44,7 +44,7 @@ func getAppender(typ reflect.Type) valueAppender {
 		return appender
 	}
 
-	return _appendValue
+	return appendIfaceValue
 }
 
 func getDecoder(typ reflect.Type) valueDecoder {
@@ -88,12 +88,12 @@ func (f *field) IsEmpty(v reflect.Value) bool {
 	return isEmptyValue(fv)
 }
 
-func (f *field) AppendValue(dst []byte, v reflect.Value) []byte {
+func (f *field) AppendValue(dst []byte, v reflect.Value, quote bool) []byte {
 	fv := v.FieldByIndex(f.index)
 	if f.Is(nullEmpty) && isEmptyValue(fv) {
-		return appendNull(dst)
+		return appendNull(dst, quote)
 	}
-	return f.appender(dst, fv)
+	return f.appender(dst, fv, quote)
 }
 
 func fieldByIndex(v reflect.Value, index []int) reflect.Value {
@@ -266,9 +266,9 @@ type method struct {
 	appender valueAppender
 }
 
-func (m *method) AppendValue(dst []byte, v reflect.Value) []byte {
+func (m *method) AppendValue(dst []byte, v reflect.Value, quote bool) []byte {
 	mv := v.Method(m.Index).Call(nil)[0]
-	return m.appender(dst, mv)
+	return m.appender(dst, mv, quote)
 }
 
 func getMethods(typ reflect.Type) map[string]*method {

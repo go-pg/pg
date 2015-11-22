@@ -85,15 +85,29 @@ func (p *parser) ReadNumber() int {
 
 type arrayParser struct {
 	*parser
+
+	err error
 }
 
 func newArrayParser(b []byte) *arrayParser {
+	var err error
+	if len(b) < 2 || b[0] != '{' || b[len(b)-1] != '}' {
+		err = errorf("pg: can't parse string slice: %q", b)
+	} else {
+		b = b[1 : len(b)-1]
+	}
 	return &arrayParser{
 		parser: &parser{b: b},
+
+		err: err,
 	}
 }
 
 func (p *arrayParser) NextElem() ([]byte, error) {
+	if p.err != nil {
+		return nil, p.err
+	}
+
 	if p.Next() != '"' {
 		p.pos--
 		b := p.ReadSep([]byte{','})
