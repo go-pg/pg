@@ -110,6 +110,7 @@ func NewModel(vi interface{}, name string) *Model {
 		if err != nil {
 			panic(err)
 		}
+		v = reflect.Zero(v.Type().Elem())
 	}
 
 	return &Model{
@@ -123,9 +124,6 @@ func NewModel(vi interface{}, name string) *Model {
 }
 
 func (m *Model) HasOne(vi interface{}, name string) *Model {
-	if name == "" {
-		panic("model name can't be empty")
-	}
 	if _, ok := m.models[name]; ok {
 		panic(fmt.Sprintf("model %s is already registered", name))
 	}
