@@ -7,7 +7,7 @@ import (
 )
 
 type User struct {
-	Id     int64 `pg:",nullempty"`
+	Id     int64
 	Name   string
 	Emails []string
 }
@@ -17,11 +17,10 @@ func (u User) String() string {
 }
 
 func CreateUser(db *pg.DB, user *User) error {
-	model := pg.NewModel(user, "")
-	_, err := db.QueryOne(model, `
-		INSERT INTO users (?Fields) VALUES (?Values)
+	_, err := db.QueryOne(user, `
+		INSERT INTO users (name, emails) VALUES (?name, ?emails)
 		RETURNING id
-	`, model)
+	`, user)
 	return err
 }
 
@@ -44,10 +43,10 @@ func GetUsersByIds(db *pg.DB, ids []int64) ([]User, error) {
 }
 
 type Story struct {
-	Id     int64 `pg:",nullempty"`
+	Id     int64
 	Title  string
 	UserId int64
-	User   *User `pg:"-"`
+	User   *User
 }
 
 func (s Story) String() string {
@@ -55,26 +54,23 @@ func (s Story) String() string {
 }
 
 func CreateStory(db *pg.DB, story *Story) error {
-	model := pg.NewModel(story, "")
-	_, err := db.QueryOne(model, `
-		INSERT INTO stories (?Fields) VALUES (?Values)
+	_, err := db.QueryOne(story, `
+		INSERT INTO stories (title, user_id) VALUES (?title, ?user_id)
 		RETURNING id
-	`, model)
+	`, story)
 	return err
 }
 
 // GetStory returns story with associated user (author of the story).
 func GetStory(db *pg.DB, id int64) (*Story, error) {
-	story := &Story{
-		Id: id,
-	}
-	model := pg.NewModel(story, "s").HasOne("User", "u")
-	_, err := db.QueryOne(model, `
-		SELECT ?Columns
+	var story Story
+	_, err := db.QueryOne(&story, `
+		SELECT s.*,
+			u.id AS user__id, u.name AS user__name, u.emails AS user__emails
 		FROM stories AS s, users AS u
-		WHERE s.id = ?id AND u.id = s.user_id
-	`, model)
-	return story, err
+		WHERE s.id = ? AND u.id = s.user_id
+	`, id)
+	return &story, err
 }
 
 func createSchema(db *pg.DB) error {

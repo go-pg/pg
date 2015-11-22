@@ -2,7 +2,6 @@ package pg
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 )
 
@@ -85,7 +84,7 @@ func (buf *buffer) WriteByte(c byte) {
 
 func (buf *buffer) Flush() []byte {
 	if len(buf.start) != 0 {
-		panic("message was not finished" + fmt.Sprint(buf.start, len(buf.start)))
+		panic("message was not finished")
 	}
 
 	b := buf.Bytes[:]

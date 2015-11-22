@@ -12,51 +12,49 @@ type ArticleFilter struct {
 	CategoryId int
 }
 
-func (f *ArticleFilter) NameFilter() pg.Q {
+func (f *ArticleFilter) FilterName() pg.Q {
 	if f.Name == "" {
 		return ""
 	}
-	return pg.MustFormatQ("name = ?", f.Name)
+	return pg.MustFormatQ("AND name = ?", f.Name)
 }
 
-func (f *ArticleFilter) CategoryFilter() pg.Q {
+func (f *ArticleFilter) FilterCategory() pg.Q {
 	if f.CategoryId == 0 {
 		return ""
 	}
-	return pg.MustFormatQ("category_id = ?", f.CategoryId)
-}
-
-func (f *ArticleFilter) Filters() pg.Q {
-	return pg.Where(f.NameFilter(), f.CategoryFilter())
+	return pg.MustFormatQ("AND category_id = ?", f.CategoryId)
 }
 
 type Article struct {
-	Id         int64 `pg:",nullempty"`
+	Id         int64
 	Name       string
 	CategoryId int
 }
 
 func CreateArticle(db *pg.DB, article *Article) error {
-	model := pg.NewModel(article, "")
-	_, err := db.QueryOne(model, `
-		INSERT INTO articles (?Fields) VALUES (?Values)
-		RETURNING id
-	`, model)
+	_, err := db.ExecOne(`
+		INSERT INTO articles (name, category_id)
+		VALUES (?name, ?category_id)
+	`, article)
 	return err
 }
 
 func GetArticle(db *pg.DB, id int64) (*Article, error) {
-	var article Article
-	_, err := db.QueryOne(&article, `SELECT * FROM articles WHERE id = ?`, id)
-	return &article, err
+	article := &Article{}
+	_, err := db.QueryOne(article, `SELECT * FROM articles WHERE id = ?`, id)
+	return article, err
 }
 
 func GetArticles(db *pg.DB, f *ArticleFilter) ([]Article, error) {
 	var articles []Article
 	_, err := db.Query(&articles, `
-		SELECT * FROM articles WHERE ?Filters
+		SELECT * FROM articles WHERE 1=1 ?FilterName ?FilterCategory
 	`, f)
-	return articles, err
+	if err != nil {
+		return nil, err
+	}
+	return articles, nil
 }
 
 func Example_complexQuery() {
