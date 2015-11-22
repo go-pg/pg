@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	nullemptyFlag = 8
+	nullEmpty = 1 << 0
 )
 
 var (
@@ -69,44 +69,31 @@ func getDecoder(typ reflect.Type) valueDecoder {
 	return nil
 }
 
-type pgValue struct {
-	Source interface{}
-	Type   reflect.Type
-	Index  []int
-
-	NullEmpty bool
+type field struct {
+	Name   string
+	PGName string
+	index  []int
+	flags  int8
 
 	appender valueAppender
 	decoder  valueDecoder
 }
 
-func newPGValue(src interface{}, index []int) *pgValue {
-	var typ reflect.Type
-	switch v := src.(type) {
-	case reflect.StructField:
-		typ = v.Type
-	case reflect.Method:
-		typ = v.Type.Out(0)
-	default:
-		panic("not reached")
-	}
-
-	return &pgValue{
-		Source: src,
-		Type:   typ,
-		Index:  index,
-
-		appender: getAppender(typ),
-		decoder:  getDecoder(typ),
-	}
+func (f *field) Is(flag int8) bool {
+	return f.flags&flag != 0
 }
 
-func (pgv *pgValue) AppendValue(dst []byte, v reflect.Value) []byte {
-	fv := pgv.getValue(v)
-	if pgv.NullEmpty && isEmptyValue(fv) {
+func (f *field) IsEmpty(v reflect.Value) bool {
+	fv := v.FieldByIndex(f.index)
+	return isEmptyValue(fv)
+}
+
+func (f *field) AppendValue(dst []byte, v reflect.Value) []byte {
+	fv := v.FieldByIndex(f.index)
+	if f.Is(nullEmpty) && isEmptyValue(fv) {
 		return appendNull(dst)
 	}
-	return pgv.appender(dst, fv)
+	return f.appender(dst, fv)
 }
 
 func fieldByIndex(v reflect.Value, index []int) reflect.Value {
@@ -125,43 +112,32 @@ func fieldByIndex(v reflect.Value, index []int) reflect.Value {
 	return v
 }
 
-func (pgv *pgValue) DecodeValue(v reflect.Value, b []byte) error {
-	v = fieldByIndex(v, pgv.Index)
+func (f *field) DecodeValue(v reflect.Value, b []byte) error {
+	v = fieldByIndex(v, f.index)
 	if b == nil {
 		return decodeNullValue(v)
 	}
-	return pgv.decoder(v, b)
-}
-
-func (pgv *pgValue) getValue(v reflect.Value) reflect.Value {
-	switch pgv.Source.(type) {
-	case reflect.StructField:
-		return v.FieldByIndex(pgv.Index)
-	case reflect.Method:
-		return v.Method(pgv.Index[0]).Call(nil)[0]
-	default:
-		panic("not reached")
-	}
+	return f.decoder(v, b)
 }
 
 //------------------------------------------------------------------------------
 
 type structCache struct {
-	fields    map[reflect.Type]map[string]*pgValue
+	fields    map[reflect.Type]fields
 	fieldsMtx sync.RWMutex
 
-	methods    map[reflect.Type]map[string]*pgValue
+	methods    map[reflect.Type]map[string]*method
 	methodsMtx sync.RWMutex
 }
 
 func newStructCache() *structCache {
 	return &structCache{
-		fields:  make(map[reflect.Type]map[string]*pgValue),
-		methods: make(map[reflect.Type]map[string]*pgValue),
+		fields:  make(map[reflect.Type]fields),
+		methods: make(map[reflect.Type]map[string]*method),
 	}
 }
 
-func (c *structCache) Fields(typ reflect.Type) map[string]*pgValue {
+func (c *structCache) Fields(typ reflect.Type) fields {
 	c.fieldsMtx.RLock()
 	fs, ok := c.fields[typ]
 	c.fieldsMtx.RUnlock()
@@ -172,7 +148,7 @@ func (c *structCache) Fields(typ reflect.Type) map[string]*pgValue {
 	c.fieldsMtx.Lock()
 	fs, ok = c.fields[typ]
 	if !ok {
-		fs = fields(typ)
+		fs = getFields(typ)
 		c.fields[typ] = fs
 	}
 	c.fieldsMtx.Unlock()
@@ -180,7 +156,7 @@ func (c *structCache) Fields(typ reflect.Type) map[string]*pgValue {
 	return fs
 }
 
-func (c *structCache) Methods(typ reflect.Type) map[string]*pgValue {
+func (c *structCache) Methods(typ reflect.Type) map[string]*method {
 	c.methodsMtx.RLock()
 	ms, ok := c.methods[typ]
 	c.methodsMtx.RUnlock()
@@ -191,7 +167,7 @@ func (c *structCache) Methods(typ reflect.Type) map[string]*pgValue {
 	c.methodsMtx.Lock()
 	ms, ok = c.methods[typ]
 	if !ok {
-		ms = methods(typ)
+		ms = getMethods(typ)
 		c.methods[typ] = ms
 	}
 	c.methodsMtx.Unlock()
@@ -199,9 +175,33 @@ func (c *structCache) Methods(typ reflect.Type) map[string]*pgValue {
 	return ms
 }
 
-func fields(typ reflect.Type) map[string]*pgValue {
+//------------------------------------------------------------------------------
+
+type fields struct {
+	List  []*field
+	Table map[string]*field
+}
+
+func newFields(numField int) fields {
+	return fields{
+		List:  make([]*field, 0, numField),
+		Table: make(map[string]*field, numField),
+	}
+}
+
+func (fs fields) Len() int {
+	return len(fs.List)
+}
+
+func (fs *fields) Add(field *field) {
+	fs.List = append(fs.List, field)
+	fs.Table[field.Name] = field
+}
+
+func getFields(typ reflect.Type) fields {
 	num := typ.NumField()
-	dst := make(map[string]*pgValue, num)
+	fs := newFields(num)
+
 	for i := 0; i < num; i++ {
 		f := typ.Field(i)
 
@@ -210,8 +210,9 @@ func fields(typ reflect.Type) map[string]*pgValue {
 			if typ.Kind() == reflect.Ptr {
 				typ = typ.Elem()
 			}
-			for name, ff := range fields(typ) {
-				dst[name] = newPGValue(ff.Source, append(f.Index, ff.Index...))
+			for _, ff := range getFields(typ).List {
+				ff.index = append(f.Index, ff.index...)
+				fs.Add(ff)
 			}
 			continue
 		}
@@ -228,25 +229,51 @@ func fields(typ reflect.Type) map[string]*pgValue {
 			name = pgutil.Underscore(f.Name)
 		}
 
-		tt := indirectType(f.Type)
-		if tt.Kind() == reflect.Struct {
-			for subname, ff := range fields(tt) {
-				dst[name+"__"+subname] = newPGValue(ff.Source, append(f.Index, ff.Index...))
+		fieldType := indirectType(f.Type)
+		if fieldType.Kind() == reflect.Struct {
+			for _, ff := range getFields(fieldType).List {
+				ff.PGName = name + "." + ff.Name
+				ff.Name = name + "__" + ff.Name
+				ff.index = append(f.Index, ff.index...)
+				fs.Add(ff)
 			}
 		}
 
-		val := newPGValue(f, f.Index)
+		var flags int8
 		if opts.Contains("nullempty") {
-			val.NullEmpty = true
+			flags |= nullEmpty
 		}
-		dst[name] = val
+
+		field := &field{
+			Name:  name,
+			index: f.Index,
+			flags: flags,
+
+			appender: getAppender(fieldType),
+			decoder:  getDecoder(fieldType),
+		}
+		fs.Add(field)
 	}
-	return dst
+
+	return fs
 }
 
-func methods(typ reflect.Type) map[string]*pgValue {
+//------------------------------------------------------------------------------
+
+type method struct {
+	Index int
+
+	appender valueAppender
+}
+
+func (m *method) AppendValue(dst []byte, v reflect.Value) []byte {
+	mv := v.Method(m.Index).Call(nil)[0]
+	return m.appender(dst, mv)
+}
+
+func getMethods(typ reflect.Type) map[string]*method {
 	num := typ.NumMethod()
-	methods := make(map[string]*pgValue, num)
+	methods := make(map[string]*method, num)
 	for i := 0; i < num; i++ {
 		m := typ.Method(i)
 		if m.Type.NumIn() > 1 {
@@ -255,10 +282,17 @@ func methods(typ reflect.Type) map[string]*pgValue {
 		if m.Type.NumOut() != 1 {
 			continue
 		}
-		methods[m.Name] = newPGValue(m, []int{m.Index})
+		method := &method{
+			Index: m.Index,
+
+			appender: getAppender(m.Type.Out(0)),
+		}
+		methods[m.Name] = method
 	}
 	return methods
 }
+
+//------------------------------------------------------------------------------
 
 func indirectType(t reflect.Type) reflect.Type {
 	for t.Kind() == reflect.Ptr {

@@ -21,10 +21,12 @@ type ColumnLoader interface {
 }
 
 type QueryAppender interface {
+	// TODO(vmihailenco): add ability to return error
 	AppendQuery([]byte) []byte
 }
 
 type RawQueryAppender interface {
+	// TODO(vmihailenco): add ability to return error
 	AppendRawQuery([]byte) []byte
 }
 
@@ -48,14 +50,5 @@ type F string
 var _ QueryAppender = F("")
 
 func (f F) AppendQuery(dst []byte) []byte {
-	dst = append(dst, '"')
-	for _, c := range []byte(f) {
-		if c == '"' {
-			dst = append(dst, '"', '"')
-		} else {
-			dst = append(dst, c)
-		}
-	}
-	dst = append(dst, '"')
-	return dst
+	return appendField(dst, string(f))
 }
