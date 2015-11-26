@@ -168,6 +168,11 @@ type DB struct {
 	pool *connPool
 }
 
+// Options returns read-only Options that were used to connect to the DB.
+func (db *DB) Options() *Options {
+	return db.opt
+}
+
 // WithTimeout returns a DB that uses d as the read/write timeout.
 func (db *DB) WithTimeout(d time.Duration) *DB {
 	newopt := *db.opt
