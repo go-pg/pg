@@ -9,7 +9,10 @@ import (
 )
 
 var (
-	stringSliceType = reflect.TypeOf([]string(nil))
+	stringSliceType  = reflect.TypeOf([]string(nil))
+	intSliceType     = reflect.TypeOf([]int(nil))
+	int64SliceType   = reflect.TypeOf([]int64(nil))
+	float64SliceType = reflect.TypeOf([]float64(nil))
 )
 
 type valueAppender func([]byte, reflect.Value, bool) []byte
@@ -68,11 +71,14 @@ func appendSliceValue(b []byte, v reflect.Value, quote bool) []byte {
 		ss := v.Convert(stringSliceType).Interface().([]string)
 		return appendStringSlice(b, ss, quote)
 	case reflect.Int:
-		return nil
+		ints := v.Convert(intSliceType).Interface().([]int)
+		return appendIntSlice(b, ints, quote)
 	case reflect.Int64:
-		return nil
+		ints := v.Convert(int64SliceType).Interface().([]int64)
+		return appendInt64Slice(b, ints, quote)
 	case reflect.Float64:
-		return nil
+		floats := v.Convert(float64SliceType).Interface().([]float64)
+		return appendFloat64Slice(b, floats, quote)
 	}
 	panic(errorf("pg: Decode(unsupported %s)", v.Type()))
 }

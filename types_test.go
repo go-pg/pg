@@ -39,7 +39,12 @@ type JSONRecord2 struct {
 	Field *JSONField
 }
 
-type StringSliceAlias []string
+type (
+	StringSlice  []string
+	IntSlice     []int
+	Int64Slice   []int64
+	Float64Slice []float64
+)
 
 type Struct struct {
 	Foo string
@@ -150,16 +155,16 @@ func TestConversion(t *testing.T) {
 		{src: true, dst: true, wanterr: "pg: Decode(nonsettable bool)"},
 		{src: true, dst: (*bool)(nil), wanterr: "pg: Decode(nonsettable *bool)"},
 
-		{src: false, dst: new(bool), pgtype: "bool"},
-		{src: true, dst: new(bool), pgtype: "bool"},
-		{src: nil, dst: new(bool), pgtype: "bool", wantzero: true},
-		{src: true, dst: new(*bool), pgtype: "bool"},
 		{src: nil, dst: new(*bool), pgtype: "bool", wantnil: true},
+		{src: nil, dst: new(bool), pgtype: "bool", wantzero: true},
+		{src: true, dst: new(bool), pgtype: "bool"},
+		{src: true, dst: new(*bool), pgtype: "bool"},
 
-		{src: "hello world", dst: new(string), pgtype: "text"},
 		{src: nil, dst: new(string), pgtype: "text", wantzero: true},
-		{src: "hello world", dst: new(*string), pgtype: "text"},
 		{src: nil, dst: new(*string), pgtype: "text", wantnil: true},
+		{src: "hello world", dst: new(string), pgtype: "text"},
+		{src: "hello world", dst: new(*string), pgtype: "text"},
+		{src: "'\"\000", dst: new(string), wanted: `'"`, pgtype: "text"},
 
 		{src: []byte("hello world\000"), dst: new([]byte), pgtype: "bytea"},
 		{src: []byte{}, dst: new([]byte), pgtype: "bytea", wantzero: true},
@@ -193,20 +198,24 @@ func TestConversion(t *testing.T) {
 		{src: []int(nil), dst: new([]int), pgtype: "int[]", wantnil: true},
 		{src: []int{}, dst: new([]int), pgtype: "int[]", wantzero: true},
 		{src: []int{1, 2, 3}, dst: new([]int), pgtype: "int[]"},
+		{src: IntSlice{1, 2, 3}, dst: new(IntSlice), pgtype: "bigint[]"},
 
 		{src: nil, dst: new([]int64), pgtype: "bigint[]", wantnil: true},
 		{src: []int64(nil), dst: new([]int64), pgtype: "bigint[]", wantnil: true},
+		{src: []int64{}, dst: new([]int64), pgtype: "bigint[]", wantzero: true},
 		{src: []int64{1, 2, 3}, dst: new([]int64), pgtype: "bigint[]"},
+		{src: Int64Slice{1, 2, 3}, dst: new(Int64Slice), pgtype: "bigint[]"},
 
 		{src: nil, dst: new([]float64), pgtype: "double precision[]", wantnil: true},
 		{src: []float64(nil), dst: new([]float64), pgtype: "double precision[]", wantnil: true},
 		{src: []float64{1.1, 2.22, 3.333}, dst: new([]float64), pgtype: "double precision[]"},
+		{src: Float64Slice{1.1, 2.22, 3.333}, dst: new(Float64Slice), pgtype: "double precision[]"},
 
 		{src: nil, dst: new([]string), pgtype: "text[]", wantnil: true},
 		{src: []string(nil), dst: new([]string), pgtype: "text[]", wantnil: true},
 		{src: []string{}, dst: new([]string), pgtype: "text[]", wantzero: true},
 		{src: []string{"foo\n", "bar {}", "'\\\""}, dst: new([]string), pgtype: "text[]"},
-		{src: StringSliceAlias{"foo", "bar"}, dst: new(StringSliceAlias), pgtype: "text[]"},
+		{src: StringSlice{"foo", "bar"}, dst: new(StringSlice), pgtype: "text[]"},
 
 		{
 			src:     nil,
