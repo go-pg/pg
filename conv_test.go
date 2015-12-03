@@ -10,7 +10,9 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/pg.v3"
+	"gopkg.in/pg.v4"
+	"gopkg.in/pg.v4/orm"
+	"gopkg.in/pg.v4/types"
 )
 
 type JSONMap map[string]interface{}
@@ -79,21 +81,16 @@ func (test *conversionTest) String() string {
 	return fmt.Sprintf("#%d src=%#v dst=%#v", test.i, test.src, test.dst)
 }
 
-func (test *conversionTest) Fatalf(t *testing.T, s interface{}, args ...interface{}) {
-	args = append(args, test.String())
-	t.Fatalf(fmt.Sprint(s)+" (%s)", args...)
-}
-
 func (test *conversionTest) Assert(t *testing.T, err error) {
 	if test.wanterr != "" {
 		if err == nil || err.Error() != test.wanterr {
-			test.Fatalf(t, "error is %q, wanted %q", err, test.wanterr)
+			t.Fatalf("got error %q, wanted %q", err, test.wanterr)
 		}
 		return
 	}
 
 	if err != nil {
-		test.Fatalf(t, "error is %s, wanted nil", err)
+		t.Fatalf("got error %q, wanted nil", err)
 	}
 
 	// test.dst is a pointer to the value.
@@ -104,7 +101,7 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 		if dstValue.IsNil() {
 			return
 		}
-		test.Fatalf(t, "got %#v, wanted nil", dst)
+		t.Fatalf("got %#v, wanted nil", dst)
 		return
 	}
 
@@ -117,15 +114,15 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 		switch dstValue.Kind() {
 		case reflect.Slice, reflect.Map:
 			if dstValue.IsNil() {
-				test.Fatalf(t, "got nil, wanted zero value")
+				t.Fatalf("got nil, wanted zero value")
 			}
 			if dstValue.Len() != 0 {
-				test.Fatalf(t, "got %d items, wanted 0", dstValue.Len())
+				t.Fatalf("got %d items, wanted 0", dstValue.Len())
 			}
 		default:
 			zero := zero(test.dst)
 			if dst != zero {
-				test.Fatalf(t, "%#v != %#v", dst, zero)
+				t.Fatalf("%#v != %#v (%s)", dst, zero, test)
 			}
 		}
 		return
@@ -134,7 +131,7 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 	if dstTime, ok := dst.(time.Time); ok {
 		srcTime := src.(time.Time)
 		if dstTime.Unix() != srcTime.Unix() {
-			test.Fatalf(t, "%#v != %#v", dstTime, srcTime)
+			t.Fatalf("%#v != %#v", dstTime, srcTime)
 		}
 		return
 	}
@@ -144,7 +141,7 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 		wanted = src
 	}
 	if !reflect.DeepEqual(dst, wanted) {
-		test.Fatalf(t, "%#v != %#v", dst, wanted)
+		t.Fatalf("%#v != %#v (%s)", dst, wanted, test)
 	}
 }
 
@@ -194,45 +191,137 @@ func TestConversion(t *testing.T) {
 		{src: float64(math.MaxFloat64), dst: new(float64), pgtype: "decimal"},
 		{src: float64(math.SmallestNonzeroFloat64), dst: new(float64), pgtype: "decimal"},
 
-		{src: nil, dst: new([]int), pgtype: "int[]", wantnil: true},
-		{src: []int(nil), dst: new([]int), pgtype: "int[]", wantnil: true},
-		{src: []int{}, dst: new([]int), pgtype: "int[]", wantzero: true},
-		{src: []int{1, 2, 3}, dst: new([]int), pgtype: "int[]"},
-		{src: IntSlice{1, 2, 3}, dst: new(IntSlice), pgtype: "bigint[]"},
+		{src: nil, dst: new([]int), pgtype: "jsonb", wantnil: true},
+		{src: []int(nil), dst: new([]int), pgtype: "jsonb", wantnil: true},
+		{src: []int{}, dst: new([]int), pgtype: "jsonb", wantzero: true},
+		{src: []int{1, 2, 3}, dst: new([]int), pgtype: "jsonb"},
+		{src: IntSlice{1, 2, 3}, dst: new(IntSlice), pgtype: "jsonb"},
 
-		{src: nil, dst: new([]int64), pgtype: "bigint[]", wantnil: true},
-		{src: []int64(nil), dst: new([]int64), pgtype: "bigint[]", wantnil: true},
-		{src: []int64{}, dst: new([]int64), pgtype: "bigint[]", wantzero: true},
-		{src: []int64{1, 2, 3}, dst: new([]int64), pgtype: "bigint[]"},
-		{src: Int64Slice{1, 2, 3}, dst: new(Int64Slice), pgtype: "bigint[]"},
+		{
+			src:      nil,
+			dst:      &types.Array{[]int(nil)},
+			pgtype:   "int[]",
+			wantzero: true,
+		},
+		{
+			src:      types.Array{[]int(nil)},
+			dst:      &types.Array{[]int(nil)},
+			pgtype:   "int[]",
+			wantzero: true,
+		},
+		{
+			src:    types.Array{[]int{}},
+			dst:    &types.Array{[]int(nil)},
+			pgtype: "int[]",
+		},
+		{
+			src:    types.Array{[]int{1, 2, 3}},
+			dst:    &types.Array{[]int(nil)},
+			pgtype: "int[]",
+		},
 
-		{src: nil, dst: new([]float64), pgtype: "double precision[]", wantnil: true},
-		{src: []float64(nil), dst: new([]float64), pgtype: "double precision[]", wantnil: true},
-		{src: []float64{1.1, 2.22, 3.333}, dst: new([]float64), pgtype: "double precision[]"},
-		{src: Float64Slice{1.1, 2.22, 3.333}, dst: new(Float64Slice), pgtype: "double precision[]"},
+		{src: nil, dst: new([]int64), pgtype: "jsonb", wantnil: true},
+		{src: []int64(nil), dst: new([]int64), pgtype: "jsonb", wantnil: true},
+		{src: []int64{}, dst: new([]int64), pgtype: "jsonb", wantzero: true},
+		{src: []int64{1, 2, 3}, dst: new([]int64), pgtype: "jsonb"},
+		{src: Int64Slice{1, 2, 3}, dst: new(Int64Slice), pgtype: "jsonb"},
 
-		{src: nil, dst: new([]string), pgtype: "text[]", wantnil: true},
-		{src: []string(nil), dst: new([]string), pgtype: "text[]", wantnil: true},
-		{src: []string{}, dst: new([]string), pgtype: "text[]", wantzero: true},
-		{src: []string{"foo\n", "bar {}", "'\\\""}, dst: new([]string), pgtype: "text[]"},
-		{src: StringSlice{"foo", "bar"}, dst: new(StringSlice), pgtype: "text[]"},
+		{
+			src:      nil,
+			dst:      &types.Array{[]int64(nil)},
+			pgtype:   "bigint[]",
+			wantzero: true,
+		},
+		{
+			src:      types.Array{[]int64(nil)},
+			dst:      &types.Array{[]int64(nil)},
+			pgtype:   "bigint[]",
+			wantzero: true,
+		},
+		{
+			src:    types.Array{[]int64{}},
+			dst:    &types.Array{[]int64(nil)},
+			pgtype: "bigint[]",
+		},
+		{
+			src:    types.Array{[]int64{1, 2, 3}},
+			dst:    &types.Array{[]int64(nil)},
+			pgtype: "bigint[]",
+		},
+
+		{src: nil, dst: new([]float64), pgtype: "jsonb", wantnil: true},
+		{src: []float64(nil), dst: new([]float64), pgtype: "jsonb", wantnil: true},
+		{src: []float64{1.1, 2.22, 3.333}, dst: new([]float64), pgtype: "jsonb"},
+		{src: Float64Slice{1.1, 2.22, 3.333}, dst: new(Float64Slice), pgtype: "jsonb"},
+
+		{
+			src:      nil,
+			dst:      &types.Array{[]float64(nil)},
+			pgtype:   "decimal[]",
+			wantzero: true,
+		},
+		{
+			src:      types.Array{[]float64(nil)},
+			dst:      &types.Array{[]float64(nil)},
+			pgtype:   "decimal[]",
+			wantzero: true,
+		},
+		{
+			src:    types.Array{[]float64{}},
+			dst:    &types.Array{[]float64(nil)},
+			pgtype: "decimal[]",
+		},
+		{
+			src:    types.Array{[]float64{1.1, 2.22, 3.333}},
+			dst:    &types.Array{[]float64(nil)},
+			pgtype: "decimal[]",
+		},
+
+		{src: nil, dst: new([]string), pgtype: "jsonb", wantnil: true},
+		{src: []string(nil), dst: new([]string), pgtype: "jsonb", wantnil: true},
+		{src: []string{}, dst: new([]string), pgtype: "jsonb", wantzero: true},
+		{src: []string{"foo\n", "bar {}", "'\\\""}, dst: new([]string), pgtype: "jsonb"},
+		{src: StringSlice{"foo", "bar"}, dst: new(StringSlice), pgtype: "jsonb"},
+
+		{
+			src:      nil,
+			dst:      &types.Array{[]string(nil)},
+			pgtype:   "text[]",
+			wantzero: true,
+		},
+		{
+			src:      types.Array{[]string(nil)},
+			dst:      &types.Array{[]string(nil)},
+			pgtype:   "text[]",
+			wantzero: true,
+		},
+		{
+			src:    types.Array{[]string{}},
+			dst:    &types.Array{[]string(nil)},
+			pgtype: "text[]",
+		},
+		{
+			src:    types.Array{[]string{"one", "two", "three"}},
+			dst:    &types.Array{[]string(nil)},
+			pgtype: "text[]",
+		},
 
 		{
 			src:     nil,
 			dst:     new(map[string]string),
-			pgtype:  "hstore",
+			pgtype:  "jsonb",
 			wantnil: true,
 		},
 		{
 			src:     map[string]string(nil),
 			dst:     new(map[string]string),
-			pgtype:  "hstore",
+			pgtype:  "jsonb",
 			wantnil: true,
 		},
 		{
 			src:    map[string]string{"foo\n =>": "bar\n =>", "'\\\"": "'\\\""},
 			dst:    new(map[string]string),
-			pgtype: "hstore",
+			pgtype: "jsonb",
 		},
 
 		{src: &sql.NullBool{}, dst: &sql.NullBool{}, pgtype: "bool"},
@@ -296,7 +385,7 @@ func TestConversion(t *testing.T) {
 		test.i = i
 
 		var err error
-		if _, ok := test.dst.(pg.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnScanner); ok {
 			_, err = db.QueryOne(test.dst, "SELECT (?) AS dst", test.src)
 		} else {
 			dst := struct{ Dst interface{} }{Dst: test.dst}
@@ -314,10 +403,10 @@ func TestConversion(t *testing.T) {
 
 		stmt, err := db.Prepare(fmt.Sprintf("SELECT ($1::%s) AS dst", test.pgtype))
 		if err != nil {
-			test.Fatalf(t, err)
+			t.Fatal(err)
 		}
 
-		if _, ok := test.dst.(pg.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnScanner); ok {
 			_, err = stmt.QueryOne(test.dst, test.src)
 		} else {
 			dst := struct{ Dst interface{} }{Dst: test.dst}
@@ -326,25 +415,25 @@ func TestConversion(t *testing.T) {
 		test.Assert(t, err)
 
 		if err := stmt.Close(); err != nil {
-			test.Fatalf(t, err)
+			t.Fatal(err)
 		}
 	}
 
 	for i, test := range conversionTests {
 		test.i = i
 
-		if _, ok := test.dst.(pg.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnScanner); ok {
 			continue
 		}
 
-		_, err := db.QueryOne(pg.LoadInto(test.dst), "SELECT (?) AS dst", test.src)
+		_, err := db.QueryOne(pg.Scan(test.dst), "SELECT (?) AS dst", test.src)
 		test.Assert(t, err)
 	}
 
 	for i, test := range conversionTests {
 		test.i = i
 
-		if _, ok := test.dst.(pg.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnScanner); ok {
 			continue
 		}
 		if test.pgtype == "" {
@@ -353,14 +442,14 @@ func TestConversion(t *testing.T) {
 
 		stmt, err := db.Prepare(fmt.Sprintf("SELECT ($1::%s) AS dst", test.pgtype))
 		if err != nil {
-			test.Fatalf(t, err)
+			t.Fatal(err)
 		}
 
-		_, err = stmt.QueryOne(pg.LoadInto(test.dst), test.src)
+		_, err = stmt.QueryOne(pg.Scan(test.dst), test.src)
 		test.Assert(t, err)
 
 		if err := stmt.Close(); err != nil {
-			test.Fatalf(t, err)
+			t.Fatal(err)
 		}
 	}
 }

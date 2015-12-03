@@ -7,26 +7,26 @@ Supports:
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
 - PostgreSQL Arrays.
 - Partially PostgreSQL hstore.
-- [JSON](https://godoc.org/gopkg.in/pg.v3#ex-package--Json).
-- [Transactions](http://godoc.org/gopkg.in/pg.v3#example-DB-Begin).
-- [Prepared statements](http://godoc.org/gopkg.in/pg.v3#example-DB-Prepare).
-- [Notifications](http://godoc.org/gopkg.in/pg.v3#example-Listener) using `LISTEN` and `NOTIFY`.
-- [Copying data](http://godoc.org/gopkg.in/pg.v3#example-DB-CopyFrom) using `COPY FROM` and `COPY TO`.
-- [Timeouts](http://godoc.org/gopkg.in/pg.v3#Options). Client sends `CancelRequest` message on timeout.
+- [JSON](https://godoc.org/gopkg.in/pg.v4#ex-package--Json).
+- [Transactions](http://godoc.org/gopkg.in/pg.v4#example-DB-Begin).
+- [Prepared statements](http://godoc.org/gopkg.in/pg.v4#example-DB-Prepare).
+- [Notifications](http://godoc.org/gopkg.in/pg.v4#example-Listener) using `LISTEN` and `NOTIFY`.
+- [Copying data](http://godoc.org/gopkg.in/pg.v4#example-DB-CopyFrom) using `COPY FROM` and `COPY TO`.
+- [Timeouts](http://godoc.org/gopkg.in/pg.v4#Options). Client sends `CancelRequest` message on timeout.
 - Automatic and safe connection pool.
 - Queries retries on network errors.
-- Advanced PostgreSQL to Go [struct mapping](http://godoc.org/gopkg.in/pg.v3#example-DB-Query).
+- Advanced PostgreSQL to Go [struct mapping](http://godoc.org/gopkg.in/pg.v4#example-DB-Query).
 - [Migrations](https://github.com/go-pg/migrations).
 - [Sharding](https://github.com/go-pg/sharding).
 
-API docs: http://godoc.org/gopkg.in/pg.v3.
-Examples: http://godoc.org/gopkg.in/pg.v3#pkg-examples.
+API docs: http://godoc.org/gopkg.in/pg.v4.
+Examples: http://godoc.org/gopkg.in/pg.v4#pkg-examples.
 
 ## Installation
 
 Install:
 
-    go get gopkg.in/pg.v3
+    go get gopkg.in/pg.v4
 
 ## Quickstart
 
@@ -36,7 +36,7 @@ package pg_test
 import (
 	"fmt"
 
-	"gopkg.in/pg.v3"
+	"gopkg.in/pg.v4"
 )
 
 type User struct {
@@ -47,32 +47,6 @@ type User struct {
 
 func (u User) String() string {
 	return fmt.Sprintf("User<%d %s %v>", u.Id, u.Name, u.Emails)
-}
-
-func CreateUser(db *pg.DB, user *User) error {
-	_, err := db.QueryOne(user, `
-		INSERT INTO users (name, emails) VALUES (?name, ?emails)
-		RETURNING id
-	`, user)
-	return err
-}
-
-func GetUser(db *pg.DB, id int64) (*User, error) {
-	var user User
-	_, err := db.QueryOne(&user, `SELECT * FROM users WHERE id = ?`, id)
-	return &user, err
-}
-
-func GetUsers(db *pg.DB) ([]User, error) {
-	var users []User
-	_, err := db.Query(&users, `SELECT * FROM users`)
-	return users, err
-}
-
-func GetUsersByIds(db *pg.DB, ids []int64) ([]User, error) {
-	var users []User
-	_, err := db.Query(&users, `SELECT * FROM users WHERE id IN (?)`, pg.Ints(ids))
-	return users, err
 }
 
 type Story struct {
@@ -86,29 +60,9 @@ func (s Story) String() string {
 	return fmt.Sprintf("Story<%d %s %s>", s.Id, s.Title, s.User)
 }
 
-func CreateStory(db *pg.DB, story *Story) error {
-	_, err := db.QueryOne(story, `
-		INSERT INTO stories (title, user_id) VALUES (?title, ?user_id)
-		RETURNING id
-	`, story)
-	return err
-}
-
-// GetStory returns story with associated user (author of the story).
-func GetStory(db *pg.DB, id int64) (*Story, error) {
-	var story Story
-	_, err := db.QueryOne(&story, `
-		SELECT s.*,
-			u.id AS user__id, u.name AS user__name, u.emails AS user__emails
-		FROM stories AS s, users AS u
-		WHERE s.id = ? AND u.id = s.user_id
-	`, id)
-	return &story, err
-}
-
 func createSchema(db *pg.DB) error {
 	queries := []string{
-		`CREATE TEMP TABLE users (id serial, name text, emails text[])`,
+		`CREATE TEMP TABLE users (id serial, name text, emails jsonb)`,
 		`CREATE TEMP TABLE stories (id serial, title text, user_id bigint)`,
 	}
 	for _, q := range queries {
@@ -134,12 +88,12 @@ func ExampleDB_Query() {
 		Name:   "admin",
 		Emails: []string{"admin1@admin", "admin2@admin"},
 	}
-	err = CreateUser(db, user1)
+	err = db.Create(user1)
 	if err != nil {
 		panic(err)
 	}
 
-	err = CreateUser(db, &User{
+	err = db.Create(&User{
 		Name:   "root",
 		Emails: []string{"root1@root", "root2@root"},
 	})
@@ -151,29 +105,35 @@ func ExampleDB_Query() {
 		Title:  "Cool story",
 		UserId: user1.Id,
 	}
-	err = CreateStory(db, story1)
+	err = db.Create(story1)
 
-	user, err := GetUser(db, user1.Id)
+	var user User
+	err = db.Model(&user).Where("id = ?", user1.Id).Select()
 	if err != nil {
 		panic(err)
 	}
 
-	users, err := GetUsers(db)
+	var users []User
+	err = db.Model(&users).Select()
 	if err != nil {
 		panic(err)
 	}
 
-	story, err := GetStory(db, story1.Id)
+	var story Story
+	err = db.Model(&story).
+		Columns("stories.*", "User").
+		Where("stories.id = ?", story1.Id).
+		Select()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(story)
 
 	fmt.Println(user)
 	fmt.Println(users[0], users[1])
-	// Output: Story<1 Cool story User<1 admin [admin1@admin admin2@admin]>>
-	// User<1 admin [admin1@admin admin2@admin]>
+	fmt.Println(story)
+	// Output: User<1 admin [admin1@admin admin2@admin]>
 	// User<1 admin [admin1@admin admin2@admin]> User<2 root [root1@root root2@root]>
+	// Story<1 Cool story User<1 admin [admin1@admin admin2@admin]>>
 }
 ```
 
@@ -182,17 +142,18 @@ func ExampleDB_Query() {
 - No `rows.Close` to manually manage connections.
 - go-pg can automatically map rows on Go structs.
 - go-pg is at least 3x faster than GORM on querying 100 rows from table.
-- go-pg supports client-side placeholders that allow you to write [complex queries](https://godoc.org/gopkg.in/pg.v3#example-package--ComplexQuery) and have full power of SQL.
+- go-pg generates effecient queries for joins.
 
 ## Benchmark
 
 ```
-BenchmarkQueryRowsOptimized-4	   10000	    154480 ns/op	   87789 B/op	     624 allocs/op
-BenchmarkQueryRowsReflect-4  	   10000	    196261 ns/op	  102224 B/op	     925 allocs/op
-BenchmarkQueryRowsStdlibPq-4 	    5000	    236584 ns/op	  166528 B/op	    1324 allocs/op
-BenchmarkQueryRowsGORM-4     	    2000	    690532 ns/op	  399661 B/op	    6171 allocs/op
+BenchmarkQueryRowsOptimized-4	   10000	    154128 ns/op	   83432 B/op	     625 allocs/op
+BenchmarkQueryRowsReflect-4  	   10000	    197921 ns/op	   94760 B/op	     826 allocs/op
+BenchmarkQueryRowsORM-4      	   10000	    196123 ns/op	   94992 B/op	     829 allocs/op
+BenchmarkQueryRowsStdlibPq-4 	    5000	    255915 ns/op	  161648 B/op	    1324 allocs/op
+BenchmarkQueryRowsGORM-4     	    2000	    700051 ns/op	  382501 B/op	    6271 allocs/op
 ```
 
 ## Howto
 
-Please go through [examples](http://godoc.org/gopkg.in/pg.v3#pkg-examples) to get the idea how to use this package.
+Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to get the idea how to use this package.

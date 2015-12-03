@@ -5,6 +5,9 @@ import (
 	"io"
 
 	"github.com/golang/glog"
+
+	"gopkg.in/pg.v4/orm"
+	"gopkg.in/pg.v4/types"
 )
 
 type msgType byte
@@ -140,9 +143,9 @@ func writePasswordMsg(buf *buffer, password string) {
 	buf.FinishMessage()
 }
 
-func writeQueryMsg(buf *buffer, q string, args ...interface{}) error {
+func writeQueryMsg(buf *buffer, query interface{}, params ...interface{}) error {
 	buf.StartMessage(queryMsg)
-	bytes, err := AppendQ(buf.Bytes, q, args...)
+	bytes, err := orm.AppendQuery(buf.Bytes, query, params...)
 	if err != nil {
 		buf.Reset()
 		return err
@@ -226,17 +229,17 @@ func readParseDescribeSync(cn *conn) (columns []string, e error) {
 }
 
 // Writes BIND, EXECUTE and SYNC messages.
-func writeBindExecuteMsg(buf *buffer, name string, args ...interface{}) error {
+func writeBindExecuteMsg(buf *buffer, name string, params ...interface{}) error {
 	const paramLenWidth = 4
 
 	buf.StartMessage(bindMsg)
 	buf.WriteString("")
 	buf.WriteString(name)
 	buf.WriteInt16(0)
-	buf.WriteInt16(int16(len(args)))
-	for _, arg := range args {
+	buf.WriteInt16(int16(len(params)))
+	for _, param := range params {
 		buf.StartParam()
-		bytes := appendIface(buf.Bytes, arg, false)
+		bytes := types.Append(buf.Bytes, param, false)
 		if bytes != nil {
 			buf.Bytes = bytes
 			buf.FinishParam()
@@ -304,7 +307,7 @@ func readBindMsg(cn *conn) (e error) {
 	}
 }
 
-func readSimpleQuery(cn *conn) (res Result, e error) {
+func readSimpleQuery(cn *conn) (res types.Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -316,7 +319,7 @@ func readSimpleQuery(cn *conn) (res Result, e error) {
 			if err != nil {
 				return nil, err
 			}
-			res = newResult(b)
+			res = types.ParseResult(b)
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -351,7 +354,7 @@ func readSimpleQuery(cn *conn) (res Result, e error) {
 	}
 }
 
-func readExtQuery(cn *conn) (res Result, e error) {
+func readExtQuery(cn *conn) (res types.Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -373,7 +376,7 @@ func readExtQuery(cn *conn) (res Result, e error) {
 			if err != nil {
 				return nil, err
 			}
-			res = newResult(b)
+			res = types.ParseResult(b)
 		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -422,19 +425,7 @@ func readRowDescription(cn *conn) ([]string, error) {
 	return cols, nil
 }
 
-func readDataRow(cn *conn, dst interface{}, columns []string) error {
-	var loadErr error
-	loader, ok := dst.(ColumnLoader)
-	if !ok {
-		var err error
-		loader, err = NewColumnLoader(dst)
-		if err != nil {
-			loadErr = err
-			// Loader is broken, but try to read all data from the connection.
-			loader = Discard
-		}
-	}
-
+func readDataRow(cn *conn, scanner orm.ColumnScanner, columns []string) (scanErr error) {
 	colNum, err := cn.ReadInt16()
 	if err != nil {
 		return err
@@ -451,19 +442,18 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 				return err
 			}
 		}
-		if err := loader.LoadColumn(colIdx, columns[colIdx], b); err != nil {
-			loadErr = err
+		if err := scanner.ScanColumn(colIdx, columns[colIdx], b); err != nil {
+			scanErr = err
 		}
 
 	}
-
-	return loadErr
+	return scanErr
 }
 
-func readSimpleQueryData(cn *conn, collection interface{}) (res Result, e error) {
-	coll, ok := collection.(Collection)
+func readSimpleQueryData(cn *conn, model interface{}) (res types.Result, e error) {
+	coll, ok := model.(orm.Collection)
 	if !ok {
-		coll, e = newCollection(collection)
+		coll, e = orm.NewModel(model)
 		if e != nil {
 			coll = Discard
 		}
@@ -482,7 +472,7 @@ func readSimpleQueryData(cn *conn, collection interface{}) (res Result, e error)
 				return nil, err
 			}
 		case dataRowMsg:
-			if err := readDataRow(cn, coll.NewRecord(), columns); err != nil {
+			if err := readDataRow(cn, coll.NewModel(), columns); err != nil {
 				e = err
 			}
 		case commandCompleteMsg:
@@ -490,7 +480,7 @@ func readSimpleQueryData(cn *conn, collection interface{}) (res Result, e error)
 			if err != nil {
 				return nil, err
 			}
-			res = newResult(b)
+			res = types.ParseResult(b)
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -520,10 +510,10 @@ func readSimpleQueryData(cn *conn, collection interface{}) (res Result, e error)
 	}
 }
 
-func readExtQueryData(cn *conn, collection interface{}, columns []string) (res Result, e error) {
-	coll, ok := collection.(Collection)
+func readExtQueryData(cn *conn, collection interface{}, columns []string) (res types.Result, e error) {
+	coll, ok := collection.(orm.Collection)
 	if !ok {
-		coll, e = newCollection(collection)
+		coll, e = orm.NewModel(collection)
 		if e != nil {
 			coll = Discard
 		}
@@ -541,7 +531,7 @@ func readExtQueryData(cn *conn, collection interface{}, columns []string) (res R
 				return nil, err
 			}
 		case dataRowMsg:
-			if err := readDataRow(cn, coll.NewRecord(), columns); err != nil {
+			if err := readDataRow(cn, coll.NewModel(), columns); err != nil {
 				e = err
 			}
 		case commandCompleteMsg: // Response to the EXECUTE message.
@@ -549,7 +539,7 @@ func readExtQueryData(cn *conn, collection interface{}, columns []string) (res R
 			if err != nil {
 				return nil, err
 			}
-			res = newResult(b)
+			res = types.ParseResult(b)
 		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -645,7 +635,7 @@ func readCopyOutResponse(cn *conn) error {
 	}
 }
 
-func readCopyData(cn *conn, w io.WriteCloser) (Result, error) {
+func readCopyData(cn *conn, w io.WriteCloser) (types.Result, error) {
 	defer w.Close()
 	for {
 		c, msgLen, err := cn.ReadMsgType()
@@ -673,7 +663,7 @@ func readCopyData(cn *conn, w io.WriteCloser) (Result, error) {
 			if err != nil {
 				return nil, err
 			}
-			return newResult(b), nil
+			return types.ParseResult(b), nil
 		case errorResponseMsg:
 			e, err := cn.ReadError()
 			if err != nil {
@@ -706,7 +696,7 @@ func writeCopyDone(buf *buffer) {
 	buf.FinishMessage()
 }
 
-func readReadyForQuery(cn *conn) (res Result, e error) {
+func readReadyForQuery(cn *conn) (res types.Result, e error) {
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -718,7 +708,7 @@ func readReadyForQuery(cn *conn) (res Result, e error) {
 			if err != nil {
 				return nil, err
 			}
-			res = newResult(b)
+			res = types.ParseResult(b)
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {

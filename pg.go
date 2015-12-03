@@ -1,54 +1,111 @@
-package pg // import "gopkg.in/pg.v3"
+package pg
 
-// Collection is a set of records mapped to database rows.
-type Collection interface {
-	// NewRecord returns ColumnLoader or struct that are used to scan
-	// columns from the current row.
-	NewRecord() interface{}
+import (
+	"strconv"
+
+	"gopkg.in/pg.v4/orm"
+	"gopkg.in/pg.v4/types"
+)
+
+var (
+	// Discard can be used with Query and QueryOne to discard rows.
+	Discard orm.Discard
+)
+
+// Scan returns ColumnScanner that copies the columns in the
+// row into the values.
+var Scan = orm.Scan
+
+// Q returns a ValueAppender that represents safe SQL query.
+var Q = orm.Q
+
+// F returns a ValueAppender that represents SQL identifier,
+// e.g. table or column name.
+var F = orm.F
+
+//------------------------------------------------------------------------------
+
+type Strings []string
+
+var _ orm.Model = (*Strings)(nil)
+var _ types.ValueAppender = (*Strings)(nil)
+
+func (strings *Strings) NewModel() orm.ColumnScanner {
+	return strings
 }
 
-// ColumnLoader is an interface used by LoadColumn.
-//
-// TODO(vmihailenco): rename to ColumnScanner
-type ColumnLoader interface {
-	// Scan assigns a column value from a row.
-	//
-	// An error should be returned if the value can not be stored
-	// without loss of information.
-	//
-	// TODO(vmihailenco): rename to ScanColumn
-	LoadColumn(colIdx int, colName string, b []byte) error
+func (strings *Strings) ScanColumn(colIdx int, _ string, b []byte) error {
+	*strings = append(*strings, string(b))
+	return nil
 }
 
-type QueryAppender interface {
-	// TODO(vmihailenco): add ability to return error
-	AppendQuery([]byte) []byte
+func (strings Strings) AppendValue(dst []byte, quote bool) ([]byte, error) {
+	if len(strings) <= 0 {
+		return dst, nil
+	}
+
+	for _, s := range strings {
+		dst = types.AppendString(dst, s, true)
+		dst = append(dst, ',')
+	}
+	dst = dst[:len(dst)-1]
+	return dst, nil
 }
 
-type RawQueryAppender interface {
-	// TODO(vmihailenco): add ability to return error
-	AppendRawQuery([]byte) []byte
+//------------------------------------------------------------------------------
+
+type Ints []int64
+
+var _ orm.Model = (*Ints)(nil)
+var _ types.ValueAppender = (*Ints)(nil)
+
+func (ints *Ints) NewModel() orm.ColumnScanner {
+	return ints
 }
 
-// Q is a QueryAppender that represents safe SQL query.
-type Q string
-
-var _ QueryAppender = Q("")
-var _ RawQueryAppender = Q("")
-
-func (q Q) AppendQuery(dst []byte) []byte {
-	return append(dst, string(q)...)
+func (ints *Ints) ScanColumn(colIdx int, colName string, b []byte) error {
+	n, err := strconv.ParseInt(string(b), 10, 64)
+	if err != nil {
+		return err
+	}
+	*ints = append(*ints, n)
+	return nil
 }
 
-func (q Q) AppendRawQuery(dst []byte) []byte {
-	return q.AppendQuery(dst)
+func (ints Ints) AppendValue(dst []byte, quote bool) ([]byte, error) {
+	if len(ints) <= 0 {
+		return dst, nil
+	}
+
+	for _, v := range ints {
+		dst = strconv.AppendInt(dst, v, 10)
+		dst = append(dst, ',')
+	}
+	dst = dst[:len(dst)-1]
+	return dst, nil
 }
 
-// F is a QueryAppender that represents SQL field, e.g. table or column name.
-type F string
+//------------------------------------------------------------------------------
 
-var _ QueryAppender = F("")
+type IntSet map[int64]struct{}
 
-func (f F) AppendQuery(dst []byte) []byte {
-	return appendField(dst, string(f))
+var _ orm.Model = (*IntSet)(nil)
+
+func (set *IntSet) NewModel() orm.ColumnScanner {
+	return set
+}
+
+func (setptr *IntSet) ScanColumn(colIdx int, colName string, b []byte) error {
+	set := *setptr
+	if set == nil {
+		*setptr = make(IntSet)
+		set = *setptr
+	}
+
+	n, err := strconv.ParseInt(string(b), 10, 64)
+	if err != nil {
+		return err
+	}
+	set[n] = struct{}{}
+	return nil
 }
