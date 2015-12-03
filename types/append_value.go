@@ -1,11 +1,16 @@
-package pg
+package types
 
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strconv"
 	"time"
+)
+
+var (
+	appenderType = reflect.TypeOf(new(QueryAppender)).Elem()
 )
 
 var (
@@ -41,9 +46,35 @@ var valueAppenders = [...]valueAppender{
 	reflect.Map:           nil,
 	reflect.Ptr:           nil,
 	reflect.Slice:         appendSliceValue,
-	reflect.String:        appendStringValue,
+	reflect.String:        AppendStringValue,
 	reflect.Struct:        appendStructValue,
 	reflect.UnsafePointer: nil,
+}
+
+func Appender(typ reflect.Type) valueAppender {
+	switch typ {
+	case timeType:
+		return appendTimeValue
+	}
+
+	if typ.Implements(appenderType) {
+		return appendAppenderValue
+	}
+
+	if typ.Implements(driverValuerType) {
+		return appendDriverValuerValue
+	}
+
+	kind := typ.Kind()
+	if appender := valueAppenders[kind]; appender != nil {
+		return appender
+	}
+
+	return appendIfaceValue
+}
+
+func appendIfaceValue(dst []byte, v reflect.Value, quote bool) []byte {
+	return Append(dst, v.Interface(), quote)
 }
 
 func appendBoolValue(b []byte, v reflect.Value, _ bool) []byte {
@@ -69,7 +100,7 @@ func appendSliceValue(b []byte, v reflect.Value, quote bool) []byte {
 		return appendBytes(b, v.Bytes(), quote)
 	case reflect.String:
 		ss := v.Convert(stringSliceType).Interface().([]string)
-		return appendStringSlice(b, ss, quote)
+		return AppendStringSlice(b, ss, quote)
 	case reflect.Int:
 		ints := v.Convert(intSliceType).Interface().([]int)
 		return appendIntSlice(b, ints, quote)
@@ -80,11 +111,11 @@ func appendSliceValue(b []byte, v reflect.Value, quote bool) []byte {
 		floats := v.Convert(float64SliceType).Interface().([]float64)
 		return appendFloat64Slice(b, floats, quote)
 	}
-	panic(errorf("pg: Decode(unsupported %s)", v.Type()))
+	panic(fmt.Errorf("pg: Decode(unsupported %s)", v.Type()))
 }
 
-func appendStringValue(b []byte, v reflect.Value, quote bool) []byte {
-	return appendString(b, v.String(), quote)
+func AppendStringValue(b []byte, v reflect.Value, quote bool) []byte {
+	return AppendString(b, v.String(), quote)
 }
 
 func appendStructValue(b []byte, v reflect.Value, quote bool) []byte {
@@ -96,7 +127,7 @@ func appendStructValue(b []byte, v reflect.Value, quote bool) []byte {
 	if err != nil {
 		panic(err)
 	}
-	return appendStringBytes(b, bytes, quote)
+	return AppendStringBytes(b, bytes, quote)
 }
 
 func appendTimeValue(b []byte, v reflect.Value, quote bool) []byte {
@@ -105,31 +136,9 @@ func appendTimeValue(b []byte, v reflect.Value, quote bool) []byte {
 }
 
 func appendAppenderValue(b []byte, v reflect.Value, quote bool) []byte {
-	if quote {
-		return v.Interface().(QueryAppender).AppendQuery(b)
-	} else {
-		return v.Interface().(RawQueryAppender).AppendRawQuery(b)
-	}
+	return v.Interface().(QueryAppender).AppendQuery(b)
 }
 
 func appendDriverValuerValue(b []byte, v reflect.Value, quote bool) []byte {
 	return appendDriverValuer(b, v.Interface().(driver.Valuer), quote)
-}
-
-func isEmptyValue(v reflect.Value) bool {
-	switch v.Kind() {
-	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
-		return v.Len() == 0
-	case reflect.Bool:
-		return !v.Bool()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return v.Int() == 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return v.Uint() == 0
-	case reflect.Float32, reflect.Float64:
-		return v.Float() == 0
-	case reflect.Interface, reflect.Ptr:
-		return v.IsNil()
-	}
-	return false
 }

@@ -1,10 +1,12 @@
-package pg
+package pg // import "gopkg.in/pg.v3"
 
 import (
 	"io"
 	"log"
 	"net"
 	"time"
+
+	"github.com/go-pg/pg/orm"
 )
 
 const defaultBackoff = 100 * time.Millisecond
@@ -253,6 +255,11 @@ func (db *DB) ExecOne(q string, args ...interface{}) (Result, error) {
 	return assertOneAffected(res, nil)
 }
 
+func (db *DB) QueryRelation(rel *orm.Relation, q string) error {
+	_, err := db.Query(rel, q)
+	return err
+}
+
 // Query executes a query that returns rows, typically a SELECT. The
 // args are for any placeholder parameters in the query.
 func (db *DB) Query(coll interface{}, q string, args ...interface{}) (res Result, err error) {
@@ -280,8 +287,8 @@ func (db *DB) Query(coll interface{}, q string, args ...interface{}) (res Result
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (db *DB) QueryOne(record interface{}, q string, args ...interface{}) (Result, error) {
-	coll := &singleRecordCollection{record: record}
+func (db *DB) QueryOne(model interface{}, q string, args ...interface{}) (Result, error) {
+	coll := &singleElementCollection{model: model}
 	res, err := db.Query(coll, q, args...)
 	if err != nil {
 		return nil, err
@@ -347,6 +354,10 @@ func (db *DB) CopyTo(w io.WriteCloser, q string, args ...interface{}) (Result, e
 	return res, nil
 }
 
+func (db *DB) Select(columns ...string) *orm.Select {
+	return orm.NewSelect(db).Select(columns...)
+}
+
 func setParams(cn *conn, params map[string]interface{}) error {
 	for key, value := range params {
 		_, err := simpleQuery(cn, "SET ? = ?", F(key), value)
@@ -390,7 +401,7 @@ func simpleQuery(cn *conn, q string, args ...interface{}) (Result, error) {
 	return res, nil
 }
 
-func simpleQueryData(cn *conn, coll interface{}, q string, args ...interface{}) (Result, error) {
+func simpleQueryData(cn *conn, model interface{}, q string, args ...interface{}) (Result, error) {
 	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
 		return nil, err
 	}
@@ -399,12 +410,28 @@ func simpleQueryData(cn *conn, coll interface{}, q string, args ...interface{}) 
 		return nil, err
 	}
 
-	res, err := readSimpleQueryData(cn, coll)
+	res, err := readSimpleQueryData(cn, model)
 	if err != nil {
 		return nil, err
 	}
 
 	return res, nil
+}
+
+type singleElementCollection struct {
+	model interface{}
+	len   int
+}
+
+var _ orm.Collection = (*singleElementCollection)(nil)
+
+func (coll *singleElementCollection) NewRecord() interface{} {
+	coll.len++
+	return coll.model
+}
+
+func (coll *singleElementCollection) Len() int {
+	return coll.len
 }
 
 func assertOne(l int) error {
@@ -418,12 +445,12 @@ func assertOne(l int) error {
 	}
 }
 
-func assertOneAffected(res Result, coll *singleRecordCollection) (Result, error) {
+func assertOneAffected(res Result, model *singleElementCollection) (Result, error) {
 	if err := assertOne(res.Affected()); err != nil {
 		return nil, err
 	}
-	if coll != nil {
-		if err := assertOne(coll.Len()); err != nil {
+	if model != nil {
+		if err := assertOne(model.Len()); err != nil {
 			return nil, err
 		}
 	}

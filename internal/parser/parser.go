@@ -1,7 +1,8 @@
-package pg
+package parser
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 )
 
@@ -21,34 +22,38 @@ func isAlnum(c byte) bool {
 	return isAlpha(c) || isDigit(c)
 }
 
-type parser struct {
+type Parser struct {
 	b   []byte
 	pos int
 	err error
 }
 
-func (p *parser) Valid() bool {
+func NewParser(b []byte) *Parser {
+	return &Parser{b: b}
+}
+
+func (p *Parser) Valid() bool {
 	return p.pos < len(p.b)
 }
 
-func (p *parser) Next() byte {
+func (p *Parser) Next() byte {
 	c := p.b[p.pos]
 	p.pos++
 	return c
 }
 
-func (p *parser) Peek() byte {
+func (p *Parser) Peek() byte {
 	if p.Valid() {
 		return p.b[p.pos]
 	}
 	return 0
 }
 
-func (p *parser) SkipNext() {
+func (p *Parser) SkipNext() {
 	p.pos++
 }
 
-func (p *parser) ReadSep(sep []byte) []byte {
+func (p *Parser) ReadSep(sep []byte) []byte {
 	start := p.pos
 	end := bytes.Index(p.b[start:], sep)
 	if end >= 0 {
@@ -59,7 +64,7 @@ func (p *parser) ReadSep(sep []byte) []byte {
 	return p.b[start:p.pos]
 }
 
-func (p *parser) ReadName() string {
+func (p *Parser) ReadName() string {
 	start := p.pos
 	for p.Valid() {
 		ch := p.Next()
@@ -71,7 +76,7 @@ func (p *parser) ReadName() string {
 	return string(p.b[start:p.pos])
 }
 
-func (p *parser) ReadNumber() int {
+func (p *Parser) ReadNumber() int {
 	start := p.pos
 	for p.Valid() {
 		if !isDigit(p.Next()) {
@@ -84,7 +89,7 @@ func (p *parser) ReadNumber() int {
 }
 
 type arrayParser struct {
-	*parser
+	*Parser
 
 	err error
 }
@@ -92,12 +97,12 @@ type arrayParser struct {
 func newArrayParser(b []byte) *arrayParser {
 	var err error
 	if len(b) < 2 || b[0] != '{' || b[len(b)-1] != '}' {
-		err = errorf("pg: can't parse string slice: %q", b)
+		err = fmt.Errorf("pg: can't parse string slice: %q", b)
 	} else {
 		b = b[1 : len(b)-1]
 	}
 	return &arrayParser{
-		parser: &parser{b: b},
+		Parser: NewParser(b),
 
 		err: err,
 	}
@@ -149,16 +154,16 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 		}
 	}
 
-	return nil, errorf("pg: can't parse array: %q", p.b)
+	return nil, fmt.Errorf("pg: can't parse array: %q", p.b)
 }
 
 type hstoreParser struct {
-	*parser
+	*Parser
 }
 
 func newHstoreParser(b []byte) *hstoreParser {
 	return &hstoreParser{
-		parser: &parser{b: b},
+		Parser: NewParser(b),
 	}
 }
 
@@ -212,7 +217,7 @@ func (p *hstoreParser) NextKey() ([]byte, error) {
 		}
 	}
 
-	return nil, errorf("pg: can't parse hstore: %s", p.b)
+	return nil, fmt.Errorf("pg: can't parse hstore: %s", p.b)
 }
 
 func (p *hstoreParser) NextValue() ([]byte, error) {
@@ -255,5 +260,5 @@ func (p *hstoreParser) NextValue() ([]byte, error) {
 		}
 	}
 
-	return nil, errorf("pg: can't parse hstore: %s", p.b)
+	return nil, fmt.Errorf("pg: can't parse hstore: %s", p.b)
 }

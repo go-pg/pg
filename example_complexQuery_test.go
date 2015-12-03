@@ -6,6 +6,14 @@ import (
 	"gopkg.in/pg.v3"
 )
 
+func formatQuery(query string, params ...interface{}) pg.Q {
+	q, err := pg.FormatQuery(query, params...)
+	if err != nil {
+		panic(err)
+	}
+	return q
+}
+
 type ArticleFilter struct {
 	Id         int64
 	Name       string
@@ -16,14 +24,14 @@ func (f *ArticleFilter) FilterName() pg.Q {
 	if f.Name == "" {
 		return ""
 	}
-	return pg.MustFormatQ("AND name = ?", f.Name)
+	return formatQuery("AND name = ?", f.Name)
 }
 
 func (f *ArticleFilter) FilterCategory() pg.Q {
 	if f.CategoryId == 0 {
 		return ""
 	}
-	return pg.MustFormatQ("AND category_id = ?", f.CategoryId)
+	return formatQuery("AND category_id = ?", f.CategoryId)
 }
 
 type Article struct {

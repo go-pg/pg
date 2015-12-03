@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/go-pg/pg/orm"
+	"github.com/go-pg/pg/types"
 	"github.com/golang/glog"
 )
 
@@ -142,7 +144,7 @@ func writePasswordMsg(buf *buffer, password string) {
 
 func writeQueryMsg(buf *buffer, q string, args ...interface{}) error {
 	buf.StartMessage(queryMsg)
-	bytes, err := AppendQ(buf.Bytes, q, args...)
+	bytes, err := AppendQuery(buf.Bytes, q, args...)
 	if err != nil {
 		buf.Reset()
 		return err
@@ -236,7 +238,7 @@ func writeBindExecuteMsg(buf *buffer, name string, args ...interface{}) error {
 	buf.WriteInt16(int16(len(args)))
 	for _, arg := range args {
 		buf.StartParam()
-		bytes := appendIface(buf.Bytes, arg, false)
+		bytes := types.Append(buf.Bytes, arg, false)
 		if bytes != nil {
 			buf.Bytes = bytes
 			buf.FinishParam()
@@ -424,10 +426,10 @@ func readRowDescription(cn *conn) ([]string, error) {
 
 func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	var loadErr error
-	loader, ok := dst.(ColumnLoader)
+	loader, ok := dst.(orm.ColumnLoader)
 	if !ok {
 		var err error
-		loader, err = NewColumnLoader(dst)
+		loader, err = orm.NewModel(dst)
 		if err != nil {
 			loadErr = err
 			// Loader is broken, but try to read all data from the connection.
@@ -460,10 +462,10 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 	return loadErr
 }
 
-func readSimpleQueryData(cn *conn, collection interface{}) (res Result, e error) {
-	coll, ok := collection.(Collection)
+func readSimpleQueryData(cn *conn, model interface{}) (res Result, e error) {
+	coll, ok := model.(orm.Collection)
 	if !ok {
-		coll, e = newCollection(collection)
+		coll, e = orm.NewModel(model)
 		if e != nil {
 			coll = Discard
 		}
@@ -521,9 +523,9 @@ func readSimpleQueryData(cn *conn, collection interface{}) (res Result, e error)
 }
 
 func readExtQueryData(cn *conn, collection interface{}, columns []string) (res Result, e error) {
-	coll, ok := collection.(Collection)
+	coll, ok := collection.(orm.Collection)
 	if !ok {
-		coll, e = newCollection(collection)
+		coll, e = orm.NewModel(collection)
 		if e != nil {
 			coll = Discard
 		}

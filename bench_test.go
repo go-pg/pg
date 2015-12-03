@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/go-pg/pg/orm"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
@@ -23,7 +24,7 @@ func init() {
 	}
 }
 
-func BenchmarkFormatQWithoutArgs(b *testing.B) {
+func BenchmarkFormatQueryWithoutArgs(b *testing.B) {
 	rec := &Record{
 		Num1: 1,
 		Num2: 2,
@@ -37,14 +38,14 @@ func BenchmarkFormatQWithoutArgs(b *testing.B) {
 		WHERE 1=1 AND 2=2
 	`, rec.Num1, rec.Num2, rec.Num3, rec.Str1, rec.Str2, rec.Str3)
 	for i := 0; i < b.N; i++ {
-		_, err := pg.FormatQ(q)
+		_, err := pg.FormatQuery(q)
 		if err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
-func BenchmarkFormatQWithArgs(b *testing.B) {
+func BenchmarkFormatQueryWithArgs(b *testing.B) {
 	rec := &Record{
 		Num1: 1,
 		Num2: 2,
@@ -54,7 +55,7 @@ func BenchmarkFormatQWithArgs(b *testing.B) {
 		Str3: randSeq(300),
 	}
 	for i := 0; i < b.N; i++ {
-		_, err := pg.FormatQ(`
+		_, err := pg.FormatQuery(`
 			SELECT ?, ?, ?, ?, ?, ?
 			WHERE 1=1 AND 2=2
 		`, rec.Num1, rec.Num2, rec.Num3, rec.Str1, rec.Str2, rec.Str3)
@@ -64,7 +65,7 @@ func BenchmarkFormatQWithArgs(b *testing.B) {
 	}
 }
 
-func BenchmarkFormatQWithStructFields(b *testing.B) {
+func BenchmarkFormatQueryWithStructFields(b *testing.B) {
 	rec := &Record{
 		Num1: 1,
 		Num2: 2,
@@ -74,7 +75,7 @@ func BenchmarkFormatQWithStructFields(b *testing.B) {
 		Str3: randSeq(300),
 	}
 	for i := 0; i < b.N; i++ {
-		_, err := pg.FormatQ(`
+		_, err := pg.FormatQuery(`
 			SELECT ?num1, ?num2, ?num3, ?str1, ?str2, ?str3
 			WHERE 1=1 AND 2=2
 		`, rec)
@@ -84,7 +85,7 @@ func BenchmarkFormatQWithStructFields(b *testing.B) {
 	}
 }
 
-func BenchmarkFormatQWithStructMethods(b *testing.B) {
+func BenchmarkFormatQueryWithStructMethods(b *testing.B) {
 	rec := &Record{
 		Num1: 1,
 		Num2: 2,
@@ -94,7 +95,7 @@ func BenchmarkFormatQWithStructMethods(b *testing.B) {
 		Str3: randSeq(300),
 	}
 	for i := 0; i < b.N; i++ {
-		_, err := pg.FormatQ(`
+		_, err := pg.FormatQuery(`
 			SELECT ?GetNum1, ?GetNum2, ?GetNum3, ?GetStr1, ?GetStr2, ?GetStr3
 			WHERE 1=1 AND 2=2
 		`, rec)
@@ -560,7 +561,7 @@ type OptRecord struct {
 	Str1, Str2, Str3 string
 }
 
-var _ pg.ColumnLoader = (*OptRecord)(nil)
+var _ orm.ColumnLoader = (*OptRecord)(nil)
 
 func (r *OptRecord) LoadColumn(colIdx int, colName string, b []byte) error {
 	var err error
@@ -587,7 +588,7 @@ type OptRecords struct {
 	C []OptRecord
 }
 
-var _ pg.Collection = (*OptRecords)(nil)
+var _ orm.Collection = (*OptRecords)(nil)
 
 func (rs *OptRecords) NewRecord() interface{} {
 	rs.C = append(rs.C, OptRecord{})

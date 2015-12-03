@@ -134,8 +134,8 @@ func (stmt *Stmt) Query(coll interface{}, args ...interface{}) (res Result, err 
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (stmt *Stmt) QueryOne(record interface{}, args ...interface{}) (Result, error) {
-	coll := &singleRecordCollection{record: record}
+func (stmt *Stmt) QueryOne(model interface{}, args ...interface{}) (Result, error) {
+	coll := &singleElementCollection{model: model}
 	res, err := stmt.Query(coll, args...)
 	if err != nil {
 		return nil, err

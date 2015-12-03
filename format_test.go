@@ -59,14 +59,14 @@ var formattingTests = []formattingTest{
 	{q: "?foo ?Meth ?Meth2", args: args{embeddedStructv}, wanted: "'bar' 'value' 'value2'"},
 	{q: "", args: args{"foo", "bar"}, wanterr: "pg: expected 0 parameters, got 2"},
 	{q: "? ? ?", args: args{"foo", "bar"}, wanterr: "pg: expected at least 3 parameters, got 2"},
-	{q: "?bar", args: args{structv}, wanterr: `pg: cannot map "bar" on *pg_test.structFormatter`},
-	{q: "?MethWithArgs", args: args{structv}, wanterr: `pg: cannot map "MethWithArgs" on *pg_test.structFormatter`},
-	{q: "?MethWithCompositeReturn", args: args{structv}, wanterr: `pg: cannot map "MethWithCompositeReturn" on *pg_test.structFormatter`},
+	{q: "?bar", args: args{structv}, wanterr: `pg: cannot map "bar" on pg_test.structFormatter`},
+	{q: "?MethWithArgs", args: args{structv}, wanterr: `pg: cannot map "MethWithArgs" on pg_test.structFormatter`},
+	{q: "?MethWithCompositeReturn", args: args{structv}, wanterr: `pg: cannot map "MethWithCompositeReturn" on pg_test.structFormatter`},
 }
 
 func TestFormatting(t *testing.T) {
 	for _, test := range formattingTests {
-		got, err := pg.FormatQ(test.q, test.args...)
+		got, err := pg.FormatQuery(test.q, test.args...)
 		if test.wanterr != "" {
 			if err == nil {
 				t.Errorf("expected error (q=%q args=%v)", test.q, test.args)

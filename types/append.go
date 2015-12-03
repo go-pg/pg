@@ -1,4 +1,4 @@
-package pg
+package types
 
 import (
 	"database/sql/driver"
@@ -12,30 +12,10 @@ import (
 	"gopkg.in/pg.v3/pgutil"
 )
 
-func AppendQ(dst []byte, src string, params ...interface{}) ([]byte, error) {
-	return formatQuery(dst, []byte(src), params)
-}
-
-func FormatQ(src string, params ...interface{}) (Q, error) {
-	b, err := AppendQ(nil, src, params...)
-	if err != nil {
-		return "", err
-	}
-	return Q(b), nil
-}
-
-func MustFormatQ(src string, params ...interface{}) Q {
-	q, err := FormatQ(src, params...)
-	if err != nil {
-		panic(err)
-	}
-	return q
-}
-
-func appendIface(b []byte, vi interface{}, quote bool) []byte {
+func Append(b []byte, vi interface{}, quote bool) []byte {
 	switch v := vi.(type) {
 	case nil:
-		return appendNull(b, quote)
+		return AppendNull(b, quote)
 	case bool:
 		return appendBool(b, v)
 	case int8:
@@ -63,13 +43,13 @@ func appendIface(b []byte, vi interface{}, quote bool) []byte {
 	case float64:
 		return appendFloat(b, v)
 	case string:
-		return appendString(b, v, quote)
+		return AppendString(b, v, quote)
 	case time.Time:
 		return appendTime(b, v, quote)
 	case []byte:
 		return appendBytes(b, v, quote)
 	case []string:
-		return appendStringSlice(b, v, quote)
+		return AppendStringSlice(b, v, quote)
 	case []int:
 		return appendIntSlice(b, v, quote)
 	case []int64:
@@ -77,7 +57,7 @@ func appendIface(b []byte, vi interface{}, quote bool) []byte {
 	case []float64:
 		return appendFloat64Slice(b, v, quote)
 	case map[string]string:
-		return appendStringStringMap(b, v, quote)
+		return AppendStringStringMap(b, v, quote)
 	case QueryAppender:
 		return v.AppendQuery(b)
 	case driver.Valuer:
@@ -91,7 +71,7 @@ func appendValue(b []byte, v reflect.Value, quote bool) []byte {
 	switch kind := v.Kind(); kind {
 	case reflect.Ptr:
 		if v.IsNil() {
-			return appendNull(b, quote)
+			return AppendNull(b, quote)
 		}
 		return appendValue(b, v.Elem(), quote)
 	default:
@@ -102,7 +82,7 @@ func appendValue(b []byte, v reflect.Value, quote bool) []byte {
 	panic(fmt.Sprintf("pg: Format(unsupported %s)", v.Type()))
 }
 
-func appendNull(b []byte, quote bool) []byte {
+func AppendNull(b []byte, quote bool) []byte {
 	if quote {
 		return append(b, "NULL"...)
 	} else {
@@ -121,11 +101,11 @@ func appendFloat(dst []byte, v float64) []byte {
 	return strconv.AppendFloat(dst, v, 'f', -1, 64)
 }
 
-func appendString(b []byte, s string, quote bool) []byte {
-	return appendStringBytes(b, []byte(s), quote)
+func AppendString(b []byte, s string, quote bool) []byte {
+	return AppendStringBytes(b, []byte(s), quote)
 }
 
-func appendStringBytes(b []byte, bytes []byte, quote bool) []byte {
+func AppendStringBytes(b []byte, bytes []byte, quote bool) []byte {
 	if quote {
 		b = append(b, '\'')
 	}
@@ -178,7 +158,7 @@ func appendSubstring(b []byte, src string, quote bool) []byte {
 
 func appendBytes(b []byte, bytes []byte, quote bool) []byte {
 	if bytes == nil {
-		return appendNull(b, quote)
+		return AppendNull(b, quote)
 	}
 
 	if quote {
@@ -197,9 +177,9 @@ func appendBytes(b []byte, bytes []byte, quote bool) []byte {
 	return b
 }
 
-func appendStringStringMap(b []byte, m map[string]string, quote bool) []byte {
+func AppendStringStringMap(b []byte, m map[string]string, quote bool) []byte {
 	if m == nil {
-		return appendNull(b, quote)
+		return AppendNull(b, quote)
 	}
 
 	if quote {
@@ -223,9 +203,9 @@ func appendStringStringMap(b []byte, m map[string]string, quote bool) []byte {
 	return b
 }
 
-func appendStringSlice(b []byte, ss []string, quote bool) []byte {
+func AppendStringSlice(b []byte, ss []string, quote bool) []byte {
 	if ss == nil {
-		return appendNull(b, quote)
+		return AppendNull(b, quote)
 	}
 
 	if quote {
@@ -252,7 +232,7 @@ func appendStringSlice(b []byte, ss []string, quote bool) []byte {
 
 func appendIntSlice(b []byte, ints []int, quote bool) []byte {
 	if ints == nil {
-		return appendNull(b, quote)
+		return AppendNull(b, quote)
 	}
 
 	if quote {
@@ -279,7 +259,7 @@ func appendIntSlice(b []byte, ints []int, quote bool) []byte {
 
 func appendInt64Slice(b []byte, ints []int64, quote bool) []byte {
 	if ints == nil {
-		return appendNull(b, quote)
+		return AppendNull(b, quote)
 	}
 
 	if quote {
@@ -306,7 +286,7 @@ func appendInt64Slice(b []byte, ints []int64, quote bool) []byte {
 
 func appendFloat64Slice(b []byte, floats []float64, quote bool) []byte {
 	if floats == nil {
-		return appendNull(b, quote)
+		return AppendNull(b, quote)
 	}
 
 	if quote {
@@ -335,12 +315,12 @@ func appendDriverValuer(b []byte, v driver.Valuer, quote bool) []byte {
 	value, err := v.Value()
 	if err != nil {
 		log.Printf("%T value failed: %s", v, err)
-		return appendNull(b, quote)
+		return AppendNull(b, quote)
 	}
-	return appendIface(b, value, quote)
+	return Append(b, value, quote)
 }
 
-func appendField(b []byte, f string) []byte {
+func AppendField(b []byte, f string) []byte {
 	b = append(b, '"')
 	for _, c := range []byte(f) {
 		if c == '"' {
@@ -362,69 +342,4 @@ func appendTime(b []byte, tm time.Time, quote bool) []byte {
 		b = append(b, '\'')
 	}
 	return b
-}
-
-//------------------------------------------------------------------------------
-
-func formatQuery(dst, src []byte, params []interface{}) ([]byte, error) {
-	if len(params) == 0 {
-		return append(dst, src...), nil
-	}
-
-	var model *Model
-	var paramInd int
-
-	p := &parser{b: src}
-
-	for p.Valid() {
-		ch := p.Next()
-		if ch == '\\' {
-			if p.Peek() == '?' {
-				p.SkipNext()
-				dst = append(dst, '?')
-				continue
-			}
-		} else if ch != '?' {
-			dst = append(dst, ch)
-			continue
-		}
-
-		name := p.ReadName()
-		if name != "" {
-			// Lazily initialize Model.
-			if model == nil {
-				if len(params) == 0 {
-					return nil, errorf("pg: expected at least one parameter, got nothing")
-				}
-				last := params[len(params)-1]
-				params = params[:len(params)-1]
-				if v, ok := last.(*Model); ok {
-					model = v
-				} else {
-					model = NewModel(last, "")
-				}
-			}
-			var err error
-			dst, err = model.appendName(dst, name)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			if paramInd >= len(params) {
-				return nil, errorf(
-					"pg: expected at least %d parameters, got %d",
-					paramInd+1, len(params),
-				)
-			}
-
-			dst = appendIface(dst, params[paramInd], true)
-			paramInd++
-		}
-	}
-
-	if paramInd < len(params) {
-		return nil, errorf("pg: expected %d parameters, got %d", paramInd, len(params))
-	}
-
-	return dst, nil
 }

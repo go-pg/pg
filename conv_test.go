@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-pg/pg/orm"
+
 	"gopkg.in/pg.v3"
 )
 
@@ -296,7 +298,7 @@ func TestConversion(t *testing.T) {
 		test.i = i
 
 		var err error
-		if _, ok := test.dst.(pg.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnLoader); ok {
 			_, err = db.QueryOne(test.dst, "SELECT (?) AS dst", test.src)
 		} else {
 			dst := struct{ Dst interface{} }{Dst: test.dst}
@@ -317,7 +319,7 @@ func TestConversion(t *testing.T) {
 			test.Fatalf(t, err)
 		}
 
-		if _, ok := test.dst.(pg.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnLoader); ok {
 			_, err = stmt.QueryOne(test.dst, test.src)
 		} else {
 			dst := struct{ Dst interface{} }{Dst: test.dst}
@@ -333,7 +335,7 @@ func TestConversion(t *testing.T) {
 	for i, test := range conversionTests {
 		test.i = i
 
-		if _, ok := test.dst.(pg.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnLoader); ok {
 			continue
 		}
 
@@ -344,7 +346,7 @@ func TestConversion(t *testing.T) {
 	for i, test := range conversionTests {
 		test.i = i
 
-		if _, ok := test.dst.(pg.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnLoader); ok {
 			continue
 		}
 		if test.pgtype == "" {

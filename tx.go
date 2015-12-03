@@ -111,8 +111,8 @@ func (tx *Tx) Query(coll interface{}, q string, args ...interface{}) (Result, er
 	return res, nil
 }
 
-func (tx *Tx) QueryOne(record interface{}, q string, args ...interface{}) (Result, error) {
-	coll := &singleRecordCollection{record: record}
+func (tx *Tx) QueryOne(model interface{}, q string, args ...interface{}) (Result, error) {
+	coll := &singleElementCollection{model: model}
 	res, err := tx.Query(coll, q, args...)
 	if err != nil {
 		return nil, err

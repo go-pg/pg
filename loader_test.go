@@ -3,6 +3,8 @@ package pg_test
 import (
 	"errors"
 
+	"github.com/go-pg/pg/orm"
+
 	. "gopkg.in/check.v1"
 
 	"gopkg.in/pg.v3"
@@ -26,7 +28,7 @@ type numLoader struct {
 	Num int
 }
 
-var _ pg.Collection = &numLoader{}
+var _ orm.Collection = &numLoader{}
 
 func (l *numLoader) NewRecord() interface{} {
 	return l
@@ -117,7 +119,7 @@ func (t *LoaderTest) TestQueryStrings(c *C) {
 
 type errLoader string
 
-var _ pg.ColumnLoader = errLoader("")
+var _ orm.ColumnLoader = errLoader("")
 
 func (l errLoader) LoadColumn(int, string, []byte) error {
 	return errors.New(string(l))
