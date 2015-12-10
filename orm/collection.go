@@ -5,10 +5,6 @@ import (
 	"reflect"
 )
 
-//------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------
-
 type sliceCollection struct {
 	v reflect.Value // reflect.Slice
 }
@@ -31,7 +27,7 @@ func (coll *sliceCollection) newValue() reflect.Value {
 	}
 }
 
-func (coll *sliceCollection) NewRecord() interface{} {
+func (coll *sliceCollection) NextModel() interface{} {
 	model, _ := NewModel(coll.newValue())
 	return model
 }

@@ -55,7 +55,8 @@ func (s Story) String() string {
 
 func CreateStory(db *pg.DB, story *Story) error {
 	_, err := db.QueryOne(story, `
-		INSERT INTO stories (title, user_id) VALUES (?title, ?user_id)
+		INSERT INTO stories (title, user_id)
+		VALUES (?title, ?user_id)
 		RETURNING id
 	`, story)
 	return err

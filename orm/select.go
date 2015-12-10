@@ -8,7 +8,7 @@ type result interface {
 
 type dber interface {
 	//Query(interface{}, string, ...interface{}) (result, error)
-	QueryRelation(*Relation, string) error
+	QueryRelation(interface{}, interface{}, ...interface{}) error
 }
 
 type Select struct {
@@ -18,7 +18,7 @@ type Select struct {
 	columns []string
 	joins   []string
 	wheres  []string
-	order   []string
+	order   string
 	limit   int
 	offset  int
 
@@ -50,7 +50,7 @@ func (s *Select) Join(join string) *Select {
 }
 
 func (s *Select) Order(order string) *Select {
-	s.order = append(s.order, order)
+	s.order = order
 	return s
 }
 
@@ -65,7 +65,7 @@ func (s *Select) Offset(n int) *Select {
 }
 
 func (s *Select) First(dst interface{}) *Select {
-	return s.Order("id").Limit(1).Find(dst)
+	return s.Order("?PK").Limit(1).Find(dst)
 }
 
 func (s *Select) Find(dst interface{}) *Select {
@@ -89,8 +89,7 @@ func (s *Select) Find(dst interface{}) *Select {
 		}
 	}
 
-	query := s.buildQuery()
-	err = s.db.QueryRelation(rel, query)
+	err = s.db.QueryRelation(rel, s, rel)
 	if err != nil {
 		s.setErr(err)
 		return s
@@ -107,8 +106,10 @@ func (s *Select) Find(dst interface{}) *Select {
 	return s
 }
 
-func (s *Select) buildQuery() string {
-	var b []byte
+func (s *Select) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	var err error
+
+	f := NewFormatter(params)
 
 	b = append(b, "SELECT "...)
 	if s.columns == nil {
@@ -122,9 +123,12 @@ func (s *Select) buildQuery() string {
 
 	b = appendSlice(b, s.joins)
 
-	if s.order != nil {
+	if s.order != "" {
 		b = append(b, " ORDER BY "...)
-		b = appendSlice(b, s.order)
+		b, err = f.Append(b, s.order)
+		if err != nil {
+			return b, err
+		}
 	}
 
 	if s.limit != 0 {
@@ -137,7 +141,7 @@ func (s *Select) buildQuery() string {
 		b = strconv.AppendInt(b, int64(s.offset), 10)
 	}
 
-	return string(b)
+	return b, nil
 }
 
 func appendSlice(b []byte, ss []string) []byte {

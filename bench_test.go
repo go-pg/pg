@@ -7,12 +7,12 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/go-pg/pg/orm"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 
 	"gopkg.in/pg.v3"
+	"gopkg.in/pg.v3/orm"
 )
 
 func init() {
@@ -260,7 +260,7 @@ func BenchmarkQueryRowStmt(b *testing.B) {
 	}
 }
 
-func BenchmarkQueryRowLoadInto(b *testing.B) {
+func BenchmarkQueryRowScan(b *testing.B) {
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
@@ -269,7 +269,7 @@ func BenchmarkQueryRowLoadInto(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var n int64
-			_, err := db.QueryOne(pg.LoadInto(&n), `SELECT ? AS num`, 1)
+			_, err := db.QueryOne(pg.Scan(&n), `SELECT ? AS num`, 1)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -280,7 +280,7 @@ func BenchmarkQueryRowLoadInto(b *testing.B) {
 	})
 }
 
-func BenchmarkQueryRowStmtLoadInto(b *testing.B) {
+func BenchmarkQueryRowStmtScan(b *testing.B) {
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
@@ -294,7 +294,7 @@ func BenchmarkQueryRowStmtLoadInto(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		var n int64
-		_, err := stmt.QueryOne(pg.LoadInto(&n), 1)
+		_, err := stmt.QueryOne(pg.Scan(&n), 1)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -561,9 +561,9 @@ type OptRecord struct {
 	Str1, Str2, Str3 string
 }
 
-var _ orm.ColumnLoader = (*OptRecord)(nil)
+var _ orm.ColumnScanner = (*OptRecord)(nil)
 
-func (r *OptRecord) LoadColumn(colIdx int, colName string, b []byte) error {
+func (r *OptRecord) ScanColumn(colIdx int, colName string, b []byte) error {
 	var err error
 	switch colName {
 	case "num1":
@@ -590,7 +590,7 @@ type OptRecords struct {
 
 var _ orm.Collection = (*OptRecords)(nil)
 
-func (rs *OptRecords) NewRecord() interface{} {
+func (rs *OptRecords) NextModel() interface{} {
 	rs.C = append(rs.C, OptRecord{})
 	return &rs.C[len(rs.C)-1]
 }

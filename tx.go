@@ -74,14 +74,14 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 	return prepare(tx.db, cn, q)
 }
 
-func (tx *Tx) Exec(q string, args ...interface{}) (Result, error) {
+func (tx *Tx) Exec(q string, params ...interface{}) (Result, error) {
 	if tx.done {
 		return nil, errTxDone
 	}
 
 	cn := tx.conn()
 
-	res, err := simpleQuery(cn, q, args...)
+	res, err := simpleQuery(cn, q, params...)
 	if err != nil {
 		tx.setErr(err)
 		return nil, err
@@ -89,21 +89,21 @@ func (tx *Tx) Exec(q string, args ...interface{}) (Result, error) {
 	return res, nil
 }
 
-func (tx *Tx) ExecOne(q string, args ...interface{}) (Result, error) {
-	res, err := tx.Exec(q, args...)
+func (tx *Tx) ExecOne(q string, params ...interface{}) (Result, error) {
+	res, err := tx.Exec(q, params...)
 	if err != nil {
 		return nil, err
 	}
 	return assertOneAffected(res, nil)
 }
 
-func (tx *Tx) Query(coll interface{}, q string, args ...interface{}) (Result, error) {
+func (tx *Tx) Query(coll interface{}, q string, params ...interface{}) (Result, error) {
 	if tx.done {
 		return nil, errTxDone
 	}
 
 	cn := tx.conn()
-	res, err := simpleQueryData(cn, coll, q, args...)
+	res, err := simpleQueryData(cn, coll, q, params...)
 	if err != nil {
 		tx.setErr(err)
 		return nil, err
@@ -111,9 +111,9 @@ func (tx *Tx) Query(coll interface{}, q string, args ...interface{}) (Result, er
 	return res, nil
 }
 
-func (tx *Tx) QueryOne(model interface{}, q string, args ...interface{}) (Result, error) {
+func (tx *Tx) QueryOne(model interface{}, q string, params ...interface{}) (Result, error) {
 	coll := &singleElementCollection{model: model}
-	res, err := tx.Query(coll, q, args...)
+	res, err := tx.Query(coll, q, params...)
 	if err != nil {
 		return nil, err
 	}

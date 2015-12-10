@@ -62,7 +62,7 @@ func (stmt *Stmt) conn() (*conn, error) {
 	return stmt._cn, nil
 }
 
-func (stmt *Stmt) exec(args ...interface{}) (Result, error) {
+func (stmt *Stmt) exec(params ...interface{}) (Result, error) {
 	defer stmt.mu.Unlock()
 	stmt.mu.Lock()
 
@@ -70,14 +70,14 @@ func (stmt *Stmt) exec(args ...interface{}) (Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return extQuery(cn, stmt.name, args...)
+	return extQuery(cn, stmt.name, params...)
 }
 
-// Exec executes a prepared statement with the given arguments.
-func (stmt *Stmt) Exec(args ...interface{}) (res Result, err error) {
+// Exec executes a prepared statement with the given parameters.
+func (stmt *Stmt) Exec(params ...interface{}) (res Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
-		res, err = stmt.exec(args...)
+		res, err = stmt.exec(params...)
 		if !canRetry(err) {
 			break
 		}
@@ -94,15 +94,15 @@ func (stmt *Stmt) Exec(args ...interface{}) (res Result, err error) {
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (stmt *Stmt) ExecOne(args ...interface{}) (Result, error) {
-	res, err := stmt.Exec(args...)
+func (stmt *Stmt) ExecOne(params ...interface{}) (Result, error) {
+	res, err := stmt.Exec(params...)
 	if err != nil {
 		return nil, err
 	}
 	return assertOneAffected(res, nil)
 }
 
-func (stmt *Stmt) query(coll interface{}, args ...interface{}) (Result, error) {
+func (stmt *Stmt) query(coll interface{}, params ...interface{}) (Result, error) {
 	defer stmt.mu.Unlock()
 	stmt.mu.Lock()
 
@@ -110,14 +110,14 @@ func (stmt *Stmt) query(coll interface{}, args ...interface{}) (Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return extQueryData(cn, stmt.name, coll, stmt.columns, args...)
+	return extQueryData(cn, stmt.name, coll, stmt.columns, params...)
 }
 
 // Query executes a prepared query statement with the given arguments.
-func (stmt *Stmt) Query(coll interface{}, args ...interface{}) (res Result, err error) {
+func (stmt *Stmt) Query(coll interface{}, params ...interface{}) (res Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
-		res, err = stmt.query(coll, args...)
+		res, err = stmt.query(coll, params...)
 		if !canRetry(err) {
 			break
 		}
@@ -134,9 +134,9 @@ func (stmt *Stmt) Query(coll interface{}, args ...interface{}) (res Result, err 
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (stmt *Stmt) QueryOne(model interface{}, args ...interface{}) (Result, error) {
+func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (Result, error) {
 	coll := &singleElementCollection{model: model}
-	res, err := stmt.Query(coll, args...)
+	res, err := stmt.Query(coll, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -157,8 +157,8 @@ func (stmt *Stmt) Close() error {
 	return err
 }
 
-func extQuery(cn *conn, name string, args ...interface{}) (Result, error) {
-	if err := writeBindExecuteMsg(cn.buf, name, args...); err != nil {
+func extQuery(cn *conn, name string, params ...interface{}) (Result, error) {
+	if err := writeBindExecuteMsg(cn.buf, name, params...); err != nil {
 		return nil, err
 	}
 	if err := cn.FlushWrite(); err != nil {
@@ -167,8 +167,8 @@ func extQuery(cn *conn, name string, args ...interface{}) (Result, error) {
 	return readExtQuery(cn)
 }
 
-func extQueryData(cn *conn, name string, coll interface{}, columns []string, args ...interface{}) (Result, error) {
-	if err := writeBindExecuteMsg(cn.buf, name, args...); err != nil {
+func extQueryData(cn *conn, name string, coll interface{}, columns []string, params ...interface{}) (Result, error) {
+	if err := writeBindExecuteMsg(cn.buf, name, params...); err != nil {
 		return nil, err
 	}
 

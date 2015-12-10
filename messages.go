@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/go-pg/pg/orm"
-	"github.com/go-pg/pg/types"
 	"github.com/golang/glog"
+
+	"gopkg.in/pg.v3/orm"
+	"gopkg.in/pg.v3/types"
 )
 
 type msgType byte
@@ -142,9 +143,9 @@ func writePasswordMsg(buf *buffer, password string) {
 	buf.FinishMessage()
 }
 
-func writeQueryMsg(buf *buffer, q string, args ...interface{}) error {
+func writeQueryMsg(buf *buffer, query interface{}, params ...interface{}) error {
 	buf.StartMessage(queryMsg)
-	bytes, err := AppendQuery(buf.Bytes, q, args...)
+	bytes, err := AppendQuery(buf.Bytes, query, params...)
 	if err != nil {
 		buf.Reset()
 		return err
@@ -228,17 +229,17 @@ func readParseDescribeSync(cn *conn) (columns []string, e error) {
 }
 
 // Writes BIND, EXECUTE and SYNC messages.
-func writeBindExecuteMsg(buf *buffer, name string, args ...interface{}) error {
+func writeBindExecuteMsg(buf *buffer, name string, params ...interface{}) error {
 	const paramLenWidth = 4
 
 	buf.StartMessage(bindMsg)
 	buf.WriteString("")
 	buf.WriteString(name)
 	buf.WriteInt16(0)
-	buf.WriteInt16(int16(len(args)))
-	for _, arg := range args {
+	buf.WriteInt16(int16(len(params)))
+	for _, param := range params {
 		buf.StartParam()
-		bytes := types.Append(buf.Bytes, arg, false)
+		bytes := types.Append(buf.Bytes, param, false)
 		if bytes != nil {
 			buf.Bytes = bytes
 			buf.FinishParam()
@@ -424,16 +425,15 @@ func readRowDescription(cn *conn) ([]string, error) {
 	return cols, nil
 }
 
-func readDataRow(cn *conn, dst interface{}, columns []string) error {
-	var loadErr error
-	loader, ok := dst.(orm.ColumnLoader)
+func readDataRow(cn *conn, dst interface{}, columns []string) (scanErr error) {
+	scanner, ok := dst.(orm.ColumnScanner)
 	if !ok {
 		var err error
-		loader, err = orm.NewModel(dst)
+		scanner, err = orm.NewModel(dst)
 		if err != nil {
-			loadErr = err
-			// Loader is broken, but try to read all data from the connection.
-			loader = Discard
+			scanErr = err
+			// Scanner is broken, but try to read all data from the connection.
+			scanner = Discard
 		}
 	}
 
@@ -453,13 +453,13 @@ func readDataRow(cn *conn, dst interface{}, columns []string) error {
 				return err
 			}
 		}
-		if err := loader.LoadColumn(colIdx, columns[colIdx], b); err != nil {
-			loadErr = err
+		if err := scanner.ScanColumn(colIdx, columns[colIdx], b); err != nil {
+			scanErr = err
 		}
 
 	}
 
-	return loadErr
+	return scanErr
 }
 
 func readSimpleQueryData(cn *conn, model interface{}) (res Result, e error) {
@@ -484,7 +484,7 @@ func readSimpleQueryData(cn *conn, model interface{}) (res Result, e error) {
 				return nil, err
 			}
 		case dataRowMsg:
-			if err := readDataRow(cn, coll.NewRecord(), columns); err != nil {
+			if err := readDataRow(cn, coll.NextModel(), columns); err != nil {
 				e = err
 			}
 		case commandCompleteMsg:
@@ -543,7 +543,7 @@ func readExtQueryData(cn *conn, collection interface{}, columns []string) (res R
 				return nil, err
 			}
 		case dataRowMsg:
-			if err := readDataRow(cn, coll.NewRecord(), columns); err != nil {
+			if err := readDataRow(cn, coll.NextModel(), columns); err != nil {
 				e = err
 			}
 		case commandCompleteMsg: // Response to the EXECUTE message.

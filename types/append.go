@@ -58,8 +58,8 @@ func Append(b []byte, vi interface{}, quote bool) []byte {
 		return appendFloat64Slice(b, v, quote)
 	case map[string]string:
 		return AppendStringStringMap(b, v, quote)
-	case QueryAppender:
-		return v.AppendQuery(b)
+	case ValueAppender:
+		return v.AppendValue(b, quote)
 	case driver.Valuer:
 		return appendDriverValuer(b, v, quote)
 	default:

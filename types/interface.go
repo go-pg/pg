@@ -1,6 +1,6 @@
 package types
 
-type QueryAppender interface {
+type ValueAppender interface {
 	// TODO(vmihailenco): add ability to return error
-	AppendQuery([]byte) []byte
+	AppendValue([]byte, bool) []byte
 }

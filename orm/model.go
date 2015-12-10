@@ -18,6 +18,11 @@ type Model struct {
 	Table *Table
 }
 
+var (
+	_ Collection    = (*Model)(nil)
+	_ ColumnScanner = (*Model)(nil)
+)
+
 func NewModel(vi interface{}) (*Model, error) {
 	v := reflect.ValueOf(vi)
 	if !v.IsValid() {
@@ -77,15 +82,12 @@ func (m *Model) Columns(columns []string, prefix string) []string {
 	return columns
 }
 
-func (m *Model) NewRecord() interface{} {
-	v := m.Slice(true)
-	if v.Kind() == reflect.Slice {
-		m.value = sliceNextElemValue(v)
-	}
-	return m
-}
-
 func (m *Model) AppendParam(b []byte, name string) ([]byte, error) {
+	switch name {
+	case "PK":
+		return append(b, "id"...), nil
+	}
+
 	if field, ok := m.Table.Map[name]; ok {
 		return field.AppendValue(b, m.value, true), nil
 	}
@@ -97,7 +99,15 @@ func (m *Model) AppendParam(b []byte, name string) ([]byte, error) {
 	return nil, fmt.Errorf("pg: can't map %q on %s", name, m.value.Type())
 }
 
-func (m *Model) LoadColumn(colIdx int, colName string, b []byte) error {
+func (m *Model) NextModel() interface{} {
+	v := m.Slice(true)
+	if v.Kind() == reflect.Slice {
+		m.value = sliceNextElemValue(v)
+	}
+	return m
+}
+
+func (m *Model) ScanColumn(colIdx int, colName string, b []byte) error {
 	field, ok := m.Table.Map[colName]
 	if !ok {
 		return fmt.Errorf("pg: can't find field %q in %s", colName, m.value.Type())

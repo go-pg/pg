@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	appenderType = reflect.TypeOf(new(QueryAppender)).Elem()
+	appenderType = reflect.TypeOf(new(ValueAppender)).Elem()
 )
 
 var (
@@ -136,7 +136,7 @@ func appendTimeValue(b []byte, v reflect.Value, quote bool) []byte {
 }
 
 func appendAppenderValue(b []byte, v reflect.Value, quote bool) []byte {
-	return v.Interface().(QueryAppender).AppendQuery(b)
+	return v.Interface().(ValueAppender).AppendValue(b, quote)
 }
 
 func appendDriverValuerValue(b []byte, v reflect.Value, quote bool) []byte {

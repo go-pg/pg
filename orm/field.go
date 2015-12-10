@@ -23,6 +23,12 @@ type Field struct {
 	decoder  func(reflect.Value, []byte) error
 }
 
+func (f *Field) Copy() *Field {
+	copy := *f
+	copy.index = copy.index[:len(f.index):len(f.index)]
+	return &copy
+}
+
 func (f *Field) Has(flag int8) bool {
 	return f.flags&flag != 0
 }

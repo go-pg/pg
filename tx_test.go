@@ -33,12 +33,12 @@ func (t *TxTest) TestMultiPrepare(c *C) {
 	c.Assert(err, IsNil)
 
 	var s1 string
-	_, err = stmt1.QueryOne(pg.LoadInto(&s1))
+	_, err = stmt1.QueryOne(pg.Scan(&s1))
 	c.Assert(err, IsNil)
 	c.Assert(s1, Equals, "test_multi_prepare_tx1")
 
 	var s2 string
-	_, err = stmt2.QueryOne(pg.LoadInto(&s2))
+	_, err = stmt2.QueryOne(pg.Scan(&s2))
 	c.Assert(err, IsNil)
 	c.Assert(s2, Equals, "test_multi_prepare_tx2")
 

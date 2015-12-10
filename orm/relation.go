@@ -11,19 +11,28 @@ type Relation struct {
 	HasMany []*Model
 }
 
+var (
+	_ Collection    = (*Relation)(nil)
+	_ ColumnScanner = (*Relation)(nil)
+)
+
 func NewRelation(vi interface{}) (*Relation, error) {
-	model, ok := vi.(*Model)
-	if !ok {
-		var err error
-		model, err = NewModel(vi)
+	switch v := vi.(type) {
+	case *Relation:
+		return v, nil
+	case *Model:
+		return &Relation{
+			Model: v,
+		}, nil
+	default:
+		model, err := NewModel(vi)
 		if err != nil {
 			return nil, err
 		}
-
+		return &Relation{
+			Model: model,
+		}, nil
 	}
-	return &Relation{
-		Model: model,
-	}, nil
 }
 
 func (rel *Relation) AddRelation(name string) (err error) {
@@ -60,8 +69,12 @@ func (rel *Relation) AddRelation(name string) (err error) {
 	return nil
 }
 
-func (rel *Relation) NewRecord() interface{} {
-	rel.Model.NewRecord()
+func (rel *Relation) AppendParam(b []byte, name string) ([]byte, error) {
+	return rel.Model.AppendParam(b, name)
+}
+
+func (rel *Relation) NextModel() interface{} {
+	rel.Model.NextModel()
 	// TODO: rebind has one relations
 	return rel
 }
@@ -74,11 +87,11 @@ func splitColumn(s string) (string, string) {
 	return parts[0], parts[1]
 }
 
-func (rel *Relation) LoadColumn(colIdx int, colName string, b []byte) error {
+func (rel *Relation) ScanColumn(colIdx int, colName string, b []byte) error {
 	modelName, colName := splitColumn(colName)
 	model, ok := rel.HasOne[modelName]
 	if !ok {
 		model = rel.Model
 	}
-	return model.LoadColumn(colIdx, colName, b)
+	return model.ScanColumn(colIdx, colName, b)
 }

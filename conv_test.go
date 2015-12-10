@@ -10,9 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-pg/pg/orm"
-
 	"gopkg.in/pg.v3"
+	"gopkg.in/pg.v3/orm"
 )
 
 type JSONMap map[string]interface{}
@@ -298,7 +297,7 @@ func TestConversion(t *testing.T) {
 		test.i = i
 
 		var err error
-		if _, ok := test.dst.(orm.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnScanner); ok {
 			_, err = db.QueryOne(test.dst, "SELECT (?) AS dst", test.src)
 		} else {
 			dst := struct{ Dst interface{} }{Dst: test.dst}
@@ -319,7 +318,7 @@ func TestConversion(t *testing.T) {
 			test.Fatalf(t, err)
 		}
 
-		if _, ok := test.dst.(orm.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnScanner); ok {
 			_, err = stmt.QueryOne(test.dst, test.src)
 		} else {
 			dst := struct{ Dst interface{} }{Dst: test.dst}
@@ -335,18 +334,18 @@ func TestConversion(t *testing.T) {
 	for i, test := range conversionTests {
 		test.i = i
 
-		if _, ok := test.dst.(orm.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnScanner); ok {
 			continue
 		}
 
-		_, err := db.QueryOne(pg.LoadInto(test.dst), "SELECT (?) AS dst", test.src)
+		_, err := db.QueryOne(pg.Scan(test.dst), "SELECT (?) AS dst", test.src)
 		test.Assert(t, err)
 	}
 
 	for i, test := range conversionTests {
 		test.i = i
 
-		if _, ok := test.dst.(orm.ColumnLoader); ok {
+		if _, ok := test.dst.(orm.ColumnScanner); ok {
 			continue
 		}
 		if test.pgtype == "" {
@@ -358,7 +357,7 @@ func TestConversion(t *testing.T) {
 			test.Fatalf(t, err)
 		}
 
-		_, err = stmt.QueryOne(pg.LoadInto(test.dst), test.src)
+		_, err = stmt.QueryOne(pg.Scan(test.dst), test.src)
 		test.Assert(t, err)
 
 		if err := stmt.Close(); err != nil {

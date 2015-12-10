@@ -18,13 +18,9 @@ type Table struct {
 	HasMany map[string]struct{}
 }
 
-func (fs *Table) Len() int {
-	return len(fs.List)
-}
-
-func (fs *Table) AddField(field *Field) {
-	fs.List = append(fs.List, field)
-	fs.Map[field.Name] = field
+func (t *Table) AddField(field *Field) {
+	t.List = append(t.List, field)
+	t.Map[field.Name] = field
 }
 
 func (t *Table) DeleteField(field *Field) {
@@ -87,15 +83,15 @@ loop:
 			continue
 		}
 
-		fieldType := indirectType(f.Type)
+		ftype := indirectType(f.Type)
 		field := Field{
 			Name:    name,
 			SQLName: sqlName,
 
 			index: f.Index,
 
-			appender: types.Appender(fieldType),
-			decoder:  types.Decoder(fieldType),
+			appender: types.Appender(ftype),
+			decoder:  types.Decoder(ftype),
 		}
 
 		if field.Name == "" {
@@ -112,29 +108,32 @@ loop:
 			field.flags |= primaryKeyFlag
 		} else if strings.HasSuffix(field.SQLName, "_id") {
 			field.flags |= foreignKeyFlag
-
-			hasOneName := field.SQLName[:len(field.SQLName)-3]
-			if hasOneField, ok := table.Map[hasOneName]; ok {
-				fname := pgutil.CamelCase(hasOneField.Name)
-				table.hasOne(fname)
-				table.DeleteField(hasOneField)
-			}
 		}
 
-		switch fieldType.Kind() {
+		switch ftype.Kind() {
 		case reflect.Slice:
-			fk := table.Name + "_id"
-			foreignTable := registry.Table(fieldType.Elem())
-			if _, ok := foreignTable.Map[fk]; ok {
-				table.hasMany(f.Name)
-				continue loop
+			if ftype.Elem().Kind() == reflect.Struct {
+				fk := typ.Name() + "Id"
+				if _, ok := ftype.Elem().FieldByName(fk); ok {
+					table.hasMany(f.Name)
+					continue loop
+				}
 			}
 		case reflect.Struct:
-			fk := field.Name + "_id"
-			if _, ok := table.Map[fk]; ok {
-				table.hasOne(f.Name)
-				continue loop
+			for _, ff := range registry.Table(ftype).List {
+				ff = ff.Copy()
+				ff.Name = field.Name + "__" + ff.Name
+				ff.index = append(field.index, ff.index...)
+				table.Map[ff.Name] = ff
 			}
+
+			fk := f.Name + "Id"
+			if _, ok := typ.FieldByName(fk); ok {
+				table.hasOne(f.Name)
+			}
+
+			table.Map[field.Name] = &field
+			continue loop
 		}
 
 		table.AddField(&field)
