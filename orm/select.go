@@ -17,7 +17,7 @@ type Select struct {
 	tables  []string
 	columns []string
 	joins   []string
-	wheres  []string
+	where   []string
 	order   string
 	limit   int
 	offset  int
@@ -41,6 +41,22 @@ func (s *Select) Err() error {
 
 func (s *Select) Select(columns ...string) *Select {
 	s.columns = append(s.columns, columns...)
+	return s
+}
+
+func (s *Select) Table(name string) *Select {
+	s.tables = append(s.tables, name)
+	return s
+}
+
+func (s *Select) Where(where string, params ...interface{}) *Select {
+	f := NewFormatter(params)
+	b, err := f.Append(nil, where)
+	if err != nil {
+		s.err = err
+	} else {
+		s.where = append(s.where, string(b))
+	}
 	return s
 }
 
@@ -83,9 +99,8 @@ func (s *Select) Find(dst interface{}) *Select {
 
 	s.tables = append(s.tables, rel.Model.Table.Name)
 	if s.columns != nil {
-		for name, model := range rel.HasOne {
-			s.tables = append(s.tables, model.Table.Name)
-			s.columns = model.Columns(s.columns, name+"__")
+		for _, hasOne := range rel.HasOne {
+			s = hasOne.Select(s)
 		}
 	}
 
@@ -95,8 +110,9 @@ func (s *Select) Find(dst interface{}) *Select {
 		return s
 	}
 
-	for _, model := range rel.HasMany {
-		err := NewSelect(s.db).Find(model).Err()
+	// TODO: support slice base model
+	for i := range rel.HasMany {
+		err := rel.HasMany[i].Select(NewSelect(s.db)).Find(rel.HasMany[i].Join).Err()
 		if err != nil {
 			s.setErr(err)
 			return s
@@ -113,7 +129,7 @@ func (s *Select) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 
 	b = append(b, "SELECT "...)
 	if s.columns == nil {
-		b = append(b, " * "...)
+		b = append(b, '*')
 	} else {
 		b = appendSlice(b, s.columns)
 	}
@@ -122,6 +138,11 @@ func (s *Select) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = appendSlice(b, s.tables)
 
 	b = appendSlice(b, s.joins)
+
+	if s.where != nil {
+		b = append(b, " WHERE "...)
+		b = appendSlice(b, s.where)
+	}
 
 	if s.order != "" {
 		b = append(b, " ORDER BY "...)

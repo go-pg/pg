@@ -74,9 +74,19 @@ func NewModelPath(owner reflect.Value, path []string) (*Model, error) {
 	}
 }
 
+// TODO - append?
+func (m *Model) PK() string {
+	return m.Table.PK.SQLName
+}
+
+// TODO - append?
+func (m *Model) PKValue() string {
+	return string(m.Table.PK.AppendValue(nil, m.Value(false), false))
+}
+
 func (m *Model) Columns(columns []string, prefix string) []string {
-	for _, f := range m.Table.List {
-		column := fmt.Sprintf(`%s.%s AS "%s"`, m.Table.Name, f.Name, prefix+f.Name)
+	for _, f := range m.Table.Fields {
+		column := fmt.Sprintf(`%s.%s AS "%s"`, m.Table.Name, f.SQLName, prefix+f.SQLName)
 		columns = append(columns, column)
 	}
 	return columns
@@ -85,10 +95,10 @@ func (m *Model) Columns(columns []string, prefix string) []string {
 func (m *Model) AppendParam(b []byte, name string) ([]byte, error) {
 	switch name {
 	case "PK":
-		return append(b, "id"...), nil
+		return append(b, m.PK()...), nil
 	}
 
-	if field, ok := m.Table.Map[name]; ok {
+	if field, ok := m.Table.FieldsMap[name]; ok {
 		return field.AppendValue(b, m.value, true), nil
 	}
 
@@ -108,7 +118,7 @@ func (m *Model) NextModel() interface{} {
 }
 
 func (m *Model) ScanColumn(colIdx int, colName string, b []byte) error {
-	field, ok := m.Table.Map[colName]
+	field, ok := m.Table.FieldsMap[colName]
 	if !ok {
 		return fmt.Errorf("pg: can't find field %q in %s", colName, m.value.Type())
 	}

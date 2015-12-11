@@ -5,10 +5,40 @@ import (
 	"strings"
 )
 
+type HasOne struct {
+	Base, Join *Model
+	Field      *Field
+}
+
+func (h *HasOne) Select(s *Select) *Select {
+	s = s.Table(h.Join.Table.Name)
+	s.columns = h.Join.Columns(s.columns, h.Join.Table.Name+"__")
+	s = s.Where(h.where())
+	return s
+}
+
+func (h *HasOne) where() string {
+	return h.Join.Table.Name + ".id" + " = " + h.Base.Table.Name + "." + h.Field.SQLName + "_id"
+}
+
+type HasMany struct {
+	Base, Join *Model
+	Field      *Field
+}
+
+func (h *HasMany) Select(s *Select) *Select {
+	s = s.Where(h.where())
+	return s
+}
+
+func (h *HasMany) where() string {
+	return h.Join.Table.Name + "." + h.Base.Table.Name + "_id" + " = " + h.Base.PKValue()
+}
+
 type Relation struct {
 	Model   *Model
-	HasOne  map[string]*Model
-	HasMany []*Model
+	HasOne  map[string]HasOne
+	HasMany []HasMany
 }
 
 var (
@@ -38,32 +68,40 @@ func NewRelation(vi interface{}) (*Relation, error) {
 func (rel *Relation) AddRelation(name string) (err error) {
 	path := strings.Split(name, ".")
 
-	model := rel.Model
-	value := model.Value(false)
+	base := rel.Model
+	value := base.Value(false)
 
-	for i, name := range path {
-		if _, ok := model.Table.HasOne[name]; ok {
-			model, err = NewModelPath(value, path[:i+1])
+	for _, name := range path {
+		if field, ok := base.Table.HasOne[name]; ok {
+			model, err := NewModelPath(value, []string{field.GoName})
 			if err != nil {
 				return err
 			}
 			if rel.HasOne == nil {
-				rel.HasOne = make(map[string]*Model)
+				rel.HasOne = make(map[string]HasOne)
 			}
-			rel.HasOne[name] = model
+			rel.HasOne[name] = HasOne{
+				Base:  base,
+				Join:  model,
+				Field: field,
+			}
 			continue
 		}
 
-		if _, ok := model.Table.HasMany[name]; ok {
-			model, err = NewModelPath(value, path[:i+1])
+		if field, ok := base.Table.HasMany[name]; ok {
+			model, err := NewModelPath(value, []string{field.GoName})
 			if err != nil {
 				return err
 			}
-			rel.HasMany = append(rel.HasMany, model)
+			rel.HasMany = append(rel.HasMany, HasMany{
+				Base:  base,
+				Join:  model,
+				Field: field,
+			})
 			continue
 		}
 
-		return fmt.Errorf("pg: %s doesn't have %s relation", model.Table.Name, name)
+		return fmt.Errorf("pg: %s doesn't have %s relation", base.Table.Name, name)
 	}
 
 	return nil
@@ -89,9 +127,9 @@ func splitColumn(s string) (string, string) {
 
 func (rel *Relation) ScanColumn(colIdx int, colName string, b []byte) error {
 	modelName, colName := splitColumn(colName)
-	model, ok := rel.HasOne[modelName]
-	if !ok {
-		model = rel.Model
+	hasOne, ok := rel.HasOne[modelName]
+	if ok {
+		return hasOne.Join.ScanColumn(colIdx, colName, b)
 	}
-	return model.ScanColumn(colIdx, colName, b)
+	return rel.Model.ScanColumn(colIdx, colName, b)
 }

@@ -11,46 +11,49 @@ import (
 type Table struct {
 	Name string
 
-	List    []*Field
-	Map     map[string]*Field
+	PK        *Field
+	Fields    []*Field
+	FieldsMap map[string]*Field
+
 	Methods map[string]*method
-	HasOne  map[string]struct{}
-	HasMany map[string]struct{}
+
+	HasOne  map[string]*Field
+	HasMany map[string]*Field
 }
 
 func (t *Table) AddField(field *Field) {
-	t.List = append(t.List, field)
-	t.Map[field.Name] = field
+	t.Fields = append(t.Fields, field)
+	t.FieldsMap[field.SQLName] = field
 }
 
 func (t *Table) DeleteField(field *Field) {
-	for i, f := range t.List {
+	for i, f := range t.Fields {
 		if f == field {
-			t.List = append(t.List[:i], t.List[i+1:]...)
+			t.Fields = append(t.Fields[:i], t.Fields[i+1:]...)
 		}
 	}
-	delete(t.Map, field.Name)
+	delete(t.FieldsMap, field.SQLName)
 }
 
-func (t *Table) hasOne(name string) {
+func (t *Table) hasOne(field *Field) {
 	if t.HasOne == nil {
-		t.HasOne = make(map[string]struct{})
+		t.HasOne = make(map[string]*Field)
 	}
-	t.HasOne[name] = struct{}{}
+	t.HasOne[field.SQLName] = field
 }
 
-func (t *Table) hasMany(name string) {
+func (t *Table) hasMany(field *Field) {
 	if t.HasMany == nil {
-		t.HasMany = make(map[string]struct{})
+		t.HasMany = make(map[string]*Field)
 	}
-	t.HasMany[name] = struct{}{}
+	t.HasMany[field.SQLName] = field
 }
 
 func NewTable(typ reflect.Type) *Table {
 	table := &Table{
-		Name: pgutil.Underscore(typ.Name()),
-		List: make([]*Field, 0, typ.NumField()),
-		Map:  make(map[string]*Field, typ.NumField()),
+		Name:      pgutil.Underscore(typ.Name()),
+		Fields:    make([]*Field, 0, typ.NumField()),
+		FieldsMap: make(map[string]*Field, typ.NumField()),
 	}
 
 loop:
@@ -62,7 +65,7 @@ loop:
 			if typ.Kind() == reflect.Ptr {
 				typ = typ.Elem()
 			}
-			for _, ff := range NewTable(typ).List {
+			for _, ff := range NewTable(typ).Fields {
 				ff.Index = append(f.Index, ff.Index...)
 				table.AddField(ff)
 			}
@@ -73,11 +76,7 @@ loop:
 			continue
 		}
 
-		name, pgOpt := parseTag(f.Tag.Get("pg"))
-		if name == "-" {
-			continue
-		}
-
+		_, pgOpt := parseTag(f.Tag.Get("pg"))
 		sqlName, sqlOpt := parseTag(f.Tag.Get("sql"))
 		if sqlName == "-" {
 			continue
@@ -85,7 +84,7 @@ loop:
 
 		ftype := indirectType(f.Type)
 		field := Field{
-			Name:    name,
+			GoName:  f.Name,
 			SQLName: sqlName,
 
 			Index: f.Index,
@@ -94,11 +93,8 @@ loop:
 			decoder:  types.Decoder(ftype),
 		}
 
-		if field.Name == "" {
-			field.Name = pgutil.Underscore(f.Name)
-		}
 		if field.SQLName == "" {
-			field.SQLName = field.Name
+			field.SQLName = pgutil.Underscore(field.GoName)
 		}
 
 		if pgOpt.Contains("nullempty") {
@@ -106,6 +102,7 @@ loop:
 		}
 		if sqlOpt.Contains("pk") || field.SQLName == "id" {
 			field.flags |= PrimaryKeyFlag
+			table.PK = &field
 		} else if strings.HasSuffix(field.SQLName, "_id") {
 			field.flags |= ForeignKeyFlag
 		}
@@ -115,24 +112,24 @@ loop:
 			if ftype.Elem().Kind() == reflect.Struct {
 				fk := typ.Name() + "Id"
 				if _, ok := ftype.Elem().FieldByName(fk); ok {
-					table.hasMany(f.Name)
+					table.hasMany(&field)
 					continue loop
 				}
 			}
 		case reflect.Struct:
-			for _, ff := range Tables.Get(ftype).List {
+			for _, ff := range Tables.Get(ftype).Fields {
 				ff = ff.Copy()
-				ff.Name = field.Name + "__" + ff.Name
+				ff.SQLName = field.SQLName + "__" + ff.SQLName
 				ff.Index = append(field.Index, ff.Index...)
-				table.Map[ff.Name] = ff
+				table.FieldsMap[ff.SQLName] = ff
 			}
 
 			fk := f.Name + "Id"
 			if _, ok := typ.FieldByName(fk); ok {
-				table.hasOne(f.Name)
+				table.hasOne(&field)
 			}
 
-			table.Map[field.Name] = &field
+			table.FieldsMap[field.SQLName] = &field
 			continue loop
 		}
 

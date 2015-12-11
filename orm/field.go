@@ -13,7 +13,7 @@ const (
 )
 
 type Field struct {
-	Name    string
+	GoName  string
 	SQLName string
 	Index   []int
 
