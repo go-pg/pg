@@ -7,16 +7,16 @@ import (
 )
 
 const (
-	nullEmptyFlag  = 1 << 0
-	primaryKeyFlag = 1 << 1
-	foreignKeyFlag = 1 << 2
+	NullEmptyFlag  = 1 << 0
+	PrimaryKeyFlag = 1 << 1
+	ForeignKeyFlag = 1 << 2
 )
 
 type Field struct {
 	Name    string
 	SQLName string
+	Index   []int
 
-	index []int
 	flags int8
 
 	appender func([]byte, reflect.Value, bool) []byte
@@ -25,7 +25,7 @@ type Field struct {
 
 func (f *Field) Copy() *Field {
 	copy := *f
-	copy.index = copy.index[:len(f.index):len(f.index)]
+	copy.Index = copy.Index[:len(f.Index):len(f.Index)]
 	return &copy
 }
 
@@ -34,20 +34,20 @@ func (f *Field) Has(flag int8) bool {
 }
 
 func (f *Field) IsEmpty(v reflect.Value) bool {
-	fv := v.FieldByIndex(f.index)
+	fv := v.FieldByIndex(f.Index)
 	return isEmptyValue(fv)
 }
 
 func (f *Field) AppendValue(dst []byte, v reflect.Value, quote bool) []byte {
-	fv := v.FieldByIndex(f.index)
-	if f.Has(nullEmptyFlag) && isEmptyValue(fv) {
+	fv := v.FieldByIndex(f.Index)
+	if f.Has(NullEmptyFlag) && isEmptyValue(fv) {
 		return types.AppendNull(dst, quote)
 	}
 	return f.appender(dst, fv, quote)
 }
 
 func (f *Field) DecodeValue(v reflect.Value, b []byte) error {
-	v = fieldByIndex(v, f.index)
+	v = fieldByIndex(v, f.Index)
 	if b == nil {
 		return types.DecodeNullValue(v)
 	}

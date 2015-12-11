@@ -63,7 +63,7 @@ loop:
 				typ = typ.Elem()
 			}
 			for _, ff := range NewTable(typ).List {
-				ff.index = append(f.Index, ff.index...)
+				ff.Index = append(f.Index, ff.Index...)
 				table.AddField(ff)
 			}
 			continue
@@ -88,7 +88,7 @@ loop:
 			Name:    name,
 			SQLName: sqlName,
 
-			index: f.Index,
+			Index: f.Index,
 
 			appender: types.Appender(ftype),
 			decoder:  types.Decoder(ftype),
@@ -102,12 +102,12 @@ loop:
 		}
 
 		if pgOpt.Contains("nullempty") {
-			field.flags |= nullEmptyFlag
+			field.flags |= NullEmptyFlag
 		}
 		if sqlOpt.Contains("pk") || field.SQLName == "id" {
-			field.flags |= primaryKeyFlag
+			field.flags |= PrimaryKeyFlag
 		} else if strings.HasSuffix(field.SQLName, "_id") {
-			field.flags |= foreignKeyFlag
+			field.flags |= ForeignKeyFlag
 		}
 
 		switch ftype.Kind() {
@@ -120,10 +120,10 @@ loop:
 				}
 			}
 		case reflect.Struct:
-			for _, ff := range registry.Table(ftype).List {
+			for _, ff := range Tables.Get(ftype).List {
 				ff = ff.Copy()
 				ff.Name = field.Name + "__" + ff.Name
-				ff.index = append(field.index, ff.index...)
+				ff.Index = append(field.Index, ff.Index...)
 				table.Map[ff.Name] = ff
 			}
 

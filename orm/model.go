@@ -37,14 +37,14 @@ func NewModel(vi interface{}) (*Model, error) {
 		return &Model{
 			value: v,
 
-			Table: registry.Table(v.Type()),
+			Table: Tables.Get(v.Type()),
 		}, nil
 	case reflect.Slice:
 		typ := indirectType(v.Type().Elem())
 		return &Model{
 			slice: v,
 
-			Table: registry.Table(typ),
+			Table: Tables.Get(typ),
 		}, nil
 	default:
 		return nil, fmt.Errorf("pg: NewModel(unsupported %T)", vi)
@@ -59,7 +59,7 @@ func NewModelPath(owner reflect.Value, path []string) (*Model, error) {
 			owner: owner,
 			path:  path,
 
-			Table: registry.Table(typ),
+			Table: Tables.Get(typ),
 		}, nil
 	case reflect.Slice:
 		typ := indirectType(typ.Elem())
@@ -67,7 +67,7 @@ func NewModelPath(owner reflect.Value, path []string) (*Model, error) {
 			owner: owner,
 			path:  path,
 
-			Table: registry.Table(typ),
+			Table: Tables.Get(typ),
 		}, nil
 	default:
 		return nil, fmt.Errorf("pg: NewModelPath(unsupported %s)", typ)
