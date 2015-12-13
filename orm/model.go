@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+
+	"gopkg.in/pg.v3/types"
 )
 
 var invalidValue = reflect.Value{}
@@ -80,13 +82,13 @@ func (m *Model) PK() string {
 }
 
 // TODO - append?
-func (m *Model) PKValue() string {
-	return string(m.Table.PK.AppendValue(nil, m.Value(false), false))
+func (m *Model) PKValue() types.Q {
+	return types.Q(m.Table.PK.AppendValue(nil, m.Value(false), false))
 }
 
 func (m *Model) Columns(columns []string, prefix string) []string {
 	for _, f := range m.Table.Fields {
-		column := fmt.Sprintf(`%s.%s AS "%s"`, m.Table.Name, f.SQLName, prefix+f.SQLName)
+		column := fmt.Sprintf(`%s.%s AS %s`, m.Table.Name, f.SQLName, prefix+f.SQLName)
 		columns = append(columns, column)
 	}
 	return columns

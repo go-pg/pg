@@ -12,6 +12,10 @@ var (
 	Discard discard
 )
 
+//------------------------------------------------------------------------------
+
+// TODO: fix duplication (how?)
+
 // Q is a ValueAppender that represents safe SQL query.
 type Q string
 
@@ -20,8 +24,6 @@ var _ types.ValueAppender = Q("")
 func (q Q) AppendValue(dst []byte, quote bool) []byte {
 	return append(dst, string(q)...)
 }
-
-//------------------------------------------------------------------------------
 
 // F is a ValueAppender that represents SQL field, e.g. table or column name.
 type F string

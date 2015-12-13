@@ -2,15 +2,10 @@ package parser
 
 import (
 	"bytes"
-	"fmt"
 	"strconv"
 )
 
-var (
-	pgNull = []byte("NULL")
-)
-
-func isDigit(c byte) bool {
+func isNum(c byte) bool {
 	return c >= '0' && c <= '9'
 }
 
@@ -19,7 +14,7 @@ func isAlpha(c byte) bool {
 }
 
 func isAlnum(c byte) bool {
-	return isAlpha(c) || isDigit(c)
+	return isAlpha(c) || isNum(c)
 }
 
 type Parser struct {
@@ -28,15 +23,19 @@ type Parser struct {
 	err error
 }
 
-func NewParser(b []byte) *Parser {
+func New(b []byte) *Parser {
 	return &Parser{b: b}
+}
+
+func (p *Parser) Bytes() []byte {
+	return p.b[p.pos:]
 }
 
 func (p *Parser) Valid() bool {
 	return p.pos < len(p.b)
 }
 
-func (p *Parser) Next() byte {
+func (p *Parser) Read() byte {
 	c := p.b[p.pos]
 	p.pos++
 	return c
@@ -49,8 +48,17 @@ func (p *Parser) Peek() byte {
 	return 0
 }
 
-func (p *Parser) SkipNext() {
+func (p *Parser) Skip(c byte) {
 	p.pos++
+}
+
+func (p *Parser) Got(s string) bool {
+	end := p.pos + len(s)
+	if end <= len(p.b) && bytes.Equal(p.b[p.pos:end], []byte(s)) {
+		p.pos = end
+		return true
+	}
+	return false
 }
 
 func (p *Parser) ReadSep(sep []byte) []byte {
@@ -64,10 +72,10 @@ func (p *Parser) ReadSep(sep []byte) []byte {
 	return p.b[start:p.pos]
 }
 
-func (p *Parser) ReadName() string {
+func (p *Parser) ReadIdentifier() string {
 	start := p.pos
 	for p.Valid() {
-		ch := p.Next()
+		ch := p.Read()
 		if !(isAlnum(ch) || ch == '_') {
 			p.pos--
 			break
@@ -79,186 +87,11 @@ func (p *Parser) ReadName() string {
 func (p *Parser) ReadNumber() int {
 	start := p.pos
 	for p.Valid() {
-		if !isDigit(p.Next()) {
+		if !isNum(p.Read()) {
 			p.pos--
 			break
 		}
 	}
 	n, _ := strconv.Atoi(string(p.b[start:p.pos]))
 	return n
-}
-
-type arrayParser struct {
-	*Parser
-
-	err error
-}
-
-func newArrayParser(b []byte) *arrayParser {
-	var err error
-	if len(b) < 2 || b[0] != '{' || b[len(b)-1] != '}' {
-		err = fmt.Errorf("pg: can't parse string slice: %q", b)
-	} else {
-		b = b[1 : len(b)-1]
-	}
-	return &arrayParser{
-		Parser: NewParser(b),
-
-		err: err,
-	}
-}
-
-func (p *arrayParser) NextElem() ([]byte, error) {
-	if p.err != nil {
-		return nil, p.err
-	}
-
-	if p.Next() != '"' {
-		p.pos--
-		b := p.ReadSep([]byte{','})
-		if bytes.Equal(b, pgNull) {
-			return nil, nil
-		}
-		return b, nil
-	}
-
-	b := make([]byte, 0)
-	for p.Valid() {
-		c := p.Next()
-		switch c {
-		case '\\':
-			switch p.Peek() {
-			case '\\':
-				b = append(b, '\\')
-				p.SkipNext()
-			case '"':
-				b = append(b, '"')
-				p.SkipNext()
-			default:
-				b = append(b, c)
-			}
-		case '\'':
-			switch p.Peek() {
-			case '\'':
-				b = append(b, '\'')
-				p.SkipNext()
-			default:
-				b = append(b, c)
-			}
-		case '"':
-			// Read ",".
-			p.pos++
-			return b, nil
-		default:
-			b = append(b, c)
-		}
-	}
-
-	return nil, fmt.Errorf("pg: can't parse array: %q", p.b)
-}
-
-type hstoreParser struct {
-	*Parser
-}
-
-func newHstoreParser(b []byte) *hstoreParser {
-	return &hstoreParser{
-		Parser: NewParser(b),
-	}
-}
-
-func (p *hstoreParser) NextKey() ([]byte, error) {
-	next := p.Next()
-	if next == ',' {
-		if n := p.Peek(); n == ' ' {
-			p.pos++
-		}
-		next = p.Next()
-	}
-
-	if next != '"' {
-		p.pos--
-		bb := p.ReadSep([]byte{'=', '>'})
-		if bytes.Equal(bb, pgNull) {
-			return nil, nil
-		}
-		return bb, nil
-	}
-
-	b := make([]byte, 0)
-	for p.Valid() {
-		c := p.Next()
-		switch c {
-		case '\\':
-			switch p.Peek() {
-			case '\\':
-				b = append(b, '\\')
-				p.SkipNext()
-			case '"':
-				b = append(b, '"')
-				p.SkipNext()
-			default:
-				b = append(b, c)
-			}
-		case '\'':
-			switch p.Peek() {
-			case '\'':
-				b = append(b, '\'')
-				p.SkipNext()
-			default:
-				b = append(b, c)
-			}
-		case '"':
-			// Read "=>".
-			p.pos += 2
-			return b, nil
-		default:
-			b = append(b, c)
-		}
-	}
-
-	return nil, fmt.Errorf("pg: can't parse hstore: %s", p.b)
-}
-
-func (p *hstoreParser) NextValue() ([]byte, error) {
-	if p.Next() != '"' {
-		p.pos--
-		bb := p.ReadSep([]byte{',', ' '})
-		if bytes.Equal(bb, pgNull) {
-			return nil, nil
-		}
-		return bb, nil
-	}
-
-	b := make([]byte, 0)
-	for p.Valid() {
-		c := p.Next()
-		switch c {
-		case '\\':
-			switch p.Peek() {
-			case '\\':
-				b = append(b, '\\')
-				p.SkipNext()
-			case '"':
-				b = append(b, '"')
-				p.SkipNext()
-			default:
-				b = append(b, c)
-			}
-		case '\'':
-			switch p.Peek() {
-			case '\'':
-				b = append(b, '\'')
-				p.SkipNext()
-			default:
-				b = append(b, c)
-			}
-		case '"':
-			return b, nil
-		default:
-			b = append(b, c)
-		}
-	}
-
-	return nil, fmt.Errorf("pg: can't parse hstore: %s", p.b)
 }

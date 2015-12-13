@@ -21,17 +21,21 @@ func NewFormatter(params []interface{}) *Formatter {
 }
 
 func (f *Formatter) Append(dst []byte, src string) ([]byte, error) {
+	return f.AppendBytes(dst, []byte(src))
+}
+
+func (f *Formatter) AppendBytes(dst []byte, src []byte) ([]byte, error) {
 	if f.params == nil {
 		return append(dst, src...), nil
 	}
 
-	p := parser.NewParser([]byte(src))
+	p := parser.New(src)
 
 	for p.Valid() {
-		ch := p.Next()
+		ch := p.Read()
 		if ch == '\\' {
 			if p.Peek() == '?' {
-				p.SkipNext()
+				p.Skip('?')
 				dst = append(dst, '?')
 				continue
 			}
@@ -40,7 +44,7 @@ func (f *Formatter) Append(dst []byte, src string) ([]byte, error) {
 			continue
 		}
 
-		if name := p.ReadName(); name != "" {
+		if name := p.ReadIdentifier(); name != "" {
 			if f.rel == nil {
 				if len(f.params) == 0 {
 					return nil, errors.New("pg: expected at least one parameter, got nothing")
@@ -76,8 +80,8 @@ func (f *Formatter) Append(dst []byte, src string) ([]byte, error) {
 		f.paramIndex++
 	}
 
-	if f.paramIndex < len(f.params) {
-		err := fmt.Errorf("pg: expected %d parameters, got %d", f.paramIndex, len(f.params))
+	if f.paramIndex < len(f.params) && f.paramIndex != 0 {
+		err := fmt.Errorf("pg: got %d extra parameters", len(f.params)-f.paramIndex)
 		return nil, err
 	}
 

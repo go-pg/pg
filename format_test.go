@@ -57,7 +57,7 @@ var formattingTests = []formattingTest{
 	{q: "? ?foo ?", args: args{"one", "two", structv}, wanted: "'one' 'bar' 'two'"},
 	{q: "?foo ?Meth", args: args{structv}, wanted: "'bar' 'value'"},
 	{q: "?foo ?Meth ?Meth2", args: args{embeddedStructv}, wanted: "'bar' 'value' 'value2'"},
-	{q: "", args: args{"foo", "bar"}, wanterr: "pg: expected 0 parameters, got 2"},
+	{q: "?", args: args{"foo", "bar"}, wanterr: "pg: got 1 extra parameters"},
 	{q: "? ? ?", args: args{"foo", "bar"}, wanterr: "pg: expected at least 3 parameters, got 2"},
 	{q: "?bar", args: args{structv}, wanterr: `pg: can't map "bar" on pg_test.structFormatter`},
 	{q: "?MethWithArgs", args: args{structv}, wanterr: `pg: can't map "MethWithArgs" on pg_test.structFormatter`},

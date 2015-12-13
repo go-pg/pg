@@ -3,6 +3,8 @@ package orm
 import (
 	"fmt"
 	"strings"
+
+	"gopkg.in/pg.v3/types"
 )
 
 type HasOne struct {
@@ -13,12 +15,13 @@ type HasOne struct {
 func (h *HasOne) Select(s *Select) *Select {
 	s = s.Table(h.Join.Table.Name)
 	s.columns = h.Join.Columns(s.columns, h.Join.Table.Name+"__")
-	s = s.Where(h.where())
+	s = s.Where(
+		`?."id" = ?.?`,
+		types.F(h.Join.Table.Name),
+		types.F(h.Base.Table.Name),
+		types.F(h.Field.SQLName+"_id"),
+	)
 	return s
-}
-
-func (h *HasOne) where() string {
-	return h.Join.Table.Name + ".id" + " = " + h.Base.Table.Name + "." + h.Field.SQLName + "_id"
 }
 
 type HasMany struct {
@@ -27,12 +30,11 @@ type HasMany struct {
 }
 
 func (h *HasMany) Select(s *Select) *Select {
-	s = s.Where(h.where())
+	s = s.Where(
+		"?.? = ?",
+		types.F(h.Join.Table.Name), types.F(h.Base.Table.Name+"_id"), h.Base.PKValue(),
+	)
 	return s
-}
-
-func (h *HasMany) where() string {
-	return h.Join.Table.Name + "." + h.Base.Table.Name + "_id" + " = " + h.Base.PKValue()
 }
 
 type Relation struct {

@@ -1,6 +1,10 @@
 package orm
 
-import "strconv"
+import (
+	"strconv"
+
+	"gopkg.in/pg.v3/types"
+)
 
 type result interface {
 	Affected() int
@@ -17,8 +21,8 @@ type Select struct {
 	tables  []string
 	columns []string
 	joins   []string
-	where   []string
-	order   string
+	wheres  []string
+	orders  []string
 	limit   int
 	offset  int
 
@@ -55,7 +59,7 @@ func (s *Select) Where(where string, params ...interface{}) *Select {
 	if err != nil {
 		s.err = err
 	} else {
-		s.where = append(s.where, string(b))
+		s.wheres = append(s.wheres, string(b))
 	}
 	return s
 }
@@ -66,7 +70,7 @@ func (s *Select) Join(join string) *Select {
 }
 
 func (s *Select) Order(order string) *Select {
-	s.order = order
+	s.orders = append(s.orders, order)
 	return s
 }
 
@@ -131,22 +135,28 @@ func (s *Select) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	if s.columns == nil {
 		b = append(b, '*')
 	} else {
-		b = appendSlice(b, s.columns)
+		b, err = appendField(f, b, s.columns...)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	b = append(b, " FROM "...)
-	b = appendSlice(b, s.tables)
-
-	b = appendSlice(b, s.joins)
-
-	if s.where != nil {
-		b = append(b, " WHERE "...)
-		b = appendSlice(b, s.where)
+	b, err = appendField(f, b, s.tables...)
+	if err != nil {
+		return nil, err
 	}
 
-	if s.order != "" {
+	b = appendString(b, s.joins...)
+
+	if s.wheres != nil {
+		b = append(b, " WHERE "...)
+		b = appendString(b, s.wheres...)
+	}
+
+	if s.orders != nil {
 		b = append(b, " ORDER BY "...)
-		b, err = f.Append(b, s.order)
+		b, err = appendField(f, b, s.orders...)
 		if err != nil {
 			return b, err
 		}
@@ -165,7 +175,23 @@ func (s *Select) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	return b, nil
 }
 
-func appendSlice(b []byte, ss []string) []byte {
+func appendField(f *Formatter, b []byte, ss ...string) ([]byte, error) {
+	for i, field := range ss {
+		var err error
+
+		b, err = f.AppendBytes(b, types.AppendField(nil, field))
+		if err != nil {
+			return nil, err
+		}
+
+		if i != len(ss)-1 {
+			b = append(b, ", "...)
+		}
+	}
+	return b, nil
+}
+
+func appendString(b []byte, ss ...string) []byte {
 	for i, s := range ss {
 		b = append(b, s...)
 		if i != len(ss)-1 {

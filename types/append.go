@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"gopkg.in/pg.v3/internal/parser"
 	"gopkg.in/pg.v3/pgutil"
 )
 
@@ -320,12 +321,26 @@ func appendDriverValuer(b []byte, v driver.Valuer, quote bool) []byte {
 	return Append(b, value, quote)
 }
 
-func AppendField(b []byte, f string) []byte {
+func AppendField(b []byte, field string) []byte {
+	return AppendFieldBytes(b, []byte(field))
+}
+
+func AppendFieldBytes(b []byte, field []byte) []byte {
+	p := parser.New(field)
 	b = append(b, '"')
-	for _, c := range []byte(f) {
-		if c == '"' {
+	for p.Valid() {
+		switch c := p.Read(); c {
+		case '"':
 			b = append(b, '"', '"')
-		} else {
+		case '.':
+			b = append(b, '"', c, '"')
+		case ' ':
+			if p.Got("AS ") || p.Got("as ") {
+				b = append(b, `" AS "`...)
+			} else {
+				b = append(b, ' ')
+			}
+		default:
 			b = append(b, c)
 		}
 	}
