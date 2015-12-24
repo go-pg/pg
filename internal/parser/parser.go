@@ -72,7 +72,7 @@ func (p *Parser) ReadSep(sep []byte) []byte {
 	return p.b[start:p.pos]
 }
 
-func (p *Parser) ReadIdentifier() string {
+func (p *Parser) ReadIdentifier() []byte {
 	start := p.pos
 	for p.Valid() {
 		ch := p.Read()
@@ -81,7 +81,7 @@ func (p *Parser) ReadIdentifier() string {
 			break
 		}
 	}
-	return string(p.b[start:p.pos])
+	return p.b[start:p.pos]
 }
 
 func (p *Parser) ReadNumber() int {

@@ -44,7 +44,7 @@ func (f *Formatter) AppendBytes(dst []byte, src []byte) ([]byte, error) {
 			continue
 		}
 
-		if name := p.ReadIdentifier(); name != "" {
+		if name := string(p.ReadIdentifier()); name != "" {
 			if f.rel == nil {
 				if len(f.params) == 0 {
 					return nil, errors.New("pg: expected at least one parameter, got nothing")

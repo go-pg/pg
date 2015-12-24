@@ -147,11 +147,17 @@ func (s *Select) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	b = appendString(b, s.joins...)
+	b, err = appendString(f, b, s.joins...)
+	if err != nil {
+		return nil, err
+	}
 
 	if s.wheres != nil {
 		b = append(b, " WHERE "...)
-		b = appendString(b, s.wheres...)
+		b, err = appendString(f, b, s.wheres...)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if s.orders != nil {
@@ -176,9 +182,8 @@ func (s *Select) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 }
 
 func appendField(f *Formatter, b []byte, ss ...string) ([]byte, error) {
+	var err error
 	for i, field := range ss {
-		var err error
-
 		b, err = f.AppendBytes(b, types.AppendField(nil, field))
 		if err != nil {
 			return nil, err
@@ -191,12 +196,17 @@ func appendField(f *Formatter, b []byte, ss ...string) ([]byte, error) {
 	return b, nil
 }
 
-func appendString(b []byte, ss ...string) []byte {
+func appendString(f *Formatter, b []byte, ss ...string) ([]byte, error) {
+	var err error
 	for i, s := range ss {
-		b = append(b, s...)
+		b, err = f.Append(b, s)
+		if err != nil {
+			return nil, err
+		}
+
 		if i != len(ss)-1 {
 			b = append(b, ", "...)
 		}
 	}
-	return b
+	return b, nil
 }

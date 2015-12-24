@@ -327,24 +327,45 @@ func AppendField(b []byte, field string) []byte {
 
 func AppendFieldBytes(b []byte, field []byte) []byte {
 	p := parser.New(field)
-	b = append(b, '"')
+	var quoted bool
 	for p.Valid() {
-		switch c := p.Read(); c {
-		case '"':
-			b = append(b, '"', '"')
+		c := p.Read()
+
+		switch c {
+		case '\\':
+			if p.Got("?") {
+				c = '?'
+			}
 		case '.':
 			b = append(b, '"', c, '"')
+			continue
 		case ' ':
 			if p.Got("AS ") || p.Got("as ") {
 				b = append(b, `" AS "`...)
 			} else {
 				b = append(b, ' ')
 			}
-		default:
+			continue
+		case '?':
+			b = append(b, '?')
+			b = append(b, p.ReadIdentifier()...)
+			continue
+		}
+
+		if !quoted {
+			b = append(b, '"')
+			quoted = true
+		}
+		if c == '"' {
+			b = append(b, '"', '"')
+		} else {
 			b = append(b, c)
 		}
+
 	}
-	b = append(b, '"')
+	if quoted {
+		b = append(b, '"')
+	}
 	return b
 }
 

@@ -31,8 +31,8 @@ type HasMany struct {
 
 func (h *HasMany) Select(s *Select) *Select {
 	s = s.Where(
-		"?.? = ?",
-		types.F(h.Join.Table.Name), types.F(h.Base.Table.Name+"_id"), h.Base.PKValue(),
+		`?.? = \?PKValue`,
+		types.F(h.Join.Table.Name), types.F(h.Base.Table.Name+"_id"),
 	)
 	return s
 }

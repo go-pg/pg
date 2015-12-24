@@ -76,14 +76,12 @@ func NewModelPath(owner reflect.Value, path []string) (*Model, error) {
 	}
 }
 
-// TODO - append?
-func (m *Model) PK() string {
-	return m.Table.PK.SQLName
+func (m *Model) AppendPKName(b []byte) []byte {
+	return types.AppendField(b, m.Table.PK.SQLName)
 }
 
-// TODO - append?
-func (m *Model) PKValue() types.Q {
-	return types.Q(m.Table.PK.AppendValue(nil, m.Value(false), false))
+func (m *Model) AppendPKValue(b []byte) []byte {
+	return m.Table.PK.AppendValue(b, m.owner, true)
 }
 
 func (m *Model) Columns(columns []string, prefix string) []string {
@@ -96,8 +94,12 @@ func (m *Model) Columns(columns []string, prefix string) []string {
 
 func (m *Model) AppendParam(b []byte, name string) ([]byte, error) {
 	switch name {
+	case "TableName":
+		return types.AppendField(b, m.Table.Name), nil
 	case "PK":
-		return append(b, m.PK()...), nil
+		return m.AppendPKName(b), nil
+	case "PKValue":
+		return m.AppendPKValue(b), nil
 	}
 
 	if field, ok := m.Table.FieldsMap[name]; ok {
