@@ -11,7 +11,7 @@ import (
 var invalidValue = reflect.Value{}
 
 type Model struct {
-	value reflect.Value
+	strct reflect.Value
 	slice reflect.Value
 
 	owner reflect.Value
@@ -26,7 +26,10 @@ var (
 )
 
 func NewModel(vi interface{}) (*Model, error) {
-	v := reflect.ValueOf(vi)
+	v, ok := vi.(reflect.Value)
+	if !ok {
+		v = reflect.ValueOf(vi)
+	}
 	if !v.IsValid() {
 		return nil, errors.New("pg: NewModel(nil)")
 	}
@@ -37,7 +40,7 @@ func NewModel(vi interface{}) (*Model, error) {
 	switch v.Kind() {
 	case reflect.Struct:
 		return &Model{
-			value: v,
+			strct: v,
 
 			Table: Tables.Get(v.Type()),
 		}, nil
@@ -81,7 +84,7 @@ func (m *Model) AppendPKName(b []byte) []byte {
 }
 
 func (m *Model) AppendPKValue(b []byte) []byte {
-	return m.Table.PK.AppendValue(b, m.owner, true)
+	return m.Table.PK.AppendValue(b, m.strct, true)
 }
 
 func (m *Model) Columns(columns []string, prefix string) []string {
@@ -103,20 +106,20 @@ func (m *Model) AppendParam(b []byte, name string) ([]byte, error) {
 	}
 
 	if field, ok := m.Table.FieldsMap[name]; ok {
-		return field.AppendValue(b, m.value, true), nil
+		return field.AppendValue(b, m.strct, true), nil
 	}
 
 	if method, ok := m.Table.Methods[name]; ok {
-		return method.AppendValue(b, m.value.Addr(), true), nil
+		return method.AppendValue(b, m.strct.Addr(), true), nil
 	}
 
-	return nil, fmt.Errorf("pg: can't map %q on %s", name, m.value.Type())
+	return nil, fmt.Errorf("pg: can't map %q on %s", name, m.strct.Type())
 }
 
 func (m *Model) NextModel() interface{} {
 	v := m.Slice(true)
 	if v.Kind() == reflect.Slice {
-		m.value = sliceNextElemValue(v)
+		m.strct = sliceNextElemValue(v)
 	}
 	return m
 }
@@ -124,24 +127,34 @@ func (m *Model) NextModel() interface{} {
 func (m *Model) ScanColumn(colIdx int, colName string, b []byte) error {
 	field, ok := m.Table.FieldsMap[colName]
 	if !ok {
-		return fmt.Errorf("pg: can't find field %q in %s", colName, m.value.Type())
+		return fmt.Errorf("pg: can't find field %q in %s", colName, m.strct.Type())
 	}
-	return field.DecodeValue(m.Value(true), b)
+	return field.DecodeValue(m.Struct(true), b)
 }
 
 func (m *Model) Bind(owner reflect.Value) {
 	m.owner = owner
-	m.value = invalidValue
+	m.strct = invalidValue
 	m.slice = invalidValue
 }
 
-func (m *Model) Value(save bool) reflect.Value {
-	if m.value.IsValid() {
-		return m.value
+func (m *Model) Value() reflect.Value {
+	if m.slice.IsValid() {
+		return m.slice
+	}
+	if m.strct.IsValid() {
+		return m.strct
+	}
+	return fieldValueByPath(m.owner, m.path, false)
+}
+
+func (m *Model) Struct(save bool) reflect.Value {
+	if m.strct.IsValid() {
+		return m.strct
 	}
 	v := fieldValueByPath(m.owner, m.path, save)
 	if save {
-		m.value = v
+		m.strct = v
 	}
 	return v
 }
@@ -158,6 +171,9 @@ func (m *Model) Slice(save bool) reflect.Value {
 }
 
 func fieldValueByPath(v reflect.Value, path []string, save bool) reflect.Value {
+	if !save && v.Kind() == reflect.Slice {
+		v = reflect.Zero(v.Type().Elem())
+	}
 	for _, name := range path {
 		v = v.FieldByName(name)
 		if v.Kind() == reflect.Ptr {

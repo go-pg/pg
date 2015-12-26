@@ -83,7 +83,6 @@ type hstoreParser struct {
 }
 
 func newHstoreParser(b []byte) *hstoreParser {
-	fmt.Printf("%q\n", string(b))
 	return &hstoreParser{
 		Parser: parser.New(b),
 	}

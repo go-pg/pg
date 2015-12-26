@@ -80,10 +80,5 @@ func (f *Formatter) AppendBytes(dst []byte, src []byte) ([]byte, error) {
 		f.paramIndex++
 	}
 
-	if f.paramIndex < len(f.params) && f.paramIndex != 0 {
-		err := fmt.Errorf("pg: got %d extra parameters", len(f.params)-f.paramIndex)
-		return nil, err
-	}
-
 	return dst, nil
 }

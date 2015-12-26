@@ -33,25 +33,29 @@ func (f *Field) Has(flag int8) bool {
 	return f.flags&flag != 0
 }
 
-func (f *Field) IsEmpty(v reflect.Value) bool {
-	fv := v.FieldByIndex(f.Index)
+func (f *Field) Value(strct reflect.Value) reflect.Value {
+	return strct.FieldByIndex(f.Index)
+}
+
+func (f *Field) IsEmpty(strct reflect.Value) bool {
+	fv := f.Value(strct)
 	return isEmptyValue(fv)
 }
 
-func (f *Field) AppendValue(dst []byte, v reflect.Value, quote bool) []byte {
-	fv := v.FieldByIndex(f.Index)
+func (f *Field) AppendValue(b []byte, strct reflect.Value, quote bool) []byte {
+	fv := f.Value(strct)
 	if f.Has(NullEmptyFlag) && isEmptyValue(fv) {
-		return types.AppendNull(dst, quote)
+		return types.AppendNull(b, quote)
 	}
-	return f.appender(dst, fv, quote)
+	return f.appender(b, fv, quote)
 }
 
-func (f *Field) DecodeValue(v reflect.Value, b []byte) error {
-	v = fieldByIndex(v, f.Index)
+func (f *Field) DecodeValue(strct reflect.Value, b []byte) error {
+	fv := fieldByIndex(strct, f.Index)
 	if b == nil {
-		return types.DecodeNullValue(v)
+		return types.DecodeNullValue(fv)
 	}
-	return f.decoder(v, b)
+	return f.decoder(fv, b)
 }
 
 func fieldByIndex(v reflect.Value, index []int) reflect.Value {

@@ -165,7 +165,10 @@ var _ = Describe("Select", func() {
 			`CREATE TABLE author(id int, name text, role_id int)`,
 			`CREATE TABLE entry(id int, title text, author_id int)`,
 			`INSERT INTO author VALUES (10, 'user 1', 1)`,
+			`INSERT INTO author VALUES (11, 'user 2', 1)`,
 			`INSERT INTO entry VALUES (100, 'article 1', 10)`,
+			`INSERT INTO entry VALUES (101, 'article 2', 10)`,
+			`INSERT INTO entry VALUES (102, 'article 3', 11)`,
 		}
 		for _, q := range sql {
 			_, err := db.Exec(q)
@@ -173,20 +176,59 @@ var _ = Describe("Select", func() {
 		}
 	})
 
-	It("supports HasOne", func() {
-		var entry Entry
-		err := db.Select("entry.id", "author").First(&entry).Err()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(entry.Id).To(Equal(int64(100)))
-		Expect(entry.Author.Id).To(Equal(int64(10)))
+	Describe("struct", func() {
+		It("supports HasOne", func() {
+			var entry Entry
+			err := db.Select("entry.id", "author").First(&entry).Err()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(entry.Id).To(Equal(int64(100)))
+			Expect(entry.Author.Id).To(Equal(int64(10)))
+		})
+
+		It("supports HasMany", func() {
+			var author Author
+			err := db.Select("author.id", "entries").First(&author).Err()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(author.Id).To(Equal(int64(10)))
+			Expect(author.Entries).To(HaveLen(2))
+			Expect(author.Entries[0].Id).To(Equal(int64(100)))
+			Expect(author.Entries[1].Id).To(Equal(int64(101)))
+		})
 	})
 
-	It("supports HasMany", func() {
-		var author Author
-		err := db.Select("author.id", "entries").First(&author).Err()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(author.Id).To(Equal(int64(10)))
-		Expect(author.Entries).To(HaveLen(1))
-		Expect(author.Entries[0].Id).To(Equal(int64(100)))
+	Describe("slice", func() {
+		It("supports HasOne", func() {
+			var entries []Entry
+			err := db.Select("entry.id", "author").Order("id").Find(&entries).Err()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(entries).To(HaveLen(3))
+
+			entry := &entries[0]
+			Expect(entry.Id).To(Equal(int64(100)))
+			Expect(entry.Author.Id).To(Equal(int64(10)))
+
+			entry = &entries[1]
+			Expect(entry.Id).To(Equal(int64(101)))
+			Expect(entry.Author.Id).To(Equal(int64(10)))
+
+			entry = &entries[2]
+			Expect(entry.Id).To(Equal(int64(102)))
+			Expect(entry.Author.Id).To(Equal(int64(11)))
+		})
+
+		It("supports HasMany", func() {
+			var authors []Author
+			err := db.Select("author.id", "entries").Order("id").Find(&authors).Err()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(authors).To(HaveLen(2))
+
+			author := &authors[0]
+			Expect(author.Id).To(Equal(int64(10)))
+			Expect(author.Entries).To(HaveLen(2))
+
+			author = &authors[1]
+			Expect(author.Id).To(Equal(int64(11)))
+			Expect(author.Entries).To(HaveLen(1))
+		})
 	})
 })

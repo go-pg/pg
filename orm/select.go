@@ -114,9 +114,8 @@ func (s *Select) Find(dst interface{}) *Select {
 		return s
 	}
 
-	// TODO: support slice base model
 	for i := range rel.HasMany {
-		err := rel.HasMany[i].Select(NewSelect(s.db)).Find(rel.HasMany[i].Join).Err()
+		err := rel.HasMany[i].Do(s.db)
 		if err != nil {
 			s.setErr(err)
 			return s

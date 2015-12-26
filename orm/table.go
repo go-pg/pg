@@ -10,6 +10,7 @@ import (
 
 type Table struct {
 	Name string
+	Type reflect.Type
 
 	PK        *Field
 	Fields    []*Field
@@ -52,6 +53,7 @@ func (t *Table) hasMany(field *Field) {
 func NewTable(typ reflect.Type) *Table {
 	table := &Table{
 		Name:      pgutil.Underscore(typ.Name()),
+		Type:      typ,
 		Fields:    make([]*Field, 0, typ.NumField()),
 		FieldsMap: make(map[string]*Field, typ.NumField()),
 	}
