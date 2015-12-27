@@ -135,6 +135,8 @@ var _ = Describe("Listener.ReceiveTimeout", func() {
 type Role struct {
 	Id   int64
 	Name string
+
+	Authors []Author
 }
 
 type Author struct {
@@ -160,15 +162,19 @@ var _ = Describe("Select", func() {
 		db = pg.Connect(pgOptions())
 
 		sql := []string{
+			`DROP TABLE IF EXISTS role`,
 			`DROP TABLE IF EXISTS author`,
 			`DROP TABLE IF EXISTS entry`,
+			`CREATE TABLE role(id int, name text)`,
 			`CREATE TABLE author(id int, name text, role_id int)`,
 			`CREATE TABLE entry(id int, title text, author_id int)`,
+			`INSERT INTO role VALUES (1, 'role 1')`,
+			`INSERT INTO role VALUES (2, 'role 2')`,
 			`INSERT INTO author VALUES (10, 'user 1', 1)`,
-			`INSERT INTO author VALUES (11, 'user 2', 1)`,
-			`INSERT INTO entry VALUES (100, 'article 1', 10)`,
-			`INSERT INTO entry VALUES (101, 'article 2', 10)`,
-			`INSERT INTO entry VALUES (102, 'article 3', 11)`,
+			`INSERT INTO author VALUES (11, 'user 2', 2)`,
+			`INSERT INTO entry VALUES (100, 'entry 1', 10)`,
+			`INSERT INTO entry VALUES (101, 'entry 2', 10)`,
+			`INSERT INTO entry VALUES (102, 'entry 3', 11)`,
 		}
 		for _, q := range sql {
 			_, err := db.Exec(q)
@@ -179,54 +185,66 @@ var _ = Describe("Select", func() {
 	Describe("struct", func() {
 		It("supports HasOne", func() {
 			var entry Entry
-			err := db.Select("entry.id", "author").First(&entry).Err()
+			err := db.Select("entry.id", "author", "author.role").First(&entry).Err()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(entry.Id).To(Equal(int64(100)))
 			Expect(entry.Author.Id).To(Equal(int64(10)))
+			Expect(entry.Author.Role.Id).To(Equal(int64(1)))
 		})
 
 		It("supports HasMany", func() {
-			var author Author
-			err := db.Select("author.id", "entries").First(&author).Err()
+			var role Role
+			err := db.Select("role.id", "authors", "authors.entries").First(&role).Err()
 			Expect(err).NotTo(HaveOccurred())
+			Expect(role.Id).To(Equal(int64(1)))
+
+			Expect(role.Authors).To(HaveLen(1))
+			author := &role.Authors[0]
 			Expect(author.Id).To(Equal(int64(10)))
 			Expect(author.Entries).To(HaveLen(2))
-			Expect(author.Entries[0].Id).To(Equal(int64(100)))
-			Expect(author.Entries[1].Id).To(Equal(int64(101)))
+
+			Expect(author.Entries).To(HaveLen(2))
+			entry := &author.Entries[0]
+			Expect(entry.Id).To(Equal(int64(100)))
+			entry = &author.Entries[1]
+			Expect(entry.Id).To(Equal(int64(101)))
 		})
 	})
 
 	Describe("slice", func() {
 		It("supports HasOne", func() {
 			var entries []Entry
-			err := db.Select("entry.id", "author").Order("id").Find(&entries).Err()
+			err := db.Select("entry.id", "author", "author.role").Order("role.id").Find(&entries).Err()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(entries).To(HaveLen(3))
 
 			entry := &entries[0]
 			Expect(entry.Id).To(Equal(int64(100)))
 			Expect(entry.Author.Id).To(Equal(int64(10)))
+			Expect(entry.Author.Role.Id).To(Equal(int64(1)))
 
 			entry = &entries[1]
 			Expect(entry.Id).To(Equal(int64(101)))
 			Expect(entry.Author.Id).To(Equal(int64(10)))
+			Expect(entry.Author.Role.Id).To(Equal(int64(1)))
 
 			entry = &entries[2]
 			Expect(entry.Id).To(Equal(int64(102)))
 			Expect(entry.Author.Id).To(Equal(int64(11)))
+			Expect(entry.Author.Role.Id).To(Equal(int64(2)))
 		})
 
 		It("supports HasMany", func() {
-			var authors []Author
-			err := db.Select("author.id", "entries").Order("id").Find(&authors).Err()
+			var roles []Role
+			err := db.Select("role.id", "authors", "authors.entries").Order("role.id").Find(&roles).Err()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(authors).To(HaveLen(2))
+			Expect(roles).To(HaveLen(2))
 
-			author := &authors[0]
+			author := &roles[0].Authors[0]
 			Expect(author.Id).To(Equal(int64(10)))
 			Expect(author.Entries).To(HaveLen(2))
 
-			author = &authors[1]
+			author = &roles[1].Authors[0]
 			Expect(author.Id).To(Equal(int64(11)))
 			Expect(author.Entries).To(HaveLen(1))
 		})

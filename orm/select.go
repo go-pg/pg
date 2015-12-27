@@ -95,16 +95,18 @@ func (s *Select) Find(dst interface{}) *Select {
 		return s
 	}
 
-	for i, column := range s.columns {
-		if err := rel.AddRelation(column); err == nil {
+	for i := 0; i < len(s.columns); {
+		if err := rel.AddRelation(s.columns[i]); err == nil {
 			s.columns = append(s.columns[:i], s.columns[i+1:]...)
+			continue
 		}
+		i++
 	}
 
 	s.tables = append(s.tables, rel.Model.Table.Name)
 	if s.columns != nil {
 		for _, hasOne := range rel.HasOne {
-			s = hasOne.Select(s)
+			s = hasOne.Do(s)
 		}
 	}
 
@@ -115,7 +117,7 @@ func (s *Select) Find(dst interface{}) *Select {
 	}
 
 	for i := range rel.HasMany {
-		err := rel.HasMany[i].Do(s.db)
+		err := rel.HasMany[i].Do(s.db, rel.Model.Value())
 		if err != nil {
 			s.setErr(err)
 			return s
@@ -146,14 +148,14 @@ func (s *Select) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 		return nil, err
 	}
 
-	b, err = appendString(f, b, s.joins...)
+	b, err = appendString(f, b, "", s.joins...)
 	if err != nil {
 		return nil, err
 	}
 
 	if s.wheres != nil {
 		b = append(b, " WHERE "...)
-		b, err = appendString(f, b, s.wheres...)
+		b, err = appendString(f, b, " AND ", s.wheres...)
 		if err != nil {
 			return nil, err
 		}
@@ -161,7 +163,7 @@ func (s *Select) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 
 	if s.orders != nil {
 		b = append(b, " ORDER BY "...)
-		b, err = appendField(f, b, s.orders...)
+		b, err = appendString(f, b, ", ", s.orders...)
 		if err != nil {
 			return b, err
 		}
@@ -195,7 +197,7 @@ func appendField(f *Formatter, b []byte, ss ...string) ([]byte, error) {
 	return b, nil
 }
 
-func appendString(f *Formatter, b []byte, ss ...string) ([]byte, error) {
+func appendString(f *Formatter, b []byte, sep string, ss ...string) ([]byte, error) {
 	var err error
 	for i, s := range ss {
 		b, err = f.Append(b, s)
@@ -204,7 +206,7 @@ func appendString(f *Formatter, b []byte, ss ...string) ([]byte, error) {
 		}
 
 		if i != len(ss)-1 {
-			b = append(b, ", "...)
+			b = append(b, sep...)
 		}
 	}
 	return b, nil

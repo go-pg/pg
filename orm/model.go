@@ -11,13 +11,12 @@ import (
 var invalidValue = reflect.Value{}
 
 type Model struct {
+	Table *Table
+	Path  []string
+
+	bind  reflect.Value
 	strct reflect.Value
 	slice reflect.Value
-
-	owner reflect.Value
-	path  []string
-
-	Table *Table
 }
 
 var (
@@ -56,21 +55,21 @@ func NewModel(vi interface{}) (*Model, error) {
 	}
 }
 
-func NewModelPath(owner reflect.Value, path []string) (*Model, error) {
-	typ := fieldValueByPath(owner, path, false).Type()
+func NewModelPath(bind reflect.Value, path []string) (*Model, error) {
+	typ := fieldValueByPath(bind, path, false).Type()
 	switch typ.Kind() {
 	case reflect.Struct:
 		return &Model{
-			owner: owner,
-			path:  path,
+			bind: bind,
+			Path: path,
 
 			Table: Tables.Get(typ),
 		}, nil
 	case reflect.Slice:
 		typ := indirectType(typ.Elem())
 		return &Model{
-			owner: owner,
-			path:  path,
+			bind: bind,
+			Path: path,
 
 			Table: Tables.Get(typ),
 		}, nil
@@ -80,7 +79,7 @@ func NewModelPath(owner reflect.Value, path []string) (*Model, error) {
 }
 
 func (m *Model) AppendPKName(b []byte) []byte {
-	return types.AppendField(b, m.Table.PK.SQLName)
+	return types.AppendField(b, m.Table.Name+"."+m.Table.PK.SQLName)
 }
 
 func (m *Model) AppendPKValue(b []byte) []byte {
@@ -132,8 +131,8 @@ func (m *Model) ScanColumn(colIdx int, colName string, b []byte) error {
 	return field.DecodeValue(m.Struct(true), b)
 }
 
-func (m *Model) Bind(owner reflect.Value) {
-	m.owner = owner
+func (m *Model) Bind(bind reflect.Value) {
+	m.bind = bind
 	m.strct = invalidValue
 	m.slice = invalidValue
 }
@@ -145,14 +144,14 @@ func (m *Model) Value() reflect.Value {
 	if m.strct.IsValid() {
 		return m.strct
 	}
-	return fieldValueByPath(m.owner, m.path, false)
+	return fieldValueByPath(m.bind, m.Path, false)
 }
 
 func (m *Model) Struct(save bool) reflect.Value {
 	if m.strct.IsValid() {
 		return m.strct
 	}
-	v := fieldValueByPath(m.owner, m.path, save)
+	v := fieldValueByPath(m.bind, m.Path, save)
 	if save {
 		m.strct = v
 	}
@@ -163,7 +162,7 @@ func (m *Model) Slice(save bool) reflect.Value {
 	if m.slice.IsValid() {
 		return m.slice
 	}
-	v := fieldValueByPath(m.owner, m.path, save)
+	v := fieldValueByPath(m.bind, m.Path, save)
 	if save {
 		m.slice = v
 	}
@@ -171,10 +170,11 @@ func (m *Model) Slice(save bool) reflect.Value {
 }
 
 func fieldValueByPath(v reflect.Value, path []string, save bool) reflect.Value {
-	if !save && v.Kind() == reflect.Slice {
-		v = reflect.Zero(v.Type().Elem())
-	}
 	for _, name := range path {
+		if v.Kind() == reflect.Slice {
+			v = reflect.Zero(v.Type().Elem())
+		}
+
 		v = v.FieldByName(name)
 		if v.Kind() == reflect.Ptr {
 			if v.IsNil() {

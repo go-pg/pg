@@ -13,7 +13,7 @@ type HasOne struct {
 	Field      *Field
 }
 
-func (h *HasOne) Select(s *Select) *Select {
+func (h *HasOne) Do(s *Select) *Select {
 	s = s.Table(h.Join.Table.Name)
 	s.columns = h.Join.Columns(s.columns, h.Join.Table.Name+"__")
 	s = s.Where(
@@ -30,54 +30,81 @@ type HasMany struct {
 	Field      *Field
 }
 
-func (h *HasMany) Do(db dber) error {
-	v := h.Base.Value()
-	if v.Kind() == reflect.Slice {
-		return h.doSlice(db, v)
-	}
-	return h.doStruct(db, v)
-}
+func (h *HasMany) Do(db dber, bind reflect.Value) error {
+	path := h.Join.Path[:len(h.Join.Path)-1]
 
-func (h *HasMany) doStruct(db dber, strct reflect.Value) error {
-	b := h.Base.Table.PK.AppendValue(nil, strct, true)
-	return NewSelect(db).Where(
-		`?.? IN (?)`,
-		types.F(h.Join.Table.Name), types.F(h.Base.Table.Name+"_id"), types.Q(b),
-	).Find(h.Join).Err()
-}
-
-func (h *HasMany) doSlice(db dber, baseSlice reflect.Value) error {
-	var b []byte
-	for i := 0; i < baseSlice.Len(); i++ {
-		v := baseSlice.Index(i)
-		b = h.Base.Table.PK.AppendValue(b, v, true)
-		if i != baseSlice.Len()-1 {
-			b = append(b, ", "...)
-		}
+	pk := h.appendPK(nil, bind, path)
+	if pk != nil {
+		pk = pk[:len(pk)-2] // trim ", "
 	}
 
 	joinSlicePtr := reflect.New(reflect.SliceOf(h.Join.Table.Type))
 	err := NewSelect(db).Where(
 		`?.? IN (?)`,
-		types.F(h.Join.Table.Name), types.F(h.Base.Table.Name+"_id"), types.Q(b),
+		types.F(h.Join.Table.Name), types.F(h.Base.Table.Name+"_id"), types.Q(pk),
 	).Find(joinSlicePtr).Err()
 	if err != nil {
 		return err
 	}
 
-	joinSlice := joinSlicePtr.Elem()
+	h.assignValues(bind, joinSlicePtr.Elem(), path)
+
+	return nil
+}
+
+func (h *HasMany) appendPK(b []byte, v reflect.Value, path []string) []byte {
+	if v.Kind() == reflect.Slice {
+		return h.appendPKSlice(b, v, path)
+	} else {
+		return h.appendPKStruct(b, v, path)
+	}
+}
+
+func (h *HasMany) appendPKSlice(b []byte, slice reflect.Value, path []string) []byte {
+	for i := 0; i < slice.Len(); i++ {
+		b = h.appendPKStruct(b, slice.Index(i), path)
+	}
+	return b
+}
+
+func (h *HasMany) appendPKStruct(b []byte, strct reflect.Value, path []string) []byte {
+	if len(path) > 0 {
+		strct = strct.FieldByName(path[0])
+		b = h.appendPKSlice(b, strct, path[1:])
+	} else {
+		b = h.Base.Table.PK.AppendValue(b, strct, true)
+		b = append(b, ", "...)
+	}
+	return b
+}
+
+func (h *HasMany) assignValues(base, joinSlice reflect.Value, path []string) {
+	if base.Kind() == reflect.Slice {
+		h.assignValuesSlice(base, joinSlice, path)
+	} else {
+		h.assignValuesStruct(base, joinSlice, path)
+	}
+}
+
+func (h *HasMany) assignValuesSlice(baseSlice, joinSlice reflect.Value, path []string) {
 	for i := 0; i < baseSlice.Len(); i++ {
-		base := baseSlice.Index(i)
-		hasManySlice := h.Field.Value(base)
+		h.assignValuesStruct(baseSlice.Index(i), joinSlice, path)
+	}
+}
+
+func (h *HasMany) assignValuesStruct(baseStruct, joinSlice reflect.Value, path []string) {
+	if len(path) > 0 {
+		v := baseStruct.FieldByName(path[0])
+		h.assignValues(v, joinSlice, path[1:])
+	} else {
+		hasManySlice := h.Field.Value(baseStruct)
 		for j := 0; j < joinSlice.Len(); j++ {
 			join := joinSlice.Index(j)
-			if h.equal(base, join) {
+			if h.equal(baseStruct, join) {
 				hasManySlice.Set(reflect.Append(hasManySlice, join))
 			}
 		}
 	}
-
-	return nil
 }
 
 func (h *HasMany) equal(base, join reflect.Value) bool {
@@ -90,7 +117,7 @@ func (h *HasMany) equal(base, join reflect.Value) bool {
 type Relation struct {
 	Model   *Model
 	HasOne  map[string]HasOne
-	HasMany []HasMany
+	HasMany []HasMany // list because order is important
 }
 
 var (
@@ -117,39 +144,48 @@ func NewRelation(vi interface{}) (*Relation, error) {
 	}
 }
 
-func (rel *Relation) AddRelation(name string) (err error) {
+func (rel *Relation) AddRelation(name string) error {
 	path := strings.Split(name, ".")
 
 	base := rel.Model
-	value := base.Value()
+	var goPath []string
 
 	for _, name := range path {
 		if field, ok := base.Table.HasOne[name]; ok {
-			model, err := NewModelPath(value, []string{field.GoName})
+			goPath = append(goPath, field.GoName)
+			if hasOne, ok := rel.HasOne[name]; ok {
+				base = hasOne.Join
+				continue
+			}
+			join, err := NewModelPath(rel.Model.Value(), goPath)
 			if err != nil {
 				return err
 			}
-			if rel.HasOne == nil {
-				rel.HasOne = make(map[string]HasOne)
-			}
-			rel.HasOne[name] = HasOne{
+			rel.hasOne(name, HasOne{
 				Base:  base,
-				Join:  model,
+				Join:  join,
 				Field: field,
-			}
+			})
+			base = join
 			continue
 		}
 
 		if field, ok := base.Table.HasMany[name]; ok {
-			model, err := NewModelPath(value, []string{field.GoName})
+			goPath = append(goPath, field.GoName)
+			if hasMany, ok := rel.getHasMany(name); ok {
+				base = hasMany.Join
+				continue
+			}
+			join, err := NewModelPath(rel.Model.Value(), goPath)
 			if err != nil {
 				return err
 			}
 			rel.HasMany = append(rel.HasMany, HasMany{
 				Base:  base,
-				Join:  model,
+				Join:  join,
 				Field: field,
 			})
+			base = join
 			continue
 		}
 
@@ -157,6 +193,23 @@ func (rel *Relation) AddRelation(name string) (err error) {
 	}
 
 	return nil
+}
+
+func (rel *Relation) hasOne(name string, one HasOne) {
+	if rel.HasOne == nil {
+		rel.HasOne = make(map[string]HasOne)
+	}
+	rel.HasOne[name] = one
+}
+
+func (rel *Relation) getHasMany(name string) (hasMany HasMany, ok bool) {
+	for _, hasMany = range rel.HasMany {
+		if hasMany.Field.SQLName == name {
+			ok = true
+			return
+		}
+	}
+	return
 }
 
 func (rel *Relation) AppendParam(b []byte, name string) ([]byte, error) {
