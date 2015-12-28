@@ -15,7 +15,7 @@ type HasOne struct {
 
 func (h *HasOne) Do(s *Select) *Select {
 	s = s.Table(h.Join.Table.Name)
-	s.columns = h.Join.Columns(s.columns, h.Join.Table.Name+"__")
+	s.columns = h.Join.AppendColumns(s.columns, h.Join.Table.Name+"__")
 	s = s.Where(
 		`?."id" = ?.?`,
 		types.F(h.Join.Table.Name),
@@ -146,50 +146,87 @@ func NewRelation(vi interface{}) (*Relation, error) {
 
 func (rel *Relation) AddRelation(name string) error {
 	path := strings.Split(name, ".")
-
-	base := rel.Model
 	var goPath []string
 
+	base := rel.Model
+	join := base
+	var field *Field
+	var isMany bool
+	var retErr error
+
 	for _, name := range path {
-		if field, ok := base.Table.HasOne[name]; ok {
+		if f, ok := join.Table.HasOne[name]; ok {
+			field = f
+			isMany = false
 			goPath = append(goPath, field.GoName)
+
 			if hasOne, ok := rel.HasOne[name]; ok {
-				base = hasOne.Join
+				base = join
+				join = hasOne.Join
 				continue
 			}
-			join, err := NewModelPath(rel.Model.Value(), goPath)
+
+			model, err := NewModelPath(rel.Model.Value(), goPath)
 			if err != nil {
-				return err
+				retErr = err
+				break
 			}
-			rel.hasOne(name, HasOne{
-				Base:  base,
-				Join:  join,
-				Field: field,
-			})
+
 			base = join
+			join = model
 			continue
 		}
 
-		if field, ok := base.Table.HasMany[name]; ok {
+		if f, ok := join.Table.HasMany[name]; ok {
+			field = f
+			isMany = true
 			goPath = append(goPath, field.GoName)
+
 			if hasMany, ok := rel.getHasMany(name); ok {
-				base = hasMany.Join
+				base = join
+				join = hasMany.Join
 				continue
 			}
-			join, err := NewModelPath(rel.Model.Value(), goPath)
+
+			model, err := NewModelPath(rel.Model.Value(), goPath)
 			if err != nil {
-				return err
+				retErr = err
+				break
 			}
-			rel.HasMany = append(rel.HasMany, HasMany{
-				Base:  base,
-				Join:  join,
-				Field: field,
-			})
+
 			base = join
+			join = model
 			continue
 		}
 
-		return fmt.Errorf("pg: %s doesn't have %s relation", base.Table.Name, name)
+		retErr = fmt.Errorf("pg: %s doesn't have %s relation", base.Table.Name, name)
+		break
+	}
+
+	if join == base {
+		return retErr
+	}
+	switch len(path) - len(goPath) {
+	case 0:
+		// ok
+	case 1:
+		join.Columns = append(join.Columns, path[len(path)-1])
+	default:
+		return fmt.Errorf("pg: bad column name: %s", name)
+	}
+
+	if isMany {
+		rel.HasMany = append(rel.HasMany, HasMany{
+			Base:  base,
+			Join:  join,
+			Field: field,
+		})
+	} else {
+		rel.hasOne(field.SQLName, HasOne{
+			Base:  base,
+			Join:  join,
+			Field: field,
+		})
 	}
 
 	return nil

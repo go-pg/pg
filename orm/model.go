@@ -11,10 +11,11 @@ import (
 var invalidValue = reflect.Value{}
 
 type Model struct {
-	Table *Table
-	Path  []string
+	Table   *Table
+	Columns []string
+	Path    []string
+	bind    reflect.Value
 
-	bind  reflect.Value
 	strct reflect.Value
 	slice reflect.Value
 }
@@ -86,9 +87,16 @@ func (m *Model) AppendPKValue(b []byte) []byte {
 	return m.Table.PK.AppendValue(b, m.strct, true)
 }
 
-func (m *Model) Columns(columns []string, prefix string) []string {
+func (m *Model) AppendColumns(columns []string, prefix string) []string {
+	if m.Columns != nil {
+		for _, column := range m.Columns {
+			column = fmt.Sprintf("%s.%s AS %s", m.Table.Name, column, prefix+column)
+			columns = append(columns, column)
+		}
+		return columns
+	}
 	for _, f := range m.Table.Fields {
-		column := fmt.Sprintf(`%s.%s AS %s`, m.Table.Name, f.SQLName, prefix+f.SQLName)
+		column := fmt.Sprintf("%s.%s AS %s", m.Table.Name, f.SQLName, prefix+f.SQLName)
 		columns = append(columns, column)
 	}
 	return columns

@@ -185,7 +185,7 @@ var _ = Describe("Select", func() {
 	Describe("struct", func() {
 		It("supports HasOne", func() {
 			var entry Entry
-			err := db.Select("entry.id", "author", "author.role").First(&entry).Err()
+			err := db.Select("entry.id", "author.id", "author.role.id").First(&entry).Err()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(entry.Id).To(Equal(int64(100)))
 			Expect(entry.Author.Id).To(Equal(int64(10)))
@@ -194,7 +194,7 @@ var _ = Describe("Select", func() {
 
 		It("supports HasMany", func() {
 			var role Role
-			err := db.Select("role.id", "authors", "authors.entries").First(&role).Err()
+			err := db.Select("role.id", "authors.id", "authors.entries.id").First(&role).Err()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(role.Id).To(Equal(int64(1)))
 
