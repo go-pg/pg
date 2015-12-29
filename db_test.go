@@ -153,6 +153,8 @@ type Entry struct {
 	Title    string
 	AuthorId int64
 	Author   *Author
+	EditorId int64
+	Editor   *Author
 }
 
 var _ = Describe("Select", func() {
@@ -167,14 +169,14 @@ var _ = Describe("Select", func() {
 			`DROP TABLE IF EXISTS entry`,
 			`CREATE TABLE role(id int, name text)`,
 			`CREATE TABLE author(id int, name text, role_id int)`,
-			`CREATE TABLE entry(id int, title text, author_id int)`,
+			`CREATE TABLE entry(id int, title text, author_id int, editor_id int)`,
 			`INSERT INTO role VALUES (1, 'role 1')`,
 			`INSERT INTO role VALUES (2, 'role 2')`,
 			`INSERT INTO author VALUES (10, 'user 1', 1)`,
 			`INSERT INTO author VALUES (11, 'user 2', 2)`,
-			`INSERT INTO entry VALUES (100, 'entry 1', 10)`,
-			`INSERT INTO entry VALUES (101, 'entry 2', 10)`,
-			`INSERT INTO entry VALUES (102, 'entry 3', 11)`,
+			`INSERT INTO entry VALUES (100, 'entry 1', 10, 11)`,
+			`INSERT INTO entry VALUES (101, 'entry 2', 10, 11)`,
+			`INSERT INTO entry VALUES (102, 'entry 3', 11, 11)`,
 		}
 		for _, q := range sql {
 			_, err := db.Exec(q)
@@ -185,7 +187,8 @@ var _ = Describe("Select", func() {
 	Describe("struct", func() {
 		It("supports HasOne", func() {
 			var entry Entry
-			err := db.Select("entry.id", "author.id", "author.role.id").First(&entry).Err()
+			err := db.Select("entry.id", "author.id", "editor.id", "author.role.id").
+				First(&entry).Err()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(entry.Id).To(Equal(int64(100)))
 			Expect(entry.Author.Id).To(Equal(int64(10)))
@@ -214,7 +217,7 @@ var _ = Describe("Select", func() {
 	Describe("slice", func() {
 		It("supports HasOne", func() {
 			var entries []Entry
-			err := db.Select("entry.id", "author", "author.role").Order("role.id").Find(&entries).Err()
+			err := db.Select("entry.id", "author", "editor", "author.role").Order("role.id").Find(&entries).Err()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(entries).To(HaveLen(3))
 
@@ -247,6 +250,17 @@ var _ = Describe("Select", func() {
 			author = &roles[1].Authors[0]
 			Expect(author.Id).To(Equal(int64(11)))
 			Expect(author.Entries).To(HaveLen(1))
+		})
+	})
+
+	Describe("where", func() {
+		It("filters by HasOne", func() {
+			var entries []Entry
+			err := db.Select("entry.id").Where("? = 10", pg.F("author.id")).Order("entry.id").Find(&entries).Err()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(entries).To(HaveLen(2))
+			Expect(entries[0].Id).To(Equal(int64(100)))
+			Expect(entries[1].Id).To(Equal(int64(101)))
 		})
 	})
 })

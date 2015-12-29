@@ -11,10 +11,9 @@ import (
 var invalidValue = reflect.Value{}
 
 type Model struct {
-	Table   *Table
-	Columns []string
-	Path    []string
-	bind    reflect.Value
+	Table *Table
+	Path  []string
+	bind  reflect.Value
 
 	strct reflect.Value
 	slice reflect.Value
@@ -56,27 +55,13 @@ func NewModel(vi interface{}) (*Model, error) {
 	}
 }
 
-func NewModelPath(bind reflect.Value, path []string) (*Model, error) {
-	typ := fieldValueByPath(bind, path, false).Type()
-	switch typ.Kind() {
-	case reflect.Struct:
-		return &Model{
-			bind: bind,
-			Path: path,
+func NewModelPath(bind reflect.Value, path []string, table *Table) (*Model, error) {
+	return &Model{
+		bind: bind,
+		Path: path,
 
-			Table: Tables.Get(typ),
-		}, nil
-	case reflect.Slice:
-		typ := indirectType(typ.Elem())
-		return &Model{
-			bind: bind,
-			Path: path,
-
-			Table: Tables.Get(typ),
-		}, nil
-	default:
-		return nil, fmt.Errorf("pg: NewModelPath(unsupported %s)", typ)
-	}
+		Table: table,
+	}, nil
 }
 
 func (m *Model) AppendPKName(b []byte) []byte {
@@ -85,21 +70,6 @@ func (m *Model) AppendPKName(b []byte) []byte {
 
 func (m *Model) AppendPKValue(b []byte) []byte {
 	return m.Table.PK.AppendValue(b, m.strct, true)
-}
-
-func (m *Model) AppendColumns(columns []string, prefix string) []string {
-	if m.Columns != nil {
-		for _, column := range m.Columns {
-			column = fmt.Sprintf("%s.%s AS %s", m.Table.Name, column, prefix+column)
-			columns = append(columns, column)
-		}
-		return columns
-	}
-	for _, f := range m.Table.Fields {
-		column := fmt.Sprintf("%s.%s AS %s", m.Table.Name, f.SQLName, prefix+f.SQLName)
-		columns = append(columns, column)
-	}
-	return columns
 }
 
 func (m *Model) AppendParam(b []byte, name string) ([]byte, error) {

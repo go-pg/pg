@@ -14,24 +14,15 @@ var (
 
 //------------------------------------------------------------------------------
 
-// TODO: fix duplication (how?)
-
-// Q is a ValueAppender that represents safe SQL query.
-type Q string
-
-var _ types.ValueAppender = Q("")
-
-func (q Q) AppendValue(dst []byte, quote bool) []byte {
-	return append(dst, string(q)...)
+// Q returns a ValueAppender that represents safe SQL query.
+func Q(s string) types.Q {
+	return types.Q(s)
 }
 
-// F is a ValueAppender that represents SQL field, e.g. table or column name.
-type F string
-
-var _ types.ValueAppender = F("")
-
-func (f F) AppendValue(dst []byte, quote bool) []byte {
-	return types.AppendField(dst, string(f))
+// F returns a ValueAppender that represents SQL identifier,
+// e.g. table or column name.
+func F(s string) types.F {
+	return types.F(s)
 }
 
 //------------------------------------------------------------------------------

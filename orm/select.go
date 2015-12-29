@@ -20,6 +20,7 @@ type Select struct {
 
 	tables  []string
 	columns []string
+	fields  []string
 	joins   []string
 	wheres  []string
 	orders  []string
@@ -61,6 +62,13 @@ func (s *Select) Where(where string, params ...interface{}) *Select {
 	} else {
 		s.wheres = append(s.wheres, string(b))
 	}
+
+	for _, param := range params {
+		if f, ok := param.(types.F); ok {
+			s.fields = append(s.fields, string(f))
+		}
+	}
+
 	return s
 }
 
@@ -103,10 +111,16 @@ func (s *Select) Find(dst interface{}) *Select {
 		i++
 	}
 
+	for _, field := range s.fields {
+		rel.AddRelation(field)
+	}
+
 	s.tables = append(s.tables, rel.Model.Table.Name)
 	if s.columns != nil {
-		for _, hasOne := range rel.HasOne {
-			s = hasOne.Do(s)
+		for _, join := range rel.Joins {
+			if !join.TableRelation.Many {
+				s = join.JoinOne(s)
+			}
 		}
 	}
 
@@ -116,11 +130,13 @@ func (s *Select) Find(dst interface{}) *Select {
 		return s
 	}
 
-	for i := range rel.HasMany {
-		err := rel.HasMany[i].Do(s.db, rel.Model.Value())
-		if err != nil {
-			s.setErr(err)
-			return s
+	for _, join := range rel.Joins {
+		if join.TableRelation.Many {
+			err := join.JoinMany(s.db, rel.Model.Value())
+			if err != nil {
+				s.setErr(err)
+				return s
+			}
 		}
 	}
 

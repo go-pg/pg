@@ -26,13 +26,20 @@ func (t *tables) Get(typ reflect.Type) *Table {
 		return table
 	}
 
-	table = NewTable(typ)
+	table = newTable(typ)
 
 	t.mtx.Lock()
 	if _, ok = t.tables[typ]; !ok {
 		t.tables[typ] = table
 	}
 	t.mtx.Unlock()
+
+	for _, rel := range table.Relations {
+		if rel.Join != nil {
+			continue
+		}
+		rel.Join = t.Get(reflect.Zero(table.Type).FieldByName(rel.Field.GoName).Type().Elem())
+	}
 
 	return table
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"gopkg.in/pg.v3/orm"
+	"gopkg.in/pg.v3/types"
 )
 
 func AppendQuery(dst []byte, srci interface{}, params ...interface{}) ([]byte, error) {
@@ -18,10 +19,10 @@ func AppendQuery(dst []byte, srci interface{}, params ...interface{}) ([]byte, e
 	}
 }
 
-func FormatQuery(query string, params ...interface{}) (Q, error) {
+func FormatQuery(query string, params ...interface{}) (types.Q, error) {
 	b, err := AppendQuery(nil, query, params...)
 	if err != nil {
 		return "", err
 	}
-	return Q(b), nil
+	return Q(string(b)), nil
 }

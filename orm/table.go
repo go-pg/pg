@@ -8,6 +8,12 @@ import (
 	"gopkg.in/pg.v3/types"
 )
 
+type TableRelation struct {
+	Field *Field
+	Join  *Table
+	Many  bool
+}
+
 type Table struct {
 	Name string
 	Type reflect.Type
@@ -16,10 +22,8 @@ type Table struct {
 	Fields    []*Field
 	FieldsMap map[string]*Field
 
-	Methods map[string]*method
-
-	HasOne  map[string]*Field
-	HasMany map[string]*Field
+	Methods   map[string]*method
+	Relations map[string]*TableRelation
 }
 
 func (t *Table) AddField(field *Field) {
@@ -36,21 +40,14 @@ func (t *Table) DeleteField(field *Field) {
 	delete(t.FieldsMap, field.SQLName)
 }
 
-func (t *Table) hasOne(field *Field) {
-	if t.HasOne == nil {
-		t.HasOne = make(map[string]*Field)
+func (t *Table) hasRelation(rel *TableRelation) {
+	if t.Relations == nil {
+		t.Relations = make(map[string]*TableRelation)
 	}
-	t.HasOne[field.SQLName] = field
+	t.Relations[rel.Field.SQLName] = rel
 }
 
-func (t *Table) hasMany(field *Field) {
-	if t.HasMany == nil {
-		t.HasMany = make(map[string]*Field)
-	}
-	t.HasMany[field.SQLName] = field
-}
-
-func NewTable(typ reflect.Type) *Table {
+func newTable(typ reflect.Type) *Table {
 	table := &Table{
 		Name:      pgutil.Underscore(typ.Name()),
 		Type:      typ,
@@ -67,7 +64,7 @@ loop:
 			if typ.Kind() == reflect.Ptr {
 				typ = typ.Elem()
 			}
-			for _, ff := range NewTable(typ).Fields {
+			for _, ff := range newTable(typ).Fields {
 				ff.Index = append(f.Index, ff.Index...)
 				table.AddField(ff)
 			}
@@ -113,13 +110,18 @@ loop:
 		case reflect.Slice:
 			if ftype.Elem().Kind() == reflect.Struct {
 				fk := typ.Name() + "Id"
-				if _, ok := ftype.Elem().FieldByName(fk); ok {
-					table.hasMany(&field)
+				fkType := ftype.Elem()
+				if _, ok := fkType.FieldByName(fk); ok {
+					table.hasRelation(&TableRelation{
+						Field: &field,
+						Many:  true,
+					})
 					continue loop
 				}
 			}
 		case reflect.Struct:
-			for _, ff := range Tables.Get(ftype).Fields {
+			joinTable := Tables.Get(ftype)
+			for _, ff := range joinTable.Fields {
 				ff = ff.Copy()
 				ff.SQLName = field.SQLName + "__" + ff.SQLName
 				ff.Index = append(field.Index, ff.Index...)
@@ -128,7 +130,10 @@ loop:
 
 			fk := f.Name + "Id"
 			if _, ok := typ.FieldByName(fk); ok {
-				table.hasOne(&field)
+				table.hasRelation(&TableRelation{
+					Field: &field,
+					Join:  joinTable,
+				})
 			}
 
 			table.FieldsMap[field.SQLName] = &field
