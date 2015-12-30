@@ -7,7 +7,7 @@ import (
 
 type Scope struct {
 	Model *Model
-	Joins []Join
+	Joins []*Join
 }
 
 var (
@@ -34,69 +34,67 @@ func NewScope(vi interface{}) (*Scope, error) {
 	}
 }
 
-func (s *Scope) GetJoin(name string) (join Join, ok bool) {
-	for _, join = range s.Joins {
+func (s *Scope) getJoin(name string) (*Join, bool) {
+	for _, join := range s.Joins {
 		if join.Relation.Field.SQLName == name {
-			ok = true
-			return
+			return join, true
 		}
 	}
-	return
+	return nil, false
 }
 
 func (s *Scope) Join(name string) error {
 	path := strings.Split(name, ".")
 	var goPath []string
 
-	baseModel := s.Model
-	joinModel := baseModel
-	var rel *Relation
+	join := &Join{
+		BaseModel: s.Model,
+		JoinModel: s.Model,
+	}
 	var retErr error
 
 	for _, name := range path {
-		if v, ok := joinModel.Table.Relations[name]; ok {
-			rel = v
-			goPath = append(goPath, rel.Field.GoName)
+		rel, ok := join.JoinModel.Table.Relations[name]
+		if !ok {
+			retErr = fmt.Errorf("pg: %s doesn't have %s relation", join.BaseModel.Table.Name, name)
+			break
+		}
+		join.Relation = rel
 
-			if v, ok := s.GetJoin(name); ok {
-				baseModel = joinModel
-				joinModel = v.JoinModel
-				continue
-			}
+		goPath = append(goPath, rel.Field.GoName)
 
-			model, err := NewModelPath(s.Model.Value(), goPath, rel.Join)
-			if err != nil {
-				retErr = err
-				break
-			}
-
-			baseModel = joinModel
-			joinModel = model
+		if v, ok := s.getJoin(name); ok {
+			join.BaseModel = v.BaseModel
+			join.JoinModel = v.JoinModel
 			continue
 		}
 
-		retErr = fmt.Errorf("pg: %s doesn't have %s relation", baseModel.Table.Name, name)
-		break
+		model, err := NewModelPath(s.Model.Value(), goPath, rel.Join)
+		if err != nil {
+			retErr = err
+			break
+		}
+
+		join.BaseModel = join.JoinModel
+		join.JoinModel = model
 	}
 
-	if joinModel == baseModel {
+	if join.JoinModel == join.BaseModel {
 		return retErr
 	}
 
-	var columns []string
+	if v, ok := s.getJoin(join.Relation.Field.SQLName); ok {
+		join = v
+	} else {
+		s.Joins = append(s.Joins, join)
+	}
+
 	switch len(path) - len(goPath) {
 	case 0:
 		// ok
 	default:
-		columns = path[len(path)-1:]
+		join.Columns = append(join.Columns, path[len(path)-1])
 	}
-
-	s.Joins = append(s.Joins, Join{
-		BaseModel: baseModel,
-		JoinModel: joinModel,
-		Relation:  rel,
-		Columns:   columns,
-	})
 
 	return nil
 }
@@ -117,7 +115,7 @@ func (s *Scope) NextModel() interface{} {
 
 func (s *Scope) ScanColumn(colIdx int, colName string, b []byte) error {
 	modelName, colName := splitColumn(colName)
-	join, ok := s.GetJoin(modelName)
+	join, ok := s.getJoin(modelName)
 	if ok {
 		return join.JoinModel.ScanColumn(colIdx, colName, b)
 	}

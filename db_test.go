@@ -185,7 +185,7 @@ var _ = Describe("Select", func() {
 	})
 
 	Describe("struct", func() {
-		It("supports HasOne", func() {
+		It("joins HasOne", func() {
 			var entry Entry
 			err := db.Select("entry.id", "author.id", "editor.id", "author.role.id").
 				First(&entry).Err()
@@ -195,7 +195,7 @@ var _ = Describe("Select", func() {
 			Expect(entry.Author.Role.Id).To(Equal(int64(1)))
 		})
 
-		It("supports HasMany", func() {
+		It("joins HasMany", func() {
 			var role Role
 			err := db.Select("role.id", "authors.id", "authors.entries.id").First(&role).Err()
 			Expect(err).NotTo(HaveOccurred())
@@ -215,7 +215,7 @@ var _ = Describe("Select", func() {
 	})
 
 	Describe("slice", func() {
-		It("supports HasOne", func() {
+		It("joins HasOne", func() {
 			var entries []Entry
 			err := db.Select("entry.id", "author", "editor", "author.role").Order("role.id").Find(&entries).Err()
 			Expect(err).NotTo(HaveOccurred())
@@ -237,7 +237,7 @@ var _ = Describe("Select", func() {
 			Expect(entry.Author.Role.Id).To(Equal(int64(2)))
 		})
 
-		It("supports HasMany", func() {
+		It("joins HasMany", func() {
 			var roles []Role
 			err := db.Select("role.id", "authors", "authors.entries").Order("role.id").Find(&roles).Err()
 			Expect(err).NotTo(HaveOccurred())
@@ -251,6 +251,17 @@ var _ = Describe("Select", func() {
 			Expect(author.Id).To(Equal(int64(11)))
 			Expect(author.Entries).To(HaveLen(1))
 		})
+	})
+
+	It("joins specified columns", func() {
+		var entry Entry
+		err := db.Select("entry.id", "author.id", "author.name").
+			First(&entry).Err()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entry.Id).To(Equal(int64(100)))
+		Expect(entry.Author.Id).To(Equal(int64(10)))
+		Expect(entry.Author.Name).To(Equal("user 1"))
+		Expect(entry.Author.RoleId).To(BeZero())
 	})
 
 	Describe("where", func() {
