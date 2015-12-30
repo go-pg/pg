@@ -97,14 +97,14 @@ func (s *Select) First(dst interface{}) *Select {
 }
 
 func (s *Select) Find(dst interface{}) *Select {
-	rel, err := NewRelation(dst)
+	scope, err := NewScope(dst)
 	if err != nil {
 		s.setErr(err)
 		return s
 	}
 
 	for i := 0; i < len(s.columns); {
-		if err := rel.AddRelation(s.columns[i]); err == nil {
+		if err := scope.Join(s.columns[i]); err == nil {
 			s.columns = append(s.columns[:i], s.columns[i+1:]...)
 			continue
 		}
@@ -112,27 +112,27 @@ func (s *Select) Find(dst interface{}) *Select {
 	}
 
 	for _, field := range s.fields {
-		rel.AddRelation(field)
+		scope.Join(field + "._")
 	}
 
-	s.tables = append(s.tables, rel.Model.Table.Name)
+	s.tables = append(s.tables, scope.Model.Table.Name)
 	if s.columns != nil {
-		for _, join := range rel.Joins {
-			if !join.TableRelation.Many {
+		for _, join := range scope.Joins {
+			if !join.Relation.Many {
 				s = join.JoinOne(s)
 			}
 		}
 	}
 
-	err = s.db.QueryRelation(rel, s, rel)
+	err = s.db.QueryRelation(scope, s, scope)
 	if err != nil {
 		s.setErr(err)
 		return s
 	}
 
-	for _, join := range rel.Joins {
-		if join.TableRelation.Many {
-			err := join.JoinMany(s.db, rel.Model.Value())
+	for _, join := range scope.Joins {
+		if join.Relation.Many {
+			err := join.JoinMany(s.db, scope.Model.Value())
 			if err != nil {
 				s.setErr(err)
 				return s

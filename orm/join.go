@@ -3,22 +3,24 @@ package orm
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
 	"gopkg.in/pg.v3/types"
 )
 
 type Join struct {
 	BaseModel, JoinModel *Model
-	TableRelation        *TableRelation
+	Relation             *Relation
 	Columns              []string
 }
 
 func (j *Join) AppendColumns(columns []string) []string {
-	alias := j.TableRelation.Field.SQLName
+	alias := j.Relation.Field.SQLName
 	prefix := alias + "__"
 	if j.Columns != nil {
 		for _, column := range j.Columns {
+			if column == "_" {
+				continue
+			}
 			column = fmt.Sprintf("%s.%s AS %s", alias, column, prefix+column)
 			columns = append(columns, column)
 		}
@@ -32,13 +34,13 @@ func (j *Join) AppendColumns(columns []string) []string {
 }
 
 func (j *Join) JoinOne(s *Select) *Select {
-	s = s.Table(j.JoinModel.Table.Name + " AS " + j.TableRelation.Field.SQLName)
+	s = s.Table(j.JoinModel.Table.Name + " AS " + j.Relation.Field.SQLName)
 	s.columns = j.AppendColumns(s.columns)
 	s = s.Where(
 		`?."id" = ?.?`,
-		types.F(j.TableRelation.Field.SQLName),
+		types.F(j.Relation.Field.SQLName),
 		types.F(j.BaseModel.Table.Name),
-		types.F(j.TableRelation.Field.SQLName+"_id"),
+		types.F(j.Relation.Field.SQLName+"_id"),
 	)
 	return s
 }
@@ -110,7 +112,7 @@ func (h *Join) assignValuesStruct(baseStruct, joinSlice reflect.Value, path []st
 		v := baseStruct.FieldByName(path[0])
 		h.assignValues(v, joinSlice, path[1:])
 	} else {
-		hasManySlice := h.TableRelation.Field.Value(baseStruct)
+		hasManySlice := h.Relation.Field.Value(baseStruct)
 		for j := 0; j < joinSlice.Len(); j++ {
 			join := joinSlice.Index(j)
 			if h.equal(baseStruct, join) {
@@ -125,133 +127,4 @@ func (h *Join) equal(base, join reflect.Value) bool {
 	v1 := base.FieldByName(field)                                 // BaseTable.Id
 	v2 := join.FieldByName(h.BaseModel.Table.Type.Name() + field) // JoinTable.BaseId
 	return v1.Int() == v2.Int()
-}
-
-type Relation struct {
-	Model *Model
-	Joins []Join
-}
-
-var (
-	_ Collection    = (*Relation)(nil)
-	_ ColumnScanner = (*Relation)(nil)
-)
-
-func NewRelation(vi interface{}) (*Relation, error) {
-	switch v := vi.(type) {
-	case *Relation:
-		return v, nil
-	case *Model:
-		return &Relation{
-			Model: v,
-		}, nil
-	default:
-		model, err := NewModel(vi)
-		if err != nil {
-			return nil, err
-		}
-		return &Relation{
-			Model: model,
-		}, nil
-	}
-}
-
-func (rel *Relation) AddRelation(name string) error {
-	path := strings.Split(name, ".")
-	var goPath []string
-
-	baseModel := rel.Model
-	joinModel := baseModel
-	var tableRel *TableRelation
-	var retErr error
-
-	for _, name := range path {
-		if v, ok := joinModel.Table.Relations[name]; ok {
-			tableRel = v
-			goPath = append(goPath, tableRel.Field.GoName)
-
-			if v, ok := rel.getJoin(name); ok {
-				baseModel = joinModel
-				joinModel = v.JoinModel
-				continue
-			}
-
-			model, err := NewModelPath(rel.Model.Value(), goPath, tableRel.Join)
-			if err != nil {
-				retErr = err
-				break
-			}
-
-			baseModel = joinModel
-			joinModel = model
-			continue
-		}
-
-		retErr = fmt.Errorf("pg: %s doesn't have %s relation", baseModel.Table.Name, name)
-		break
-	}
-
-	if joinModel == baseModel {
-		return retErr
-	}
-
-	var columns []string
-	switch len(path) - len(goPath) {
-	case 0:
-		// ok
-	case 1:
-		columns = path[len(path)-1:]
-	default:
-		return fmt.Errorf("pg: bad column name: %s", name)
-	}
-
-	rel.Joins = append(rel.Joins, Join{
-		BaseModel:     baseModel,
-		JoinModel:     joinModel,
-		TableRelation: tableRel,
-		Columns:       columns,
-	})
-
-	return nil
-}
-
-func (rel *Relation) getJoin(name string) (join Join, ok bool) {
-	for _, join = range rel.Joins {
-		if join.TableRelation.Field.SQLName == name {
-			ok = true
-			return
-		}
-	}
-	return
-}
-
-func (rel *Relation) AppendParam(b []byte, name string) ([]byte, error) {
-	return rel.Model.AppendParam(b, name)
-}
-
-func (rel *Relation) NextModel() interface{} {
-	rel.Model.NextModel()
-	for _, join := range rel.Joins {
-		if !join.TableRelation.Many {
-			join.JoinModel.Bind(rel.Model.strct)
-		}
-	}
-	return rel
-}
-
-func splitColumn(s string) (string, string) {
-	parts := strings.SplitN(s, "__", 2)
-	if len(parts) != 2 {
-		return "", s
-	}
-	return parts[0], parts[1]
-}
-
-func (rel *Relation) ScanColumn(colIdx int, colName string, b []byte) error {
-	modelName, colName := splitColumn(colName)
-	join, ok := rel.getJoin(modelName)
-	if ok {
-		return join.JoinModel.ScanColumn(colIdx, colName, b)
-	}
-	return rel.Model.ScanColumn(colIdx, colName, b)
 }

@@ -8,7 +8,7 @@ import (
 	"gopkg.in/pg.v3/types"
 )
 
-type TableRelation struct {
+type Relation struct {
 	Field *Field
 	Join  *Table
 	Many  bool
@@ -23,7 +23,7 @@ type Table struct {
 	FieldsMap map[string]*Field
 
 	Methods   map[string]*method
-	Relations map[string]*TableRelation
+	Relations map[string]*Relation
 }
 
 func (t *Table) AddField(field *Field) {
@@ -40,9 +40,9 @@ func (t *Table) DeleteField(field *Field) {
 	delete(t.FieldsMap, field.SQLName)
 }
 
-func (t *Table) hasRelation(rel *TableRelation) {
+func (t *Table) hasRelation(rel *Relation) {
 	if t.Relations == nil {
-		t.Relations = make(map[string]*TableRelation)
+		t.Relations = make(map[string]*Relation)
 	}
 	t.Relations[rel.Field.SQLName] = rel
 }
@@ -112,7 +112,7 @@ loop:
 				fk := typ.Name() + "Id"
 				fkType := ftype.Elem()
 				if _, ok := fkType.FieldByName(fk); ok {
-					table.hasRelation(&TableRelation{
+					table.hasRelation(&Relation{
 						Field: &field,
 						Many:  true,
 					})
@@ -130,7 +130,7 @@ loop:
 
 			fk := f.Name + "Id"
 			if _, ok := typ.FieldByName(fk); ok {
-				table.hasRelation(&TableRelation{
+				table.hasRelation(&Relation{
 					Field: &field,
 					Join:  joinTable,
 				})
