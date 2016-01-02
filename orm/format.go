@@ -11,7 +11,7 @@ import (
 type Formatter struct {
 	params     []interface{}
 	paramIndex int
-	scope      *Scope
+	model      *Model
 }
 
 func NewFormatter(params []interface{}) *Formatter {
@@ -45,22 +45,26 @@ func (f *Formatter) AppendBytes(dst []byte, src []byte) ([]byte, error) {
 		}
 
 		if name := string(p.ReadIdentifier()); name != "" {
-			if f.scope == nil {
+			if f.model == nil {
 				if len(f.params) == 0 {
 					return nil, errors.New("pg: expected at least one parameter, got nothing")
 				}
 				last := f.params[len(f.params)-1]
 				f.params = f.params[:len(f.params)-1]
 
-				var err error
-				f.scope, err = NewScope(last)
-				if err != nil {
-					return nil, err
+				model, ok := last.(*Model)
+				if !ok {
+					var err error
+					model, err = NewModel(last)
+					if err != nil {
+						return nil, err
+					}
 				}
+				f.model = model
 			}
 
 			var err error
-			dst, err = f.scope.AppendParam(dst, name)
+			dst, err = f.model.AppendParam(dst, name)
 			if err != nil {
 				return nil, err
 			}

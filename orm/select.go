@@ -6,17 +6,12 @@ import (
 	"gopkg.in/pg.v3/types"
 )
 
-type result interface {
-	Affected() int
-}
-
-type dber interface {
-	//Query(interface{}, string, ...interface{}) (result, error)
-	QueryRelation(interface{}, interface{}, ...interface{}) error
-}
+type querier func(interface{}, interface{}, ...interface{}) error
 
 type Select struct {
-	db dber
+	query querier
+	model *Model
+	err   error
 
 	tables  []string
 	columns []string
@@ -26,12 +21,16 @@ type Select struct {
 	orders  []string
 	limit   int
 	offset  int
-
-	err error
 }
 
-func NewSelect(db dber) *Select {
-	return &Select{db: db}
+func NewSelect(query querier) *Select {
+	return &Select{
+		query: query,
+	}
+}
+
+func (s *Select) Copy() *Select {
+	return s
 }
 
 func (s *Select) setErr(err error) {
@@ -58,7 +57,7 @@ func (s *Select) Where(where string, params ...interface{}) *Select {
 	f := NewFormatter(params)
 	b, err := f.Append(nil, where)
 	if err != nil {
-		s.err = err
+		s.setErr(err)
 	} else {
 		s.wheres = append(s.wheres, string(b))
 	}
@@ -92,19 +91,52 @@ func (s *Select) Offset(n int) *Select {
 	return s
 }
 
-func (s *Select) First(dst interface{}) *Select {
-	return s.Order("?PK").Limit(1).Find(dst)
+func (s *Select) Model(v interface{}) *Select {
+	model, ok := v.(*Model)
+	if !ok {
+		var err error
+		model, err = NewModel(v)
+		if err != nil {
+			s.setErr(err)
+			return s
+		}
+	}
+	s.model = model
+	return nil
 }
 
-func (s *Select) Find(dst interface{}) *Select {
-	scope, err := NewScope(dst)
+func (s *Select) Count(count *int) *Select {
+	s = s.Copy()
+	s.Model(count)
+
+	s.columns = []string{"COUNT(*)"}
+	s.orders = nil
+	s.limit = 0
+	s.offset = 0
+
+	err := s.query(s, s.model, s.model)
 	if err != nil {
 		s.setErr(err)
 		return s
 	}
 
+	return s
+}
+
+func (s *Select) First(dst interface{}) *Select {
+	return s.Order("?PK").Limit(1).Find(dst)
+}
+
+func (s *Select) Last(dst interface{}) *Select {
+	return s.Order("?PK DESC").Limit(1).Find(dst)
+}
+
+func (s *Select) Find(dst interface{}) *Select {
+	s.Model(dst)
+	s.tables = append(s.tables, s.model.Table.Name)
+
 	for i := 0; i < len(s.columns); {
-		if err := scope.Join(s.columns[i]); err == nil {
+		if err := s.model.JoinModel(s.columns[i]); err == nil {
 			s.columns = append(s.columns[:i], s.columns[i+1:]...)
 			continue
 		}
@@ -112,27 +144,23 @@ func (s *Select) Find(dst interface{}) *Select {
 	}
 
 	for _, field := range s.fields {
-		scope.Join(field + "._")
+		s.model.JoinModel(field + "._")
 	}
 
-	s.tables = append(s.tables, scope.Model.Table.Name)
-	if s.columns != nil {
-		for _, join := range scope.Joins {
-			if !join.Relation.Many {
-				s = join.JoinOne(s)
-			}
+	for _, join := range s.model.Joins {
+		if !join.Relation.Many {
+			s = join.JoinOne(s)
 		}
 	}
 
-	err = s.db.QueryRelation(scope, s, scope)
-	if err != nil {
+	if err := s.query(s.model, s, s.model); err != nil {
 		s.setErr(err)
 		return s
 	}
 
-	for _, join := range scope.Joins {
+	for _, join := range s.model.Joins {
 		if join.Relation.Many {
-			err := join.JoinMany(s.db, scope.Model.Value())
+			err := join.JoinMany(s.query, s.model.Value())
 			if err != nil {
 				s.setErr(err)
 				return s

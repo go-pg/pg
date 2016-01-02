@@ -45,7 +45,7 @@ func (j *Join) JoinOne(s *Select) *Select {
 	return s
 }
 
-func (h *Join) JoinMany(db dber, bind reflect.Value) error {
+func (h *Join) JoinMany(db querier, bind reflect.Value) error {
 	path := h.JoinModel.Path[:len(h.JoinModel.Path)-1]
 
 	pk := h.appendPK(nil, bind, path)

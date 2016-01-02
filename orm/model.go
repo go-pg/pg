@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 
 	"gopkg.in/pg.v3/types"
 )
@@ -11,6 +12,8 @@ import (
 var invalidValue = reflect.Value{}
 
 type Model struct {
+	Joins []*Join
+
 	Table *Table
 	Path  []string
 	bind  reflect.Value
@@ -93,22 +96,6 @@ func (m *Model) AppendParam(b []byte, name string) ([]byte, error) {
 	return nil, fmt.Errorf("pg: can't map %q on %s", name, m.strct.Type())
 }
 
-func (m *Model) NextModel() interface{} {
-	v := m.Slice(true)
-	if v.Kind() == reflect.Slice {
-		m.strct = sliceNextElemValue(v)
-	}
-	return m
-}
-
-func (m *Model) ScanColumn(colIdx int, colName string, b []byte) error {
-	field, ok := m.Table.FieldsMap[colName]
-	if !ok {
-		return fmt.Errorf("pg: can't find field %q in %s", colName, m.strct.Type())
-	}
-	return field.DecodeValue(m.Struct(true), b)
-}
-
 func (m *Model) Bind(bind reflect.Value) {
 	m.bind = bind
 	m.strct = invalidValue
@@ -182,4 +169,106 @@ func sliceNextElemValue(v reflect.Value) reflect.Value {
 	default:
 		panic("not reached")
 	}
+}
+
+func (s *Model) getModelJoin(name string) (*Join, bool) {
+	for _, join := range s.Joins {
+		if join.Relation.Field.SQLName == name {
+			return join, true
+		}
+	}
+	return nil, false
+}
+
+func (s *Model) JoinModel(name string) error {
+	path := strings.Split(name, ".")
+	var goPath []string
+
+	join := &Join{
+		BaseModel: s,
+		JoinModel: s,
+	}
+	var retErr error
+
+	for _, name := range path {
+		rel, ok := join.JoinModel.Table.Relations[name]
+		if !ok {
+			retErr = fmt.Errorf("pg: %s doesn't have %s relation", join.BaseModel.Table.Name, name)
+			break
+		}
+		join.Relation = rel
+
+		goPath = append(goPath, rel.Field.GoName)
+
+		if v, ok := s.getModelJoin(name); ok {
+			join.BaseModel = v.BaseModel
+			join.JoinModel = v.JoinModel
+			continue
+		}
+
+		model, err := NewModelPath(s.Value(), goPath, rel.Join)
+		if err != nil {
+			retErr = err
+			break
+		}
+
+		join.BaseModel = join.JoinModel
+		join.JoinModel = model
+	}
+
+	if join.JoinModel == join.BaseModel {
+		return retErr
+	}
+
+	if v, ok := s.getModelJoin(join.Relation.Field.SQLName); ok {
+		join = v
+	} else {
+		s.Joins = append(s.Joins, join)
+	}
+
+	switch len(path) - len(goPath) {
+	case 0:
+		// ok
+	default:
+		join.Columns = append(join.Columns, path[len(path)-1])
+	}
+
+	return nil
+}
+
+func (m *Model) NextModel() interface{} {
+	v := m.Slice(true)
+	if v.Kind() == reflect.Slice {
+		m.strct = sliceNextElemValue(v)
+	}
+
+	for _, join := range m.Joins {
+		if !join.Relation.Many {
+			join.JoinModel.Bind(m.strct)
+		}
+	}
+
+	return m
+}
+
+func (m *Model) ScanColumn(colIdx int, colName string, b []byte) error {
+	modelName, colName := splitColumn(colName)
+	join, ok := m.getModelJoin(modelName)
+	if ok {
+		return join.JoinModel.ScanColumn(colIdx, colName, b)
+	}
+
+	field, ok := m.Table.FieldsMap[colName]
+	if !ok {
+		return fmt.Errorf("pg: can't find field %q in %s", colName, m.strct.Type())
+	}
+	return field.DecodeValue(m.Struct(true), b)
+}
+
+func splitColumn(s string) (string, string) {
+	parts := strings.SplitN(s, "__", 2)
+	if len(parts) != 2 {
+		return "", s
+	}
+	return parts[0], parts[1]
 }

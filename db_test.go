@@ -188,7 +188,8 @@ var _ = Describe("Select", func() {
 		It("joins HasOne", func() {
 			var entry Entry
 			err := db.Select("entry.id", "author.id", "editor.id", "author.role.id").
-				First(&entry).Err()
+				First(&entry).
+				Err()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(entry.Id).To(Equal(int64(100)))
 			Expect(entry.Author.Id).To(Equal(int64(10)))
@@ -197,7 +198,9 @@ var _ = Describe("Select", func() {
 
 		It("joins HasMany", func() {
 			var role Role
-			err := db.Select("role.id", "authors.id", "authors.entries.id").First(&role).Err()
+			err := db.Select("role.id", "authors.id", "authors.entries.id").
+				First(&role).
+				Err()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(role.Id).To(Equal(int64(1)))
 
@@ -217,7 +220,10 @@ var _ = Describe("Select", func() {
 	Describe("slice", func() {
 		It("joins HasOne", func() {
 			var entries []Entry
-			err := db.Select("entry.id", "author", "editor", "author.role").Order("role.id").Find(&entries).Err()
+			err := db.Select("entry.id", "author", "editor", "author.role").
+				Order("role.id").
+				Find(&entries).
+				Err()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(entries).To(HaveLen(3))
 
@@ -239,7 +245,10 @@ var _ = Describe("Select", func() {
 
 		It("joins HasMany", func() {
 			var roles []Role
-			err := db.Select("role.id", "authors", "authors.entries").Order("role.id").Find(&roles).Err()
+			err := db.Select("role.id", "authors", "authors.entries").
+				Order("role.id").
+				Find(&roles).
+				Err()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(roles).To(HaveLen(2))
 
@@ -253,10 +262,27 @@ var _ = Describe("Select", func() {
 		})
 	})
 
+	It("Last returns last row", func() {
+		var entry Entry
+		err := db.Select("entry.id").
+			Last(&entry).
+			Err()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entry.Id).To(Equal(int64(102)))
+	})
+
+	PIt("Count returns number of rows", func() {
+		var count int
+		err := db.Select().Model(&Entry{}).Count(&count).Err()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(count).To(Equal(3))
+	})
+
 	It("joins specified columns", func() {
 		var entry Entry
 		err := db.Select("entry.id", "author.id", "author.name").
-			First(&entry).Err()
+			First(&entry).
+			Err()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(entry.Id).To(Equal(int64(100)))
 		Expect(entry.Author.Id).To(Equal(int64(10)))
@@ -264,16 +290,17 @@ var _ = Describe("Select", func() {
 		Expect(entry.Author.RoleId).To(BeZero())
 	})
 
-	Describe("where", func() {
-		It("filters by HasOne", func() {
-			var entries []Entry
-			err := db.Select("entry.id").Where("? = 10", pg.F("author.id")).Order("entry.id").Find(&entries).Err()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(entries).To(HaveLen(2))
-			Expect(entries[0].Id).To(Equal(int64(100)))
-			Expect(entries[0].Author).To(BeNil())
-			Expect(entries[1].Id).To(Equal(int64(101)))
-			Expect(entries[1].Author).To(BeNil())
-		})
+	It("filters by HasOne", func() {
+		var entries []Entry
+		err := db.Select("entry.id").Where("? = 10", pg.F("author.id")).
+			Order("entry.id").
+			Find(&entries).
+			Err()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entries).To(HaveLen(2))
+		Expect(entries[0].Id).To(Equal(int64(100)))
+		Expect(entries[0].Author).To(BeNil())
+		Expect(entries[1].Id).To(Equal(int64(101)))
+		Expect(entries[1].Author).To(BeNil())
 	})
 })

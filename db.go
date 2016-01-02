@@ -255,11 +255,6 @@ func (db *DB) ExecOne(q string, params ...interface{}) (Result, error) {
 	return assertOneAffected(res, nil)
 }
 
-func (db *DB) QueryRelation(coll, query interface{}, params ...interface{}) error {
-	_, err := db.Query(coll, query, params...)
-	return err
-}
-
 // Query executes a query that returns rows, typically a SELECT. The
 // params are for any placeholder parameters in the query.
 func (db *DB) Query(coll, query interface{}, params ...interface{}) (res Result, err error) {
@@ -354,8 +349,13 @@ func (db *DB) CopyTo(w io.WriteCloser, q string, params ...interface{}) (Result,
 	return res, nil
 }
 
+func (db *DB) query(coll interface{}, query interface{}, params ...interface{}) error {
+	_, err := db.Query(coll, query, params...)
+	return err
+}
+
 func (db *DB) Select(columns ...string) *orm.Select {
-	return orm.NewSelect(db).Select(columns...)
+	return orm.NewSelect(db.query).Select(columns...)
 }
 
 func setParams(cn *conn, params map[string]interface{}) error {
