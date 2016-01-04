@@ -321,11 +321,11 @@ func appendDriverValuer(b []byte, v driver.Valuer, quote bool) []byte {
 	return Append(b, value, quote)
 }
 
-func AppendField(b []byte, field string) []byte {
-	return AppendFieldBytes(b, []byte(field))
+func AppendField(b []byte, field string, quote bool) []byte {
+	return AppendFieldBytes(b, []byte(field), quote)
 }
 
-func AppendFieldBytes(b []byte, field []byte) []byte {
+func AppendFieldBytes(b []byte, field []byte, quote bool) []byte {
 	p := parser.New(field)
 	var quoted bool
 	for p.Valid() {
@@ -337,11 +337,23 @@ func AppendFieldBytes(b []byte, field []byte) []byte {
 				c = '?'
 			}
 		case '.':
-			b = append(b, '"', c, '"')
+			if quote {
+				b = append(b, '"')
+			}
+			b = append(b, '.')
+			if quote {
+				b = append(b, '"')
+			}
 			continue
 		case ' ':
 			if p.Got("AS ") || p.Got("as ") {
-				b = append(b, `" AS "`...)
+				if quote {
+					b = append(b, '"')
+				}
+				b = append(b, ` AS `...)
+				if quote {
+					b = append(b, '"')
+				}
 			} else {
 				b = append(b, ' ')
 			}
@@ -352,18 +364,18 @@ func AppendFieldBytes(b []byte, field []byte) []byte {
 			continue
 		}
 
-		if !quoted {
+		if quote && !quoted {
 			b = append(b, '"')
 			quoted = true
 		}
-		if c == '"' {
+		if quote && c == '"' {
 			b = append(b, '"', '"')
 		} else {
 			b = append(b, c)
 		}
 
 	}
-	if quoted {
+	if quote && quoted {
 		b = append(b, '"')
 	}
 	return b

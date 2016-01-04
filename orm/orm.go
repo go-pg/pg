@@ -7,15 +7,6 @@ type Collection interface {
 	NextModel() interface{}
 }
 
-// ColumnScanner is an interface used to scan column.
-type ColumnScanner interface {
-	// Scan assigns a column value from a row.
-	//
-	// An error should be returned if the value can not be stored
-	// without loss of information.
-	ScanColumn(colIdx int, colName string, b []byte) error
-}
-
 type QueryAppender interface {
 	AppendQuery([]byte, ...interface{}) ([]byte, error)
 }

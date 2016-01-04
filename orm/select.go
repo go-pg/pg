@@ -14,7 +14,7 @@ type Select struct {
 	err   error
 
 	tables  []string
-	columns []string
+	columns []types.ValueAppender
 	fields  []string
 	joins   []string
 	wheres  []string
@@ -43,8 +43,14 @@ func (s *Select) Err() error {
 	return s.err
 }
 
-func (s *Select) Select(columns ...string) *Select {
-	s.columns = append(s.columns, columns...)
+func (s *Select) Select(columns ...interface{}) *Select {
+	for _, column := range columns {
+		v, ok := column.(types.ValueAppender)
+		if !ok {
+			v = types.F(column.(string))
+		}
+		s.columns = append(s.columns, v)
+	}
 	return s
 }
 
@@ -102,19 +108,38 @@ func (s *Select) Model(v interface{}) *Select {
 		}
 	}
 	s.model = model
-	return nil
+	return s
 }
 
 func (s *Select) Count(count *int) *Select {
 	s = s.Copy()
-	s.Model(count)
 
-	s.columns = []string{"COUNT(*)"}
+	s.columns = []types.ValueAppender{types.Q("COUNT(*)")}
 	s.orders = nil
 	s.limit = 0
 	s.offset = 0
 
-	err := s.query(s, s.model, s.model)
+	s.tables = append(s.tables, s.model.Table.Name)
+	for i := 0; i < len(s.columns); {
+		b := s.columns[i].AppendValue(nil, true)
+		if err := s.model.Join(string(b)); err == nil {
+			s.columns = append(s.columns[:i], s.columns[i+1:]...)
+			continue
+		}
+		i++
+	}
+
+	for _, field := range s.fields {
+		s.model.Join(field + "._")
+	}
+
+	for _, join := range s.model.Joins {
+		if !join.Relation.Many {
+			s = join.JoinOne(s)
+		}
+	}
+
+	err := s.query(Scan(count), s, s.model)
 	if err != nil {
 		s.setErr(err)
 		return s
@@ -133,10 +158,11 @@ func (s *Select) Last(dst interface{}) *Select {
 
 func (s *Select) Find(dst interface{}) *Select {
 	s.Model(dst)
-	s.tables = append(s.tables, s.model.Table.Name)
 
+	s.tables = append(s.tables, s.model.Table.Name)
 	for i := 0; i < len(s.columns); {
-		if err := s.model.JoinModel(s.columns[i]); err == nil {
+		b := s.columns[i].AppendValue(nil, false)
+		if err := s.model.Join(string(b)); err == nil {
 			s.columns = append(s.columns[:i], s.columns[i+1:]...)
 			continue
 		}
@@ -144,7 +170,7 @@ func (s *Select) Find(dst interface{}) *Select {
 	}
 
 	for _, field := range s.fields {
-		s.model.JoinModel(field + "._")
+		s.model.Join(field + "._")
 	}
 
 	for _, join := range s.model.Joins {
@@ -180,9 +206,14 @@ func (s *Select) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	if s.columns == nil {
 		b = append(b, '*')
 	} else {
-		b, err = appendField(f, b, s.columns...)
-		if err != nil {
-			return nil, err
+		for i, column := range s.columns {
+			b, err = f.AppendBytes(b, column.AppendValue(nil, true))
+			if err != nil {
+				return nil, err
+			}
+			if i != len(s.columns)-1 {
+				b = append(b, ',', ' ')
+			}
 		}
 	}
 
@@ -229,7 +260,7 @@ func (s *Select) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 func appendField(f *Formatter, b []byte, ss ...string) ([]byte, error) {
 	var err error
 	for i, field := range ss {
-		b, err = f.AppendBytes(b, types.AppendField(nil, field))
+		b, err = f.AppendBytes(b, types.AppendField(nil, field, true))
 		if err != nil {
 			return nil, err
 		}

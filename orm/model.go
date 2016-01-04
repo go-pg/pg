@@ -68,7 +68,7 @@ func NewModelPath(bind reflect.Value, path []string, table *Table) (*Model, erro
 }
 
 func (m *Model) AppendPKName(b []byte) []byte {
-	return types.AppendField(b, m.Table.Name+"."+m.Table.PK.SQLName)
+	return types.AppendField(b, m.Table.Name+"."+m.Table.PK.SQLName, true)
 }
 
 func (m *Model) AppendPKValue(b []byte) []byte {
@@ -78,7 +78,7 @@ func (m *Model) AppendPKValue(b []byte) []byte {
 func (m *Model) AppendParam(b []byte, name string) ([]byte, error) {
 	switch name {
 	case "TableName":
-		return types.AppendField(b, m.Table.Name), nil
+		return types.AppendField(b, m.Table.Name, true), nil
 	case "PK":
 		return m.AppendPKName(b), nil
 	case "PKValue":
@@ -171,7 +171,7 @@ func sliceNextElemValue(v reflect.Value) reflect.Value {
 	}
 }
 
-func (s *Model) getModelJoin(name string) (*Join, bool) {
+func (s *Model) getJoin(name string) (*Join, bool) {
 	for _, join := range s.Joins {
 		if join.Relation.Field.SQLName == name {
 			return join, true
@@ -180,7 +180,7 @@ func (s *Model) getModelJoin(name string) (*Join, bool) {
 	return nil, false
 }
 
-func (s *Model) JoinModel(name string) error {
+func (s *Model) Join(name string) error {
 	path := strings.Split(name, ".")
 	var goPath []string
 
@@ -200,7 +200,7 @@ func (s *Model) JoinModel(name string) error {
 
 		goPath = append(goPath, rel.Field.GoName)
 
-		if v, ok := s.getModelJoin(name); ok {
+		if v, ok := s.getJoin(name); ok {
 			join.BaseModel = v.BaseModel
 			join.JoinModel = v.JoinModel
 			continue
@@ -220,7 +220,7 @@ func (s *Model) JoinModel(name string) error {
 		return retErr
 	}
 
-	if v, ok := s.getModelJoin(join.Relation.Field.SQLName); ok {
+	if v, ok := s.getJoin(join.Relation.Field.SQLName); ok {
 		join = v
 	} else {
 		s.Joins = append(s.Joins, join)
@@ -252,10 +252,10 @@ func (m *Model) NextModel() interface{} {
 }
 
 func (m *Model) ScanColumn(colIdx int, colName string, b []byte) error {
-	modelName, colName := splitColumn(colName)
-	join, ok := m.getModelJoin(modelName)
+	modelName, fieldName := splitColumn(colName)
+	join, ok := m.getJoin(modelName)
 	if ok {
-		return join.JoinModel.ScanColumn(colIdx, colName, b)
+		return join.JoinModel.ScanColumn(colIdx, fieldName, b)
 	}
 
 	field, ok := m.Table.FieldsMap[colName]

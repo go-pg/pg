@@ -271,7 +271,7 @@ var _ = Describe("Select", func() {
 		Expect(entry.Id).To(Equal(int64(102)))
 	})
 
-	PIt("Count returns number of rows", func() {
+	It("Count returns number of rows", func() {
 		var count int
 		err := db.Select().Model(&Entry{}).Count(&count).Err()
 		Expect(err).NotTo(HaveOccurred())

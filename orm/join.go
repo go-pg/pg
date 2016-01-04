@@ -13,7 +13,7 @@ type Join struct {
 	Columns              []string
 }
 
-func (j *Join) AppendColumns(columns []string) []string {
+func (j *Join) AppendColumns(columns []types.ValueAppender) []types.ValueAppender {
 	alias := j.Relation.Field.SQLName
 	prefix := alias + "__"
 	if j.Columns != nil {
@@ -22,13 +22,13 @@ func (j *Join) AppendColumns(columns []string) []string {
 				continue
 			}
 			column = fmt.Sprintf("%s.%s AS %s", alias, column, prefix+column)
-			columns = append(columns, column)
+			columns = append(columns, types.Q(column))
 		}
 		return columns
 	}
 	for _, f := range j.JoinModel.Table.Fields {
 		column := fmt.Sprintf("%s.%s AS %s", alias, f.SQLName, prefix+f.SQLName)
-		columns = append(columns, column)
+		columns = append(columns, types.Q(column))
 	}
 	return columns
 }

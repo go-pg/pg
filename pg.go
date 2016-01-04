@@ -25,6 +25,8 @@ func F(s string) types.F {
 	return types.F(s)
 }
 
+var Scan = orm.Scan
+
 //------------------------------------------------------------------------------
 
 type discard struct{}
@@ -38,24 +40,6 @@ func (l discard) NextModel() interface{} {
 
 func (discard) ScanColumn(colIdx int, colName string, b []byte) error {
 	return nil
-}
-
-//------------------------------------------------------------------------------
-
-type valuesScanner struct {
-	values []interface{}
-}
-
-var _ orm.ColumnScanner = (*valuesScanner)(nil)
-
-// Scan returns ColumnScanner that copies the columns in the
-// row into the values.
-func Scan(values ...interface{}) orm.ColumnScanner {
-	return &valuesScanner{values}
-}
-
-func (l *valuesScanner) ScanColumn(colIdx int, _ string, b []byte) error {
-	return types.Decode(l.values[colIdx], b)
 }
 
 //------------------------------------------------------------------------------

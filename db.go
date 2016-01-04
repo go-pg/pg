@@ -354,7 +354,7 @@ func (db *DB) query(coll interface{}, query interface{}, params ...interface{}) 
 	return err
 }
 
-func (db *DB) Select(columns ...string) *orm.Select {
+func (db *DB) Select(columns ...interface{}) *orm.Select {
 	return orm.NewSelect(db.query).Select(columns...)
 }
 

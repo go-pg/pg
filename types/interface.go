@@ -2,6 +2,7 @@ package types
 
 type ValueAppender interface {
 	// TODO(vmihailenco): add ability to return error
+	// TODO(vmihailenco): better name?
 	AppendValue([]byte, bool) []byte
 }
 
@@ -24,5 +25,5 @@ type F string
 var _ ValueAppender = F("")
 
 func (f F) AppendValue(dst []byte, quote bool) []byte {
-	return AppendField(dst, string(f))
+	return AppendField(dst, string(f), quote)
 }
