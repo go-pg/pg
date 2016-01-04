@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	NullEmptyFlag  = 1 << 0
-	PrimaryKeyFlag = 1 << 1
-	ForeignKeyFlag = 1 << 2
+	NullEmptyFlag  = 1 << iota
+	PrimaryKeyFlag = 1 << iota
+	ForeignKeyFlag = 1 << iota
 )
 
 type Field struct {

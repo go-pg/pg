@@ -167,21 +167,62 @@ var _ = Describe("Select", func() {
 			`DROP TABLE IF EXISTS role`,
 			`DROP TABLE IF EXISTS author`,
 			`DROP TABLE IF EXISTS entry`,
-			`CREATE TABLE role(id int, name text)`,
-			`CREATE TABLE author(id int, name text, role_id int)`,
-			`CREATE TABLE entry(id int, title text, author_id int, editor_id int)`,
-			`INSERT INTO role VALUES (1, 'role 1')`,
-			`INSERT INTO role VALUES (2, 'role 2')`,
-			`INSERT INTO author VALUES (10, 'user 1', 1)`,
-			`INSERT INTO author VALUES (11, 'user 2', 2)`,
-			`INSERT INTO entry VALUES (100, 'entry 1', 10, 11)`,
-			`INSERT INTO entry VALUES (101, 'entry 2', 10, 11)`,
-			`INSERT INTO entry VALUES (102, 'entry 3', 11, 11)`,
+			`CREATE TABLE role(id serial, name text)`,
+			`CREATE TABLE author(id serial, name text, role_id int)`,
+			`CREATE TABLE entry(id serial, title text, author_id int, editor_id int)`,
 		}
 		for _, q := range sql {
 			_, err := db.Exec(q)
 			Expect(err).NotTo(HaveOccurred())
 		}
+
+		err := db.Create(&Role{
+			Name: "role 1",
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Role{
+			Name: "role 2",
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Author{
+			Id:     10,
+			Name:   "user 1",
+			RoleId: 1,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Author{
+			Id:     11,
+			Name:   "user 2",
+			RoleId: 2,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Entry{
+			Id:       100,
+			Title:    "entry 1",
+			AuthorId: 10,
+			EditorId: 11,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Entry{
+			Id:       101,
+			Title:    "entry 2",
+			AuthorId: 10,
+			EditorId: 11,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Entry{
+			Id:       102,
+			Title:    "entry 3",
+			AuthorId: 11,
+			EditorId: 11,
+		})
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	Describe("struct", func() {
@@ -285,6 +326,7 @@ var _ = Describe("Select", func() {
 			Err()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(entry.Id).To(Equal(int64(100)))
+		Expect(entry.Title).To(BeZero())
 		Expect(entry.Author.Id).To(Equal(int64(10)))
 		Expect(entry.Author.Name).To(Equal("user 1"))
 		Expect(entry.Author.RoleId).To(BeZero())

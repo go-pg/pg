@@ -77,7 +77,7 @@ func (m *Model) AppendPKValue(b []byte) []byte {
 
 func (m *Model) AppendParam(b []byte, name string) ([]byte, error) {
 	switch name {
-	case "TableName":
+	case "Table":
 		return types.AppendField(b, m.Table.Name, true), nil
 	case "PK":
 		return m.AppendPKName(b), nil

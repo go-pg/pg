@@ -358,6 +358,10 @@ func (db *DB) Select(columns ...interface{}) *orm.Select {
 	return orm.NewSelect(db.query).Select(columns...)
 }
 
+func (db *DB) Create(model interface{}) error {
+	return orm.Create(db.query, model)
+}
+
 func setParams(cn *conn, params map[string]interface{}) error {
 	for key, value := range params {
 		_, err := simpleQuery(cn, "SET ? = ?", F(key), value)

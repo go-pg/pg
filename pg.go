@@ -9,10 +9,9 @@ import (
 
 var (
 	// Discard can be used with Query and QueryOne to discard rows.
-	Discard discard
+	Discard orm.Discard
+	Scan    = orm.Scan
 )
-
-//------------------------------------------------------------------------------
 
 // Q returns a ValueAppender that represents safe SQL query.
 func Q(s string) types.Q {
@@ -23,23 +22,6 @@ func Q(s string) types.Q {
 // e.g. table or column name.
 func F(s string) types.F {
 	return types.F(s)
-}
-
-var Scan = orm.Scan
-
-//------------------------------------------------------------------------------
-
-type discard struct{}
-
-var _ orm.Collection = (*discard)(nil)
-var _ orm.ColumnScanner = (*discard)(nil)
-
-func (l discard) NextModel() interface{} {
-	return l
-}
-
-func (discard) ScanColumn(colIdx int, colName string, b []byte) error {
-	return nil
 }
 
 //------------------------------------------------------------------------------
