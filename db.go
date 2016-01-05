@@ -313,64 +313,11 @@ func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (Result, erro
 	if err != nil {
 		return nil, err
 	}
-
-	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
-		db.pool.Put(cn)
-		return nil, err
-	}
-
-	if err := cn.FlushWrite(); err != nil {
-		db.freeConn(cn, err)
-		return nil, err
-	}
-
-	if err := readCopyInResponse(cn); err != nil {
-		db.freeConn(cn, err)
-		return nil, err
-	}
-
-	ready := make(chan struct{})
-	var res Result
-	go func() {
-		res, err = readReadyForQuery(cn)
-		close(ready)
-	}()
-
-	for {
-		select {
-		case <-ready:
-			break
-		default:
-		}
-
-		_, err := writeCopyData(cn.buf, r)
-		if err == io.EOF {
-			break
-		}
-
-		if err := cn.FlushWrite(); err != nil {
-			db.freeConn(cn, err)
-			return nil, err
-		}
-	}
-
-	select {
-	case <-ready:
-	default:
-	}
-
-	writeCopyDone(cn.buf)
-	if err := cn.FlushWrite(); err != nil {
-		db.freeConn(cn, err)
-		return nil, err
-	}
-
-	<-ready
+	res, err := copyFrom(cn, r, q, args...)
 	if err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
-
 	db.pool.Put(cn)
 	return res, nil
 }
@@ -485,6 +432,61 @@ func assertOneAffected(res Result, coll *singleRecordCollection) (Result, error)
 		if err := assertOne(coll.Len()); err != nil {
 			return nil, err
 		}
+	}
+	return res, nil
+}
+
+func copyFrom(cn *conn, r io.Reader, q string, args ...interface{}) (Result, error) {
+	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
+		return nil, err
+	}
+
+	if err := cn.FlushWrite(); err != nil {
+		return nil, err
+	}
+
+	if err := readCopyInResponse(cn); err != nil {
+		return nil, err
+	}
+
+	ready := make(chan struct{})
+	var res Result
+	var err error
+	go func() {
+		res, err = readReadyForQuery(cn)
+		close(ready)
+	}()
+
+	for {
+		select {
+		case <-ready:
+			break
+		default:
+		}
+
+		_, err := writeCopyData(cn.buf, r)
+		if err == io.EOF {
+			break
+		}
+
+		if err := cn.FlushWrite(); err != nil {
+			return nil, err
+		}
+	}
+
+	select {
+	case <-ready:
+	default:
+	}
+
+	writeCopyDone(cn.buf)
+	if err := cn.FlushWrite(); err != nil {
+		return nil, err
+	}
+
+	<-ready
+	if err != nil {
+		return nil, err
 	}
 	return res, nil
 }

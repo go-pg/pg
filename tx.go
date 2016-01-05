@@ -1,6 +1,9 @@
 package pg
 
-import "os"
+import (
+	"io"
+	"os"
+)
 
 // When true Tx does not issue BEGIN, COMMIT, and ROLLBACK.
 // It is primarily useful for testing and can be enabled with
@@ -159,4 +162,15 @@ func (tx *Tx) close() error {
 	}
 	tx.done = true
 	return tx.db.freeConn(tx._cn, tx.err)
+}
+
+// CopyFrom copies data from reader to a table.
+func (tx *Tx) CopyFrom(r io.Reader, q string, args ...interface{}) (Result, error) {
+	cn := tx.conn()
+	res, err := copyFrom(cn, r, q, args...)
+	if err != nil {
+		tx.setErr(err)
+		return nil, err
+	}
+	return res, nil
 }
