@@ -319,7 +319,7 @@ var _ = Describe("Select", func() {
 		Expect(count).To(Equal(3))
 	})
 
-	It("joins specified columns", func() {
+	It("selects specified columns", func() {
 		var entry Entry
 		err := db.Select("entry.id", "author.id", "author.name").
 			First(&entry).
