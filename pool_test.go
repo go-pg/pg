@@ -254,22 +254,6 @@ func (t *PoolTest) TestClosedStmt(c *C) {
 	c.Assert(err.Error(), Equals, "pg: statement is closed")
 }
 
-func (t *PoolTest) TestIdleConnectionsAreClosed(c *C) {
-	_, err := t.db.Exec("SELECT 'test_idle_connections_are_closed'")
-	c.Assert(err, IsNil)
-
-	c.Assert(t.db.Pool().Len(), Equals, 1)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 1)
-
-	err = eventually(func() error {
-		if t.db.Pool().Len() != 0 {
-			return fmt.Errorf("pool len is %d, wanted 0")
-		}
-		return nil
-	}, 10*time.Second)
-	c.Assert(err, IsNil)
-}
-
 func eventually(fn func() error, timeout time.Duration) (err error) {
 	done := make(chan struct{})
 	var exit int32

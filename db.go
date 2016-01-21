@@ -149,14 +149,8 @@ func (opt *Options) getSSL() bool {
 // and maintains its own connection pool.
 func Connect(opt *Options) *DB {
 	return &DB{
-		opt: opt,
-		pool: newConnPool(&connPoolOptions{
-			Dialer:             newConnDialer(opt),
-			PoolSize:           opt.getPoolSize(),
-			PoolTimeout:        opt.getPoolTimeout(),
-			IdleTimeout:        opt.getIdleTimeout(),
-			IdleCheckFrequency: opt.getIdleCheckFrequency(),
-		}),
+		opt:  opt,
+		pool: newConnPool(opt),
 	}
 }
 
@@ -185,7 +179,7 @@ func (db *DB) WithTimeout(d time.Duration) *DB {
 }
 
 func (db *DB) conn() (*conn, error) {
-	cn, err := db.pool.Get()
+	cn, _, err := db.pool.Get()
 	if err != nil {
 		return nil, err
 	}
@@ -199,8 +193,8 @@ func (db *DB) freeConn(cn *conn, err error) error {
 	if err == nil {
 		return db.pool.Put(cn)
 	}
-	if cn.br.Buffered() > 0 {
-		return db.pool.Remove(cn)
+	if cn.rd.Buffered() > 0 {
+		return db.pool.Remove(cn, err)
 	}
 	if pgerr, ok := err.(Error); ok && pgerr.Field('S') != "FATAL" {
 		return db.pool.Put(cn)
@@ -213,7 +207,7 @@ func (db *DB) freeConn(cn *conn, err error) error {
 			log.Printf("pg: cancelRequest failed: %s", err)
 		}
 	}
-	return db.pool.Remove(cn)
+	return db.pool.Remove(cn, err)
 }
 
 // Close closes the database client, releasing any open resources.

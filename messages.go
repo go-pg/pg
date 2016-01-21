@@ -56,7 +56,7 @@ func logNotice(cn *conn, msgLen int) error {
 	var level string
 	var logger func(string, ...interface{})
 	for {
-		c, err := cn.br.ReadByte()
+		c, err := cn.rd.ReadByte()
 		if err != nil {
 			return err
 		}
