@@ -28,7 +28,7 @@ func TestUnixSocket(t *testing.T) {
 	}
 }
 
-func Test(t *testing.T) { TestingT(t) }
+func TestGocheck(t *testing.T) { TestingT(t) }
 
 var _ = Suite(&DBTest{})
 

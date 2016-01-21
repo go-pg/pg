@@ -95,10 +95,13 @@ func (l *Listener) freeConn(err error) (retErr error) {
 		}
 		log.Printf("pg: discarding bad listener connection: %s", err)
 	}
+	return l.closeConn(err)
+}
 
+func (l *Listener) closeConn(err error) (retErr error) {
 	l.mx.Lock()
 	if l._cn != nil {
-		retErr = l.db.pool.Remove(l._cn)
+		retErr = l.db.pool.Remove(l._cn, err)
 		l._cn = nil
 	}
 	l.mx.Unlock()
@@ -113,5 +116,5 @@ func (l *Listener) Close() error {
 	if closed {
 		return errListenerClosed
 	}
-	return l.freeConn(nil)
+	return l.closeConn(errListenerClosed)
 }

@@ -22,7 +22,7 @@ func dial(opt *Options) (net.Conn, error) {
 type conn struct {
 	opt *Options
 	cn  net.Conn
-	br  *bufio.Reader // read buffer
+	rd  *bufio.Reader // read buffer
 	buf *buffer       // write buffer
 
 	inUse  bool
@@ -47,7 +47,7 @@ func newConnDialer(opt *Options) func() (*conn, error) {
 			cn:  netcn,
 			buf: newBuffer(),
 		}
-		cn.br = bufio.NewReader(cn)
+		cn.rd = bufio.NewReader(cn)
 		if err := cn.Startup(); err != nil {
 			return nil, err
 		}
@@ -249,14 +249,14 @@ func (cn *conn) auth() error {
 }
 
 func (cn *conn) ReadN(n int) ([]byte, error) {
-	b, err := cn.br.ReadN(n)
+	b, err := cn.rd.ReadN(n)
 	if err == bufio.ErrBufferFull {
 		tmp := make([]byte, n)
 		r := copy(tmp, b)
 		b = tmp
 
 		for {
-			nn, err := cn.br.Read(b[r:])
+			nn, err := cn.rd.Read(b[r:])
 			r += nn
 			if r >= n {
 				// Ignore error if we read enough.
@@ -289,7 +289,7 @@ func (cn *conn) ReadInt32() (int32, error) {
 }
 
 func (cn *conn) ReadMsgType() (msgType, int, error) {
-	c, err := cn.br.ReadByte()
+	c, err := cn.rd.ReadByte()
 	if err != nil {
 		return 0, 0, err
 	}
@@ -301,7 +301,7 @@ func (cn *conn) ReadMsgType() (msgType, int, error) {
 }
 
 func (cn *conn) ReadString() (string, error) {
-	s, err := cn.br.ReadString(0)
+	s, err := cn.rd.ReadString(0)
 	if err != nil {
 		return "", err
 	}
@@ -311,7 +311,7 @@ func (cn *conn) ReadString() (string, error) {
 func (cn *conn) ReadError() (error, error) {
 	e := &pgError{make(map[byte]string)}
 	for {
-		c, err := cn.br.ReadByte()
+		c, err := cn.rd.ReadByte()
 		if err != nil {
 			return nil, err
 		}
