@@ -1,13 +1,20 @@
-package pg
+package types
 
 import (
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strconv"
 	"time"
 
 	"gopkg.in/pg.v3/pgutil"
+)
+
+var (
+	scannerType      = reflect.TypeOf(new(sql.Scanner)).Elem()
+	driverValuerType = reflect.TypeOf(new(driver.Valuer)).Elem()
 )
 
 var (
@@ -50,29 +57,51 @@ func init() {
 	}
 }
 
+func Decoder(typ reflect.Type) valueDecoder {
+	switch typ {
+	case timeType:
+		return decodeTimeValue
+	}
+
+	if reflect.PtrTo(typ).Implements(scannerType) {
+		return decodeScannerAddrValue
+	}
+
+	if typ.Implements(scannerType) {
+		return decodeScannerValue
+	}
+
+	kind := typ.Kind()
+	if dec := valueDecoders[kind]; dec != nil {
+		return dec
+	}
+
+	return nil
+}
+
 func DecodeValue(v reflect.Value, b []byte) error {
 	if !v.IsValid() {
-		return errorf("pg: Decode(nil)")
+		return fmt.Errorf("pg: Decode(nil)")
 	}
 
 	if b == nil {
-		return decodeNullValue(v)
+		return DecodeNullValue(v)
 	}
 
-	decoder := getDecoder(v.Type())
+	decoder := Decoder(v.Type())
 	if decoder != nil {
 		return decoder(v, b)
 	}
 
 	if v.Kind() == reflect.Interface {
-		return errorf("pg: Decode(nil)")
+		return fmt.Errorf("pg: Decode(nil)")
 	}
-	return errorf("pg: Decode(unsupported %s)", v.Type())
+	return fmt.Errorf("pg: Decode(unsupported %s)", v.Type())
 }
 
 func decodeBoolValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return errorf("pg: Decode(nonsettable %s)", v.Type())
+		return fmt.Errorf("pg: Decode(nonsettable %s)", v.Type())
 	}
 	v.SetBool(len(b) == 1 && b[0] == 't')
 	return nil
@@ -126,7 +155,7 @@ func decodeTimeValue(v reflect.Value, b []byte) error {
 func decodePtrValue(v reflect.Value, b []byte) error {
 	if v.IsNil() {
 		if !v.CanSet() {
-			return errorf("pg: Decode(nonsettable %s)", v.Type())
+			return fmt.Errorf("pg: Decode(nonsettable %s)", v.Type())
 		}
 		vv := reflect.New(v.Type().Elem())
 		v.Set(vv)
@@ -173,12 +202,12 @@ func decodeSliceValue(v reflect.Value, b []byte) error {
 		v.Set(reflect.ValueOf(slice))
 		return nil
 	}
-	return errorf("pg: Decode(unsupported %s)", v.Type())
+	return fmt.Errorf("pg: Decode(unsupported %s)", v.Type())
 }
 
 func decodeInterfaceValue(v reflect.Value, b []byte) error {
 	if v.IsNil() {
-		return errorf("pg: Decode(nil)")
+		return fmt.Errorf("pg: Decode(nil)")
 	}
 	return DecodeValue(v.Elem(), b)
 }
@@ -193,21 +222,21 @@ func decodeMapValue(v reflect.Value, b []byte) error {
 		v.Set(reflect.ValueOf(m))
 		return nil
 	}
-	return errorf("pg: Decode(unsupported %s)", v.Type())
+	return fmt.Errorf("pg: Decode(unsupported %s)", v.Type())
 }
 
-func decodeNullValue(v reflect.Value) error {
+func DecodeNullValue(v reflect.Value) error {
 	kind := v.Kind()
 	switch kind {
 	case reflect.Interface:
-		return decodeNullValue(v.Elem())
+		return DecodeNullValue(v.Elem())
 	}
 	if v.CanSet() {
 		v.Set(reflect.Zero(v.Type()))
 		return nil
 	}
 	if kind == reflect.Ptr {
-		return decodeNullValue(v.Elem())
+		return DecodeNullValue(v.Elem())
 	}
 	return nil
 }

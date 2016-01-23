@@ -132,148 +132,239 @@ var _ = Describe("Listener.ReceiveTimeout", func() {
 	})
 })
 
-type ModRole struct {
-	Id   int64 `pg:",nullempty"`
+type Role struct {
+	Id   int64
 	Name string
+
+	Authors []Author
 }
 
-type ModUser struct {
-	Id     int64 `pg:",nullempty"`
+type Author struct {
+	Id     int64
 	Name   string
 	RoleId int64
-	Role   *ModRole `pg:"-"`
+	Role   *Role
+
+	Entries []Entry
 }
 
-type ModArticle struct {
-	Id     int64 `pg:",nullempty"`
-	Title  string
-	UserId int64    `pg:",nullempty"`
-	User   *ModUser `pg:"-"`
+type Entry struct {
+	Id       int64
+	Title    string
+	AuthorId int64
+	Author   *Author
+	EditorId int64
+	Editor   *Author
 }
 
-var _ = Describe("Model", func() {
-	It("panics when model with empty name is registered", func() {
-		fn := func() {
-			pg.NewModel(&ModArticle{}, "").HasOne(&ModArticle{}, "")
-		}
-		Expect(fn).To(Panic())
-	})
-
-	It("panics when model with same name is registered", func() {
-		fn := func() {
-			pg.NewModel(&ModArticle{}, "a").HasOne(&ModArticle{}, "a")
-		}
-		Expect(fn).To(Panic())
-	})
-
-	It("returns fields and values", func() {
-		article := &ModArticle{
-			Title: "article title",
-		}
-		model := pg.NewModel(article, "a")
-
-		q, err := pg.FormatQ(`?Fields`, model)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(q)).To(Equal(`title`))
-
-		q, err = pg.FormatQ(`?Values`, model)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(q)).To(Equal(`'article title'`))
-	})
-
-	It("returns columns", func() {
-		article := &ModArticle{}
-		model := pg.NewModel(article, "a").HasOne("User", "u").HasOne("User.Role", "r")
-
-		q, err := pg.FormatQ(`?Columns`, model)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(q)).To(ContainSubstring(`a.id AS a__id, a.title AS a__title, a.user_id AS a__user_id`))
-		Expect(string(q)).To(ContainSubstring(`u.id AS u__id, u.name AS u__name, u.role_id AS u__role_id`))
-		Expect(string(q)).To(ContainSubstring(`r.id AS r__id, r.name AS r__name`))
-	})
-
-	It("can be used for formatting", func() {
-		article := &ModArticle{
-			Title: "article title",
-		}
-		user := &ModUser{
-			Name: "user name",
-		}
-		model := pg.NewModel(article, "a").HasOne(user, "u")
-
-		q, err := pg.FormatQ(`?id ?title ?u__id ?u__name`, model)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(q)).To(Equal(`NULL 'article title' NULL 'user name'`))
-	})
-})
-
-var _ = Describe("Model on struct", func() {
+var _ = Describe("Select", func() {
 	var db *pg.DB
 
 	BeforeEach(func() {
 		db = pg.Connect(pgOptions())
-	})
 
-	It("scans values", func() {
-		article := &ModArticle{}
-		model := pg.NewModel(article, "a").HasOne("User", "u").HasOne("User.Role", "r")
+		sql := []string{
+			`DROP TABLE IF EXISTS role`,
+			`DROP TABLE IF EXISTS author`,
+			`DROP TABLE IF EXISTS entry`,
+			`CREATE TABLE role(id serial, name text)`,
+			`CREATE TABLE author(id serial, name text, role_id int)`,
+			`CREATE TABLE entry(id serial, title text, author_id int, editor_id int)`,
+		}
+		for _, q := range sql {
+			_, err := db.Exec(q)
+			Expect(err).NotTo(HaveOccurred())
+		}
 
-		_, err := db.QueryOne(model, `
-			SELECT
-				1 AS a__id, 'article title' AS a__title, 2 AS a__user_id,
-				101 AS u__id, 'user name' AS u__name, 102 AS u__role_id,
-				201 AS r__id, 'role name' AS r__name
-		`)
+		err := db.Create(&Role{
+			Name: "role 1",
+		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(*article).To(Equal(ModArticle{
-			Id:     1,
-			Title:  "article title",
-			UserId: 2,
-			User: &ModUser{
-				Id:     101,
-				Name:   "user name",
-				RoleId: 102,
-				Role: &ModRole{
-					Id:   201,
-					Name: "role name",
-				},
-			},
-		}))
-	})
-})
 
-var _ = Describe("Model on slice", func() {
-	var db *pg.DB
-
-	BeforeEach(func() {
-		db = pg.Connect(pgOptions())
-	})
-
-	It("scans values", func() {
-		var articles []ModArticle
-		model := pg.NewModel(&articles, "a").HasOne("User", "u").HasOne("User.Role", "r")
-
-		_, err := db.Query(model, `
-			SELECT
-				1 AS a__id, 'article title' AS a__title, 2 AS a__user_id,
-				101 AS u__id, 'user name' AS u__name, 102 AS u__role_id,
-				201 AS r__id, 'role name' AS r__name
-		`)
+		err = db.Create(&Role{
+			Name: "role 2",
+		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(articles).To(HaveLen(1))
-		Expect(articles[0]).To(Equal(ModArticle{
-			Id:     1,
-			Title:  "article title",
-			UserId: 2,
-			User: &ModUser{
-				Id:     101,
-				Name:   "user name",
-				RoleId: 102,
-				Role: &ModRole{
-					Id:   201,
-					Name: "role name",
-				},
-			},
-		}))
+
+		err = db.Create(&Author{
+			Id:     10,
+			Name:   "user 1",
+			RoleId: 1,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Author{
+			Id:     11,
+			Name:   "user 2",
+			RoleId: 2,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Entry{
+			Id:       100,
+			Title:    "entry 1",
+			AuthorId: 10,
+			EditorId: 11,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Entry{
+			Id:       101,
+			Title:    "entry 2",
+			AuthorId: 10,
+			EditorId: 11,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Entry{
+			Id:       102,
+			Title:    "entry 3",
+			AuthorId: 11,
+			EditorId: 11,
+		})
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Describe("struct", func() {
+		It("joins HasOne", func() {
+			var entry Entry
+			err := db.Select("entry.id", "author.id", "editor.id", "author.role.id").
+				First(&entry).
+				Err()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(entry.Id).To(Equal(int64(100)))
+			Expect(entry.Author.Id).To(Equal(int64(10)))
+			Expect(entry.Author.Role.Id).To(Equal(int64(1)))
+		})
+
+		It("joins HasMany", func() {
+			var role Role
+			err := db.Select("role.id", "authors.id", "authors.entries.id").
+				First(&role).
+				Err()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(role.Id).To(Equal(int64(1)))
+
+			Expect(role.Authors).To(HaveLen(1))
+			author := &role.Authors[0]
+			Expect(author.Id).To(Equal(int64(10)))
+			Expect(author.Entries).To(HaveLen(2))
+
+			Expect(author.Entries).To(HaveLen(2))
+			entry := &author.Entries[0]
+			Expect(entry.Id).To(Equal(int64(100)))
+			entry = &author.Entries[1]
+			Expect(entry.Id).To(Equal(int64(101)))
+		})
+	})
+
+	Describe("slice", func() {
+		It("joins HasOne", func() {
+			var entries []Entry
+			err := db.Select("entry.id", "author", "editor", "author.role").
+				Order("role.id").
+				Find(&entries).
+				Err()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(entries).To(HaveLen(3))
+
+			entry := &entries[0]
+			Expect(entry.Id).To(Equal(int64(100)))
+			Expect(entry.Author.Id).To(Equal(int64(10)))
+			Expect(entry.Author.Role.Id).To(Equal(int64(1)))
+
+			entry = &entries[1]
+			Expect(entry.Id).To(Equal(int64(101)))
+			Expect(entry.Author.Id).To(Equal(int64(10)))
+			Expect(entry.Author.Role.Id).To(Equal(int64(1)))
+
+			entry = &entries[2]
+			Expect(entry.Id).To(Equal(int64(102)))
+			Expect(entry.Author.Id).To(Equal(int64(11)))
+			Expect(entry.Author.Role.Id).To(Equal(int64(2)))
+		})
+
+		It("joins HasMany", func() {
+			var roles []Role
+			err := db.Select("role.id", "authors", "authors.entries").
+				Order("role.id").
+				Find(&roles).
+				Err()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(roles).To(HaveLen(2))
+
+			author := &roles[0].Authors[0]
+			Expect(author.Id).To(Equal(int64(10)))
+			Expect(author.Entries).To(HaveLen(2))
+
+			author = &roles[1].Authors[0]
+			Expect(author.Id).To(Equal(int64(11)))
+			Expect(author.Entries).To(HaveLen(1))
+		})
+	})
+
+	It("Last returns last row", func() {
+		var entry Entry
+		err := db.Select("entry.id").
+			Last(&entry).
+			Err()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entry.Id).To(Equal(int64(102)))
+	})
+
+	It("Count returns number of rows", func() {
+		var count int
+		err := db.Select().Model(&Entry{}).Count(&count).Err()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(count).To(Equal(3))
+	})
+
+	It("selects specified columns", func() {
+		var entry Entry
+		err := db.Select("entry.id", "author.id", "author.name").
+			First(&entry).
+			Err()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entry.Id).To(Equal(int64(100)))
+		Expect(entry.Title).To(BeZero())
+		Expect(entry.Author.Id).To(Equal(int64(10)))
+		Expect(entry.Author.Name).To(Equal("user 1"))
+		Expect(entry.Author.RoleId).To(BeZero())
+	})
+
+	It("filters by HasOne", func() {
+		var entries []Entry
+		err := db.Select("entry.id").
+			Where("? = 10", pg.F("author.id")).
+			Order("entry.id").
+			Find(&entries).
+			Err()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entries).To(HaveLen(2))
+		Expect(entries[0].Id).To(Equal(int64(100)))
+		Expect(entries[0].Author).To(BeNil())
+		Expect(entries[1].Id).To(Equal(int64(101)))
+		Expect(entries[1].Author).To(BeNil())
+	})
+
+	It("updates model", func() {
+		err := db.Update(&Entry{
+			Id:    100,
+			Title: "updated entry 1",
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		var entry Entry
+		err = db.Select().Where("entry.id = ?", 100).Find(&entry).Err()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entry.Title).To(Equal("updated entry 1"))
+	})
+
+	It("deletes model", func() {
+		err := db.Delete(&Entry{Id: 100})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Select().Where("entry.id = ?", 100).Find(&Entry{}).Err()
+		Expect(err).To(Equal(pg.ErrNoRows))
 	})
 })

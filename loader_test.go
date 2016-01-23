@@ -6,6 +6,7 @@ import (
 	. "gopkg.in/check.v1"
 
 	"gopkg.in/pg.v3"
+	"gopkg.in/pg.v3/orm"
 )
 
 type LoaderTest struct {
@@ -26,9 +27,9 @@ type numLoader struct {
 	Num int
 }
 
-var _ pg.Collection = &numLoader{}
+var _ orm.Collection = (*numLoader)(nil)
 
-func (l *numLoader) NewRecord() interface{} {
+func (l *numLoader) NextModel() interface{} {
 	return l
 }
 
@@ -117,9 +118,9 @@ func (t *LoaderTest) TestQueryStrings(c *C) {
 
 type errLoader string
 
-var _ pg.ColumnLoader = errLoader("")
+var _ orm.ColumnScanner = errLoader("")
 
-func (l errLoader) LoadColumn(int, string, []byte) error {
+func (l errLoader) ScanColumn(int, string, []byte) error {
 	return errors.New(string(l))
 }
 
@@ -134,7 +135,7 @@ func (t *LoaderTest) TestLoaderError(c *C) {
 
 	// Verify that client is still functional.
 	var n1, n2 int
-	_, err = tx.QueryOne(pg.LoadInto(&n1, &n2), "SELECT 1, 2")
+	_, err = tx.QueryOne(pg.Scan(&n1, &n2), "SELECT 1, 2")
 	c.Assert(err, IsNil)
 	c.Assert(n1, Equals, 1)
 	c.Assert(n2, Equals, 2)

@@ -3,6 +3,8 @@ package pg
 import (
 	"io"
 	"os"
+
+	"gopkg.in/pg.v3/types"
 )
 
 // When true Tx does not issue BEGIN, COMMIT, and ROLLBACK.
@@ -74,14 +76,14 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 	return prepare(tx.db, cn, q)
 }
 
-func (tx *Tx) Exec(q string, args ...interface{}) (Result, error) {
+func (tx *Tx) Exec(query interface{}, params ...interface{}) (types.Result, error) {
 	if tx.done {
 		return nil, errTxDone
 	}
 
 	cn := tx.conn()
 
-	res, err := simpleQuery(cn, q, args...)
+	res, err := simpleQuery(cn, query, params...)
 	if err != nil {
 		tx.setErr(err)
 		return nil, err
@@ -89,21 +91,21 @@ func (tx *Tx) Exec(q string, args ...interface{}) (Result, error) {
 	return res, nil
 }
 
-func (tx *Tx) ExecOne(q string, args ...interface{}) (Result, error) {
-	res, err := tx.Exec(q, args...)
+func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (types.Result, error) {
+	res, err := tx.Exec(query, params...)
 	if err != nil {
 		return nil, err
 	}
 	return assertOneAffected(res, nil)
 }
 
-func (tx *Tx) Query(coll interface{}, q string, args ...interface{}) (Result, error) {
+func (tx *Tx) Query(coll interface{}, query interface{}, params ...interface{}) (types.Result, error) {
 	if tx.done {
 		return nil, errTxDone
 	}
 
 	cn := tx.conn()
-	res, err := simpleQueryData(cn, coll, q, args...)
+	res, err := simpleQueryData(cn, coll, query, params...)
 	if err != nil {
 		tx.setErr(err)
 		return nil, err
@@ -111,9 +113,9 @@ func (tx *Tx) Query(coll interface{}, q string, args ...interface{}) (Result, er
 	return res, nil
 }
 
-func (tx *Tx) QueryOne(record interface{}, q string, args ...interface{}) (Result, error) {
-	coll := &singleRecordCollection{record: record}
-	res, err := tx.Query(coll, q, args...)
+func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (types.Result, error) {
+	coll := &singleElementCollection{model: model}
+	res, err := tx.Query(coll, query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -165,9 +167,9 @@ func (tx *Tx) close() error {
 }
 
 // CopyFrom copies data from reader to a table.
-func (tx *Tx) CopyFrom(r io.Reader, q string, args ...interface{}) (Result, error) {
+func (tx *Tx) CopyFrom(r io.Reader, query string, params ...interface{}) (types.Result, error) {
 	cn := tx.conn()
-	res, err := copyFrom(cn, r, q, args...)
+	res, err := copyFrom(cn, r, query, params...)
 	if err != nil {
 		tx.setErr(err)
 		return nil, err

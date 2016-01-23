@@ -72,9 +72,9 @@ func ExampleDB_Exec() {
 	// Output: -1 <nil>
 }
 
-func ExampleLoadInto() {
+func ExampleScan() {
 	var s1, s2 string
-	_, err := db.QueryOne(pg.LoadInto(&s1, &s2), `SELECT ?, ?`, "foo", "bar")
+	_, err := db.QueryOne(pg.Scan(&s1, &s2), `SELECT ?, ?`, "foo", "bar")
 	fmt.Println(s1, s2, err)
 	// Output: foo bar <nil>
 }
@@ -128,7 +128,7 @@ func ExampleDB_Prepare() {
 	}
 
 	var s1, s2 string
-	_, err = stmt.QueryOne(pg.LoadInto(&s1, &s2), "foo", "bar")
+	_, err = stmt.QueryOne(pg.Scan(&s1, &s2), "foo", "bar")
 	fmt.Println(s1, s2, err)
 	// Output: foo bar <nil>
 }
@@ -142,9 +142,9 @@ func ExampleInts() {
 
 func ExampleInts_2() {
 	ids := pg.Ints{1, 2, 3}
-	q := pg.MustFormatQ(`SELECT * FROM table WHERE id IN (?)`, ids)
-	fmt.Println(q)
-	// Output: SELECT * FROM table WHERE id IN (1,2,3)
+	q, err := pg.FormatQuery(`SELECT * FROM table WHERE id IN (?)`, ids)
+	fmt.Println(q, err)
+	// Output: SELECT * FROM table WHERE id IN (1,2,3) <nil>
 }
 
 func ExampleStrings() {
@@ -180,7 +180,7 @@ func ExampleDB_CopyFrom() {
 func ExampleDB_WithTimeout() {
 	var count int
 	// Use bigger timeout since this query is known to be slow.
-	_, err := db.WithTimeout(time.Minute).QueryOne(pg.LoadInto(&count), `
+	_, err := db.WithTimeout(time.Minute).QueryOne(pg.Scan(&count), `
 		SELECT count(*) FROM big_table
 	`)
 	if err != nil {

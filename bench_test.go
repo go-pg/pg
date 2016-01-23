@@ -12,6 +12,7 @@ import (
 	_ "github.com/lib/pq"
 
 	"gopkg.in/pg.v3"
+	"gopkg.in/pg.v3/orm"
 )
 
 func init() {
@@ -23,7 +24,7 @@ func init() {
 	}
 }
 
-func BenchmarkFormatQWithoutArgs(b *testing.B) {
+func BenchmarkFormatQueryWithoutArgs(b *testing.B) {
 	rec := &Record{
 		Num1: 1,
 		Num2: 2,
@@ -37,14 +38,14 @@ func BenchmarkFormatQWithoutArgs(b *testing.B) {
 		WHERE 1=1 AND 2=2
 	`, rec.Num1, rec.Num2, rec.Num3, rec.Str1, rec.Str2, rec.Str3)
 	for i := 0; i < b.N; i++ {
-		_, err := pg.FormatQ(q)
+		_, err := pg.FormatQuery(q)
 		if err != nil {
 			b.Fatal(err)
 		}
 	}
 }
 
-func BenchmarkFormatQWithArgs(b *testing.B) {
+func BenchmarkFormatQueryWithArgs(b *testing.B) {
 	rec := &Record{
 		Num1: 1,
 		Num2: 2,
@@ -54,7 +55,7 @@ func BenchmarkFormatQWithArgs(b *testing.B) {
 		Str3: randSeq(300),
 	}
 	for i := 0; i < b.N; i++ {
-		_, err := pg.FormatQ(`
+		_, err := pg.FormatQuery(`
 			SELECT ?, ?, ?, ?, ?, ?
 			WHERE 1=1 AND 2=2
 		`, rec.Num1, rec.Num2, rec.Num3, rec.Str1, rec.Str2, rec.Str3)
@@ -64,7 +65,7 @@ func BenchmarkFormatQWithArgs(b *testing.B) {
 	}
 }
 
-func BenchmarkFormatQWithStructFields(b *testing.B) {
+func BenchmarkFormatQueryWithStructFields(b *testing.B) {
 	rec := &Record{
 		Num1: 1,
 		Num2: 2,
@@ -74,7 +75,7 @@ func BenchmarkFormatQWithStructFields(b *testing.B) {
 		Str3: randSeq(300),
 	}
 	for i := 0; i < b.N; i++ {
-		_, err := pg.FormatQ(`
+		_, err := pg.FormatQuery(`
 			SELECT ?num1, ?num2, ?num3, ?str1, ?str2, ?str3
 			WHERE 1=1 AND 2=2
 		`, rec)
@@ -84,7 +85,7 @@ func BenchmarkFormatQWithStructFields(b *testing.B) {
 	}
 }
 
-func BenchmarkFormatQWithStructMethods(b *testing.B) {
+func BenchmarkFormatQueryWithStructMethods(b *testing.B) {
 	rec := &Record{
 		Num1: 1,
 		Num2: 2,
@@ -94,7 +95,7 @@ func BenchmarkFormatQWithStructMethods(b *testing.B) {
 		Str3: randSeq(300),
 	}
 	for i := 0; i < b.N; i++ {
-		_, err := pg.FormatQ(`
+		_, err := pg.FormatQuery(`
 			SELECT ?GetNum1, ?GetNum2, ?GetNum3, ?GetStr1, ?GetStr2, ?GetStr3
 			WHERE 1=1 AND 2=2
 		`, rec)
@@ -259,7 +260,7 @@ func BenchmarkQueryRowStmt(b *testing.B) {
 	}
 }
 
-func BenchmarkQueryRowLoadInto(b *testing.B) {
+func BenchmarkQueryRowScan(b *testing.B) {
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
@@ -268,7 +269,7 @@ func BenchmarkQueryRowLoadInto(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var n int64
-			_, err := db.QueryOne(pg.LoadInto(&n), `SELECT ? AS num`, 1)
+			_, err := db.QueryOne(pg.Scan(&n), `SELECT ? AS num`, 1)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -279,7 +280,7 @@ func BenchmarkQueryRowLoadInto(b *testing.B) {
 	})
 }
 
-func BenchmarkQueryRowStmtLoadInto(b *testing.B) {
+func BenchmarkQueryRowStmtScan(b *testing.B) {
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
@@ -293,7 +294,7 @@ func BenchmarkQueryRowStmtLoadInto(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		var n int64
-		_, err := stmt.QueryOne(pg.LoadInto(&n), 1)
+		_, err := stmt.QueryOne(pg.Scan(&n), 1)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -560,9 +561,9 @@ type OptRecord struct {
 	Str1, Str2, Str3 string
 }
 
-var _ pg.ColumnLoader = (*OptRecord)(nil)
+var _ orm.ColumnScanner = (*OptRecord)(nil)
 
-func (r *OptRecord) LoadColumn(colIdx int, colName string, b []byte) error {
+func (r *OptRecord) ScanColumn(colIdx int, colName string, b []byte) error {
 	var err error
 	switch colName {
 	case "num1":
@@ -587,9 +588,9 @@ type OptRecords struct {
 	C []OptRecord
 }
 
-var _ pg.Collection = (*OptRecords)(nil)
+var _ orm.Collection = (*OptRecords)(nil)
 
-func (rs *OptRecords) NewRecord() interface{} {
+func (rs *OptRecords) NextModel() interface{} {
 	rs.C = append(rs.C, OptRecord{})
 	return &rs.C[len(rs.C)-1]
 }

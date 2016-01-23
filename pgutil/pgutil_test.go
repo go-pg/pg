@@ -3,7 +3,7 @@ package pgutil_test
 import (
 	"testing"
 
-	"github.com/go-pg/pg/pgutil"
+	"gopkg.in/pg.v3/pgutil"
 )
 
 func TestUnderscore(t *testing.T) {
