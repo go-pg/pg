@@ -2,12 +2,13 @@ package orm
 
 import "gopkg.in/pg.v3/types"
 
-func Create(query querier, v interface{}) error {
+func Create(db dber, v interface{}) error {
 	model, err := NewModel(v)
 	if err != nil {
 		return err
 	}
-	return query(model, insert{Model: model})
+	_, err = db.Query(model, insert{Model: model})
+	return err
 }
 
 type insert struct {

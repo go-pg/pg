@@ -102,6 +102,16 @@ func (m *Model) Bind(bind reflect.Value) {
 	m.slice = invalidValue
 }
 
+func (m *Model) Kind() reflect.Kind {
+	if m.slice.IsValid() {
+		return m.slice.Kind()
+	}
+	if m.strct.IsValid() {
+		return m.strct.Kind()
+	}
+	return fieldValueByPath(m.bind, m.Path, false).Kind()
+}
+
 func (m *Model) Value() reflect.Value {
 	if m.slice.IsValid() {
 		return m.slice

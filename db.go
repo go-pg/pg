@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gopkg.in/pg.v3/orm"
+	"gopkg.in/pg.v3/types"
 )
 
 const defaultBackoff = 100 * time.Millisecond
@@ -222,7 +223,7 @@ func (db *DB) Close() error {
 
 // Exec executes a query ignoring returned rows. The params are for
 // any placeholder parameters in the query.
-func (db *DB) Exec(q string, params ...interface{}) (res Result, err error) {
+func (db *DB) Exec(query interface{}, params ...interface{}) (res types.Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		var cn *conn
@@ -232,7 +233,7 @@ func (db *DB) Exec(q string, params ...interface{}) (res Result, err error) {
 			return nil, err
 		}
 
-		res, err = simpleQuery(cn, q, params...)
+		res, err = simpleQuery(cn, query, params...)
 		db.freeConn(cn, err)
 		if !canRetry(err) {
 			break
@@ -247,8 +248,8 @@ func (db *DB) Exec(q string, params ...interface{}) (res Result, err error) {
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (db *DB) ExecOne(q string, params ...interface{}) (Result, error) {
-	res, err := db.Exec(q, params...)
+func (db *DB) ExecOne(query interface{}, params ...interface{}) (types.Result, error) {
+	res, err := db.Exec(query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -257,7 +258,7 @@ func (db *DB) ExecOne(q string, params ...interface{}) (Result, error) {
 
 // Query executes a query that returns rows, typically a SELECT. The
 // params are for any placeholder parameters in the query.
-func (db *DB) Query(coll, query interface{}, params ...interface{}) (res Result, err error) {
+func (db *DB) Query(coll, query interface{}, params ...interface{}) (res types.Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		var cn *conn
@@ -282,7 +283,7 @@ func (db *DB) Query(coll, query interface{}, params ...interface{}) (res Result,
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (db *DB) QueryOne(model, query interface{}, params ...interface{}) (Result, error) {
+func (db *DB) QueryOne(model, query interface{}, params ...interface{}) (types.Result, error) {
 	coll := &singleElementCollection{model: model}
 	res, err := db.Query(coll, query, params...)
 	if err != nil {
@@ -304,7 +305,7 @@ func (db *DB) Listen(channels ...string) (*Listener, error) {
 }
 
 // CopyFrom copies data from reader to a table.
-func (db *DB) CopyFrom(r io.Reader, q string, params ...interface{}) (Result, error) {
+func (db *DB) CopyFrom(r io.Reader, q string, params ...interface{}) (types.Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
@@ -319,7 +320,7 @@ func (db *DB) CopyFrom(r io.Reader, q string, params ...interface{}) (Result, er
 }
 
 // CopyTo copies data from a table to writer.
-func (db *DB) CopyTo(w io.WriteCloser, q string, params ...interface{}) (Result, error) {
+func (db *DB) CopyTo(w io.WriteCloser, q string, params ...interface{}) (types.Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
@@ -349,17 +350,16 @@ func (db *DB) CopyTo(w io.WriteCloser, q string, params ...interface{}) (Result,
 	return res, nil
 }
 
-func (db *DB) query(coll interface{}, query interface{}, params ...interface{}) error {
-	_, err := db.Query(coll, query, params...)
-	return err
-}
-
 func (db *DB) Select(columns ...interface{}) *orm.Select {
-	return orm.NewSelect(db.query).Select(columns...)
+	return orm.NewSelect(db).Select(columns...)
 }
 
 func (db *DB) Create(model interface{}) error {
-	return orm.Create(db.query, model)
+	return orm.Create(db, model)
+}
+
+func (db *DB) Delete(model interface{}) error {
+	return orm.Delete(db, model)
 }
 
 func setParams(cn *conn, params map[string]interface{}) error {
@@ -388,8 +388,8 @@ func (db *DB) cancelRequest(processId, secretKey int32) error {
 	return cn.Close()
 }
 
-func simpleQuery(cn *conn, q string, params ...interface{}) (Result, error) {
-	if err := writeQueryMsg(cn.buf, q, params...); err != nil {
+func simpleQuery(cn *conn, query interface{}, params ...interface{}) (types.Result, error) {
+	if err := writeQueryMsg(cn.buf, query, params...); err != nil {
 		return nil, err
 	}
 
@@ -405,7 +405,7 @@ func simpleQuery(cn *conn, q string, params ...interface{}) (Result, error) {
 	return res, nil
 }
 
-func simpleQueryData(cn *conn, model, query interface{}, params ...interface{}) (Result, error) {
+func simpleQueryData(cn *conn, model, query interface{}, params ...interface{}) (types.Result, error) {
 	if err := writeQueryMsg(cn.buf, query, params...); err != nil {
 		return nil, err
 	}
@@ -449,7 +449,7 @@ func assertOne(l int) error {
 	}
 }
 
-func assertOneAffected(res Result, model *singleElementCollection) (Result, error) {
+func assertOneAffected(res types.Result, model *singleElementCollection) (types.Result, error) {
 	if err := assertOne(res.Affected()); err != nil {
 		return nil, err
 	}

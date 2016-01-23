@@ -345,4 +345,12 @@ var _ = Describe("Select", func() {
 		Expect(entries[1].Id).To(Equal(int64(101)))
 		Expect(entries[1].Author).To(BeNil())
 	})
+
+	It("deletes model", func() {
+		err := db.Delete(&Entry{Id: 100})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Select().Where("entry.id = ?", 100).Find(&Entry{}).Err()
+		Expect(err).To(Equal(pg.ErrNoRows))
+	})
 })

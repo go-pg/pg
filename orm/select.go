@@ -1,15 +1,21 @@
 package orm
 
 import (
+	"reflect"
 	"strconv"
 
 	"gopkg.in/pg.v3/types"
 )
 
-type querier func(interface{}, interface{}, ...interface{}) error
+type dber interface {
+	Exec(q interface{}, params ...interface{}) (types.Result, error)
+	ExecOne(q interface{}, params ...interface{}) (types.Result, error)
+	Query(coll, query interface{}, params ...interface{}) (types.Result, error)
+	QueryOne(model, query interface{}, params ...interface{}) (types.Result, error)
+}
 
 type Select struct {
-	query querier
+	db    dber
 	model *Model
 	err   error
 
@@ -23,9 +29,9 @@ type Select struct {
 	offset  int
 }
 
-func NewSelect(query querier) *Select {
+func NewSelect(db dber) *Select {
 	return &Select{
-		query: query,
+		db: db,
 	}
 }
 
@@ -139,7 +145,7 @@ func (s *Select) Count(count *int) *Select {
 		}
 	}
 
-	err := s.query(Scan(count), s, s.model)
+	_, err := s.db.Query(Scan(count), s, s.model)
 	if err != nil {
 		s.setErr(err)
 		return s
@@ -157,6 +163,8 @@ func (s *Select) Last(dst interface{}) *Select {
 }
 
 func (s *Select) Find(dst interface{}) *Select {
+	var err error
+
 	s.Model(dst)
 
 	s.tables = append(s.tables, s.model.Table.Name)
@@ -179,14 +187,19 @@ func (s *Select) Find(dst interface{}) *Select {
 		}
 	}
 
-	if err := s.query(s.model, s, s.model); err != nil {
+	if s.model.Kind() == reflect.Struct {
+		_, err = s.db.QueryOne(s.model, s, s.model)
+	} else {
+		_, err = s.db.Query(s.model, s, s.model)
+	}
+	if err != nil {
 		s.setErr(err)
 		return s
 	}
 
 	for _, join := range s.model.Joins {
 		if join.Relation.Many {
-			err := join.JoinMany(s.query, s.model.Value())
+			err := join.JoinMany(s.db, s.model.Value())
 			if err != nil {
 				s.setErr(err)
 				return s
