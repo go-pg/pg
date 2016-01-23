@@ -341,7 +341,10 @@ func AppendFieldBytes(b []byte, field []byte, quote bool) []byte {
 				b = append(b, '"')
 			}
 			b = append(b, '.')
-			if quote {
+			if p.Got("*") {
+				b = append(b, '*')
+				quoted = false
+			} else if quote {
 				b = append(b, '"')
 			}
 			continue
