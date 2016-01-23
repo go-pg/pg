@@ -65,17 +65,17 @@ func (t *TxTest) TestCopyFromInTransaction(c *C) {
 	c.Assert(res.Affected(), Equals, 4)
 
 	var count int
-	_, err = tx1.QueryOne(pg.LoadInto(&count), "SELECT COUNT(*) FROM test_copy_from")
+	_, err = tx1.QueryOne(pg.Scan(&count), "SELECT COUNT(*) FROM test_copy_from")
 	c.Assert(err, IsNil)
 	c.Assert(count, Equals, 4)
 
-	_, err = tx2.QueryOne(pg.LoadInto(&count), "SELECT COUNT(*) FROM test_copy_from")
+	_, err = tx2.QueryOne(pg.Scan(&count), "SELECT COUNT(*) FROM test_copy_from")
 	c.Assert(err, IsNil)
 	c.Assert(count, Equals, 0)
 
 	c.Assert(tx1.Commit(), IsNil)
 
-	_, err = tx2.QueryOne(pg.LoadInto(&count), "SELECT COUNT(*) FROM test_copy_from")
+	_, err = tx2.QueryOne(pg.Scan(&count), "SELECT COUNT(*) FROM test_copy_from")
 	c.Assert(err, IsNil)
 	c.Assert(count, Equals, 4) // assuming READ COMMITTED
 
@@ -110,16 +110,16 @@ func (t *TxTest) TestCopyFromInTransactionWithErrors(c *C) {
 	c.Assert(err, Not(IsNil))
 
 	var count int
-	_, err = tx1.QueryOne(pg.LoadInto(&count), "SELECT COUNT(*) FROM test_copy_from")
+	_, err = tx1.QueryOne(pg.Scan(&count), "SELECT COUNT(*) FROM test_copy_from")
 	c.Assert(err, Not(IsNil)) // transaction has errors, cannot proceed
 
-	_, err = tx2.QueryOne(pg.LoadInto(&count), "SELECT COUNT(*) FROM test_copy_from")
+	_, err = tx2.QueryOne(pg.Scan(&count), "SELECT COUNT(*) FROM test_copy_from")
 	c.Assert(err, IsNil)
 	c.Assert(count, Equals, 1)
 
 	c.Assert(tx1.Commit(), IsNil) // actually ROLLBACK happens here
 
-	_, err = tx2.QueryOne(pg.LoadInto(&count), "SELECT COUNT(*) FROM test_copy_from")
+	_, err = tx2.QueryOne(pg.Scan(&count), "SELECT COUNT(*) FROM test_copy_from")
 	c.Assert(err, IsNil)
 	c.Assert(count, Equals, 1) // other transaction was rolled back so it's not 2 and not 6
 

@@ -465,8 +465,8 @@ func assertOneAffected(res types.Result, model *singleElementCollection) (types.
 	return res, nil
 }
 
-func copyFrom(cn *conn, r io.Reader, q string, args ...interface{}) (Result, error) {
-	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
+func copyFrom(cn *conn, r io.Reader, query interface{}, params ...interface{}) (types.Result, error) {
+	if err := writeQueryMsg(cn.buf, query, params...); err != nil {
 		return nil, err
 	}
 
@@ -479,7 +479,7 @@ func copyFrom(cn *conn, r io.Reader, q string, args ...interface{}) (Result, err
 	}
 
 	ready := make(chan struct{})
-	var res Result
+	var res types.Result
 	var err error
 	go func() {
 		res, err = readReadyForQuery(cn)
