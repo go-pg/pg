@@ -358,6 +358,10 @@ func (db *DB) Create(model interface{}) error {
 	return orm.Create(db, model)
 }
 
+func (db *DB) Update(model interface{}) error {
+	return orm.Update(db, model)
+}
+
 func (db *DB) Delete(model interface{}) error {
 	return orm.Delete(db, model)
 }

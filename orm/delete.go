@@ -27,6 +27,7 @@ func (del deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 
 	b = append(b, "DELETE FROM "...)
 	b = types.AppendField(b, del.Table.Name, true)
+
 	b = append(b, " WHERE "...)
 	b = types.AppendField(b, del.Table.PK.SQLName, true)
 	b = append(b, " = "...)

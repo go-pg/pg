@@ -334,7 +334,8 @@ var _ = Describe("Select", func() {
 
 	It("filters by HasOne", func() {
 		var entries []Entry
-		err := db.Select("entry.id").Where("? = 10", pg.F("author.id")).
+		err := db.Select("entry.id").
+			Where("? = 10", pg.F("author.id")).
 			Order("entry.id").
 			Find(&entries).
 			Err()
@@ -344,6 +345,19 @@ var _ = Describe("Select", func() {
 		Expect(entries[0].Author).To(BeNil())
 		Expect(entries[1].Id).To(Equal(int64(101)))
 		Expect(entries[1].Author).To(BeNil())
+	})
+
+	It("updates model", func() {
+		err := db.Update(&Entry{
+			Id:    100,
+			Title: "updated entry 1",
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		var entry Entry
+		err = db.Select().Where("entry.id = ?", 100).Find(&entry).Err()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(entry.Title).To(Equal("updated entry 1"))
 	})
 
 	It("deletes model", func() {
