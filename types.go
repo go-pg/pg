@@ -217,7 +217,7 @@ func getFields(typ reflect.Type) fields {
 			continue
 		}
 
-		if f.PkgPath != "" {
+		if f.PkgPath != "" && !f.Anonymous {
 			continue
 		}
 
