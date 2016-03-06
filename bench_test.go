@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"math/rand"
 	"strconv"
+	"sync"
 	"testing"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
@@ -14,15 +16,6 @@ import (
 	"gopkg.in/pg.v4"
 	"gopkg.in/pg.v4/orm"
 )
-
-func init() {
-	db := pg.Connect(pgOptions())
-	defer db.Close()
-
-	if err := seedDB(db); err != nil {
-		panic(err)
-	}
-}
 
 func BenchmarkFormatQueryWithoutArgs(b *testing.B) {
 	rec := &Record{
@@ -106,6 +99,8 @@ func BenchmarkFormatQueryWithStructMethods(b *testing.B) {
 }
 
 func BenchmarkQueryRowsDiscard(b *testing.B) {
+	seedDB()
+
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
@@ -122,6 +117,8 @@ func BenchmarkQueryRowsDiscard(b *testing.B) {
 }
 
 func BenchmarkQueryRowsOptimized(b *testing.B) {
+	seedDB()
+
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
@@ -142,6 +139,8 @@ func BenchmarkQueryRowsOptimized(b *testing.B) {
 }
 
 func BenchmarkQueryRowsReflect(b *testing.B) {
+	seedDB()
+
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
@@ -162,6 +161,8 @@ func BenchmarkQueryRowsReflect(b *testing.B) {
 }
 
 func BenchmarkQueryRowsORM(b *testing.B) {
+	seedDB()
+
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
@@ -182,6 +183,8 @@ func BenchmarkQueryRowsORM(b *testing.B) {
 }
 
 func BenchmarkQueryRowsStdlibPq(b *testing.B) {
+	seedDB()
+
 	pqdb, err := pqdb()
 	if err != nil {
 		b.Fatal(err)
@@ -217,11 +220,15 @@ func BenchmarkQueryRowsStdlibPq(b *testing.B) {
 }
 
 func BenchmarkQueryRowsGORM(b *testing.B) {
+	seedDB()
+
 	db, err := gormdb()
 	if err != nil {
 		b.Fatal(err)
 	}
 	defer db.Close()
+
+	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -233,6 +240,55 @@ func BenchmarkQueryRowsGORM(b *testing.B) {
 
 			if len(rs) != 100 {
 				b.Fatalf("got %d, wanted 100", len(rs))
+			}
+		}
+	})
+}
+
+func BenchmarkQueryHasOneGoPG(b *testing.B) {
+	seedDB()
+
+	db := pg.Connect(pgOptions())
+	defer db.Close()
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var books []Book
+			err := db.Model(&books).Columns("books.*", "Author").Limit(100).Select()
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			if len(books) != 100 {
+				b.Fatalf("got %d, wanted 100", len(books))
+			}
+		}
+	})
+}
+
+func BenchmarkQueryHasOneGORM(b *testing.B) {
+	seedDB()
+
+	db, err := gormdb()
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer db.Close()
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var books []Book
+			err := db.Preload("Author").Limit(100).Find(&books).Error
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			if len(books) != 100 {
+				b.Fatalf("got %d, wanted 100", len(books))
 			}
 		}
 	})
@@ -615,7 +671,18 @@ func (rs *OptRecords) NewModel() orm.ColumnScanner {
 	return &rs.C[len(rs.C)-1]
 }
 
-func seedDB(db *pg.DB) error {
+var seedDBOnce sync.Once
+
+func seedDB() {
+	seedDBOnce.Do(func() {
+		_seedDB()
+	})
+}
+
+func _seedDB() error {
+	db := pg.Connect(pgOptions())
+	defer db.Close()
+
 	_, err := db.Exec(`DROP TABLE IF EXISTS records`)
 	if err != nil {
 		return err
@@ -642,6 +709,37 @@ func seedDB(db *pg.DB) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	err = createTestSchema(db)
+	if err != nil {
+		return err
+	}
+
+	for i := 0; i < 1000; i++ {
+		genre := Genre{
+			Name: fmt.Sprintf("genre %d", i),
+		}
+		err := db.Create(&genre)
+		if err != nil {
+			return err
+		}
+
+		author := Author{
+			Name: fmt.Sprintf("author %d", i),
+		}
+		err = db.Create(&author)
+		if err != nil {
+			return err
+		}
+
+		err = db.Create(&Book{
+			Id:        100,
+			Title:     fmt.Sprintf("book %d", i),
+			AuthorID:  author.ID,
+			EditorID:  author.ID,
+			CreatedAt: time.Now(),
+		})
 	}
 
 	return nil
