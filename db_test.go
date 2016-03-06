@@ -204,8 +204,6 @@ type BookGenre struct {
 }
 
 type Book struct {
-	TableName string `sql:"bookz"`
-
 	Id        int
 	Title     string
 	AuthorID  int
@@ -237,32 +235,40 @@ type Comment struct {
 	Text          string
 }
 
+func createTestSchema(db *pg.DB) error {
+	sql := []string{
+		`DROP TABLE IF EXISTS comments`,
+		`DROP TABLE IF EXISTS translations`,
+		`DROP TABLE IF EXISTS authors`,
+		`DROP TABLE IF EXISTS books`,
+		`DROP TABLE IF EXISTS genres`,
+		`DROP TABLE IF EXISTS book_genres`,
+		`CREATE TABLE authors (id serial, name text)`,
+		`CREATE TABLE books (id serial, title text, author_id int, editor_id int, created_at timestamptz)`,
+		`CREATE TABLE genres (id serial, name text)`,
+		`CREATE TABLE book_genres (book_id int, genre_id int, genre_rating int)`,
+		`CREATE TABLE translations (id serial, book_id int, lang varchar(2))`,
+		`CREATE TABLE comments (trackable_id int, trackable_type varchar(100), text text)`,
+	}
+	for _, q := range sql {
+		_, err := db.Exec(q)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 var _ = Describe("ORM", func() {
 	var db *pg.DB
 
 	BeforeEach(func() {
 		db = pg.Connect(pgOptions())
 
-		sql := []string{
-			`DROP TABLE IF EXISTS comments`,
-			`DROP TABLE IF EXISTS translations`,
-			`DROP TABLE IF EXISTS authors`,
-			`DROP TABLE IF EXISTS bookz`,
-			`DROP TABLE IF EXISTS genres`,
-			`DROP TABLE IF EXISTS book_genres`,
-			`CREATE TABLE authors (id serial, name text)`,
-			`CREATE TABLE bookz (id serial, title text, author_id int, editor_id int, created_at timestamptz)`,
-			`CREATE TABLE genres (id serial, name text)`,
-			`CREATE TABLE book_genres (book_id int, genre_id int, genre_rating int)`,
-			`CREATE TABLE translations (id serial, book_id int, lang varchar(2))`,
-			`CREATE TABLE comments (trackable_id int, trackable_type varchar(100), text text)`,
-		}
-		for _, q := range sql {
-			_, err := db.Exec(q)
-			Expect(err).NotTo(HaveOccurred())
-		}
+		err := createTestSchema(db)
+		Expect(err).NotTo(HaveOccurred())
 
-		err := db.Create(&Genre{
+		err = db.Create(&Genre{
 			Name: "genre 1",
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -385,7 +391,7 @@ var _ = Describe("ORM", func() {
 		It("supports HasOne, HasMany, HasMany2Many, Polymorphic, HasMany -> Polymorphic", func() {
 			var book Book
 			err := db.Model(&book).
-				Columns("bookz.id", "Author.id", "Editor.id", "Genres.id", "Comments", "Translations", "Translations.Comments").
+				Columns("books.id", "Author.id", "Editor.id", "Genres.id", "Comments", "Translations", "Translations.Comments").
 				First()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -491,8 +497,8 @@ var _ = Describe("ORM", func() {
 		It("supports HasOne, HasMany, HasMany2Many", func() {
 			var books []Book
 			err := db.Model(&books).
-				Columns("bookz.id", "Author", "Editor", "Translations", "Genres").
-				Order("bookz.id ASC").
+				Columns("books.id", "Author", "Editor", "Translations", "Genres").
+				Order("books.id ASC").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(books).To(HaveLen(3))
@@ -615,7 +621,7 @@ var _ = Describe("ORM", func() {
 	It("supports selecting specified columns", func() {
 		var book Book
 		err := db.Model(&book).
-			Columns("bookz.id", "Author.id", "Author.name").
+			Columns("books.id", "Author.id", "Author.name").
 			First()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(book.Id).To(Equal(100))
@@ -627,9 +633,9 @@ var _ = Describe("ORM", func() {
 	It("filters by HasOne", func() {
 		var books []Book
 		err := db.Model(&books).
-			Columns("bookz.id", "Author._").
+			Columns("books.id", "Author._").
 			Where("author.id = 10").
-			Order("bookz.id ASC").
+			Order("books.id ASC").
 			Select()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(books).To(HaveLen(2))

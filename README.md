@@ -140,11 +140,8 @@ func ExampleDB_Query() {
 ## Why not database/sql, lib/pq, or GORM
 
 - No `rows.Close` to manually manage connections.
-- go-pg can automatically map rows on Go structs.
+- go-pg automatically maps rows on Go structs and slice.
 - go-pg is at least 3x faster than GORM on querying 100 rows from table.
-- go-pg generates effecient queries for joins.
-
-## Benchmark
 
 ```
 BenchmarkQueryRowsOptimized-4	   10000	    154128 ns/op	   83432 B/op	     625 allocs/op
@@ -152,6 +149,26 @@ BenchmarkQueryRowsReflect-4  	   10000	    197921 ns/op	   94760 B/op	     826 a
 BenchmarkQueryRowsORM-4      	   10000	    196123 ns/op	   94992 B/op	     829 allocs/op
 BenchmarkQueryRowsStdlibPq-4 	    5000	    255915 ns/op	  161648 B/op	    1324 allocs/op
 BenchmarkQueryRowsGORM-4     	    2000	    700051 ns/op	  382501 B/op	    6271 allocs/op
+```
+
+- go-pg generates much more effecient queries for joins.
+
+```
+BenchmarkQueryHasOneGoPG-4	    3000	    352184 ns/op	   95498 B/op	    1383 allocs/op
+BenchmarkQueryHasOneGORM-4	     200	   6887782 ns/op	 2151858 B/op	  113251 allocs/op
+```
+
+go-pg queries:
+
+```
+SELECT "books".*, "author"."id" AS "author__id", "author"."name" AS "author__name" FROM "books", "authors" AS "author" WHERE "author"."id" = "books"."author_id" LIMIT 100
+```
+
+GORM queries:
+
+```
+SELECT  * FROM "books"   LIMIT 100
+SELECT  * FROM "authors"  WHERE ("id" IN ('1','2'...'100'))
 ```
 
 ## Howto
