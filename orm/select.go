@@ -20,7 +20,7 @@ type selectQuery struct {
 func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "SELECT "...)
 	if sel.columns == nil {
-		b = types.AppendField(b, sel.model.Table.Name, true)
+		b = types.AppendField(b, sel.model.Table.ModelName, true)
 		b = append(b, ".*"...)
 	} else {
 		b = appendValue(b, ", ", sel.columns...)

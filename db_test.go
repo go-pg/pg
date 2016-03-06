@@ -391,7 +391,7 @@ var _ = Describe("ORM", func() {
 		It("supports HasOne, HasMany, HasMany2Many, Polymorphic, HasMany -> Polymorphic", func() {
 			var book Book
 			err := db.Model(&book).
-				Columns("books.id", "Author.id", "Editor.id", "Genres.id", "Comments", "Translations", "Translations.Comments").
+				Columns("book.id", "Author.id", "Editor.id", "Genres.id", "Comments", "Translations", "Translations.Comments").
 				First()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -430,7 +430,7 @@ var _ = Describe("ORM", func() {
 		It("supports HasMany -> HasOne, HasMany -> HasMany", func() {
 			var author Author
 			err := db.Model(&author).
-				Columns("authors.*", "Books.Author", "Books.Editor", "Books.Translations").
+				Columns("author.*", "Books.Author", "Books.Editor", "Books.Translations").
 				First()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(author.ID).To(Equal(10))
@@ -464,7 +464,7 @@ var _ = Describe("ORM", func() {
 		It("supports HasMany -> HasMany -> HasMany", func() {
 			var genre Genre
 			err := db.Model(&genre).
-				Columns("genres.id", "Books.id", "Books.Translations").
+				Columns("genre.id", "Books.id", "Books.Translations").
 				First()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(genre.Id).To(Equal(1))
@@ -497,8 +497,8 @@ var _ = Describe("ORM", func() {
 		It("supports HasOne, HasMany, HasMany2Many", func() {
 			var books []Book
 			err := db.Model(&books).
-				Columns("books.id", "Author", "Editor", "Translations", "Genres").
-				Order("books.id ASC").
+				Columns("book.id", "Author", "Editor", "Translations", "Genres").
+				Order("book.id ASC").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(books).To(HaveLen(3))
@@ -549,8 +549,8 @@ var _ = Describe("ORM", func() {
 		It("supports HasMany, HasMany -> HasMany, HasMany2Many", func() {
 			var genres []Genre
 			err := db.Model(&genres).
-				Columns("genres.*", "Books", "Books.Translations").
-				Order("genres.id").
+				Columns("genre.*", "Books", "Books.Translations").
+				Order("genre.id").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(genres).To(HaveLen(2))
@@ -621,7 +621,7 @@ var _ = Describe("ORM", func() {
 	It("supports selecting specified columns", func() {
 		var book Book
 		err := db.Model(&book).
-			Columns("books.id", "Author.id", "Author.name").
+			Columns("book.id", "Author.id", "Author.name").
 			First()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(book.Id).To(Equal(100))
@@ -633,9 +633,9 @@ var _ = Describe("ORM", func() {
 	It("filters by HasOne", func() {
 		var books []Book
 		err := db.Model(&books).
-			Columns("books.id", "Author._").
+			Columns("book.id", "Author._").
 			Where("author.id = 10").
-			Order("books.id ASC").
+			Order("book.id ASC").
 			Select()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(books).To(HaveLen(2))

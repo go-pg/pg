@@ -30,7 +30,7 @@ func NewQuery(db dber, v interface{}) *Query {
 		err:   err,
 	}
 	if err == nil {
-		q.tables = append(q.tables, q.model.Table.Name)
+		q.tables = append(q.tables, q.model.Table.Name+" AS "+q.model.Table.ModelName)
 	}
 	return &q
 }
