@@ -42,7 +42,7 @@ func (j *Join) JoinOne(q *Query) {
 			`?.? = ?.?`,
 			types.F(j.Rel.Field.SQLName),
 			types.F(pk.SQLName),
-			types.F(j.BaseModel.Table.Name),
+			types.F(j.BaseModel.Table.ModelName),
 			types.F(j.Rel.Field.SQLName+"_"+pk.SQLName),
 		)
 	}
@@ -65,9 +65,9 @@ func (j *Join) selectMany(db dber, bind reflect.Value) error {
 	j.JoinModel.slice = joinSlice
 
 	q := NewQuery(db, j.JoinModel)
-	q.columns = append(q.columns, types.F(j.JoinModel.Table.Name+".*"))
+	q.columns = append(q.columns, types.F(j.JoinModel.Table.ModelName+".*"))
 
-	cols := columns(j.JoinModel.Table.Name+".", j.Rel.FKs)
+	cols := columns(j.JoinModel.Table.ModelName+".", j.Rel.FKs)
 	vals := values(bind, path, j.BaseModel.Table.PKs...)
 	q.Where(`(?) IN (?)`, types.Q(cols), types.Q(vals))
 

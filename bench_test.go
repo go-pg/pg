@@ -98,7 +98,7 @@ func BenchmarkFormatQueryWithStructMethods(b *testing.B) {
 	}
 }
 
-func BenchmarkQueryRowsDiscard(b *testing.B) {
+func BenchmarkQueryRowsGopgDiscard(b *testing.B) {
 	seedDB()
 
 	db := pg.Connect(pgOptions())
@@ -116,7 +116,7 @@ func BenchmarkQueryRowsDiscard(b *testing.B) {
 	})
 }
 
-func BenchmarkQueryRowsOptimized(b *testing.B) {
+func BenchmarkQueryRowsGopgOptimized(b *testing.B) {
 	seedDB()
 
 	db := pg.Connect(pgOptions())
@@ -138,7 +138,7 @@ func BenchmarkQueryRowsOptimized(b *testing.B) {
 	})
 }
 
-func BenchmarkQueryRowsReflect(b *testing.B) {
+func BenchmarkQueryRowsGopgReflect(b *testing.B) {
 	seedDB()
 
 	db := pg.Connect(pgOptions())
@@ -160,7 +160,7 @@ func BenchmarkQueryRowsReflect(b *testing.B) {
 	})
 }
 
-func BenchmarkQueryRowsORM(b *testing.B) {
+func BenchmarkQueryRowsGopgORM(b *testing.B) {
 	seedDB()
 
 	db := pg.Connect(pgOptions())
@@ -245,7 +245,7 @@ func BenchmarkQueryRowsGORM(b *testing.B) {
 	})
 }
 
-func BenchmarkQueryHasOneGoPG(b *testing.B) {
+func BenchmarkQueryHasOneGopg(b *testing.B) {
 	seedDB()
 
 	db := pg.Connect(pgOptions())
@@ -256,7 +256,7 @@ func BenchmarkQueryHasOneGoPG(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var books []Book
-			err := db.Model(&books).Columns("books.*", "Author").Limit(100).Select()
+			err := db.Model(&books).Columns("book.*", "Author").Limit(100).Select()
 			if err != nil {
 				b.Fatal(err)
 			}
