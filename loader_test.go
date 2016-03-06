@@ -5,7 +5,8 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"gopkg.in/pg.v3"
+	"gopkg.in/pg.v4"
+	"gopkg.in/pg.v4/orm"
 )
 
 type LoaderTest struct {
@@ -26,12 +27,6 @@ type numLoader struct {
 	Num int
 }
 
-var _ pg.Collection = &numLoader{}
-
-func (l *numLoader) NewRecord() interface{} {
-	return l
-}
-
 type embeddedLoader struct {
 	*numLoader
 	Num2 int
@@ -45,15 +40,15 @@ type multipleLoader struct {
 }
 
 func (t *LoaderTest) TestQuery(c *C) {
-	dst := &numLoader{}
-	_, err := t.db.Query(dst, "SELECT 1 AS num")
+	var dst numLoader
+	_, err := t.db.Query(&dst, "SELECT 1 AS num")
 	c.Assert(err, IsNil)
 	c.Assert(dst.Num, Equals, 1)
 }
 
 func (t *LoaderTest) TestQueryNull(c *C) {
-	dst := &numLoader{}
-	_, err := t.db.Query(dst, "SELECT NULL AS num")
+	var dst numLoader
+	_, err := t.db.Query(&dst, "SELECT NULL AS num")
 	c.Assert(err, IsNil)
 	c.Assert(dst.Num, Equals, 0)
 }
@@ -117,10 +112,14 @@ func (t *LoaderTest) TestQueryStrings(c *C) {
 
 type errLoader string
 
-var _ pg.ColumnLoader = errLoader("")
+var _ orm.Model = errLoader("")
 
-func (l errLoader) LoadColumn(int, string, []byte) error {
-	return errors.New(string(l))
+func (m errLoader) NewModel() orm.ColumnScanner {
+	return m
+}
+
+func (m errLoader) ScanColumn(int, string, []byte) error {
+	return errors.New(string(m))
 }
 
 func (t *LoaderTest) TestLoaderError(c *C) {
@@ -134,7 +133,7 @@ func (t *LoaderTest) TestLoaderError(c *C) {
 
 	// Verify that client is still functional.
 	var n1, n2 int
-	_, err = tx.QueryOne(pg.LoadInto(&n1, &n2), "SELECT 1, 2")
+	_, err = tx.QueryOne(pg.Scan(&n1, &n2), "SELECT 1, 2")
 	c.Assert(err, IsNil)
 	c.Assert(n1, Equals, 1)
 	c.Assert(n2, Equals, 2)

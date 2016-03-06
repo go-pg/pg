@@ -1,9 +1,9 @@
-package pgutil_test
+package orm_test
 
 import (
 	"testing"
 
-	"github.com/go-pg/pg/pgutil"
+	"gopkg.in/pg.v4/orm"
 )
 
 func TestUnderscore(t *testing.T) {
@@ -16,7 +16,7 @@ func TestUnderscore(t *testing.T) {
 		{"MegaColumn_id", "mega_column_id"},
 	}
 	for _, v := range tests {
-		if got := pgutil.Underscore(v.s); got != v.wanted {
+		if got := orm.Underscore(v.s); got != v.wanted {
 			t.Errorf("got %q, wanted %q", got, v.wanted)
 		}
 	}

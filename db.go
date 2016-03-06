@@ -1,10 +1,13 @@
-package pg
+package pg // import "gopkg.in/pg.v4"
 
 import (
 	"io"
 	"log"
 	"net"
 	"time"
+
+	"gopkg.in/pg.v4/orm"
+	"gopkg.in/pg.v4/types"
 )
 
 const defaultBackoff = 100 * time.Millisecond
@@ -218,9 +221,9 @@ func (db *DB) Close() error {
 	return db.pool.Close()
 }
 
-// Exec executes a query ignoring returned rows. The args are for
+// Exec executes a query ignoring returned rows. The params are for
 // any placeholder parameters in the query.
-func (db *DB) Exec(q string, args ...interface{}) (res Result, err error) {
+func (db *DB) Exec(query interface{}, params ...interface{}) (res types.Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		var cn *conn
@@ -230,7 +233,7 @@ func (db *DB) Exec(q string, args ...interface{}) (res Result, err error) {
 			return nil, err
 		}
 
-		res, err = simpleQuery(cn, q, args...)
+		res, err = simpleQuery(cn, query, params...)
 		db.freeConn(cn, err)
 		if !canRetry(err) {
 			break
@@ -245,8 +248,8 @@ func (db *DB) Exec(q string, args ...interface{}) (res Result, err error) {
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (db *DB) ExecOne(q string, args ...interface{}) (Result, error) {
-	res, err := db.Exec(q, args...)
+func (db *DB) ExecOne(query interface{}, params ...interface{}) (types.Result, error) {
+	res, err := db.Exec(query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -254,8 +257,8 @@ func (db *DB) ExecOne(q string, args ...interface{}) (Result, error) {
 }
 
 // Query executes a query that returns rows, typically a SELECT. The
-// args are for any placeholder parameters in the query.
-func (db *DB) Query(coll interface{}, q string, args ...interface{}) (res Result, err error) {
+// params are for any placeholder parameters in the query.
+func (db *DB) Query(model, query interface{}, params ...interface{}) (res types.Result, err error) {
 	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		var cn *conn
@@ -265,7 +268,7 @@ func (db *DB) Query(coll interface{}, q string, args ...interface{}) (res Result
 			break
 		}
 
-		res, err = simpleQueryData(cn, coll, q, args...)
+		res, err = simpleQueryData(cn, model, query, params...)
 		db.freeConn(cn, err)
 		if !canRetry(err) {
 			break
@@ -280,13 +283,16 @@ func (db *DB) Query(coll interface{}, q string, args ...interface{}) (res Result
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (db *DB) QueryOne(record interface{}, q string, args ...interface{}) (Result, error) {
-	coll := &singleRecordCollection{record: record}
-	res, err := db.Query(coll, q, args...)
+func (db *DB) QueryOne(model, query interface{}, params ...interface{}) (types.Result, error) {
+	mod, err := newSingleModel(model)
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res, coll)
+	res, err := db.Query(mod, query, params...)
+	if err != nil {
+		return nil, err
+	}
+	return assertOneAffected(res, mod)
 }
 
 // Listen listens for notifications sent by NOTIFY statement.
@@ -302,12 +308,12 @@ func (db *DB) Listen(channels ...string) (*Listener, error) {
 }
 
 // CopyFrom copies data from reader to a table.
-func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (Result, error) {
+func (db *DB) CopyFrom(r io.Reader, q string, params ...interface{}) (types.Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
-	res, err := copyFrom(cn, r, q, args...)
+	res, err := copyFrom(cn, r, q, params...)
 	if err != nil {
 		db.freeConn(cn, err)
 		return nil, err
@@ -317,13 +323,13 @@ func (db *DB) CopyFrom(r io.Reader, q string, args ...interface{}) (Result, erro
 }
 
 // CopyTo copies data from a table to writer.
-func (db *DB) CopyTo(w io.WriteCloser, q string, args ...interface{}) (Result, error) {
+func (db *DB) CopyTo(w io.WriteCloser, q string, params ...interface{}) (types.Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
+	if err := writeQueryMsg(cn.buf, q, params...); err != nil {
 		db.pool.Put(cn)
 		return nil, err
 	}
@@ -345,6 +351,22 @@ func (db *DB) CopyTo(w io.WriteCloser, q string, args ...interface{}) (Result, e
 	}
 
 	return res, nil
+}
+
+func (db *DB) Model(model interface{}) *orm.Query {
+	return orm.NewQuery(db, model)
+}
+
+func (db *DB) Create(model interface{}) error {
+	return orm.Create(db, model)
+}
+
+func (db *DB) Update(model interface{}) error {
+	return orm.Update(db, model)
+}
+
+func (db *DB) Delete(model interface{}) error {
+	return orm.Delete(db, model)
 }
 
 func setParams(cn *conn, params map[string]interface{}) error {
@@ -373,8 +395,8 @@ func (db *DB) cancelRequest(processId, secretKey int32) error {
 	return cn.Close()
 }
 
-func simpleQuery(cn *conn, q string, args ...interface{}) (Result, error) {
-	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
+func simpleQuery(cn *conn, query interface{}, params ...interface{}) (types.Result, error) {
+	if err := writeQueryMsg(cn.buf, query, params...); err != nil {
 		return nil, err
 	}
 
@@ -390,8 +412,8 @@ func simpleQuery(cn *conn, q string, args ...interface{}) (Result, error) {
 	return res, nil
 }
 
-func simpleQueryData(cn *conn, coll interface{}, q string, args ...interface{}) (Result, error) {
-	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
+func simpleQueryData(cn *conn, model, query interface{}, params ...interface{}) (types.Result, error) {
+	if err := writeQueryMsg(cn.buf, query, params...); err != nil {
 		return nil, err
 	}
 
@@ -399,12 +421,42 @@ func simpleQueryData(cn *conn, coll interface{}, q string, args ...interface{}) 
 		return nil, err
 	}
 
-	res, err := readSimpleQueryData(cn, coll)
+	res, err := readSimpleQueryData(cn, model)
 	if err != nil {
 		return nil, err
 	}
 
 	return res, nil
+}
+
+type singleModel struct {
+	model orm.ColumnScanner
+	len   int
+}
+
+var _ orm.Collection = (*singleModel)(nil)
+
+func newSingleModel(model interface{}) (*singleModel, error) {
+	mod, ok := model.(orm.Model)
+	if !ok {
+		var err error
+		mod, err = orm.NewModel(model)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &singleModel{
+		model: mod,
+	}, nil
+}
+
+func (m *singleModel) NewModel() orm.ColumnScanner {
+	m.len++
+	return m.model
+}
+
+func (m *singleModel) Len() int {
+	return m.len
 }
 
 func assertOne(l int) error {
@@ -418,20 +470,20 @@ func assertOne(l int) error {
 	}
 }
 
-func assertOneAffected(res Result, coll *singleRecordCollection) (Result, error) {
+func assertOneAffected(res types.Result, model *singleModel) (types.Result, error) {
 	if err := assertOne(res.Affected()); err != nil {
 		return nil, err
 	}
-	if coll != nil {
-		if err := assertOne(coll.Len()); err != nil {
+	if model != nil {
+		if err := assertOne(model.Len()); err != nil {
 			return nil, err
 		}
 	}
 	return res, nil
 }
 
-func copyFrom(cn *conn, r io.Reader, q string, args ...interface{}) (Result, error) {
-	if err := writeQueryMsg(cn.buf, q, args...); err != nil {
+func copyFrom(cn *conn, r io.Reader, query interface{}, params ...interface{}) (types.Result, error) {
+	if err := writeQueryMsg(cn.buf, query, params...); err != nil {
 		return nil, err
 	}
 
@@ -444,7 +496,7 @@ func copyFrom(cn *conn, r io.Reader, q string, args ...interface{}) (Result, err
 	}
 
 	ready := make(chan struct{})
-	var res Result
+	var res types.Result
 	var err error
 	go func() {
 		res, err = readReadyForQuery(cn)

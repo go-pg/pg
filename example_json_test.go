@@ -1,51 +1,14 @@
 package pg_test
 
 import (
-	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 
-	"gopkg.in/pg.v3"
+	"gopkg.in/pg.v4"
 )
-
-type jsonMap map[string]interface{}
-
-func (m *jsonMap) Scan(value interface{}) error {
-	return json.Unmarshal(value.([]byte), m)
-}
-
-func (m jsonMap) Value() (driver.Value, error) {
-	b, err := json.Marshal(m)
-	if err != nil {
-		return nil, err
-	}
-	return string(b), nil
-}
 
 type Item struct {
 	Id   int64
-	Data jsonMap
-}
-
-func CreateItem(db *pg.DB, item *Item) error {
-	_, err := db.ExecOne(`INSERT INTO items VALUES (?id, ?data)`, item)
-	return err
-}
-
-func GetItem(db *pg.DB, id int64) (*Item, error) {
-	var item Item
-	_, err := db.QueryOne(&item, `
-		SELECT * FROM items WHERE id = ?
-	`, id)
-	return &item, err
-}
-
-func GetItems(db *pg.DB) ([]Item, error) {
-	var items []Item
-	_, err := db.Query(&items, `
-		SELECT * FROM items
-	`)
-	return items, err
+	Data map[string]interface{}
 }
 
 func Example_json() {
@@ -59,18 +22,19 @@ func Example_json() {
 		panic(err)
 	}
 
-	item := &Item{
+	item1 := Item{
 		Id:   1,
-		Data: jsonMap{"hello": "world"},
+		Data: map[string]interface{}{"hello": "world"},
 	}
-	if err := CreateItem(db, item); err != nil {
+	if err := db.Create(&item1); err != nil {
 		panic(err)
 	}
 
-	item, err = GetItem(db, 1)
+	var item Item
+	err = db.Model(&item).Where("id = ?", 1).Select()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(item)
-	// Output: &{1 map[hello:world]}
+	// Output: {1 map[hello:world]}
 }

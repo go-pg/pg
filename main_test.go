@@ -11,7 +11,7 @@ import (
 	_ "github.com/lib/pq"
 	. "gopkg.in/check.v1"
 
-	"gopkg.in/pg.v3"
+	"gopkg.in/pg.v4"
 )
 
 func TestUnixSocket(t *testing.T) {
@@ -76,9 +76,9 @@ func (t *DBTest) TestExecOneErrMultiRows(c *C) {
 	c.Assert(err, Equals, pg.ErrMultiRows)
 }
 
-func (t *DBTest) TestLoadInto(c *C) {
+func (t *DBTest) TestScan(c *C) {
 	var dst int
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT 1")
+	_, err := t.db.QueryOne(pg.Scan(&dst), "SELECT 1")
 	c.Assert(err, IsNil)
 	c.Assert(dst, Equals, 1)
 }
@@ -110,7 +110,7 @@ func (t *DBTest) TestStatementExec(c *C) {
 func (t *DBTest) TestLargeWriteRead(c *C) {
 	src := bytes.Repeat([]byte{0x1}, 1e6)
 	var dst []byte
-	_, err := t.db.QueryOne(pg.LoadInto(&dst), "SELECT ?", src)
+	_, err := t.db.QueryOne(pg.Scan(&dst), "SELECT ?", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst, DeepEquals, src)
 }
@@ -178,7 +178,7 @@ var timeTests = []struct {
 func (t *DBTest) TestTime(c *C) {
 	for _, test := range timeTests {
 		var tm time.Time
-		_, err := t.db.QueryOne(pg.LoadInto(&tm), "SELECT ?", test.str)
+		_, err := t.db.QueryOne(pg.Scan(&tm), "SELECT ?", test.str)
 		c.Assert(err, IsNil)
 		c.Assert(tm.Unix(), Equals, test.wanted.Unix(), Commentf("str=%q", test.str))
 	}

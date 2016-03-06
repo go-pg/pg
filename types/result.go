@@ -1,4 +1,4 @@
-package pg
+package types
 
 import (
 	"bytes"
@@ -16,7 +16,7 @@ type result struct {
 	affected int
 }
 
-func newResult(b []byte) result {
+func ParseResult(b []byte) Result {
 	res := result{
 		affected: -1,
 	}

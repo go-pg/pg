@@ -1,4 +1,4 @@
-package pgutil
+package types
 
 import "time"
 
@@ -31,6 +31,13 @@ func ParseTime(b []byte) (time.Time, error) {
 	}
 }
 
-func AppendTime(dst []byte, tm time.Time) []byte {
-	return append(dst, tm.Local().Format(timestamptzFormat)...)
+func AppendTime(b []byte, tm time.Time, quote bool) []byte {
+	if quote {
+		b = append(b, '\'')
+	}
+	b = append(b, tm.Local().Format(timestamptzFormat)...)
+	if quote {
+		b = append(b, '\'')
+	}
+	return b
 }
