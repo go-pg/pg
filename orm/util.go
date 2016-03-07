@@ -122,7 +122,7 @@ func appendReturning(b []byte, v reflect.Value, fields []*Field) []byte {
 
 func equal(vals []reflect.Value, strct reflect.Value, fields []*Field) bool {
 	for i, f := range fields {
-		if !f.Equal(vals[i], f.Value(strct)) {
+		if !f.Equal(strct, vals[i]) {
 			return false
 		}
 	}

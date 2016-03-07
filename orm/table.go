@@ -150,8 +150,11 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 
 		Index: f.Index,
 
-		appender: types.Appender(ftype),
-		decoder:  types.Decoder(ftype),
+		append: types.Appender(ftype),
+		decode: types.Decoder(ftype),
+
+		isEmpty: isEmptier(ftype.Kind()),
+		equal:   equaler(ftype.Kind()),
 	}
 
 	if skip {
