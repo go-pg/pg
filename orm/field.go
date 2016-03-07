@@ -19,9 +19,11 @@ type Field struct {
 
 	flags int8
 
-	appender func([]byte, reflect.Value, bool) []byte
-	decoder  func(reflect.Value, []byte) error
-	equaler  func(reflect.Value) bool
+	append func([]byte, reflect.Value, bool) []byte
+	decode func(reflect.Value, []byte) error
+
+	isEmpty isEmptyFunc
+	equal   equalFunc
 }
 
 func (f *Field) Copy() *Field {
@@ -40,19 +42,20 @@ func (f *Field) Value(strct reflect.Value) reflect.Value {
 
 func (f *Field) IsEmpty(strct reflect.Value) bool {
 	fv := f.Value(strct)
-	return isEmptyValue(fv)
+	return f.isEmpty(fv)
 }
 
-func (f *Field) Equal(v1, v2 reflect.Value) bool {
-	return v1.Int() == v2.Int()
+func (f *Field) Equal(strct, v2 reflect.Value) bool {
+	v1 := f.Value(strct)
+	return f.equal(v1, v2)
 }
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote bool) []byte {
 	fv := f.Value(strct)
-	if f.Has(NullEmptyFlag) && isEmptyValue(fv) {
+	if f.Has(NullEmptyFlag) && f.isEmpty(fv) {
 		return types.AppendNull(b, quote)
 	}
-	return f.appender(b, fv, quote)
+	return f.append(b, fv, quote)
 }
 
 func (f *Field) DecodeValue(strct reflect.Value, b []byte) error {
@@ -60,7 +63,7 @@ func (f *Field) DecodeValue(strct reflect.Value, b []byte) error {
 	if b == nil {
 		return types.DecodeValue(fv, nil)
 	}
-	return f.decoder(fv, b)
+	return f.decode(fv, b)
 }
 
 func fieldByIndex(v reflect.Value, index []int) reflect.Value {
