@@ -45,7 +45,7 @@ func ExampleDB_QueryOne() {
 	// {admin}
 }
 
-func ExampleDB_QueryOne_2() {
+func ExampleDB_QueryOne_returning_id() {
 	_, err := db.Exec(`CREATE TEMP TABLE users(id serial, name varchar(500))`)
 	if err != nil {
 		panic(err)
@@ -67,17 +67,17 @@ func ExampleDB_QueryOne_2() {
 	// Output: {1 admin}
 }
 
-func ExampleDB_Exec() {
-	res, err := db.Exec(`CREATE TEMP TABLE test()`)
-	fmt.Println(res.Affected(), err)
-	// Output: -1 <nil>
-}
-
-func ExampleScan() {
+func ExampleDB_QueryOne_Scan() {
 	var s1, s2 string
 	_, err := db.QueryOne(pg.Scan(&s1, &s2), `SELECT ?, ?`, "foo", "bar")
 	fmt.Println(s1, s2, err)
 	// Output: foo bar <nil>
+}
+
+func ExampleDB_Exec() {
+	res, err := db.Exec(`CREATE TEMP TABLE test()`)
+	fmt.Println(res.Affected(), err)
+	// Output: -1 <nil>
 }
 
 func ExampleListener() {
