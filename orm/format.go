@@ -77,10 +77,6 @@ func (f *Formatter) Append(dst []byte, src string) ([]byte, error) {
 }
 
 func (f *Formatter) AppendBytes(dst []byte, src []byte) ([]byte, error) {
-	if f.params == nil {
-		return append(dst, src...), nil
-	}
-
 	p := parser.New(src)
 
 	for p.Valid() {

@@ -17,8 +17,7 @@ type Options struct {
 	// The network type, either tcp or unix.
 	// Default is tcp.
 	Network  string
-	Host     string
-	Port     string
+	Addr     string
 	User     string
 	Password string
 	Database string
@@ -63,27 +62,14 @@ func (opt *Options) getNetwork() string {
 	return opt.Network
 }
 
-func (opt *Options) getHost() string {
-	if opt == nil || opt.Host == "" {
-		return "localhost"
-	}
-	return opt.Host
-}
-
-func (opt *Options) getPort() string {
-	if opt == nil || opt.Port == "" {
-		return "5432"
-	}
-	return opt.Port
-}
-
 func (opt *Options) getAddr() string {
-	switch opt.getNetwork() {
-	case "tcp":
-		return net.JoinHostPort(opt.getHost(), opt.getPort())
-	default:
-		return opt.getHost()
+	if opt.Addr != "" {
+		return opt.Addr
 	}
+	if opt.getNetwork() == "unix" {
+		return "/var/run/postgresql/.s.PGSQL.5432"
+	}
+	return "localhost:5432"
 }
 
 func (opt *Options) getUser() string {

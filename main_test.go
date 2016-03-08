@@ -3,6 +3,7 @@ package pg_test
 import (
 	"bytes"
 	"database/sql/driver"
+	"io"
 	"strings"
 	"testing"
 	"time"
@@ -17,7 +18,7 @@ import (
 func TestUnixSocket(t *testing.T) {
 	db := pg.Connect(&pg.Options{
 		Network: "unix",
-		Host:    "/var/run/postgresql/.s.PGSQL.5432",
+		Addr:    "/var/run/postgresql/.s.PGSQL.5432",
 		User:    "postgres",
 	})
 	defer db.Close()
@@ -220,4 +221,15 @@ func (t *DBTest) TestCopyTo(c *C) {
 	res, err = t.db.CopyFrom(buf, "COPY test2 FROM STDIN")
 	c.Assert(err, IsNil)
 	c.Assert(res.Affected(), Equals, 1000000)
+}
+
+//------------------------------------------------------------------------------
+
+// NopWriteCloser is a WriteCloser which does nothing in Close.
+type NopWriteCloser struct {
+	io.Writer
+}
+
+func (NopWriteCloser) Close() error {
+	return nil
 }

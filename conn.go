@@ -2,8 +2,10 @@ package pg
 
 import (
 	"container/list"
+	"crypto/md5"
 	"crypto/tls"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
@@ -339,4 +341,10 @@ func (cn *conn) FlushWrite() error {
 		return nil
 	}
 	return err
+}
+
+func md5s(s string) string {
+	h := md5.New()
+	h.Write([]byte(s))
+	return hex.EncodeToString(h.Sum(nil))
 }
