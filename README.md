@@ -22,6 +22,19 @@ Supports:
 API docs: http://godoc.org/gopkg.in/pg.v4.
 Examples: http://godoc.org/gopkg.in/pg.v4#pkg-examples.
 
+# Table of contents
+
+* [Installation](#installation)
+* [Quickstart](#quickstart)
+* [Why go-pg](#why-go-pg)
+* [Howto](#howto)
+* [ORM](#orm)
+  * [Model definition](#model-definition)
+  * [Select model](#select-model)
+  * [Update specified columns](#update-specified-columns)
+  * [Delete multiple models](#delete-multiple-models)
+  * [Count rows](#count-rows)
+
 ## Installation
 
 Install:
@@ -137,26 +150,25 @@ func ExampleDB_Query() {
 }
 ```
 
-## Why not database/sql, lib/pq, or GORM
+## Why go-pg
 
 - No `rows.Close` to manually manage connections.
 - go-pg automatically maps rows on Go structs and slice.
 - go-pg is at least 3x faster than GORM on querying 100 rows from table.
 
     ```
-    BenchmarkQueryRowsGopgDiscard-4  	   20000	     92864 ns/op	     194 B/op	      16 allocs/op
-    BenchmarkQueryRowsGopgOptimized-4	   10000	    156999 ns/op	   83431 B/op	     625 allocs/op
-    BenchmarkQueryRowsGopgReflect-4  	   10000	    186546 ns/op	   94759 B/op	     826 allocs/op
-    BenchmarkQueryRowsGopgORM-4      	   10000	    192470 ns/op	   95024 B/op	     830 allocs/op
-    BenchmarkQueryRowsStdlibPq-4     	    5000	    262530 ns/op	  161648 B/op	    1324 allocs/op
-    BenchmarkQueryRowsGORM-4         	    2000	    702554 ns/op	  382463 B/op	    6270 allocs/op
+    BenchmarkQueryRowsGopgOptimized-4       	   10000	    142209 ns/op	   83432 B/op	     625 allocs/op
+    BenchmarkQueryRowsGopgReflect-4         	   10000	    173866 ns/op	   94760 B/op	     826 allocs/op
+    BenchmarkQueryRowsGopgORM-4             	   10000	    173000 ns/op	   95024 B/op	     830 allocs/op
+    BenchmarkQueryRowsStdlibPq-4            	    5000	    222594 ns/op	  161648 B/op	    1324 allocs/op
+    BenchmarkQueryRowsGORM-4                	    2000	    629088 ns/op	  392950 B/op	    6667 allocs/op
     ```
 
 - go-pg generates much more effecient queries for joins.
 
     ```
-    BenchmarkQueryHasOneGoPG-4	    3000	    352184 ns/op	   95498 B/op	    1383 allocs/op
-    BenchmarkQueryHasOneGORM-4	     200	   6887782 ns/op	 2151858 B/op	  113251 allocs/op
+    BenchmarkQueryHasOneGopg-4              	    3000	    344230 ns/op	   92310 B/op	    1384 allocs/op
+    BenchmarkQueryHasOneGORM-4              	     300	   5667656 ns/op	 2041169 B/op	  103467 allocs/op
     ```
 
     go-pg:
@@ -186,3 +198,128 @@ func ExampleDB_Query() {
 ## Howto
 
 Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to get the idea how to use this package.
+
+## ORM
+
+### Model definition
+
+```go
+type Genre struct {
+	Id     int // Id is automatically detected as primary key
+	Name   string
+	Rating int `sql:"-"` // - is used to ignore field
+
+	Books      []Book      `pg:",many2many:BookGenres"` // many to many relation
+	BookGenres []BookGenre // join model for many to many relation
+}
+
+type Author struct {
+	ID    int // both "Id" and "ID" are detected as primary key
+	Name  string
+	Books []Book // has many relation
+}
+
+type BookGenre struct {
+	BookId  int `sql:",pk"` // pk tag is used to mark field as primary key
+	GenreId int `sql:",pk"`
+
+	GenreRating int // belongs to and is copied to Genre model
+}
+
+type Book struct {
+	Id        int
+	Title     string
+	AuthorID  int
+	Author    *Author // has one relation
+	EditorID  int
+	Editor    *Author // has one relation
+	CreatedAt time.Time
+
+	Genres     []Genre     `pg:",many2many:BookGenres"` // many to many relation
+	BookGenres []BookGenre // join model for many to many relation
+
+	Translations []Translation // has many relation
+
+	Comments []Comment `pg:",polymorphic:Trackable"` // has many polymorphic relation
+}
+
+type Translation struct {
+	TableName struct{} `sql:"book_translations"` // specifies custom table name
+
+	Id     int
+	BookId int
+	Book   *Book // belongs to relation
+	Lang   string
+
+	Comments []Comment `pg:",polymorphic:Trackable"` // has many polymorphic relation
+}
+
+type Comment struct {
+	TrackableId   int    `sql:",pk"` // can be Book.Id or Translation.Id
+	TrackableType string `sql:",pk"` // can be "book" or "translation"
+	Text          string
+}
+```
+
+### Select model
+
+```go
+var book Book
+err := db.Model(&book).
+	Columns("book.*", "Author", "Editor", "Genres", "Comments", "Translations", "Translations.Comments").
+	Order("book.id DESC").
+	Limit(1).
+	Select()
+
+var books []Book
+err := db.Model(&book).
+	Columns("book.*", "Author", "Editor", "Genres", "Comments", "Translations", "Translations.Comments").
+	Order("book.id DESC").
+	Limit(10).
+	Select()
+```
+
+### Create, update, and delete model
+
+```go
+book := Book{
+	Title:     "book 1",
+	AuthorID:  10,
+	EditorID:  11,
+	CreatedAt: time.Now(),
+}
+err := db.Create(&book)
+
+err = db.Update(book)
+
+err = db.Delete(book)
+```
+
+### Update specified columns
+
+```go
+id := 100
+data := map[string]interface{}{
+	"title": pg.Q("concat(?, title, ?)", "prefix ", " suffix"),
+}
+
+var book Book
+err := db.Model(&book).
+	Where("id = ?", id).
+	Returning("*").
+	UpdateValues(data)
+```
+
+### Delete multiple models
+
+```go
+ids := pg.Ints{100, 101}
+err := db.Model(&Book{}).Where("id IN (?)", ids).Delete()
+```
+
+### Count rows
+
+```go
+var count int
+err := db.Model(&Book{}).Count(&count)
+```

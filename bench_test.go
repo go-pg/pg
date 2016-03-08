@@ -599,7 +599,7 @@ func mysqldb() (*sql.DB, error) {
 	return sql.Open("mysql", "root:root@tcp(localhost:3306)/test")
 }
 
-func gormdb() (gorm.DB, error) {
+func gormdb() (*gorm.DB, error) {
 	return gorm.Open("postgres", "user=postgres dbname=postgres sslmode=disable")
 }
 

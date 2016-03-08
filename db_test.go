@@ -181,64 +181,65 @@ var _ = Describe("Listener.ReceiveTimeout", func() {
 })
 
 type Genre struct {
-	Id     int
+	Id     int // Id is automatically detected as primary key
 	Name   string
-	Rating int `sql:"-"`
+	Rating int `sql:"-"` // - is used to ignore field
 
-	Books      []Book `pg:",many2many:BookGenres"`
-	BookGenres []BookGenre
+	Books      []Book      `pg:",many2many:BookGenres"` // many to many relation
+	BookGenres []BookGenre // join model for many to many relation
 }
 
 type Author struct {
-	ID          int // both "Id" and "ID" variants are supported
-	Name        string
-	Books       []Book
-	EditorBooks []Book
+	ID    int // both "Id" and "ID" are detected as primary key
+	Name  string
+	Books []Book // has many relation
 }
 
 type BookGenre struct {
-	BookId  int
-	GenreId int
+	BookId  int `sql:",pk"` // pk tag is used to mark field as primary key
+	GenreId int `sql:",pk"`
 
-	GenreRating int // belongs to Genre model
+	GenreRating int // belongs to and is copied to Genre model
 }
 
 type Book struct {
 	Id        int
 	Title     string
 	AuthorID  int
-	Author    *Author
+	Author    *Author // has one relation
 	EditorID  int
-	Editor    *Author
+	Editor    *Author // has one relation
 	CreatedAt time.Time
 
-	Genres     []Genre `pg:",many2many:BookGenres"`
-	BookGenres []BookGenre
+	Genres     []Genre     `pg:",many2many:BookGenres"` // many to many relation
+	BookGenres []BookGenre // join model for many to many relation
 
-	Translations []Translation
+	Translations []Translation // has many relation
 
-	Comments []Comment `pg:",polymorphic:Trackable"`
+	Comments []Comment `pg:",polymorphic:Trackable"` // has many polymorphic relation
 }
 
 type Translation struct {
+	TableName struct{} `sql:"book_translations"` // specifies custom table name
+
 	Id     int
 	BookId int
-	Book   *Book
+	Book   *Book // belongs to relation
 	Lang   string
 
-	Comments []Comment `pg:",polymorphic:Trackable"`
+	Comments []Comment `pg:",polymorphic:Trackable"` // has many polymorphic relation
 }
 
 type Comment struct {
-	TrackableId   int    `sql:",pk"`
-	TrackableType string `sql:",pk"`
+	TrackableId   int    `sql:",pk"` // can be Book.Id or Translation.Id
+	TrackableType string `sql:",pk"` // can be "book" or "translation"
 	Text          string
 }
 
 func createTestSchema(db *pg.DB) error {
 	sql := []string{
 		`DROP TABLE IF EXISTS comments`,
-		`DROP TABLE IF EXISTS translations`,
+		`DROP TABLE IF EXISTS book_translations`,
 		`DROP TABLE IF EXISTS authors`,
 		`DROP TABLE IF EXISTS books`,
 		`DROP TABLE IF EXISTS genres`,
@@ -247,7 +248,7 @@ func createTestSchema(db *pg.DB) error {
 		`CREATE TABLE books (id serial, title text, author_id int, editor_id int, created_at timestamptz)`,
 		`CREATE TABLE genres (id serial, name text)`,
 		`CREATE TABLE book_genres (book_id int, genre_id int, genre_rating int)`,
-		`CREATE TABLE translations (id serial, book_id int, lang varchar(2))`,
+		`CREATE TABLE book_translations (id serial, book_id int, lang varchar(2))`,
 		`CREATE TABLE comments (trackable_id int, trackable_type varchar(100), text text)`,
 	}
 	for _, q := range sql {
