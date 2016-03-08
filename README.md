@@ -143,34 +143,45 @@ func ExampleDB_Query() {
 - go-pg automatically maps rows on Go structs and slice.
 - go-pg is at least 3x faster than GORM on querying 100 rows from table.
 
-```
-BenchmarkQueryRowsGopgDiscard-4  	   20000	     92864 ns/op	     194 B/op	      16 allocs/op
-BenchmarkQueryRowsGopgOptimized-4	   10000	    156999 ns/op	   83431 B/op	     625 allocs/op
-BenchmarkQueryRowsGopgReflect-4  	   10000	    186546 ns/op	   94759 B/op	     826 allocs/op
-BenchmarkQueryRowsGopgORM-4      	   10000	    192470 ns/op	   95024 B/op	     830 allocs/op
-BenchmarkQueryRowsStdlibPq-4     	    5000	    262530 ns/op	  161648 B/op	    1324 allocs/op
-BenchmarkQueryRowsGORM-4         	    2000	    702554 ns/op	  382463 B/op	    6270 allocs/op
-```
+    ```
+    BenchmarkQueryRowsGopgDiscard-4  	   20000	     92864 ns/op	     194 B/op	      16 allocs/op
+    BenchmarkQueryRowsGopgOptimized-4	   10000	    156999 ns/op	   83431 B/op	     625 allocs/op
+    BenchmarkQueryRowsGopgReflect-4  	   10000	    186546 ns/op	   94759 B/op	     826 allocs/op
+    BenchmarkQueryRowsGopgORM-4      	   10000	    192470 ns/op	   95024 B/op	     830 allocs/op
+    BenchmarkQueryRowsStdlibPq-4     	    5000	    262530 ns/op	  161648 B/op	    1324 allocs/op
+    BenchmarkQueryRowsGORM-4         	    2000	    702554 ns/op	  382463 B/op	    6270 allocs/op
+    ```
 
 - go-pg generates much more effecient queries for joins.
 
-```
-BenchmarkQueryHasOneGoPG-4	    3000	    352184 ns/op	   95498 B/op	    1383 allocs/op
-BenchmarkQueryHasOneGORM-4	     200	   6887782 ns/op	 2151858 B/op	  113251 allocs/op
-```
+    ```
+    BenchmarkQueryHasOneGoPG-4	    3000	    352184 ns/op	   95498 B/op	    1383 allocs/op
+    BenchmarkQueryHasOneGORM-4	     200	   6887782 ns/op	 2151858 B/op	  113251 allocs/op
+    ```
 
-go-pg queries:
+    go-pg:
 
-```sql
-SELECT "book".*, "author"."id" AS "author__id", "author"."name" AS "author__name" FROM "books" AS "book", "authors" AS "author" WHERE "author"."id" = "books"."author_id" LIMIT 100
-```
+    ```go
+    db.Model(&books).Columns("book.*", "Author").Limit(100).Select()
+    ```
 
-GORM queries:
+    ```sql
+    SELECT "book".*, "author"."id" AS "author__id", "author"."name" AS "author__name"
+    FROM "books" AS "book", "authors" AS "author"
+    WHERE "author"."id" = "books"."author_id"
+    LIMIT 100
+    ```
 
-```sql
-SELECT  * FROM "books"   LIMIT 100
-SELECT  * FROM "authors"  WHERE ("id" IN ('1','2'...'100'))
-```
+    GORM:
+
+    ```go
+    db.Preload("Author").Limit(100).Find(&books).Error
+    ```
+
+    ```sql
+    SELECT  * FROM "books"   LIMIT 100
+    SELECT  * FROM "authors"  WHERE ("id" IN ('1','2'...'100'))
+    ```
 
 ## Howto
 
