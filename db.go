@@ -182,9 +182,6 @@ func (db *DB) freeConn(cn *conn, err error) error {
 	if err == nil {
 		return db.pool.Put(cn)
 	}
-	if cn.rd.Buffered() > 0 {
-		return db.pool.Remove(cn, err)
-	}
 	if pgerr, ok := err.(Error); ok && pgerr.Field('S') != "FATAL" {
 		return db.pool.Put(cn)
 	}
