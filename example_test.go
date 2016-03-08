@@ -16,6 +16,19 @@ func init() {
 	db = pg.Connect(&pg.Options{
 		User: "postgres",
 	})
+	if err := createTestSchema(db); err != nil {
+		panic(err)
+	}
+}
+
+func connectDB() *pg.DB {
+	db := pg.Connect(&pg.Options{
+		User: "postgres",
+	})
+	if err := createTestSchema(db); err != nil {
+		panic(err)
+	}
+	return db
 }
 
 func ExampleConnect() {
@@ -141,7 +154,7 @@ func ExampleInts() {
 	// Output: [0 1 2 3 4 5 6 7 8 9 10] <nil>
 }
 
-func ExampleInts_2() {
+func ExampleInts_in() {
 	ids := pg.Ints{1, 2, 3}
 	q, err := orm.FormatQuery(`SELECT * FROM table WHERE id IN (?)`, ids)
 	fmt.Println(q, err)
@@ -187,4 +200,139 @@ func ExampleDB_WithTimeout() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func ExampleDB_Create() {
+	// title 1
+	// title 2
+	// title 3
+}
+
+func ExampleDB_Model_first_and_last() {
+	var book Book
+	err := db.Model(&book).Last()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(book.Id).To(Equal(102))
+	Expect(book.CreatedAt.IsZero()).To(BeFalse())
+}
+
+func ExampleDB_Model_select_all() {
+	var book Book
+	err := db.Model(&book).Columns("book.*").First()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(book.Id).To(Equal(100))
+	Expect(book.Title).To(Equal("book 1"))
+}
+
+func ExampleDB_Model_select_columns() {
+	var book Book
+	err := db.Model(&book).
+		Columns("book.id").
+		First()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(book.Id).To(Equal(100))
+	Expect(book.Title).To(BeZero())
+	Expect(book.Author.ID).To(Equal(10))
+	Expect(book.Author.Name).To(Equal("author 1"))
+}
+
+func ExampleDB_Model_count() {
+	var count int
+	err := db.Model(&Book{}).Count(&count)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(count).To(Equal(1))
+}
+
+func ExampleDB_Update() {
+	err := db.Update(&Book{
+		Id:    100,
+		Title: "updated book 1",
+	})
+	Expect(err).NotTo(HaveOccurred())
+
+	var book Book
+	err = db.Model(&book).Where("id = ?", 100).First()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(book.Title).To(Equal("updated book 1"))
+	Expect(book.AuthorID).To(Equal(0))
+}
+
+func ExampleDB_Model_update_column() {
+	book := &Book{
+		Title:    "title 1",
+		AuthorID: 1,
+	}
+	err := db.Create(book)
+	if err != nil {
+		panic(err)
+	}
+
+	book.Title = "title 2"
+	book.AuthorID = 2
+
+	err = db.Model(book).Columns("title").Returning("*").Update()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("title=%q author_id=%d\n", book.Title, book.AuthorID)
+	// Output: title="title 2" author_id=1
+}
+
+func ExampleDB_Model_update_function() {
+	id := 100
+	data := map[string]interface{}{
+		"title": pg.Q("concat(?, title, ?)", "prefix ", " suffix"),
+	}
+
+	var book Book
+	err := db.Model(&book).
+		Where("id = ?", id).
+		Returning("*").
+		UpdateValues(data)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(book.Id).To(Equal(id))
+	Expect(book.Title).To(Equal("prefix book 1 suffix"))
+}
+
+func ExampleDB_Model_update_multi_models() {
+	ids := pg.Ints{100, 101}
+	data := map[string]interface{}{
+		"title": pg.Q("concat(?, title, ?)", "prefix ", " suffix"),
+	}
+
+	err := db.Model(&Book{}).
+		Where("id IN (?)", ids).
+		UpdateValues(data)
+	Expect(err).NotTo(HaveOccurred())
+
+	var books []Book
+	err = db.Model(&books).
+		Where("id IN (?)", ids).
+		Order("id ASC").
+		Select()
+	Expect(err).NotTo(HaveOccurred())
+	Expect(books).To(HaveLen(2))
+	Expect(books[0].Title).To(Equal("prefix book 1 suffix"))
+	Expect(books[1].Title).To(Equal("prefix book 2 suffix"))
+}
+
+func ExampleDB_Delete() {
+	err := db.Delete(&Book{Id: 100})
+	Expect(err).NotTo(HaveOccurred())
+
+	err = db.Model(&Book{}).Where("id = ?", 100).First()
+	Expect(err).To(Equal(pg.ErrNoRows))
+}
+
+func ExampleDB_Delete_multi_models() {
+	ids := pg.Ints{100, 101}
+
+	err := db.Model(&Book{}).Where("id IN (?)", ids).Delete()
+	Expect(err).NotTo(HaveOccurred())
+
+	var count int
+	err = db.Model(&Book{}).Count(&count)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(count).To(Equal(1))
 }
