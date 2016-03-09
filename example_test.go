@@ -17,6 +17,49 @@ func init() {
 	})
 }
 
+func connectDB() *pg.DB {
+	db := pg.Connect(&pg.Options{
+		User: "postgres",
+	})
+
+	err := createTestSchema(db)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Create(&Book{
+		Title:     "book 1",
+		AuthorID:  10,
+		EditorID:  11,
+		CreatedAt: time.Now(),
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Create(&Book{
+		Title:     "book 2",
+		AuthorID:  10,
+		EditorID:  12,
+		CreatedAt: time.Now(),
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Create(&Book{
+		Title:     "book 3",
+		AuthorID:  11,
+		EditorID:  11,
+		CreatedAt: time.Now(),
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	return db
+}
+
 func ExampleConnect() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
@@ -140,7 +183,7 @@ func ExampleInts() {
 	// Output: [0 1 2 3 4 5 6 7 8 9 10] <nil>
 }
 
-func ExampleInts_2() {
+func ExampleInts_in() {
 	ids := pg.Ints{1, 2, 3}
 	q, err := pg.FormatQuery(`SELECT * FROM table WHERE id IN (?)`, ids)
 	fmt.Println(q, err)
@@ -186,4 +229,204 @@ func ExampleDB_WithTimeout() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func ExampleDB_Create() {
+	db := connectDB()
+
+	book := Book{
+		Title:    "new book",
+		AuthorID: 1,
+	}
+
+	err := db.Create(&book)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(book)
+	// Output: Book<Id=4 Title="new book">
+
+	err = db.Delete(&book)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func ExampleDB_Model_first_and_last() {
+	db := connectDB()
+
+	var firstBook Book
+	err := db.Model(&firstBook).First()
+	if err != nil {
+		panic(err)
+	}
+
+	var lastBook Book
+	err = db.Model(&lastBook).Last()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(firstBook, lastBook)
+	// Output: Book<Id=1 Title="book 1"> Book<Id=3 Title="book 3">
+}
+
+func ExampleDB_Model_select_all_columns() {
+	db := connectDB()
+
+	var book Book
+	err := db.Model(&book).Columns("book.*").First()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(book, book.AuthorID)
+	// Output: Book<Id=1 Title="book 1"> 10
+}
+
+func ExampleDB_Model_select_some_columns() {
+	db := connectDB()
+
+	var book Book
+	err := db.Model(&book).
+		Columns("book.id").
+		First()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(book)
+	// Output: Book<Id=1 Title="">
+}
+
+func ExampleDB_Model_count() {
+	db := connectDB()
+
+	var count int
+	err := db.Model(Book{}).Count(&count)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(count)
+	// Output: 3
+}
+
+func ExampleDB_Update() {
+	db := connectDB()
+
+	err := db.Update(&Book{
+		Id:    1,
+		Title: "updated book 1",
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	var book Book
+	err = db.Model(&book).Where("id = ?", 1).Select()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(book)
+	// Output: Book<Id=1 Title="updated book 1">
+}
+
+func ExampleDB_Model_update_some_columns() {
+	db := connectDB()
+
+	book := Book{
+		Id:       1,
+		Title:    "updated book 1",
+		AuthorID: 2,
+	}
+	err := db.Model(&book).Columns("title").Returning("*").Update()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(book, book.AuthorID)
+	// Output: Book<Id=1 Title="updated book 1"> 10
+}
+
+func ExampleDB_Model_update_sql_function() {
+	db := connectDB()
+
+	id := 1
+	data := map[string]interface{}{
+		"title": pg.Q("concat(?, title, ?)", "prefix ", " suffix"),
+	}
+	var book Book
+	err := db.Model(&book).
+		Where("id = ?", id).
+		Returning("*").
+		UpdateValues(data)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(book)
+	// Output: Book<Id=1 Title="prefix book 1 suffix">
+}
+
+func ExampleDB_Model_update_multi_models() {
+	db := connectDB()
+
+	ids := pg.Ints{1, 2}
+	data := map[string]interface{}{
+		"title": pg.Q("concat(?, title, ?)", "prefix ", " suffix"),
+	}
+
+	var books []Book
+	err := db.Model(&books).
+		Where("id IN (?)", ids).
+		Returning("*").
+		UpdateValues(data)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(books[0], books[1])
+	// Output: Book<Id=1 Title="prefix book 1 suffix"> Book<Id=2 Title="prefix book 2 suffix">
+}
+
+func ExampleDB_Delete() {
+	db := connectDB()
+
+	book := Book{
+		Title:    "title 1",
+		AuthorID: 1,
+	}
+	err := db.Create(&book)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Delete(book)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Model(&Book{}).Where("id = ?", book.Id).First()
+	fmt.Println(err)
+	// Output: pg: no rows in result set
+}
+
+func ExampleDB_Delete_multi_models() {
+	db := connectDB()
+
+	ids := pg.Ints{1, 2, 3}
+	err := db.Model(Book{}).Where("id IN (?)", ids).Delete()
+	if err != nil {
+		panic(err)
+	}
+
+	var count int
+	err = db.Model(Book{}).Count(&count)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(count)
+	// Output: 0
 }
