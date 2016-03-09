@@ -203,66 +203,159 @@ func ExampleDB_WithTimeout() {
 }
 
 func ExampleDB_Create() {
-	// title 1
-	// title 2
-	// title 3
-}
-
-func ExampleDB_Model_first_and_last() {
-	var book Book
-	err := db.Model(&book).Last()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(book.Id).To(Equal(102))
-	Expect(book.CreatedAt.IsZero()).To(BeFalse())
-}
-
-func ExampleDB_Model_select_all() {
-	var book Book
-	err := db.Model(&book).Columns("book.*").First()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(book.Id).To(Equal(100))
-	Expect(book.Title).To(Equal("book 1"))
-}
-
-func ExampleDB_Model_select_columns() {
-	var book Book
-	err := db.Model(&book).
-		Columns("book.id").
-		First()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(book.Id).To(Equal(100))
-	Expect(book.Title).To(BeZero())
-	Expect(book.Author.ID).To(Equal(10))
-	Expect(book.Author.Name).To(Equal("author 1"))
-}
-
-func ExampleDB_Model_count() {
-	var count int
-	err := db.Model(&Book{}).Count(&count)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(count).To(Equal(1))
-}
-
-func ExampleDB_Update() {
-	err := db.Update(&Book{
-		Id:    100,
-		Title: "updated book 1",
-	})
-	Expect(err).NotTo(HaveOccurred())
-
-	var book Book
-	err = db.Model(&book).Where("id = ?", 100).First()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(book.Title).To(Equal("updated book 1"))
-	Expect(book.AuthorID).To(Equal(0))
-}
-
-func ExampleDB_Model_update_column() {
-	book := &Book{
+	book1 := Book{
 		Title:    "title 1",
 		AuthorID: 1,
 	}
-	err := db.Create(book)
+	book2 := Book{
+		Title:    "title 2",
+		AuthorID: 2,
+	}
+	book3 := Book{
+		Title:    "title 3",
+		AuthorID: 2,
+	}
+
+	db := connectDB()
+	err := db.Create(&book1)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Create(&book2)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Create(&book3)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func ExampleDB_Model_first_and_last() {
+	ExampleDB_Create()
+
+	var firstBook Book
+	err := db.Model(&firstBook).First()
+	if err != nil {
+		panic(err)
+	}
+
+	var lastBook Book
+	err = db.Model(&lastBook).Last()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%d, %d", firstBook.Id, lastBook.Id)
+	// Output: 1, 3
+}
+
+func ExampleDB_Model_select_all() {
+	db := connectDB()
+	book := Book{
+		Title:    "title 1",
+		AuthorID: 2,
+	}
+
+	err := db.Create(&book)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Model(&book).Columns("book.*").First()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%d %q %d", book.Id, book.Title, book.AuthorID)
+	// Output: 1 "title 1" 2
+}
+
+func ExampleDB_Model_select_columns() {
+	db := connectDB()
+
+	author := Author{
+		ID:   1,
+		Name: "author 1",
+	}
+	err := db.Create(&author)
+	if err != nil {
+		panic(err)
+	}
+
+	book := Book{
+		Title:    "title 1",
+		AuthorID: 1,
+	}
+	err = db.Create(&book)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Model(&book).
+		Columns("book.id").
+		Where("id = ?", 1).
+		First()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%d, %q",
+		book.Id, book.Title,
+	)
+	// Output: 1, "title 1"
+}
+
+func ExampleDB_Model_count() {
+	ExampleDB_Create()
+	var count int
+	err := db.Model(Book{}).Count(&count)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%d", count)
+	// Output: 3
+}
+
+func ExampleDB_Update() {
+	db := connectDB()
+	book := Book{
+		Title:    "title 1",
+		AuthorID: 1,
+	}
+
+	err := db.Create(&book)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Update(&Book{
+		Id:    1,
+		Title: "updated book 1",
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Model(&book).Where("id = ?", 1).First()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%q %d", book.Title, book.AuthorID)
+	// Output: "updated book 1" 0
+}
+
+func ExampleDB_Model_update_column() {
+	db := connectDB()
+
+	book := Book{
+		Title:    "title 1",
+		AuthorID: 1,
+	}
+	err := db.Create(&book)
 	if err != nil {
 		panic(err)
 	}
@@ -270,33 +363,48 @@ func ExampleDB_Model_update_column() {
 	book.Title = "title 2"
 	book.AuthorID = 2
 
-	err = db.Model(book).Columns("title").Returning("*").Update()
+	err = db.Model(&book).Columns("title").Returning("*").Update()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("title=%q author_id=%d\n", book.Title, book.AuthorID)
-	// Output: title="title 2" author_id=1
+	fmt.Printf("%q %d\n", book.Title, book.AuthorID)
+	// Output: "title 2" 1
 }
 
 func ExampleDB_Model_update_function() {
-	id := 100
+	db := connectDB()
+
+	book := Book{
+		Title:    "title 1",
+		AuthorID: 1,
+	}
+	err := db.Create(&book)
+	if err != nil {
+		panic(err)
+	}
+
+	id := 1
 	data := map[string]interface{}{
 		"title": pg.Q("concat(?, title, ?)", "prefix ", " suffix"),
 	}
 
-	var book Book
-	err := db.Model(&book).
+	err = db.Model(&book).
 		Where("id = ?", id).
 		Returning("*").
 		UpdateValues(data)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(book.Id).To(Equal(id))
-	Expect(book.Title).To(Equal("prefix book 1 suffix"))
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%d %q", book.Id, book.Title)
+	// Output: 1 "prefix title 1 suffix"
 }
 
 func ExampleDB_Model_update_multi_models() {
-	ids := pg.Ints{100, 101}
+	ExampleDB_Create()
+	ids := pg.Ints{1, 2}
 	data := map[string]interface{}{
 		"title": pg.Q("concat(?, title, ?)", "prefix ", " suffix"),
 	}
@@ -304,35 +412,63 @@ func ExampleDB_Model_update_multi_models() {
 	err := db.Model(&Book{}).
 		Where("id IN (?)", ids).
 		UpdateValues(data)
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		panic(err)
+	}
 
 	var books []Book
 	err = db.Model(&books).
 		Where("id IN (?)", ids).
 		Order("id ASC").
 		Select()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(books).To(HaveLen(2))
-	Expect(books[0].Title).To(Equal("prefix book 1 suffix"))
-	Expect(books[1].Title).To(Equal("prefix book 2 suffix"))
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("%q %q\n", books[0].Title, books[1].Title)
+	fmt.Printf("total of books: %d", len(books))
+	// Output: "prefix title 1 suffix" "prefix title 2 suffix"
+	// total of books: 2
 }
 
 func ExampleDB_Delete() {
-	err := db.Delete(&Book{Id: 100})
-	Expect(err).NotTo(HaveOccurred())
+	db := connectDB()
 
-	err = db.Model(&Book{}).Where("id = ?", 100).First()
-	Expect(err).To(Equal(pg.ErrNoRows))
+	book := Book{
+		Title:    "title 1",
+		AuthorID: 1,
+	}
+	err := db.Create(&book)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Delete(&Book{Id: 1})
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Model(&Book{}).Where("id = ?", 1).First()
+	if err != pg.ErrNoRows {
+		panic(err)
+	}
 }
 
 func ExampleDB_Delete_multi_models() {
-	ids := pg.Ints{100, 101}
+	ExampleDB_Create()
+	ids := pg.Ints{1, 2, 3}
 
 	err := db.Model(&Book{}).Where("id IN (?)", ids).Delete()
-	Expect(err).NotTo(HaveOccurred())
+	if err != nil {
+		panic(err)
+	}
 
 	var count int
 	err = db.Model(&Book{}).Count(&count)
-	Expect(err).NotTo(HaveOccurred())
-	Expect(count).To(Equal(1))
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Printf("count: %d", count)
+	// Output: count: 0
 }
