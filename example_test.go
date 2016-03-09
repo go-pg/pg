@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"gopkg.in/pg.v4"
-	"gopkg.in/pg.v4/orm"
 )
 
 var db *pg.DB
@@ -143,7 +142,7 @@ func ExampleInts() {
 
 func ExampleInts_2() {
 	ids := pg.Ints{1, 2, 3}
-	q, err := orm.FormatQuery(`SELECT * FROM table WHERE id IN (?)`, ids)
+	q, err := pg.FormatQuery(`SELECT * FROM table WHERE id IN (?)`, ids)
 	fmt.Println(q, err)
 	// Output: SELECT * FROM table WHERE id IN (1,2,3) <nil>
 }

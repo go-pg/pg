@@ -31,7 +31,7 @@ func BenchmarkFormatQueryWithoutArgs(b *testing.B) {
 		WHERE 1=1 AND 2=2
 	`, rec.Num1, rec.Num2, rec.Num3, rec.Str1, rec.Str2, rec.Str3)
 	for i := 0; i < b.N; i++ {
-		_, err := orm.FormatQuery(q)
+		_, err := pg.FormatQuery(q)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -48,7 +48,7 @@ func BenchmarkFormatQueryWithArgs(b *testing.B) {
 		Str3: randSeq(300),
 	}
 	for i := 0; i < b.N; i++ {
-		_, err := orm.FormatQuery(`
+		_, err := pg.FormatQuery(`
 			SELECT ?, ?, ?, ?, ?, ?
 			WHERE 1=1 AND 2=2
 		`, rec.Num1, rec.Num2, rec.Num3, rec.Str1, rec.Str2, rec.Str3)
@@ -68,7 +68,7 @@ func BenchmarkFormatQueryWithStructFields(b *testing.B) {
 		Str3: randSeq(300),
 	}
 	for i := 0; i < b.N; i++ {
-		_, err := orm.FormatQuery(`
+		_, err := pg.FormatQuery(`
 			SELECT ?num1, ?num2, ?num3, ?str1, ?str2, ?str3
 			WHERE 1=1 AND 2=2
 		`, rec)
@@ -88,7 +88,7 @@ func BenchmarkFormatQueryWithStructMethods(b *testing.B) {
 		Str3: randSeq(300),
 	}
 	for i := 0; i < b.N; i++ {
-		_, err := orm.FormatQuery(`
+		_, err := pg.FormatQuery(`
 			SELECT ?GetNum1, ?GetNum2, ?GetNum3, ?GetStr1, ?GetStr2, ?GetStr3
 			WHERE 1=1 AND 2=2
 		`, rec)
