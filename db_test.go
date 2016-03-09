@@ -211,7 +211,7 @@ type Book struct {
 	Editor    *Author // has one relation
 	CreatedAt time.Time
 
-	Genres     []Genre     `pg:",many2many:BookGenres"` // many to many relation
+	Genres     []Genre     `pg:",many2many:BookGenres" gorm:"many2many:book_genres;"` // many to many relation
 	BookGenres []BookGenre // join model for many to many relation
 
 	Translations []Translation // has many relation
@@ -220,8 +220,6 @@ type Book struct {
 }
 
 type Translation struct {
-	TableName struct{} `sql:"book_translations"` // specifies custom table name
-
 	Id     int
 	BookId int
 	Book   *Book // belongs to relation
@@ -239,7 +237,7 @@ type Comment struct {
 func createTestSchema(db *pg.DB) error {
 	sql := []string{
 		`DROP TABLE IF EXISTS comments`,
-		`DROP TABLE IF EXISTS book_translations`,
+		`DROP TABLE IF EXISTS translations`,
 		`DROP TABLE IF EXISTS authors`,
 		`DROP TABLE IF EXISTS books`,
 		`DROP TABLE IF EXISTS genres`,
@@ -248,7 +246,7 @@ func createTestSchema(db *pg.DB) error {
 		`CREATE TABLE books (id serial, title text, author_id int, editor_id int, created_at timestamptz)`,
 		`CREATE TABLE genres (id serial, name text)`,
 		`CREATE TABLE book_genres (book_id int, genre_id int, genre_rating int)`,
-		`CREATE TABLE book_translations (id serial, book_id int, lang varchar(2))`,
+		`CREATE TABLE translations (id serial, book_id int, lang varchar(2))`,
 		`CREATE TABLE comments (trackable_id int, trackable_type varchar(100), text text)`,
 	}
 	for _, q := range sql {

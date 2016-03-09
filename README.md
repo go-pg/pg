@@ -166,6 +166,8 @@ func ExampleDB_Query() {
 
 - go-pg generates much more effecient queries for joins.
 
+    Has one relation:
+
     ```
     BenchmarkQueryHasOneGopg-4              	    3000	    344230 ns/op	   92310 B/op	    1384 allocs/op
     BenchmarkQueryHasOneGORM-4              	     300	   5667656 ns/op	 2041169 B/op	  103467 allocs/op
@@ -194,6 +196,71 @@ func ExampleDB_Query() {
     SELECT  * FROM "books"   LIMIT 100
     SELECT  * FROM "authors"  WHERE ("id" IN ('1','2'...'100'))
     ```
+
+    Has many relation:
+
+	```
+	BenchmarkModelHasManyGopg-4	    2000	    946806 ns/op	  166498 B/op	    2390 allocs/op
+	BenchmarkModelHasManyGORM-4	     300	   4782949 ns/op	 2363028 B/op	  111267 allocs/op
+	```
+
+	go-pg:
+
+	```go
+	db.Model(&books).Columns("book.*", "Translations").Limit(100).Select()
+	```
+
+	```sql
+	 SELECT "book".* FROM "books" AS "book" LIMIT 100
+	 statement: SELECT "translation".* FROM "translations" AS "translation" WHERE ("translation"."book_id") IN ((100), (101), ... (199))
+
+	```
+
+
+	GORM:
+
+	```go
+	db.Preload("Translations").Limit(100).Find(&books).Error
+	```
+
+	```sql
+	SELECT * FROM "books"   LIMIT 100
+	SELECT  * FROM "authors"  WHERE ("book_id" IN ('1','2'...'100'))
+	```
+
+	Has many to many relation:
+
+	```
+	BenchmarkModelHasMany2ManyGopg-4	    2000	    778735 ns/op	  145151 B/op	    1816 allocs/op
+	BenchmarkModelHasMany2ManyGORM-4	    1000	   1558226 ns/op	  806117 B/op	   16539 allocs/op
+
+	```
+
+	go-pg:
+
+	```go
+	db.Model(&books).Columns("book.*", "Genres").Limit(100).Select()
+	```
+	```sql
+	SELECT "book"."id" FROM "books" AS "book" LIMIT 100
+	SELECT "book_genre".* FROM "book_genres" AS "book_genre" WHERE ("book_id") IN ((100), (101), ... (199))
+	SELECT "genre".* FROM "genres" AS "genre" WHERE ("id") IN ((1), (2), ... (100))
+
+	```
+
+	GORM:
+
+	```go
+	db.Preload("Genres").Limit(100).Find(&books).Error
+	```
+
+	```sql
+	SELECT * FROM "books"   LIMIT 100
+	SELECT * FROM "genres" INNER JOIN "book_genres" ON "book_genres"."genre_id" = "genres"."id" WHERE ("book_genres"."book_id" IN ((1), (2), ... (99)))
+
+	```
+
+
 
 ## Howto
 
