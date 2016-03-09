@@ -23,6 +23,8 @@ var Q = orm.Q
 // e.g. table or column name.
 var F = orm.F
 
+var FormatQuery = orm.FormatQuery
+
 //------------------------------------------------------------------------------
 
 type Strings []string
