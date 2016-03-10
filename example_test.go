@@ -252,7 +252,7 @@ func ExampleDB_Create() {
 	}
 }
 
-func ExampleDB_Model_first_and_last() {
+func ExampleDB_Model_selectFirstAndLastRow() {
 	db := connectDB()
 
 	var firstBook Book
@@ -271,7 +271,7 @@ func ExampleDB_Model_first_and_last() {
 	// Output: Book<Id=1 Title="book 1"> Book<Id=3 Title="book 3">
 }
 
-func ExampleDB_Model_select_all_columns() {
+func ExampleDB_Model_selectAllColumns() {
 	db := connectDB()
 
 	var book Book
@@ -283,7 +283,7 @@ func ExampleDB_Model_select_all_columns() {
 	// Output: Book<Id=1 Title="book 1"> 10
 }
 
-func ExampleDB_Model_select_some_columns() {
+func ExampleDB_Model_selectSomeColumns() {
 	db := connectDB()
 
 	var book Book
@@ -332,7 +332,7 @@ func ExampleDB_Update() {
 	// Output: Book<Id=1 Title="updated book 1">
 }
 
-func ExampleDB_Model_update_some_columns() {
+func ExampleDB_Update_someColumns() {
 	db := connectDB()
 
 	book := Book{
@@ -349,7 +349,7 @@ func ExampleDB_Model_update_some_columns() {
 	// Output: Book<Id=1 Title="updated book 1"> 10
 }
 
-func ExampleDB_Model_update_sql_function() {
+func ExampleDB_Update_usingSqlFunction() {
 	db := connectDB()
 
 	id := 1
@@ -369,7 +369,7 @@ func ExampleDB_Model_update_sql_function() {
 	// Output: Book<Id=1 Title="prefix book 1 suffix">
 }
 
-func ExampleDB_Model_update_multi_models() {
+func ExampleDB_Update_multipleRows() {
 	db := connectDB()
 
 	ids := pg.Ints{1, 2}
@@ -412,7 +412,7 @@ func ExampleDB_Delete() {
 	// Output: pg: no rows in result set
 }
 
-func ExampleDB_Delete_multi_models() {
+func ExampleDB_Delete_multipleRows() {
 	db := connectDB()
 
 	ids := pg.Ints{1, 2, 3}
