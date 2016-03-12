@@ -245,7 +245,7 @@ func BenchmarkQueryRowsGORM(b *testing.B) {
 	})
 }
 
-func BenchmarkQueryHasOneGopg(b *testing.B) {
+func BenchmarkModelHasOneGopg(b *testing.B) {
 	seedDB()
 
 	db := pg.Connect(pgOptions())
@@ -268,7 +268,7 @@ func BenchmarkQueryHasOneGopg(b *testing.B) {
 	})
 }
 
-func BenchmarkQueryHasOneGORM(b *testing.B) {
+func BenchmarkModelHasOneGORM(b *testing.B) {
 	seedDB()
 
 	db, err := gormdb()
@@ -289,6 +289,126 @@ func BenchmarkQueryHasOneGORM(b *testing.B) {
 
 			if len(books) != 100 {
 				b.Fatalf("got %d, wanted 100", len(books))
+			}
+		}
+	})
+}
+
+func BenchmarkModelHasManyGopg(b *testing.B) {
+	seedDB()
+
+	db := pg.Connect(pgOptions())
+	defer db.Close()
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var books []Book
+			err := db.Model(&books).Columns("book.*", "Translations").Limit(100).Select()
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			if len(books) != 100 {
+				b.Fatalf("got %d, wanted 100", len(books))
+			}
+			for _, book := range books {
+				if len(book.Translations) != 10 {
+					b.Fatalf("got %d, wanted 10", len(book.Translations))
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkModelHasManyGORM(b *testing.B) {
+	seedDB()
+
+	db, err := gormdb()
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer db.Close()
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var books []Book
+			err := db.Preload("Translations").Limit(100).Find(&books).Error
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			if len(books) != 100 {
+				b.Fatalf("got %d, wanted 100", len(books))
+			}
+			for _, book := range books {
+				if len(book.Translations) != 10 {
+					b.Fatalf("got %d, wanted 10", len(book.Translations))
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkModelHasMany2ManyGopg(b *testing.B) {
+	seedDB()
+
+	db := pg.Connect(pgOptions())
+	defer db.Close()
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var books []Book
+			err := db.Model(&books).
+				Columns("book.id", "Genres").
+				Limit(100).
+				Select()
+
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			if len(books) != 100 {
+				b.Fatalf("got %d, wanted 100", len(books))
+			}
+			for _, book := range books {
+				if len(book.Genres) != 10 {
+					b.Fatalf("got %d, wanted 10", len(book.Genres))
+				}
+			}
+		}
+	})
+}
+
+func BenchmarkModelHasMany2ManyGORM(b *testing.B) {
+	seedDB()
+
+	db, err := gormdb()
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer db.Close()
+
+	b.ResetTimer()
+
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			var books []Book
+			err := db.Preload("Genres").Limit(100).Find(&books).Error
+			if err != nil {
+				b.Fatal(err)
+			}
+
+			if len(books) != 100 {
+				b.Fatalf("got %d, wanted 100", len(books))
+			}
+			for _, book := range books {
+				if len(book.Genres) != 10 {
+					b.Fatalf("got %d, wanted 10", len(book.Genres))
+				}
 			}
 		}
 	})
@@ -716,15 +836,17 @@ func _seedDB() error {
 		return err
 	}
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 100; i++ {
 		genre := Genre{
 			Name: fmt.Sprintf("genre %d", i),
 		}
-		err := db.Create(&genre)
+		err = db.Create(&genre)
 		if err != nil {
 			return err
 		}
+	}
 
+	for i := 1; i <= 1000; i++ {
 		author := Author{
 			Name: fmt.Sprintf("author %d", i),
 		}
@@ -734,12 +856,33 @@ func _seedDB() error {
 		}
 
 		err = db.Create(&Book{
-			Id:        100,
+			Id:        i,
 			Title:     fmt.Sprintf("book %d", i),
 			AuthorID:  author.ID,
 			EditorID:  author.ID,
 			CreatedAt: time.Now(),
 		})
+		if err != nil {
+			return err
+		}
+
+		for c := 1; c <= 10; c++ {
+			err = db.Create(&BookGenre{
+				BookId:  i,
+				GenreId: rand.Intn(99) + 1,
+			})
+			if err != nil {
+				return err
+			}
+
+			err = db.Create(&Translation{
+				BookId: i,
+				Lang:   fmt.Sprintf("%d", c),
+			})
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return nil
