@@ -157,11 +157,11 @@ func ExampleDB_Query() {
 - go-pg is at least 3x faster than GORM on querying 100 rows from table.
 
     ```
-    BenchmarkQueryRowsGopgOptimized-4       	   10000	    142209 ns/op	   83432 B/op	     625 allocs/op
-    BenchmarkQueryRowsGopgReflect-4         	   10000	    173866 ns/op	   94760 B/op	     826 allocs/op
-    BenchmarkQueryRowsGopgORM-4             	   10000	    173000 ns/op	   95024 B/op	     830 allocs/op
-    BenchmarkQueryRowsStdlibPq-4            	    5000	    222594 ns/op	  161648 B/op	    1324 allocs/op
-    BenchmarkQueryRowsGORM-4                	    2000	    629088 ns/op	  392950 B/op	    6667 allocs/op
+    BenchmarkQueryRowsGopgOptimized-4	   10000	    158443 ns/op	   83432 B/op	     625 allocs/op
+    BenchmarkQueryRowsGopgReflect-4  	   10000	    189014 ns/op	   94759 B/op	     826 allocs/op
+    BenchmarkQueryRowsGopgORM-4      	   10000	    199685 ns/op	   95024 B/op	     830 allocs/op
+    BenchmarkQueryRowsStdlibPq-4     	    5000	    242135 ns/op	  161646 B/op	    1324 allocs/op
+    BenchmarkQueryRowsGORM-4         	    2000	    704366 ns/op	  396184 B/op	    6767 allocs/op
     ```
 
 - go-pg generates much more effecient queries for joins.
@@ -169,8 +169,8 @@ func ExampleDB_Query() {
     Has one relation:
 
     ```
-    BenchmarkQueryHasOneGopg-4              	    3000	    344230 ns/op	   92310 B/op	    1384 allocs/op
-    BenchmarkQueryHasOneGORM-4              	     300	   5667656 ns/op	 2041169 B/op	  103467 allocs/op
+    BenchmarkModelHasOneGopg-4      	    5000	    330512 ns/op	   86938 B/op	    1286 allocs/op
+    BenchmarkModelHasOneGORM-4      	     300	   4650123 ns/op	 1519349 B/op	   71708 allocs/op
     ```
 
     go-pg:
@@ -199,68 +199,68 @@ func ExampleDB_Query() {
 
     Has many relation:
 
-	```
-	BenchmarkModelHasManyGopg-4	    2000	    946806 ns/op	  166498 B/op	    2390 allocs/op
-	BenchmarkModelHasManyGORM-4	     300	   4782949 ns/op	 2363028 B/op	  111267 allocs/op
-	```
+    ```
+    BenchmarkModelHasManyGopg-4     	     500	   3342343 ns/op	  417798 B/op	    8696 allocs/op
+    BenchmarkModelHasManyGORM-4     	      50	  29204802 ns/op	 9930670 B/op	  517602 allocs/op
+    ```
 
-	go-pg:
+    go-pg:
 
-	```go
-	db.Model(&books).Columns("book.*", "Translations").Limit(100).Select()
-	```
+    ```go
+    db.Model(&books).Columns("book.*", "Translations").Limit(100).Select()
+    ```
 
-	```sql
-	 SELECT "book".* FROM "books" AS "book" LIMIT 100
-	 statement: SELECT "translation".* FROM "translations" AS "translation" WHERE ("translation"."book_id") IN ((100), (101), ... (199))
+    ```sql
+     SELECT "book".* FROM "books" AS "book" LIMIT 100
+     SELECT "translation".* FROM "translations" AS "translation"
+     WHERE ("translation"."book_id") IN ((100), (101), ... (199));
+    ```
 
-	```
+    GORM:
 
+    ```go
+    db.Preload("Translations").Limit(100).Find(&books).Error
+    ```
 
-	GORM:
+    ```sql
+    SELECT * FROM "books" LIMIT 100;
+    SELECT * FROM "translations"
+    WHERE ("book_id" IN (1, 2, ..., 100));
+    SELECT * FROM "authors" WHERE ("book_id" IN (1, 2, ..., 100));
+    ```
 
-	```go
-	db.Preload("Translations").Limit(100).Find(&books).Error
-	```
+    Has many to many relation:
 
-	```sql
-	SELECT * FROM "books"   LIMIT 100
-	SELECT  * FROM "authors"  WHERE ("book_id" IN ('1','2'...'100'))
-	```
+    ```
+    BenchmarkModelHasMany2ManyGopg-4	     500	   3795954 ns/op	  492776 B/op	    9722 allocs/op
+    BenchmarkModelHasMany2ManyGORM-4	     200	   9165749 ns/op	 3112733 B/op	   66447 allocs/op
+    ```
 
-	Has many to many relation:
+    go-pg:
 
-	```
-	BenchmarkModelHasMany2ManyGopg-4	    2000	    778735 ns/op	  145151 B/op	    1816 allocs/op
-	BenchmarkModelHasMany2ManyGORM-4	    1000	   1558226 ns/op	  806117 B/op	   16539 allocs/op
+    ```go
+    db.Model(&books).Columns("book.*", "Genres").Limit(100).Select()
+    ```
 
-	```
+    ```sql
+    SELECT "book"."id" FROM "books" AS "book" LIMIT 100;
+    SELECT * FROM "genres" AS "genre"
+    JOIN "book_genres" AS "book_genre" ON ("book_genre"."book_id") IN ((1), (2), ..., (100))
+    WHERE "genre"."id" = "book_genre"."genre_id";
+    ```
 
-	go-pg:
+    GORM:
 
-	```go
-	db.Model(&books).Columns("book.*", "Genres").Limit(100).Select()
-	```
-	```sql
-	SELECT "book"."id" FROM "books" AS "book" LIMIT 100
-	SELECT "book_genre".* FROM "book_genres" AS "book_genre" WHERE ("book_id") IN ((100), (101), ... (199))
-	SELECT "genre".* FROM "genres" AS "genre" WHERE ("id") IN ((1), (2), ... (100))
+    ```go
+    db.Preload("Genres").Limit(100).Find(&books).Error
+    ```
 
-	```
-
-	GORM:
-
-	```go
-	db.Preload("Genres").Limit(100).Find(&books).Error
-	```
-
-	```sql
-	SELECT * FROM "books"   LIMIT 100
-	SELECT * FROM "genres" INNER JOIN "book_genres" ON "book_genres"."genre_id" = "genres"."id" WHERE ("book_genres"."book_id" IN ((1), (2), ... (99)))
-
-	```
-
-
+    ```sql
+    SELECT * FROM "books" LIMIT 100;
+    SELECT * FROM "genres"
+    INNER JOIN "book_genres" ON "book_genres"."genre_id" = "genres"."id"
+    WHERE ("book_genres"."book_id" IN ((1), (2), ..., (100)));
+    ```
 
 ## Howto
 

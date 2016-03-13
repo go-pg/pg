@@ -36,6 +36,10 @@ func (strings *Strings) NewModel() orm.ColumnScanner {
 	return strings
 }
 
+func (Strings) AddModel(_ orm.ColumnScanner) error {
+	return nil
+}
+
 func (strings *Strings) ScanColumn(colIdx int, _ string, b []byte) error {
 	*strings = append(*strings, string(b))
 	return nil
@@ -63,6 +67,10 @@ var _ types.ValueAppender = (*Ints)(nil)
 
 func (ints *Ints) NewModel() orm.ColumnScanner {
 	return ints
+}
+
+func (Ints) AddModel(_ orm.ColumnScanner) error {
+	return nil
 }
 
 func (ints *Ints) ScanColumn(colIdx int, colName string, b []byte) error {
@@ -95,6 +103,10 @@ var _ orm.Model = (*IntSet)(nil)
 
 func (set *IntSet) NewModel() orm.ColumnScanner {
 	return set
+}
+
+func (IntSet) AddModel(_ orm.ColumnScanner) error {
+	return nil
 }
 
 func (setptr *IntSet) ScanColumn(colIdx int, colName string, b []byte) error {

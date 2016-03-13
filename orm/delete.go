@@ -16,22 +16,24 @@ func Delete(db dber, v interface{}) error {
 }
 
 type deleteModel struct {
-	*TableModel
+	TableModel
 }
 
 func (del deleteModel) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	table := del.Table()
 	strct := del.Value()
-	for _, pk := range del.Table.PKs {
+
+	for _, pk := range table.PKs {
 		if pk.IsEmpty(strct) {
 			return nil, errors.New("pg: primary key is empty")
 		}
 	}
 
 	b = append(b, "DELETE FROM "...)
-	b = types.AppendField(b, del.Table.Name, true)
+	b = types.AppendField(b, table.Name, true)
 
 	b = append(b, " WHERE "...)
-	b = appendFieldValue(b, strct, del.Table.PKs)
+	b = appendFieldValue(b, strct, table.PKs)
 
 	return b, nil
 }
@@ -42,10 +44,10 @@ type deleteQuery struct {
 
 func (del deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "DELETE FROM "...)
-	b = types.AppendField(b, del.model.Table.Name, true)
+	b = types.AppendField(b, del.model.Table().Name, true)
 
 	b = append(b, " WHERE "...)
-	b = appendString(b, " AND ", del.wheres...)
+	b = appendBytes(b, " AND ", del.wheres...)
 
 	return b, nil
 }

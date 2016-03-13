@@ -17,6 +17,10 @@ func (m *valuesModel) NewModel() ColumnScanner {
 	return m
 }
 
+func (valuesModel) AddModel(_ ColumnScanner) error {
+	return nil
+}
+
 func (m *valuesModel) ScanColumn(colIdx int, _ string, b []byte) error {
 	return types.Decode(m.values[colIdx], b)
 }

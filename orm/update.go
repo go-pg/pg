@@ -17,15 +17,17 @@ type updateModel struct {
 }
 
 func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	table := upd.model.Table()
 	strct := upd.model.Value()
-	for _, pk := range upd.model.Table.PKs {
+
+	for _, pk := range table.PKs {
 		if pk.IsEmpty(strct) {
 			return nil, errors.New("pg: primary key is empty")
 		}
 	}
 
 	b = append(b, "UPDATE "...)
-	b = types.AppendField(b, upd.model.Table.Name, true)
+	b = types.AppendField(b, table.Name, true)
 	b = append(b, " SET "...)
 
 	if len(upd.columns) > 0 {
@@ -35,7 +37,7 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 				return nil, err
 			}
 
-			field, err := upd.model.Table.GetField(string(column))
+			field, err := table.GetField(string(column))
 			if err != nil {
 				return nil, err
 			}
@@ -48,7 +50,7 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 			}
 		}
 	} else {
-		for i, field := range upd.model.Table.Fields {
+		for i, field := range table.Fields {
 			if field.Has(PrimaryKeyFlag) {
 				continue
 			}
@@ -56,14 +58,14 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 			b = types.AppendField(b, field.SQLName, true)
 			b = append(b, " = "...)
 			b = field.AppendValue(b, strct, true)
-			if i != len(upd.model.Table.Fields)-1 {
+			if i != len(table.Fields)-1 {
 				b = append(b, ", "...)
 			}
 		}
 	}
 
 	b = append(b, " WHERE "...)
-	b = appendFieldValue(b, strct, upd.model.Table.PKs)
+	b = appendFieldValue(b, strct, table.PKs)
 
 	if len(upd.returning) > 0 {
 		b = append(b, " RETURNING "...)
@@ -80,7 +82,7 @@ type updateQuery struct {
 
 func (upd updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "UPDATE "...)
-	b = types.AppendField(b, upd.model.Table.Name, true)
+	b = types.AppendField(b, upd.model.Table().Name, true)
 	b = append(b, " SET "...)
 
 	for fieldName, value := range upd.data {
@@ -92,7 +94,7 @@ func (upd updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	b = b[:len(b)-2]
 
 	b = append(b, " WHERE "...)
-	b = appendString(b, " AND ", upd.wheres...)
+	b = appendBytes(b, " AND ", upd.wheres...)
 
 	if len(upd.returning) > 0 {
 		b = append(b, " RETURNING "...)

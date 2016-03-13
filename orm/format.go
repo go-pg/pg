@@ -63,7 +63,7 @@ func F(s string, params ...interface{}) types.F {
 type Formatter struct {
 	params     []interface{}
 	paramIndex int
-	model      *TableModel
+	model      TableModel
 }
 
 func NewFormatter(params []interface{}) *Formatter {

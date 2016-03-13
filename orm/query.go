@@ -9,14 +9,14 @@ import (
 
 type Query struct {
 	db    dber
-	model *TableModel
+	model TableModel
 	err   error
 
 	tables    []string
 	columns   []types.ValueAppender
 	returning []types.ValueAppender
-	wheres    []string
-	joins     []string
+	wheres    [][]byte
+	joins     [][]byte
 	orders    []string
 	limit     int
 	offset    int
@@ -30,7 +30,7 @@ func NewQuery(db dber, v interface{}) *Query {
 		err:   err,
 	}
 	if err == nil {
-		q.tables = append(q.tables, q.model.Table.Name+" AS "+q.model.Table.ModelName)
+		q.tables = append(q.tables, q.model.Table().Name+" AS "+q.model.Table().ModelName)
 	}
 	return &q
 }
@@ -94,14 +94,19 @@ func (q *Query) Where(where string, params ...interface{}) *Query {
 	if err != nil {
 		q.setErr(err)
 	} else {
-		q.wheres = append(q.wheres, string(b))
+		q.wheres = append(q.wheres, b)
 	}
 
 	return q
 }
 
-func (q *Query) Join(join string) *Query {
-	q.joins = append(q.joins, join)
+func (q *Query) Join(join string, params ...interface{}) *Query {
+	b, err := Format(nil, join, params...)
+	if err != nil {
+		q.setErr(err)
+	} else {
+		q.joins = append(q.joins, b)
+	}
 	return q
 }
 
@@ -130,8 +135,9 @@ func (q *Query) Count(count *int) error {
 	q.limit = 0
 	q.offset = 0
 
-	for i := range q.model.Joins {
-		j := &q.model.Joins[i]
+	joins := q.model.GetJoins()
+	for i := range joins {
+		j := &joins[i]
 		if j.Rel.One {
 			j.JoinOne(q)
 		}
@@ -150,22 +156,24 @@ func (q *Query) Count(count *int) error {
 }
 
 func (q *Query) First() error {
-	order := string(q.model.AppendPK(nil))
-	return q.Order(order).Limit(1).Select()
+	b := appendPKs(nil, q.model.Table().PKs)
+	return q.Order(string(b)).Limit(1).Select()
 }
 
 func (q *Query) Last() error {
-	order := string(q.model.AppendPK(nil)) + " DESC"
-	return q.Order(order).Limit(1).Select()
+	b := appendPKs(nil, q.model.Table().PKs)
+	b = append(b, " DESC"...)
+	return q.Order(string(b)).Limit(1).Select()
 }
 
 func (q *Query) Select() error {
 	return q.selectModel(q.model)
 }
 
-func (q *Query) selectModel(model *TableModel) error {
-	for i := range model.Joins {
-		j := &model.Joins[i]
+func (q *Query) selectModel(model TableModel) error {
+	joins := model.GetJoins()
+	for i := range joins {
+		j := &joins[i]
 		if j.Rel.One {
 			j.JoinOne(q)
 		}
@@ -184,17 +192,17 @@ func (q *Query) selectModel(model *TableModel) error {
 		return err
 	}
 
-	return selectJoins(q.db, model.Joins, model.Value())
+	return selectJoins(q.db, joins)
 }
 
-func selectJoins(db dber, joins []Join, bind reflect.Value) error {
+func selectJoins(db dber, joins []Join) error {
 	var err error
 	for i := range joins {
 		j := &joins[i]
 		if j.Rel.One {
-			err = selectJoins(db, j.JoinModel.Joins, bind)
+			err = selectJoins(db, j.JoinModel.GetJoins())
 		} else {
-			err = j.Select(db, bind)
+			err = j.Select(db)
 		}
 		if err != nil {
 			return err

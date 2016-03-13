@@ -47,47 +47,46 @@ func columns(prefix string, fields []*Field) []byte {
 	return b
 }
 
-func values(v reflect.Value, path []string, fields ...*Field) []byte {
-	b := walk(nil, v, path, fields)
+func values(v reflect.Value, path []string, fields []*Field) []byte {
+	var b []byte
+	walk(v, path, func(v reflect.Value) {
+		b = append(b, '(')
+		for i, field := range fields {
+			b = field.AppendValue(b, v, true)
+			if i != len(fields)-1 {
+				b = append(b, ", "...)
+			}
+		}
+		b = append(b, "), "...)
+	})
 	if len(b) > 0 {
 		b = b[:len(b)-2] // trim ", "
 	}
 	return b
 }
 
-func walk(b []byte, v reflect.Value, path []string, fields []*Field) []byte {
+func walk(v reflect.Value, path []string, fn func(reflect.Value)) {
 	v = reflect.Indirect(v)
 	if v.Kind() == reflect.Slice {
-		return appendSliceField(b, v, path, fields)
+		walkSlice(v, path, fn)
 	} else {
-		return appendStructField(b, v, path, fields)
+		visitStruct(v, path, fn)
 	}
 }
 
-func appendSliceField(b []byte, slice reflect.Value, path []string, fields []*Field) []byte {
+func walkSlice(slice reflect.Value, path []string, fn func(reflect.Value)) {
 	for i := 0; i < slice.Len(); i++ {
-		b = appendStructField(b, slice.Index(i), path, fields)
+		visitStruct(slice.Index(i), path, fn)
 	}
-	return b
 }
 
-func appendStructField(b []byte, strct reflect.Value, path []string, fields []*Field) []byte {
+func visitStruct(strct reflect.Value, path []string, fn func(reflect.Value)) {
 	if len(path) > 0 {
 		strct = strct.FieldByName(path[0])
-		b = walk(b, strct, path[1:], fields)
-		return b
+		walk(strct, path[1:], fn)
+	} else {
+		fn(strct)
 	}
-
-	b = append(b, '(')
-	for i, field := range fields {
-		b = field.AppendValue(b, strct, true)
-		if i != len(fields)-1 {
-			b = append(b, ", "...)
-		}
-	}
-	b = append(b, "), "...)
-
-	return b
 }
 
 func appendFieldValue(b []byte, v reflect.Value, fields []*Field) []byte {
@@ -127,4 +126,14 @@ func equal(vals []reflect.Value, strct reflect.Value, fields []*Field) bool {
 		}
 	}
 	return true
+}
+
+func modelId(b []byte, v reflect.Value, pks []*Field) []byte {
+	for i, pk := range pks {
+		b = pk.AppendValue(b, v, false)
+		if i != len(pks)-1 {
+			b = append(b, ", "...)
+		}
+	}
+	return b
 }
