@@ -20,7 +20,7 @@ type selectQuery struct {
 func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "SELECT "...)
 	if sel.columns == nil {
-		b = types.AppendField(b, sel.model.Table.ModelName, true)
+		b = types.AppendField(b, sel.model.Table().ModelName, true)
 		b = append(b, ".*"...)
 	} else {
 		b = appendValue(b, ", ", sel.columns...)
@@ -29,11 +29,14 @@ func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	b = append(b, " FROM "...)
 	b = appendField(b, sel.tables...)
 
-	b = appendString(b, "", sel.joins...)
+	if sel.joins != nil {
+		b = append(b, ' ')
+		b = appendBytes(b, " ", sel.joins...)
+	}
 
 	if sel.wheres != nil {
 		b = append(b, " WHERE "...)
-		b = appendString(b, " AND ", sel.wheres...)
+		b = appendBytes(b, " AND ", sel.wheres...)
 	}
 
 	if sel.orders != nil {
@@ -54,6 +57,10 @@ func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	return b, nil
 }
 
+func appendPKs(b []byte, pks []*Field) []byte {
+	return columns("", pks)
+}
+
 func appendField(b []byte, ss ...string) []byte {
 	for i, field := range ss {
 		b = types.AppendField(b, field, true)
@@ -68,6 +75,16 @@ func appendString(b []byte, sep string, ss ...string) []byte {
 	for i, s := range ss {
 		b = append(b, s...)
 		if i != len(ss)-1 {
+			b = append(b, sep...)
+		}
+	}
+	return b
+}
+
+func appendBytes(b []byte, sep string, bb ...[]byte) []byte {
+	for i, bytes := range bb {
+		b = append(b, bytes...)
+		if i != len(bb)-1 {
 			b = append(b, sep...)
 		}
 	}

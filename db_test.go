@@ -200,7 +200,7 @@ type BookGenre struct {
 	BookId  int `sql:",pk"` // pk tag is used to mark field as primary key
 	GenreId int `sql:",pk"`
 
-	GenreRating int // belongs to and is copied to Genre model
+	Genre_Rating int // belongs to and is copied to Genre model
 }
 
 type Book struct {
@@ -235,7 +235,7 @@ type Translation struct {
 
 type Comment struct {
 	TrackableId   int    `sql:",pk"` // can be Book.Id or Translation.Id
-	TrackableType string `sql:",pk"` // can be "book" or "translation"
+	TrackableType string //`sql:",pk"` // can be "book" or "translation"
 	Text          string
 }
 
@@ -250,7 +250,7 @@ func createTestSchema(db *pg.DB) error {
 		`CREATE TABLE authors (id serial, name text)`,
 		`CREATE TABLE books (id serial, title text, author_id int, editor_id int, created_at timestamptz)`,
 		`CREATE TABLE genres (id serial, name text)`,
-		`CREATE TABLE book_genres (book_id int, genre_id int, genre_rating int)`,
+		`CREATE TABLE book_genres (book_id int, genre_id int, genre__rating int)`,
 		`CREATE TABLE translations (id serial, book_id int, lang varchar(2))`,
 		`CREATE TABLE comments (trackable_id int, trackable_type varchar(100), text text)`,
 	}
@@ -273,11 +273,13 @@ var _ = Describe("ORM", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		err = db.Create(&Genre{
+			Id:   1,
 			Name: "genre 1",
 		})
 		Expect(err).NotTo(HaveOccurred())
 
 		err = db.Create(&Genre{
+			Id:   2,
 			Name: "genre 2",
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -328,23 +330,23 @@ var _ = Describe("ORM", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		err = db.Create(&BookGenre{
-			BookId:      100,
-			GenreId:     1,
-			GenreRating: 999,
+			BookId:       100,
+			GenreId:      1,
+			Genre_Rating: 999,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
 		err = db.Create(&BookGenre{
-			BookId:      100,
-			GenreId:     2,
-			GenreRating: 9999,
+			BookId:       100,
+			GenreId:      2,
+			Genre_Rating: 9999,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
 		err = db.Create(&BookGenre{
-			BookId:      101,
-			GenreId:     1,
-			GenreRating: 99999,
+			BookId:       101,
+			GenreId:      1,
+			Genre_Rating: 99999,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -509,6 +511,7 @@ var _ = Describe("ORM", func() {
 
 			book := &books[0]
 			Expect(book.Id).To(Equal(100))
+			Expect(book.Author).NotTo(BeNil())
 			Expect(book.Author.ID).To(Equal(10))
 
 			Expect(book.Translations).To(HaveLen(2))
@@ -550,7 +553,7 @@ var _ = Describe("ORM", func() {
 			Expect(book.Genres).To(HaveLen(0))
 		})
 
-		It("supports HasMany, HasMany -> HasMany, HasMany2Many", func() {
+		It("supports HasMany2Many, HasMany2Many -> HasMany", func() {
 			var genres []Genre
 			err := db.Model(&genres).
 				Columns("genre.*", "Books", "Books.Translations").
@@ -561,8 +564,8 @@ var _ = Describe("ORM", func() {
 
 			genre := &genres[0]
 			Expect(genre.Id).To(Equal(1))
-
 			Expect(genre.Books).To(HaveLen(2))
+
 			book := genre.Books[0]
 			Expect(book.Id).To(Equal(100))
 

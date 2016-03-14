@@ -12,40 +12,41 @@ func Create(db dber, v interface{}) error {
 }
 
 type insert struct {
-	*TableModel
+	TableModel
 }
 
 func (ins insert) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	table := ins.Table()
 	strct := ins.Value()
 
 	b = append(b, "INSERT INTO "...)
-	b = types.AppendField(b, ins.Table.Name, true)
+	b = types.AppendField(b, table.Name, true)
 
 	b = append(b, " ("...)
-	for i, field := range ins.Table.Fields {
+	for i, field := range table.Fields {
 		if field.Has(PrimaryKeyFlag) && field.IsEmpty(strct) {
 			continue
 		}
 		b = types.AppendField(b, field.SQLName, true)
-		if i != len(ins.Table.Fields)-1 {
+		if i != len(table.Fields)-1 {
 			b = append(b, ", "...)
 		}
 	}
 
 	b = append(b, ") VALUES ("...)
 
-	for i, field := range ins.Table.Fields {
+	for i, field := range table.Fields {
 		if field.Has(PrimaryKeyFlag) && field.IsEmpty(strct) {
 			continue
 		}
 		b = field.AppendValue(b, strct, true)
-		if i != len(ins.Table.Fields)-1 {
+		if i != len(table.Fields)-1 {
 			b = append(b, ", "...)
 		}
 	}
 	b = append(b, ")"...)
 
-	b = appendReturning(b, strct, ins.Table.PKs)
+	b = appendReturning(b, strct, table.PKs)
 
 	return b, nil
 }

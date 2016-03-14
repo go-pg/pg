@@ -363,7 +363,7 @@ func BenchmarkModelHasMany2ManyGopg(b *testing.B) {
 		for pb.Next() {
 			var books []Book
 			err := db.Model(&books).
-				Columns("book.id", "Genres").
+				Columns("book.*", "Genres").
 				Limit(100).
 				Select()
 
@@ -397,7 +397,7 @@ func BenchmarkModelHasMany2ManyGORM(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var books []Book
-			err := db.Preload("Genres").Limit(100).Find(&books).Error
+			err = db.Preload("Genres").Limit(100).Find(&books).Error
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -791,11 +791,17 @@ func (rs *OptRecords) NewModel() orm.ColumnScanner {
 	return &rs.C[len(rs.C)-1]
 }
 
+func (rs *OptRecords) AddModel(_ orm.ColumnScanner) error {
+	return nil
+}
+
 var seedDBOnce sync.Once
 
 func seedDB() {
 	seedDBOnce.Do(func() {
-		_seedDB()
+		if err := _seedDB(); err != nil {
+			panic(err)
+		}
 	})
 }
 
@@ -836,37 +842,38 @@ func _seedDB() error {
 		return err
 	}
 
-	for i := 0; i < 100; i++ {
+	for i := 1; i < 100; i++ {
 		genre := Genre{
+			Id:   i,
 			Name: fmt.Sprintf("genre %d", i),
 		}
 		err = db.Create(&genre)
 		if err != nil {
 			return err
 		}
-	}
 
-	for i := 1; i <= 1000; i++ {
 		author := Author{
+			ID:   i,
 			Name: fmt.Sprintf("author %d", i),
 		}
 		err = db.Create(&author)
 		if err != nil {
 			return err
 		}
+	}
 
+	for i := 1; i <= 1000; i++ {
 		err = db.Create(&Book{
 			Id:        i,
 			Title:     fmt.Sprintf("book %d", i),
-			AuthorID:  author.ID,
-			EditorID:  author.ID,
+			AuthorID:  rand.Intn(99) + 1,
 			CreatedAt: time.Now(),
 		})
 		if err != nil {
 			return err
 		}
 
-		for c := 1; c <= 10; c++ {
+		for j := 1; j <= 10; j++ {
 			err = db.Create(&BookGenre{
 				BookId:  i,
 				GenreId: rand.Intn(99) + 1,
@@ -877,7 +884,7 @@ func _seedDB() error {
 
 			err = db.Create(&Translation{
 				BookId: i,
-				Lang:   fmt.Sprintf("%d", c),
+				Lang:   fmt.Sprintf("%d", j),
 			})
 			if err != nil {
 				return err

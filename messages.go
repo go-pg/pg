@@ -450,16 +450,17 @@ func readDataRow(cn *conn, scanner orm.ColumnScanner, columns []string) (scanErr
 	return scanErr
 }
 
-func readSimpleQueryData(cn *conn, model interface{}) (res types.Result, e error) {
-	coll, ok := model.(orm.Collection)
+func readSimpleQueryData(cn *conn, mod interface{}) (res types.Result, e error) {
+	coll, ok := mod.(orm.Collection)
 	if !ok {
-		coll, e = orm.NewModel(model)
+		coll, e = orm.NewModel(mod)
 		if e != nil {
 			coll = Discard
 		}
 	}
 
 	var columns []string
+	var model orm.ColumnScanner
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -472,8 +473,12 @@ func readSimpleQueryData(cn *conn, model interface{}) (res types.Result, e error
 				return nil, err
 			}
 		case dataRowMsg:
-			if err := readDataRow(cn, coll.NewModel(), columns); err != nil {
+			model = coll.NewModel()
+			if err := readDataRow(cn, model, columns); err != nil {
 				e = err
+			}
+			if err := coll.AddModel(model); err != nil {
+				return nil, err
 			}
 		case commandCompleteMsg:
 			b, err := cn.ReadN(msgLen)
@@ -510,15 +515,16 @@ func readSimpleQueryData(cn *conn, model interface{}) (res types.Result, e error
 	}
 }
 
-func readExtQueryData(cn *conn, collection interface{}, columns []string) (res types.Result, e error) {
-	coll, ok := collection.(orm.Collection)
+func readExtQueryData(cn *conn, mod interface{}, columns []string) (res types.Result, e error) {
+	coll, ok := mod.(orm.Collection)
 	if !ok {
-		coll, e = orm.NewModel(collection)
+		coll, e = orm.NewModel(mod)
 		if e != nil {
 			coll = Discard
 		}
 	}
 
+	var model orm.ColumnScanner
 	for {
 		c, msgLen, err := cn.ReadMsgType()
 		if err != nil {
@@ -531,8 +537,12 @@ func readExtQueryData(cn *conn, collection interface{}, columns []string) (res t
 				return nil, err
 			}
 		case dataRowMsg:
-			if err := readDataRow(cn, coll.NewModel(), columns); err != nil {
+			model = coll.NewModel()
+			if err := readDataRow(cn, model, columns); err != nil {
 				e = err
+			}
+			if err := coll.AddModel(model); err != nil {
+				return nil, err
 			}
 		case commandCompleteMsg: // Response to the EXECUTE message.
 			b, err := cn.ReadN(msgLen)

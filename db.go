@@ -413,29 +413,29 @@ func simpleQueryData(cn *conn, model, query interface{}, params ...interface{}) 
 }
 
 type singleModel struct {
-	model orm.ColumnScanner
-	len   int
+	orm.Model
+	len int
 }
 
 var _ orm.Collection = (*singleModel)(nil)
 
-func newSingleModel(model interface{}) (*singleModel, error) {
-	mod, ok := model.(orm.Model)
+func newSingleModel(mod interface{}) (*singleModel, error) {
+	model, ok := mod.(orm.Model)
 	if !ok {
 		var err error
-		mod, err = orm.NewModel(model)
+		model, err = orm.NewModel(mod)
 		if err != nil {
 			return nil, err
 		}
 	}
 	return &singleModel{
-		model: mod,
+		Model: model,
 	}, nil
 }
 
-func (m *singleModel) NewModel() orm.ColumnScanner {
+func (m *singleModel) AddModel(_ orm.ColumnScanner) error {
 	m.len++
-	return m.model
+	return nil
 }
 
 func (m *singleModel) Len() int {

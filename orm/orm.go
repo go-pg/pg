@@ -11,9 +11,12 @@ type ColumnScanner interface {
 
 // Collection is a set of models mapped to database rows.
 type Collection interface {
-	// NewModel returns ColumnScanner or struct that are used to scan
-	// columns from the current row.
+	// NewModel returns ColumnScanner that is used to scan columns
+	// from the current row.
 	NewModel() ColumnScanner
+
+	// AddModel adds ColumnScanner to the Collection.
+	AddModel(ColumnScanner) error
 }
 
 type QueryAppender interface {

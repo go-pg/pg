@@ -23,9 +23,7 @@ func NewModel(vi interface{}) (Model, error) {
 	if !v.IsValid() {
 		return nil, errors.New("pg: NewModel(nil)")
 	}
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
+	v = reflect.Indirect(v)
 
 	if v.Kind() == reflect.Slice {
 		elType := indirectType(v.Type().Elem())

@@ -118,6 +118,10 @@ func (m errLoader) NewModel() orm.ColumnScanner {
 	return m
 }
 
+func (errLoader) AddModel(_ orm.ColumnScanner) error {
+	return nil
+}
+
 func (m errLoader) ScanColumn(int, string, []byte) error {
 	return errors.New(string(m))
 }
