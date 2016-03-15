@@ -104,10 +104,10 @@ func (t *ListenerTest) TestListenTimeout(c *C) {
 func (t *ListenerTest) TestReconnectOnListenError(c *C) {
 	cn := t.ln.CurrentConn()
 	c.Assert(cn, Not(IsNil))
-	c.Assert(cn.Close(), IsNil)
+	cn.NetConn = &badConn{}
 
 	err := t.ln.Listen("test_channel2")
-	c.Assert(err, ErrorMatches, `^(.*use of closed network connection|EOF)$`)
+	c.Assert(err, ErrorMatches, `bad connection`)
 
 	err = t.ln.Listen("test_channel2")
 	c.Assert(err, IsNil)
@@ -116,10 +116,10 @@ func (t *ListenerTest) TestReconnectOnListenError(c *C) {
 func (t *ListenerTest) TestReconnectOnReceiveError(c *C) {
 	cn := t.ln.CurrentConn()
 	c.Assert(cn, Not(IsNil))
-	c.Assert(cn.Close(), IsNil)
+	cn.NetConn = &badConn{}
 
 	_, _, err := t.ln.ReceiveTimeout(time.Second)
-	c.Assert(err, ErrorMatches, `^(.*use of closed network connection|EOF)$`)
+	c.Assert(err, ErrorMatches, `bad connection`)
 
 	_, _, err = t.ln.ReceiveTimeout(time.Second)
 	c.Assert(err.(net.Error).Timeout(), Equals, true)

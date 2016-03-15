@@ -4,6 +4,8 @@ import (
 	"log"
 	"sync"
 	"time"
+
+	"gopkg.in/pg.v4/internal/pool"
 )
 
 // Not thread-safe.
@@ -12,12 +14,12 @@ type Listener struct {
 
 	db *DB
 
-	_cn    *conn
+	_cn    *pool.Conn
 	closed bool
 	mx     sync.Mutex
 }
 
-func (l *Listener) conn(readTimeout time.Duration) (*conn, error) {
+func (l *Listener) conn(readTimeout time.Duration) (*pool.Conn, error) {
 	defer l.mx.Unlock()
 	l.mx.Lock()
 
@@ -59,13 +61,13 @@ func (l *Listener) Listen(channels ...string) error {
 	return nil
 }
 
-func (l *Listener) listen(cn *conn, channels ...string) error {
+func (l *Listener) listen(cn *pool.Conn, channels ...string) error {
 	for _, channel := range channels {
-		if err := writeQueryMsg(cn.buf, "LISTEN ?", F(channel)); err != nil {
+		if err := writeQueryMsg(cn.Wr, "LISTEN ?", F(channel)); err != nil {
 			return err
 		}
 	}
-	return cn.FlushWrite()
+	return cn.Wr.Flush()
 }
 
 func (l *Listener) Receive() (channel string, payload string, err error) {
@@ -99,7 +101,7 @@ func (l *Listener) freeConn(err error) (retErr error) {
 func (l *Listener) closeConn(err error) (retErr error) {
 	l.mx.Lock()
 	if l._cn != nil {
-		retErr = l.db.pool.Remove(l._cn, err)
+		retErr = l.db.pool.Replace(l._cn, err)
 		l._cn = nil
 	}
 	l.mx.Unlock()

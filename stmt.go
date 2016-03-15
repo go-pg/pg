@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"gopkg.in/pg.v4/internal/pool"
 	"gopkg.in/pg.v4/types"
 )
 
@@ -13,7 +14,7 @@ type Stmt struct {
 	db *DB
 
 	mu  sync.Mutex
-	_cn *conn
+	_cn *pool.Conn
 
 	name    string
 	columns []string
@@ -21,10 +22,10 @@ type Stmt struct {
 	err error
 }
 
-func prepare(db *DB, cn *conn, q string) (*Stmt, error) {
-	name := cn.GenId()
-	writeParseDescribeSyncMsg(cn.buf, name, q)
-	if err := cn.FlushWrite(); err != nil {
+func prepare(db *DB, cn *pool.Conn, q string) (*Stmt, error) {
+	name := cn.NextId()
+	writeParseDescribeSyncMsg(cn.Wr, name, q)
+	if err := cn.Wr.Flush(); err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
@@ -55,7 +56,7 @@ func (db *DB) Prepare(q string) (*Stmt, error) {
 	return prepare(db, cn, q)
 }
 
-func (stmt *Stmt) conn() (*conn, error) {
+func (stmt *Stmt) conn() (*pool.Conn, error) {
 	if stmt._cn == nil {
 		return nil, errStmtClosed
 	}
@@ -166,22 +167,22 @@ func (stmt *Stmt) Close() error {
 	return err
 }
 
-func extQuery(cn *conn, name string, params ...interface{}) (types.Result, error) {
-	if err := writeBindExecuteMsg(cn.buf, name, params...); err != nil {
+func extQuery(cn *pool.Conn, name string, params ...interface{}) (types.Result, error) {
+	if err := writeBindExecuteMsg(cn.Wr, name, params...); err != nil {
 		return nil, err
 	}
-	if err := cn.FlushWrite(); err != nil {
+	if err := cn.Wr.Flush(); err != nil {
 		return nil, err
 	}
 	return readExtQuery(cn)
 }
 
-func extQueryData(cn *conn, name string, model interface{}, columns []string, params ...interface{}) (types.Result, error) {
-	if err := writeBindExecuteMsg(cn.buf, name, params...); err != nil {
+func extQueryData(cn *pool.Conn, name string, model interface{}, columns []string, params ...interface{}) (types.Result, error) {
+	if err := writeBindExecuteMsg(cn.Wr, name, params...); err != nil {
 		return nil, err
 	}
 
-	if err := cn.FlushWrite(); err != nil {
+	if err := cn.Wr.Flush(); err != nil {
 		return nil, err
 	}
 

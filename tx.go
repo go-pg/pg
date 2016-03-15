@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 
+	"gopkg.in/pg.v4/internal/pool"
 	"gopkg.in/pg.v4/types"
 )
 
@@ -19,7 +20,7 @@ func init() {
 // Not thread-safe.
 type Tx struct {
 	db  *DB
-	_cn *conn
+	_cn *pool.Conn
 
 	err  error
 	done bool
@@ -60,7 +61,7 @@ func (db *DB) RunInTransaction(fn func(*Tx) error) error {
 	return tx.Commit()
 }
 
-func (tx *Tx) conn() *conn {
+func (tx *Tx) conn() *pool.Conn {
 	tx._cn.SetReadTimeout(tx.db.opt.ReadTimeout)
 	tx._cn.SetWriteTimeout(tx.db.opt.WriteTimeout)
 	return tx._cn

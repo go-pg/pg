@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"database/sql/driver"
 	"io"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -232,4 +233,41 @@ type NopWriteCloser struct {
 
 func (NopWriteCloser) Close() error {
 	return nil
+}
+
+//------------------------------------------------------------------------------
+
+type badConnError string
+
+func (e badConnError) Error() string   { return string(e) }
+func (e badConnError) Timeout() bool   { return false }
+func (e badConnError) Temporary() bool { return false }
+
+type badConn struct {
+	net.TCPConn
+
+	readDelay, writeDelay time.Duration
+	readErr, writeErr     error
+}
+
+var _ net.Conn = &badConn{}
+
+func (cn *badConn) Read([]byte) (int, error) {
+	if cn.readDelay != 0 {
+		time.Sleep(cn.readDelay)
+	}
+	if cn.readErr != nil {
+		return 0, cn.readErr
+	}
+	return 0, badConnError("bad connection")
+}
+
+func (cn *badConn) Write([]byte) (int, error) {
+	if cn.writeDelay != 0 {
+		time.Sleep(cn.writeDelay)
+	}
+	if cn.writeErr != nil {
+		return 0, cn.writeErr
+	}
+	return 0, badConnError("bad connection")
 }
