@@ -21,21 +21,21 @@ func TestCancelRequestOnTimeout(t *testing.T) {
 
 	_, err := db.Exec("SELECT pg_sleep(60)")
 	if err == nil {
-		t.Errorf("err is nil")
+		t.Fatalf("err is nil")
 	}
 	neterr, ok := err.(net.Error)
 	if !ok {
-		t.Errorf("got %v, expected net.Error", err)
+		t.Fatalf("got %v, expected net.Error", err)
 	}
 	if !neterr.Timeout() {
-		t.Errorf("got %v, expected timeout", err)
+		t.Fatalf("got %v, expected timeout", err)
 	}
 
 	if db.Pool().FreeLen() != 1 {
-		t.Errorf("len is %d", db.Pool().FreeLen())
+		t.Fatalf("len is %d", db.Pool().FreeLen())
 	}
 	if db.Pool().Len() != 1 {
-		t.Errorf("size is %d", db.Pool().Len())
+		t.Fatalf("size is %d", db.Pool().Len())
 	}
 
 	err = eventually(func() error {
@@ -56,14 +56,14 @@ func TestStatementTimeout(t *testing.T) {
 
 	_, err := db.Exec("SELECT pg_sleep(60)")
 	if err == nil {
-		t.Errorf("err is nil")
+		t.Fatalf("err is nil")
 	}
 	if err.Error() != "ERROR #57014 canceling statement due to statement timeout: " {
-		t.Errorf("got %q", err.Error())
+		t.Fatalf("got %q", err.Error())
 	}
 
 	if db.Pool().Len() != 1 || db.Pool().FreeLen() != 1 {
-		t.Errorf("pool is empty")
+		t.Fatalf("pool is empty")
 	}
 
 	err = eventually(func() error {

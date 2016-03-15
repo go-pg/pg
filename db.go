@@ -6,129 +6,12 @@ import (
 	"net"
 	"time"
 
+	"gopkg.in/pg.v4/internal/pool"
 	"gopkg.in/pg.v4/orm"
 	"gopkg.in/pg.v4/types"
 )
 
 const defaultBackoff = 500 * time.Millisecond
-
-// Database connection options.
-type Options struct {
-	// The network type, either tcp or unix.
-	// Default is tcp.
-	Network  string
-	Addr     string
-	User     string
-	Password string
-	Database string
-	// Whether to use secure TCP/IP connections (TLS).
-	SSL bool
-
-	// Run-time configuration parameters to be set on connection.
-	Params map[string]interface{}
-
-	// The maximum number of retries before giving up.
-	// Default is to not retry failed queries.
-	MaxRetries int
-
-	// The deadline for establishing new connections. If reached,
-	// dial will fail with a timeout.
-	// Default is 5 seconds.
-	DialTimeout time.Duration
-	// The timeout for socket reads. If reached, commands will fail
-	// with a timeout error instead of blocking.
-	// Default is no timeout.
-	ReadTimeout time.Duration
-	// The timeout for socket writes. If reached, commands will fail
-	// with a timeout error instead of blocking.
-	// Default is no timeout.
-	WriteTimeout time.Duration
-
-	// The maximum number of open socket connections.
-	// Default is 10 connections.
-	PoolSize int
-	// The amount of time client waits for free connection if all
-	// connections are busy before returning an error.
-	// Default is 5 seconds.
-	PoolTimeout time.Duration
-	// The amount of time after which client closes idle connections.
-	// Default is to not close idle connections.
-	IdleTimeout time.Duration
-}
-
-func (opt *Options) getNetwork() string {
-	if opt == nil || opt.Network == "" {
-		return "tcp"
-	}
-	return opt.Network
-}
-
-func (opt *Options) getAddr() string {
-	if opt.Addr != "" {
-		return opt.Addr
-	}
-	if opt.getNetwork() == "unix" {
-		return "/var/run/postgresql/.s.PGSQL.5432"
-	}
-	return "localhost:5432"
-}
-
-func (opt *Options) getUser() string {
-	if opt == nil || opt.User == "" {
-		return ""
-	}
-	return opt.User
-}
-
-func (opt *Options) getPassword() string {
-	if opt == nil || opt.Password == "" {
-		return ""
-	}
-	return opt.Password
-}
-
-func (opt *Options) getDatabase() string {
-	if opt == nil || opt.Database == "" {
-		return ""
-	}
-	return opt.Database
-}
-
-func (opt *Options) getPoolSize() int {
-	if opt == nil || opt.PoolSize == 0 {
-		return 10
-	}
-	return opt.PoolSize
-}
-
-func (opt *Options) getPoolTimeout() time.Duration {
-	if opt == nil || opt.PoolTimeout == 0 {
-		return 5 * time.Second
-	}
-	return opt.PoolTimeout
-}
-
-func (opt *Options) getDialTimeout() time.Duration {
-	if opt.DialTimeout == 0 {
-		return 5 * time.Second
-	}
-	return opt.DialTimeout
-}
-
-func (opt *Options) getIdleTimeout() time.Duration {
-	return opt.IdleTimeout
-}
-
-func (opt *Options) getIdleCheckFrequency() time.Duration {
-	return time.Minute
-}
-
-func (opt *Options) getSSL() bool {
-	if opt == nil {
-		return false
-	}
-	return opt.SSL
-}
 
 // Connect connects to a database using provided options.
 //
@@ -146,7 +29,7 @@ func Connect(opt *Options) *DB {
 // goroutines.
 type DB struct {
 	opt  *Options
-	pool *connPool
+	pool *pool.ConnPool
 }
 
 // Options returns read-only Options that were used to connect to the DB.
@@ -165,10 +48,18 @@ func (db *DB) WithTimeout(d time.Duration) *DB {
 	}
 }
 
-func (db *DB) conn() (*conn, error) {
-	cn, _, err := db.pool.Get()
+func (db *DB) conn() (*pool.Conn, error) {
+	cn, err := db.pool.Get()
 	if err != nil {
 		return nil, err
+	}
+
+	if !cn.Inited {
+		if err := db.initConn(cn); err != nil {
+			_ = db.pool.Replace(cn, err)
+			return nil, err
+		}
+		cn.Inited = true
 	}
 
 	cn.SetReadTimeout(db.opt.ReadTimeout)
@@ -176,16 +67,33 @@ func (db *DB) conn() (*conn, error) {
 	return cn, nil
 }
 
-func (db *DB) freeConn(cn *conn, err error) error {
+func (db *DB) initConn(cn *pool.Conn) error {
+	if db.opt.getSSL() {
+		if err := enableSSL(cn); err != nil {
+			return err
+		}
+	}
+
+	err := startup(cn, db.opt.getUser(), db.opt.getPassword(), db.opt.getDatabase())
+	if err != nil {
+		return err
+	}
+	if err := setParams(cn, db.opt.Params); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (db *DB) freeConn(cn *pool.Conn, err error) error {
 	if !isBadConn(err, false) {
 		return db.pool.Put(cn)
 	}
 	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-		if err := db.cancelRequest(cn.processId, cn.secretKey); err != nil {
+		if err := db.cancelRequest(cn.ProcessId, cn.SecretKey); err != nil {
 			log.Printf("pg: cancelRequest failed: %s", err)
 		}
 	}
-	return db.pool.Remove(cn, err)
+	return db.pool.Replace(cn, err)
 }
 
 // Close closes the database client, releasing any open resources.
@@ -200,7 +108,7 @@ func (db *DB) Close() error {
 // any placeholder parameters in the query.
 func (db *DB) Exec(query interface{}, params ...interface{}) (res types.Result, err error) {
 	for i := 0; ; i++ {
-		var cn *conn
+		var cn *pool.Conn
 
 		cn, err = db.conn()
 		if err != nil {
@@ -237,7 +145,7 @@ func (db *DB) ExecOne(query interface{}, params ...interface{}) (types.Result, e
 // params are for any placeholder parameters in the query.
 func (db *DB) Query(model, query interface{}, params ...interface{}) (res types.Result, err error) {
 	for i := 0; i < 3; i++ {
-		var cn *conn
+		var cn *pool.Conn
 
 		cn, err = db.conn()
 		if err != nil {
@@ -308,12 +216,12 @@ func (db *DB) CopyTo(w io.WriteCloser, q string, params ...interface{}) (types.R
 		return nil, err
 	}
 
-	if err := writeQueryMsg(cn.buf, q, params...); err != nil {
+	if err := writeQueryMsg(cn.Wr, q, params...); err != nil {
 		db.pool.Put(cn)
 		return nil, err
 	}
 
-	if err := cn.FlushWrite(); err != nil {
+	if err := cn.Wr.Flush(); err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
@@ -348,7 +256,7 @@ func (db *DB) Delete(model interface{}) error {
 	return orm.Delete(db, model)
 }
 
-func setParams(cn *conn, params map[string]interface{}) error {
+func setParams(cn *pool.Conn, params map[string]interface{}) error {
 	for key, value := range params {
 		_, err := simpleQuery(cn, "SET ? = ?", F(key), value)
 		if err != nil {
@@ -359,27 +267,26 @@ func setParams(cn *conn, params map[string]interface{}) error {
 }
 
 func (db *DB) cancelRequest(processId, secretKey int32) error {
-	cn, err := dial(db.opt)
+	cn, err := db.pool.NewConn()
 	if err != nil {
 		return err
 	}
 
-	buf := newBuffer()
-	writeCancelRequestMsg(buf, processId, secretKey)
-	_, err = cn.Write(buf.Flush())
-	if err != nil {
+	writeCancelRequestMsg(cn.Wr, processId, secretKey)
+	if err = cn.Wr.Flush(); err != nil {
 		return err
 	}
+	cn.Close()
 
-	return cn.Close()
+	return nil
 }
 
-func simpleQuery(cn *conn, query interface{}, params ...interface{}) (types.Result, error) {
-	if err := writeQueryMsg(cn.buf, query, params...); err != nil {
+func simpleQuery(cn *pool.Conn, query interface{}, params ...interface{}) (types.Result, error) {
+	if err := writeQueryMsg(cn.Wr, query, params...); err != nil {
 		return nil, err
 	}
 
-	if err := cn.FlushWrite(); err != nil {
+	if err := cn.Wr.Flush(); err != nil {
 		return nil, err
 	}
 
@@ -391,12 +298,12 @@ func simpleQuery(cn *conn, query interface{}, params ...interface{}) (types.Resu
 	return res, nil
 }
 
-func simpleQueryData(cn *conn, model, query interface{}, params ...interface{}) (types.Result, error) {
-	if err := writeQueryMsg(cn.buf, query, params...); err != nil {
+func simpleQueryData(cn *pool.Conn, model, query interface{}, params ...interface{}) (types.Result, error) {
+	if err := writeQueryMsg(cn.Wr, query, params...); err != nil {
 		return nil, err
 	}
 
-	if err := cn.FlushWrite(); err != nil {
+	if err := cn.Wr.Flush(); err != nil {
 		return nil, err
 	}
 
@@ -461,12 +368,12 @@ func assertOneAffected(res types.Result, model *singleModel) (types.Result, erro
 	return res, nil
 }
 
-func copyFrom(cn *conn, r io.Reader, query interface{}, params ...interface{}) (types.Result, error) {
-	if err := writeQueryMsg(cn.buf, query, params...); err != nil {
+func copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (types.Result, error) {
+	if err := writeQueryMsg(cn.Wr, query, params...); err != nil {
 		return nil, err
 	}
 
-	if err := cn.FlushWrite(); err != nil {
+	if err := cn.Wr.Flush(); err != nil {
 		return nil, err
 	}
 
@@ -489,12 +396,12 @@ func copyFrom(cn *conn, r io.Reader, query interface{}, params ...interface{}) (
 		default:
 		}
 
-		_, err := writeCopyData(cn.buf, r)
+		_, err := writeCopyData(cn.Wr, r)
 		if err == io.EOF {
 			break
 		}
 
-		if err := cn.FlushWrite(); err != nil {
+		if err := cn.Wr.Flush(); err != nil {
 			return nil, err
 		}
 	}
@@ -504,8 +411,8 @@ func copyFrom(cn *conn, r io.Reader, query interface{}, params ...interface{}) (
 	default:
 	}
 
-	writeCopyDone(cn.buf)
-	if err := cn.FlushWrite(); err != nil {
+	writeCopyDone(cn.Wr)
+	if err := cn.Wr.Flush(); err != nil {
 		return nil, err
 	}
 

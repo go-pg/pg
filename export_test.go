@@ -1,9 +1,11 @@
 package pg
 
-func (db *DB) Pool() *connPool {
+import "gopkg.in/pg.v4/internal/pool"
+
+func (db *DB) Pool() *pool.ConnPool {
 	return db.pool
 }
 
-func (ln *Listener) CurrentConn() *conn {
+func (ln *Listener) CurrentConn() *pool.Conn {
 	return ln._cn
 }
