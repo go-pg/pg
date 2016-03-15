@@ -89,12 +89,10 @@ func (l *Listener) receiveTimeout(readTimeout time.Duration) (channel, payload s
 }
 
 func (l *Listener) freeConn(err error) (retErr error) {
-	if err != nil {
-		if !canRetry(err) {
-			return nil
-		}
-		log.Printf("pg: discarding bad listener connection: %s", err)
+	if !isBadConn(err, true) {
+		return nil
 	}
+	log.Printf("pg: discarding bad listener connection: %s", err)
 	return l.closeConn(err)
 }
 

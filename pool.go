@@ -141,7 +141,7 @@ func newConnPool(opt *Options) *connPool {
 		conns:     newConnList(opt.getPoolSize()),
 		freeConns: make(chan *conn, opt.getPoolSize()),
 	}
-	if p.opt.getIdleTimeout() > 0 && p.opt.IdleCheckFrequency > 0 {
+	if p.opt.getIdleTimeout() > 0 {
 		go p.reaper()
 	}
 	return p
@@ -319,7 +319,7 @@ func (p *connPool) Close() (retErr error) {
 }
 
 func (p *connPool) reaper() {
-	ticker := time.NewTicker(p.opt.IdleCheckFrequency)
+	ticker := time.NewTicker(p.opt.getIdleCheckFrequency())
 	defer ticker.Stop()
 
 	for _ = range ticker.C {

@@ -97,7 +97,6 @@ type PoolTest struct {
 func (t *PoolTest) SetUpTest(c *C) {
 	opt := pgOptions()
 	opt.IdleTimeout = time.Second
-	opt.IdleCheckFrequency = time.Second
 	t.db = pg.Connect(opt)
 }
 

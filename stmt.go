@@ -77,15 +77,17 @@ func (stmt *Stmt) exec(params ...interface{}) (types.Result, error) {
 
 // Exec executes a prepared statement with the given parameters.
 func (stmt *Stmt) Exec(params ...interface{}) (res types.Result, err error) {
-	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		res, err = stmt.exec(params...)
-		if !canRetry(err) {
+
+		if i >= stmt.db.opt.MaxRetries {
+			break
+		}
+		if !shouldRetry(err) {
 			break
 		}
 
-		time.Sleep(backoff)
-		backoff *= 2
+		time.Sleep(defaultBackoff << uint(i))
 	}
 	if err != nil {
 		stmt.setErr(err)
@@ -117,15 +119,17 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (types.Result,
 
 // Query executes a prepared query statement with the given arguments.
 func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res types.Result, err error) {
-	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		res, err = stmt.query(model, params...)
-		if !canRetry(err) {
+
+		if i >= stmt.db.opt.MaxRetries {
+			break
+		}
+		if !shouldRetry(err) {
 			break
 		}
 
-		time.Sleep(backoff)
-		backoff *= 2
+		time.Sleep(defaultBackoff << uint(i))
 	}
 	if err != nil {
 		stmt.setErr(err)
