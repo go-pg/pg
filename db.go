@@ -10,7 +10,7 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
-const defaultBackoff = 100 * time.Millisecond
+const defaultBackoff = 500 * time.Millisecond
 
 // Database connection options.
 type Options struct {
@@ -26,6 +26,10 @@ type Options struct {
 
 	// Run-time configuration parameters to be set on connection.
 	Params map[string]interface{}
+
+	// The maximum number of retries before giving up.
+	// Default is to not retry failed queries.
+	MaxRetries int
 
 	// The deadline for establishing new connections. If reached,
 	// dial will fail with a timeout.
@@ -50,9 +54,6 @@ type Options struct {
 	// The amount of time after which client closes idle connections.
 	// Default is to not close idle connections.
 	IdleTimeout time.Duration
-	// The frequency of idle checks.
-	// Default is 1 minute.
-	IdleCheckFrequency time.Duration
 }
 
 func (opt *Options) getNetwork() string {
@@ -119,10 +120,7 @@ func (opt *Options) getIdleTimeout() time.Duration {
 }
 
 func (opt *Options) getIdleCheckFrequency() time.Duration {
-	if opt.IdleCheckFrequency == 0 {
-		return time.Minute
-	}
-	return opt.IdleCheckFrequency
+	return time.Minute
 }
 
 func (opt *Options) getSSL() bool {
@@ -179,16 +177,10 @@ func (db *DB) conn() (*conn, error) {
 }
 
 func (db *DB) freeConn(cn *conn, err error) error {
-	if err == nil {
+	if !isBadConn(err, false) {
 		return db.pool.Put(cn)
 	}
-	if pgerr, ok := err.(Error); ok && pgerr.Field('S') != "FATAL" {
-		return db.pool.Put(cn)
-	}
-	if _, ok := err.(dbError); ok {
-		return db.pool.Put(cn)
-	}
-	if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
 		if err := db.cancelRequest(cn.processId, cn.secretKey); err != nil {
 			log.Printf("pg: cancelRequest failed: %s", err)
 		}
@@ -207,8 +199,7 @@ func (db *DB) Close() error {
 // Exec executes a query ignoring returned rows. The params are for
 // any placeholder parameters in the query.
 func (db *DB) Exec(query interface{}, params ...interface{}) (res types.Result, err error) {
-	backoff := defaultBackoff
-	for i := 0; i < 3; i++ {
+	for i := 0; ; i++ {
 		var cn *conn
 
 		cn, err = db.conn()
@@ -218,12 +209,15 @@ func (db *DB) Exec(query interface{}, params ...interface{}) (res types.Result, 
 
 		res, err = simpleQuery(cn, query, params...)
 		db.freeConn(cn, err)
-		if !canRetry(err) {
+
+		if i >= db.opt.MaxRetries {
+			break
+		}
+		if !shouldRetry(err) {
 			break
 		}
 
-		time.Sleep(backoff)
-		backoff *= 2
+		time.Sleep(defaultBackoff << uint(i))
 	}
 	return
 }
@@ -242,7 +236,6 @@ func (db *DB) ExecOne(query interface{}, params ...interface{}) (types.Result, e
 // Query executes a query that returns rows, typically a SELECT. The
 // params are for any placeholder parameters in the query.
 func (db *DB) Query(model, query interface{}, params ...interface{}) (res types.Result, err error) {
-	backoff := defaultBackoff
 	for i := 0; i < 3; i++ {
 		var cn *conn
 
@@ -253,12 +246,15 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res types.
 
 		res, err = simpleQueryData(cn, model, query, params...)
 		db.freeConn(cn, err)
-		if !canRetry(err) {
+
+		if i >= db.opt.MaxRetries {
+			break
+		}
+		if !shouldRetry(err) {
 			break
 		}
 
-		time.Sleep(backoff)
-		backoff *= 2
+		time.Sleep(defaultBackoff << uint(i))
 	}
 	return
 }
