@@ -1,8 +1,11 @@
 package pg
 
 import (
+	"log"
+	"os"
 	"strconv"
 
+	"gopkg.in/pg.v4/internal/pool"
 	"gopkg.in/pg.v4/orm"
 	"gopkg.in/pg.v4/types"
 )
@@ -24,6 +27,14 @@ var Q = orm.Q
 var F = orm.F
 
 var FormatQuery = orm.FormatQuery
+
+func init() {
+	SetLogger(log.New(os.Stderr, "pg: ", log.LstdFlags))
+}
+
+func SetLogger(logger *log.Logger) {
+	pool.Logger = logger
+}
 
 //------------------------------------------------------------------------------
 

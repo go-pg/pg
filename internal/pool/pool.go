@@ -5,19 +5,22 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"sync/atomic"
 	"time"
 
 	"gopkg.in/bsm/ratelimit.v1"
 )
 
-var Logger *log.Logger
+var Logger = log.New(os.Stderr, "pg: ", log.LstdFlags)
 
 var (
 	ErrClosed      = errors.New("pg: database is closed")
 	errConnClosed  = errors.New("pg: connection is closed")
 	ErrPoolTimeout = errors.New("pg: connection pool timeout")
 )
+
+var IdleCheckFrequency = time.Minute
 
 // PoolStats contains pool state information and accumulated stats.
 type PoolStats struct {
@@ -125,7 +128,7 @@ func (p *ConnPool) wait() *Conn {
 func (p *ConnPool) dial() (net.Conn, error) {
 	if p.DialLimiter != nil && p.DialLimiter.Limit() {
 		err := fmt.Errorf(
-			"redis: you open connections too fast (last_error=%q)",
+			"pg: you open connections too fast (last_error=%q)",
 			p.loadLastErr(),
 		)
 		return nil, err
@@ -311,7 +314,7 @@ func (p *ConnPool) ReapStaleConns() (n int, err error) {
 }
 
 func (p *ConnPool) reaper() {
-	ticker := time.NewTicker(time.Minute)
+	ticker := time.NewTicker(IdleCheckFrequency)
 	defer ticker.Stop()
 
 	for _ = range ticker.C {
