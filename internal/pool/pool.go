@@ -20,8 +20,6 @@ var (
 	ErrPoolTimeout = errors.New("pg: connection pool timeout")
 )
 
-var IdleCheckFrequency = time.Minute
-
 // PoolStats contains pool state information and accumulated stats.
 type PoolStats struct {
 	Requests uint32 // number of times a connection was requested by the pool
@@ -78,7 +76,7 @@ func NewConnPool(dial dialer, poolSize int, poolTimeout, idleTimeout time.Durati
 		freeConns: newConnStack(poolSize),
 	}
 	if idleTimeout > 0 {
-		go p.reaper()
+		go p.reaper(getIdleCheckFrequency())
 	}
 	return p
 }
@@ -313,8 +311,8 @@ func (p *ConnPool) ReapStaleConns() (n int, err error) {
 	return
 }
 
-func (p *ConnPool) reaper() {
-	ticker := time.NewTicker(IdleCheckFrequency)
+func (p *ConnPool) reaper(frequency time.Duration) {
+	ticker := time.NewTicker(frequency)
 	defer ticker.Stop()
 
 	for _ = range ticker.C {
@@ -325,7 +323,7 @@ func (p *ConnPool) reaper() {
 		if err != nil {
 			Logger.Printf("ReapStaleConns failed: %s", err)
 		} else if n > 0 {
-			Logger.Printf("removed %d stale connections", n)
+			Logger.Printf("reaper: removed %d stale connections", n)
 		}
 	}
 }
@@ -339,4 +337,20 @@ func (p *ConnPool) loadLastErr() string {
 		return v.(string)
 	}
 	return ""
+}
+
+//------------------------------------------------------------------------------
+
+var idleCheckFrequency atomic.Value
+
+func SetIdleCheckFrequency(d time.Duration) {
+	idleCheckFrequency.Store(d)
+}
+
+func getIdleCheckFrequency() time.Duration {
+	v := idleCheckFrequency.Load()
+	if v == nil {
+		return time.Minute
+	}
+	return v.(time.Duration)
 }

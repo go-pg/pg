@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"gopkg.in/pg.v4"
+	"gopkg.in/pg.v4/internal/pool"
 )
 
 func TestPG(t *testing.T) {
@@ -19,10 +20,20 @@ func TestPG(t *testing.T) {
 	RunSpecs(t, "pg")
 }
 
+var _ = BeforeSuite(func() {
+	pool.SetIdleCheckFrequency(time.Second) // be aggressive in tests
+})
+
 func pgOptions() *pg.Options {
 	return &pg.Options{
-		User:     "postgres",
-		Database: "postgres",
+		User:         "postgres",
+		Database:     "postgres",
+		DialTimeout:  30 * time.Second,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		PoolSize:     10,
+		PoolTimeout:  30 * time.Second,
+		IdleTimeout:  time.Second, // be aggressive in tests
 	}
 }
 

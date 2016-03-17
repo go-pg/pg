@@ -1,3 +1,3 @@
 all:
-	go test ./... -cpu=1,2,4
+	go test ./...
 	go test ./... -short -race
