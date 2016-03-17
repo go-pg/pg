@@ -17,11 +17,10 @@ import (
 )
 
 func TestUnixSocket(t *testing.T) {
-	db := pg.Connect(&pg.Options{
-		Network: "unix",
-		Addr:    "/var/run/postgresql/.s.PGSQL.5432",
-		User:    "postgres",
-	})
+	opt := pgOptions()
+	opt.Network = "unix"
+	opt.Addr = "/var/run/postgresql/.s.PGSQL.5432"
+	db := pg.Connect(opt)
 	defer db.Close()
 
 	_, err := db.Exec("SELECT 'test_unix_socket'")
