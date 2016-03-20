@@ -2,8 +2,6 @@ package pg // import "gopkg.in/pg.v4"
 
 import (
 	"io"
-	"log"
-	"net"
 	"time"
 
 	"gopkg.in/pg.v4/internal/pool"
@@ -56,10 +54,9 @@ func (db *DB) conn() (*pool.Conn, error) {
 
 	if !cn.Inited {
 		if err := db.initConn(cn); err != nil {
-			_ = db.pool.Replace(cn, err)
+			_ = db.pool.Remove(cn, err)
 			return nil, err
 		}
-		cn.Inited = true
 	}
 
 	cn.SetReadTimeout(db.opt.ReadTimeout)
@@ -78,9 +75,12 @@ func (db *DB) initConn(cn *pool.Conn) error {
 	if err != nil {
 		return err
 	}
+
 	if err := setParams(cn, db.opt.Params); err != nil {
 		return err
 	}
+
+	cn.Inited = true
 	return nil
 }
 
@@ -88,12 +88,7 @@ func (db *DB) freeConn(cn *pool.Conn, err error) error {
 	if !isBadConn(err, false) {
 		return db.pool.Put(cn)
 	}
-	if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-		if err := db.cancelRequest(cn.ProcessId, cn.SecretKey); err != nil {
-			log.Printf("pg: cancelRequest failed: %s", err)
-		}
-	}
-	return db.pool.Replace(cn, err)
+	return db.pool.Remove(cn, err)
 }
 
 // Close closes the database client, releasing any open resources.

@@ -18,7 +18,6 @@ matrix:
     - go: tip
 
 install:
-  - go get gopkg.in/bufio.v1
   - go get gopkg.in/bsm/ratelimit.v1
   - go get github.com/golang/glog
   - go get github.com/go-sql-driver/mysql
