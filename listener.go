@@ -101,7 +101,7 @@ func (l *Listener) freeConn(err error) (retErr error) {
 func (l *Listener) closeConn(err error) (retErr error) {
 	l.mx.Lock()
 	if l._cn != nil {
-		retErr = l.db.pool.Replace(l._cn, err)
+		retErr = l.db.pool.Remove(l._cn, err)
 		l._cn = nil
 	}
 	l.mx.Unlock()

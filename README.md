@@ -12,7 +12,7 @@ Supports:
 - [Prepared statements](http://godoc.org/gopkg.in/pg.v4#example-DB-Prepare).
 - [Notifications](http://godoc.org/gopkg.in/pg.v4#example-Listener) using `LISTEN` and `NOTIFY`.
 - [Copying data](http://godoc.org/gopkg.in/pg.v4#example-DB-CopyFrom) using `COPY FROM` and `COPY TO`.
-- [Timeouts](http://godoc.org/gopkg.in/pg.v4#Options). Client sends `CancelRequest` message on timeout.
+- [Timeouts](http://godoc.org/gopkg.in/pg.v4#Options).
 - Automatic and safe connection pool.
 - Queries retries on network errors.
 - Advanced PostgreSQL to Go [struct mapping](http://godoc.org/gopkg.in/pg.v4#example-DB-Query).

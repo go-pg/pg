@@ -49,6 +49,9 @@ type Options struct {
 	// The amount of time after which client closes idle connections.
 	// Default is to not close idle connections.
 	IdleTimeout time.Duration
+	// The frequency of idle checks.
+	// Default is 1 minute.
+	IdleCheckFrequency time.Duration
 }
 
 func (opt *Options) getNetwork() string {
@@ -115,13 +118,13 @@ func (opt *Options) getIdleTimeout() time.Duration {
 }
 
 func (opt *Options) getIdleCheckFrequency() time.Duration {
-	return time.Minute
+	if opt.IdleCheckFrequency == 0 {
+		return time.Minute
+	}
+	return opt.IdleCheckFrequency
 }
 
 func (opt *Options) getSSL() bool {
-	if opt == nil {
-		return false
-	}
 	return opt.SSL
 }
 
@@ -133,7 +136,12 @@ func (opt *Options) getDialer() func() (net.Conn, error) {
 
 func newConnPool(opt *Options) *pool.ConnPool {
 	p := pool.NewConnPool(
-		opt.getDialer(), opt.getPoolSize(), opt.getPoolTimeout(), opt.getIdleTimeout())
+		opt.getDialer(),
+		opt.getPoolSize(),
+		opt.getPoolTimeout(),
+		opt.getIdleTimeout(),
+		opt.getIdleCheckFrequency(),
+	)
 	p.OnClose = func(cn *pool.Conn) error {
 		return terminateConn(cn)
 	}

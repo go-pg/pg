@@ -2,7 +2,6 @@ package pg_test
 
 import (
 	"fmt"
-	"net"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -12,39 +11,6 @@ import (
 
 	"gopkg.in/pg.v4"
 )
-
-func TestCancelRequestOnTimeout(t *testing.T) {
-	opt := pgOptions()
-	opt.ReadTimeout = time.Second
-	db := pg.Connect(opt)
-	defer db.Close()
-
-	_, err := db.Exec("SELECT pg_sleep(60)")
-	if err == nil {
-		t.Fatalf("err is nil")
-	}
-	neterr, ok := err.(net.Error)
-	if !ok {
-		t.Fatalf("got %v, expected net.Error", err)
-	}
-	if !neterr.Timeout() {
-		t.Fatalf("got %v, expected timeout", err)
-	}
-
-	if db.Pool().FreeLen() != 1 {
-		t.Fatalf("len is %d", db.Pool().FreeLen())
-	}
-	if db.Pool().Len() != 1 {
-		t.Fatalf("size is %d", db.Pool().Len())
-	}
-
-	err = eventually(func() error {
-		return verifyNoActivity(db)
-	}, 10*time.Second)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
 
 func TestStatementTimeout(t *testing.T) {
 	opt := pgOptions()
@@ -200,8 +166,8 @@ func (t *PoolTest) TestClosedListener(c *C) {
 
 	c.Assert(ln.Close(), IsNil)
 
-	c.Assert(t.db.Pool().Len(), Equals, 1)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 1)
+	c.Assert(t.db.Pool().Len(), Equals, 0)
+	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
 
 	err = ln.Close()
 	c.Assert(err, Not(IsNil))
