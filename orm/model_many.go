@@ -7,7 +7,7 @@ import (
 
 type manyModel struct {
 	*SliceModel
-	Rel *Relation
+	rel *Relation
 
 	dstValues map[string][]reflect.Value
 }
@@ -17,7 +17,7 @@ var _ TableModel = (*manyModel)(nil)
 func newManyModel(join *Join) *manyModel {
 	return &manyModel{
 		SliceModel: join.JoinModel.(*SliceModel),
-		Rel:        join.Rel,
+		rel:        join.Rel,
 
 		dstValues: dstValues(join.JoinModel),
 	}
@@ -30,7 +30,7 @@ func (m *manyModel) NewModel() ColumnScanner {
 }
 
 func (m *manyModel) AddModel(_ ColumnScanner) error {
-	id := string(modelId(nil, m.strct, m.Rel.FKs))
+	id := string(modelId(nil, m.strct, m.rel.FKs))
 	dstValues, ok := m.dstValues[id]
 	if !ok {
 		return fmt.Errorf("pg: can't find dst value for model id=%q", id)

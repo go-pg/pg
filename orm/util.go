@@ -128,11 +128,21 @@ func equal(vals []reflect.Value, strct reflect.Value, fields []*Field) bool {
 	return true
 }
 
-func modelId(b []byte, v reflect.Value, pks []*Field) []byte {
-	for i, pk := range pks {
-		b = pk.AppendValue(b, v, false)
-		if i != len(pks)-1 {
-			b = append(b, ", "...)
+func modelId(b []byte, v reflect.Value, fields []*Field) []byte {
+	for i, f := range fields {
+		b = f.AppendValue(b, v, false)
+		if i != len(fields)-1 {
+			b = append(b, ',')
+		}
+	}
+	return b
+}
+
+func modelIdMap(b []byte, m map[string]string, fields []*Field) []byte {
+	for i, f := range fields {
+		b = append(b, m[f.SQLName]...)
+		if i != len(fields)-1 {
+			b = append(b, ',')
 		}
 	}
 	return b
