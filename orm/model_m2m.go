@@ -7,7 +7,8 @@ import (
 
 type m2mModel struct {
 	*SliceModel
-	rel *Relation
+	baseTable *Table
+	rel       *Relation
 
 	dstValues map[string][]reflect.Value
 	columns   map[string]string
@@ -16,11 +17,15 @@ type m2mModel struct {
 var _ TableModel = (*m2mModel)(nil)
 
 func newM2MModel(join *Join) *m2mModel {
+	baseTable := join.BaseModel.Table()
+	joinModel := join.JoinModel.(*SliceModel)
+	dstValues := dstValues(joinModel.Root(), joinModel.Path(), baseTable.PKs)
 	return &m2mModel{
-		SliceModel: join.JoinModel.(*SliceModel),
+		SliceModel: joinModel,
+		baseTable:  baseTable,
 		rel:        join.Rel,
 
-		dstValues: dstValues(join.JoinModel),
+		dstValues: dstValues,
 		columns:   make(map[string]string),
 	}
 }
@@ -32,7 +37,7 @@ func (m *m2mModel) NewModel() ColumnScanner {
 }
 
 func (m *m2mModel) AddModel(_ ColumnScanner) error {
-	id := modelIdMap(nil, m.columns, m.rel.M2MBaseFKs)
+	id := modelIdMap(nil, m.columns, m.baseTable.ModelName+"_", m.baseTable.PKs)
 	dstValues, ok := m.dstValues[string(id)]
 	if !ok {
 		return fmt.Errorf("pg: can't find dst value for model with id=%q", string(id))

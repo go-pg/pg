@@ -40,13 +40,6 @@ func (t *Table) addRelation(rel *Relation) {
 	if t.Relations == nil {
 		t.Relations = make(map[string]*Relation)
 	}
-	if rel.M2M != nil {
-		rel.M2MBaseFKs = m2mFKs(t, rel.M2M)
-		rel.M2MJoinFKs = m2mFKs(rel.Join, rel.M2M)
-
-		rel.addM2MModelFields(rel.M2M.Fields, t.ModelName)
-		rel.addM2MModelFields(rel.M2M.Fields, rel.Join.ModelName)
-	}
 	t.Relations[rel.Field.GoName] = rel
 }
 
@@ -185,14 +178,12 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 		if ftype.Elem().Kind() == reflect.Struct {
 			joinTable := newTable(ftype.Elem())
 
-			if m2mName, _ := pgOpt.Get("many2many:"); m2mName != "" {
-				if m2mSlice, ok := typ.FieldByName(m2mName); ok {
-					t.addRelation(&Relation{
-						Field: &field,
-						Join:  joinTable,
-						M2M:   newTable(m2mSlice.Type.Elem()),
-					})
-				}
+			if m2mTable, _ := pgOpt.Get("many2many:"); m2mTable != "" {
+				t.addRelation(&Relation{
+					Field:        &field,
+					Join:         joinTable,
+					M2MTableName: m2mTable,
+				})
 				return nil
 			}
 

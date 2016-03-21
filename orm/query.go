@@ -156,12 +156,12 @@ func (q *Query) Count(count *int) error {
 }
 
 func (q *Query) First() error {
-	b := appendPKs(nil, q.model.Table().PKs)
+	b := columns("", q.model.Table().PKs)
 	return q.Order(string(b)).Limit(1).Select()
 }
 
 func (q *Query) Last() error {
-	b := appendPKs(nil, q.model.Table().PKs)
+	b := columns("", q.model.Table().PKs)
 	b = append(b, " DESC"...)
 	return q.Order(string(b)).Limit(1).Select()
 }

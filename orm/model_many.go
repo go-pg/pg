@@ -15,11 +15,13 @@ type manyModel struct {
 var _ TableModel = (*manyModel)(nil)
 
 func newManyModel(join *Join) *manyModel {
+	joinModel := join.JoinModel.(*SliceModel)
+	dstValues := dstValues(joinModel.Root(), joinModel.Path(), join.BaseModel.Table().PKs)
 	return &manyModel{
-		SliceModel: join.JoinModel.(*SliceModel),
+		SliceModel: joinModel,
 		rel:        join.Rel,
 
-		dstValues: dstValues(join.JoinModel),
+		dstValues: dstValues,
 	}
 }
 
