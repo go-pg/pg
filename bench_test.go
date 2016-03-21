@@ -17,6 +17,18 @@ import (
 	"gopkg.in/pg.v4/orm"
 )
 
+func benchmarkDB() *pg.DB {
+	return pg.Connect(&pg.Options{
+		User:         "postgres",
+		Database:     "postgres",
+		DialTimeout:  30 * time.Second,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		PoolSize:     10,
+		PoolTimeout:  30 * time.Second,
+	})
+}
+
 func BenchmarkFormatQueryWithoutArgs(b *testing.B) {
 	rec := &Record{
 		Num1: 1,
@@ -101,7 +113,7 @@ func BenchmarkFormatQueryWithStructMethods(b *testing.B) {
 func BenchmarkQueryRowsGopgDiscard(b *testing.B) {
 	seedDB()
 
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	b.ResetTimer()
@@ -119,7 +131,7 @@ func BenchmarkQueryRowsGopgDiscard(b *testing.B) {
 func BenchmarkQueryRowsGopgOptimized(b *testing.B) {
 	seedDB()
 
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	b.ResetTimer()
@@ -141,7 +153,7 @@ func BenchmarkQueryRowsGopgOptimized(b *testing.B) {
 func BenchmarkQueryRowsGopgReflect(b *testing.B) {
 	seedDB()
 
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	b.ResetTimer()
@@ -163,7 +175,7 @@ func BenchmarkQueryRowsGopgReflect(b *testing.B) {
 func BenchmarkQueryRowsGopgORM(b *testing.B) {
 	seedDB()
 
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	b.ResetTimer()
@@ -248,7 +260,7 @@ func BenchmarkQueryRowsGORM(b *testing.B) {
 func BenchmarkModelHasOneGopg(b *testing.B) {
 	seedDB()
 
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	b.ResetTimer()
@@ -297,7 +309,7 @@ func BenchmarkModelHasOneGORM(b *testing.B) {
 func BenchmarkModelHasManyGopg(b *testing.B) {
 	seedDB()
 
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	b.ResetTimer()
@@ -355,7 +367,7 @@ func BenchmarkModelHasManyGORM(b *testing.B) {
 func BenchmarkModelHasMany2ManyGopg(b *testing.B) {
 	seedDB()
 
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	b.ResetTimer()
@@ -415,7 +427,7 @@ func BenchmarkModelHasMany2ManyGORM(b *testing.B) {
 }
 
 func BenchmarkQueryRow(b *testing.B) {
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	b.ResetTimer()
@@ -433,7 +445,7 @@ func BenchmarkQueryRow(b *testing.B) {
 }
 
 func BenchmarkQueryRowStmt(b *testing.B) {
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	stmt, err := db.Prepare(`SELECT $1::bigint AS num`)
@@ -457,7 +469,7 @@ func BenchmarkQueryRowStmt(b *testing.B) {
 }
 
 func BenchmarkQueryRowScan(b *testing.B) {
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	b.ResetTimer()
@@ -477,7 +489,7 @@ func BenchmarkQueryRowScan(b *testing.B) {
 }
 
 func BenchmarkQueryRowStmtScan(b *testing.B) {
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	stmt, err := db.Prepare(`SELECT $1::bigint AS num`)
@@ -594,7 +606,7 @@ func BenchmarkQueryRowStmtStdlibPq(b *testing.B) {
 }
 
 func BenchmarkExec(b *testing.B) {
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	_, err := db.Exec(
@@ -617,7 +629,7 @@ func BenchmarkExec(b *testing.B) {
 }
 
 func BenchmarkExecWithError(b *testing.B) {
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	_, err := db.Exec(
@@ -649,7 +661,7 @@ func BenchmarkExecWithError(b *testing.B) {
 }
 
 func BenchmarkExecStmt(b *testing.B) {
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	_, err := db.Exec(`CREATE TEMP TABLE statement_exec(id bigint, name varchar(500))`)
@@ -806,7 +818,7 @@ func seedDB() {
 }
 
 func _seedDB() error {
-	db := pg.Connect(pgOptions())
+	db := benchmarkDB()
 	defer db.Close()
 
 	_, err := db.Exec(`DROP TABLE IF EXISTS records`)
