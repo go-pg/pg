@@ -25,18 +25,6 @@ func newM2MModel(join *Join) *m2mModel {
 	}
 }
 
-func dstValues(model TableModel) map[string][]reflect.Value {
-	path := model.Path()
-	mp := make(map[string][]reflect.Value)
-	b := make([]byte, 16)
-	walk(model.Root(), path[:len(path)-1], func(v reflect.Value) {
-		b = b[:0]
-		id := string(modelId(b, v, model.Table().PKs))
-		mp[id] = append(mp[id], v.FieldByName(path[len(path)-1]))
-	})
-	return mp
-}
-
 func (m *m2mModel) NewModel() ColumnScanner {
 	m.strct = reflect.New(m.table.Type).Elem()
 	m.StructModel.NewModel()

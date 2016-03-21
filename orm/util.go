@@ -137,3 +137,15 @@ func modelId(b []byte, v reflect.Value, pks []*Field) []byte {
 	}
 	return b
 }
+
+func dstValues(model TableModel) map[string][]reflect.Value {
+	path := model.Path()
+	mp := make(map[string][]reflect.Value)
+	b := make([]byte, 16)
+	walk(model.Root(), path[:len(path)-1], func(v reflect.Value) {
+		b = b[:0]
+		id := string(modelId(b, v, model.Table().PKs))
+		mp[id] = append(mp[id], v.FieldByName(path[len(path)-1]))
+	})
+	return mp
+}
