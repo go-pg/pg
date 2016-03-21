@@ -4,8 +4,6 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"net"
 	"testing"
 	"time"
@@ -20,10 +18,6 @@ func TestPG(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "pg")
 }
-
-var _ = BeforeSuite(func() {
-	pg.SetLogger(log.New(ioutil.Discard, "pg: ", log.LstdFlags))
-})
 
 func pgOptions() *pg.Options {
 	return &pg.Options{
