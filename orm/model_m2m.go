@@ -7,7 +7,7 @@ import (
 
 type m2mModel struct {
 	*SliceModel
-	Rel *Relation
+	rel *Relation
 
 	dstValues map[string][]reflect.Value
 	columns   map[string]string
@@ -18,7 +18,7 @@ var _ TableModel = (*m2mModel)(nil)
 func newM2MModel(join *Join) *m2mModel {
 	return &m2mModel{
 		SliceModel: join.JoinModel.(*SliceModel),
-		Rel:        join.Rel,
+		rel:        join.Rel,
 
 		dstValues: dstValues(join.JoinModel),
 		columns:   make(map[string]string),
@@ -32,15 +32,7 @@ func (m *m2mModel) NewModel() ColumnScanner {
 }
 
 func (m *m2mModel) AddModel(_ ColumnScanner) error {
-	var id []byte
-	for _, fk := range m.Rel.M2MBaseFKs {
-		s, ok := m.columns[fk.SQLName]
-		if !ok {
-			return fmt.Errorf("pg: can't find fk=%s", fk.SQLName)
-		}
-		id = append(id, s...)
-	}
-
+	id := modelIdMap(nil, m.columns, m.rel.M2MBaseFKs)
 	dstValues, ok := m.dstValues[string(id)]
 	if !ok {
 		return fmt.Errorf("pg: can't find dst value for model with id=%q", string(id))
@@ -48,7 +40,6 @@ func (m *m2mModel) AddModel(_ ColumnScanner) error {
 	for _, v := range dstValues {
 		v.Set(reflect.Append(v, m.strct))
 	}
-
 	return nil
 }
 
