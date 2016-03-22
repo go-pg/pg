@@ -188,6 +188,30 @@ var _ = Describe("Listener.ReceiveTimeout", func() {
 	})
 })
 
+var _ = Describe("DB.Create", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+	})
+
+	It("returns an error on nil", func() {
+		err := db.Create(nil)
+		Expect(err).To(MatchError("pg: NewModel(nil)"))
+	})
+
+	It("returns an errors if value is not settable", func() {
+		err := db.Create(1)
+		Expect(err).To(MatchError("pg: NewModel(unsupported int)"))
+	})
+
+	It("returns an errors if value is not supported", func() {
+		var v int
+		err := db.Create(&v)
+		Expect(err).To(MatchError("pg: NewModel(unsupported int)"))
+	})
+})
+
 type Genre struct {
 	Id     int // Id is automatically detected as primary key
 	Name   string

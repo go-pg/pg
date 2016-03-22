@@ -797,7 +797,7 @@ func writeCopyDone(buf *pool.Buffer) {
 	buf.FinishMessage()
 }
 
-func readReadyForQuery(cn *pool.Conn) (res types.Result, e error) {
+func readReadyForQueryOrError(cn *pool.Conn) (res types.Result, e error) {
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -834,7 +834,7 @@ func readReadyForQuery(cn *pool.Conn) (res types.Result, e error) {
 			if e != nil {
 				return nil, e
 			}
-			return nil, fmt.Errorf("pg: readReadyForQuery: unexpected message %#x", c)
+			return nil, fmt.Errorf("pg: readReadyForQueryOrError: unexpected message %#x", c)
 		}
 	}
 }
