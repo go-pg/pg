@@ -4,155 +4,163 @@ import (
 	"net"
 	"time"
 
-	. "gopkg.in/check.v1"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 
 	"gopkg.in/pg.v4"
 )
 
-var _ = Suite(&ListenerTest{})
+var _ = Context("Listener", func() {
+	var db *pg.DB
+	var ln *pg.Listener
 
-type ListenerTest struct {
-	db *pg.DB
-	ln *pg.Listener
-}
+	BeforeEach(func() {
+		opt := pgOptions()
+		opt.PoolSize = 2
+		opt.PoolTimeout = time.Second
 
-func (t *ListenerTest) SetUpTest(c *C) {
-	opt := pgOptions()
-	opt.PoolSize = 2
-	opt.PoolTimeout = time.Second
-	t.db = pg.Connect(opt)
+		db = pg.Connect(opt)
 
-	ln, err := t.db.Listen("test_channel")
-	c.Assert(err, IsNil)
-	t.ln = ln
-}
+		var err error
+		ln, err = db.Listen("test_channel")
+		Expect(err).NotTo(HaveOccurred())
+	})
 
-func (t *ListenerTest) TearDownTest(c *C) {
-	c.Assert(t.db.Close(), IsNil)
-}
+	var _ = AfterEach(func() {
+		err := db.Close()
+		Expect(err).NotTo(HaveOccurred())
+	})
 
-func (t *ListenerTest) TestListenNotify(c *C) {
-	wait := make(chan struct{}, 2)
-	go func() {
-		wait <- struct{}{}
-		channel, payload, err := t.ln.Receive()
-		c.Assert(err, IsNil)
-		c.Assert(channel, Equals, "test_channel")
-		c.Assert(payload, Equals, "")
-		wait <- struct{}{}
-	}()
+	It("listens for notifications", func() {
+		wait := make(chan struct{}, 2)
+		go func() {
+			defer GinkgoRecover()
 
-	select {
-	case <-wait:
-		// ok
-	case <-time.After(3 * time.Second):
-		c.Fatal("timeout")
-	}
+			wait <- struct{}{}
+			channel, payload, err := ln.Receive()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(channel).To(Equal("test_channel"))
+			Expect(payload).To(Equal(""))
+			wait <- struct{}{}
+		}()
 
-	_, err := t.db.Exec("NOTIFY test_channel")
-	c.Assert(err, IsNil)
+		select {
+		case <-wait:
+			// ok
+		case <-time.After(3 * time.Second):
+			Fail("timeout")
+		}
 
-	select {
-	case <-wait:
-		// ok
-	case <-time.After(3 * time.Second):
-		c.Fatal("timeout")
-	}
-}
+		_, err := db.Exec("NOTIFY test_channel")
+		Expect(err).NotTo(HaveOccurred())
 
-func (t *ListenerTest) TestCloseAbortsListener(c *C) {
-	wait := make(chan struct{}, 2)
+		select {
+		case <-wait:
+			// ok
+		case <-time.After(3 * time.Second):
+			Fail("timeout")
+		}
+	})
 
-	go func() {
-		wait <- struct{}{}
-		_, _, err := t.ln.Receive()
-		c.Assert(err, ErrorMatches, `^(.*use of closed network connection|EOF)$`)
-		wait <- struct{}{}
-	}()
+	It("is aborted when DB is closed", func() {
+		wait := make(chan struct{}, 2)
 
-	select {
-	case <-wait:
-		// ok
-	case <-time.After(3 * time.Second):
-		c.Fatal("timeout")
-	}
+		go func() {
+			defer GinkgoRecover()
 
-	select {
-	case <-wait:
-		c.Fatal("Receive is not blocked")
-	case <-time.After(time.Second):
-		// ok
-	}
+			wait <- struct{}{}
+			_, _, err := ln.Receive()
 
-	c.Assert(t.ln.Close(), IsNil)
+			Expect(err.Error()).Should(MatchRegexp(`^(.*use of closed network connection|EOF)$`))
+			wait <- struct{}{}
+		}()
 
-	select {
-	case <-wait:
-		// ok
-	case <-time.After(3 * time.Second):
-		c.Fatal("timeout")
-	}
-}
+		select {
+		case <-wait:
+			// ok
+		case <-time.After(3 * time.Second):
+			Fail("timeout")
+		}
 
-func (t *ListenerTest) TestListenTimeout(c *C) {
-	channel, payload, err := t.ln.ReceiveTimeout(time.Second)
-	c.Assert(err.(net.Error).Timeout(), Equals, true)
-	c.Assert(channel, Equals, "")
-	c.Assert(payload, Equals, "")
-}
+		select {
+		case <-wait:
+			Fail("Receive is not blocked")
+		case <-time.After(time.Second):
+			// ok
+		}
 
-func (t *ListenerTest) TestReconnectOnListenError(c *C) {
-	cn := t.ln.CurrentConn()
-	c.Assert(cn, Not(IsNil))
-	cn.NetConn = &badConn{}
+		Expect(ln.Close()).To(BeNil())
 
-	err := t.ln.Listen("test_channel2")
-	c.Assert(err, ErrorMatches, `bad connection`)
+		select {
+		case <-wait:
+			// ok
+		case <-time.After(3 * time.Second):
+			Fail("timeout")
+		}
+	})
 
-	err = t.ln.Listen("test_channel2")
-	c.Assert(err, IsNil)
-}
+	It("returns an error on timeout", func() {
+		channel, payload, err := ln.ReceiveTimeout(time.Second)
+		Expect(err.(net.Error).Timeout()).To(BeTrue())
+		Expect(channel).To(Equal(""))
+		Expect(payload).To(Equal(""))
+	})
 
-func (t *ListenerTest) TestReconnectOnReceiveError(c *C) {
-	cn := t.ln.CurrentConn()
-	c.Assert(cn, Not(IsNil))
-	cn.NetConn = &badConn{}
+	It("reconnects on listen error", func() {
+		cn := ln.CurrentConn()
+		Expect(cn).NotTo(BeNil())
+		cn.NetConn = &badConn{}
 
-	_, _, err := t.ln.ReceiveTimeout(time.Second)
-	c.Assert(err, ErrorMatches, `bad connection`)
+		err := ln.Listen("test_channel2")
+		Expect(err).Should(MatchError("bad connection"))
 
-	_, _, err = t.ln.ReceiveTimeout(time.Second)
-	c.Assert(err.(net.Error).Timeout(), Equals, true)
+		err = ln.Listen("test_channel2")
+		Expect(err).NotTo(HaveOccurred())
+	})
 
-	wait := make(chan struct{}, 2)
-	go func() {
-		wait <- struct{}{}
-		_, _, err := t.ln.Receive()
-		c.Assert(err, IsNil)
-		wait <- struct{}{}
-	}()
+	It("reconnects on receive error", func() {
+		cn := ln.CurrentConn()
+		Expect(cn).NotTo(BeNil())
+		cn.NetConn = &badConn{}
 
-	select {
-	case <-wait:
-		// ok
-	case <-time.After(3 * time.Second):
-		c.Fatal("timeout")
-	}
+		_, _, err := ln.ReceiveTimeout(time.Second)
+		Expect(err).Should(MatchError("bad connection"))
 
-	select {
-	case <-wait:
-		c.Fatal("Receive is not blocked")
-	case <-time.After(time.Second):
-		// ok
-	}
+		_, _, err = ln.ReceiveTimeout(time.Second)
+		Expect(err.(net.Error).Timeout()).To(BeTrue())
 
-	_, err = t.db.Exec("NOTIFY test_channel")
-	c.Assert(err, IsNil)
+		wait := make(chan struct{}, 2)
+		go func() {
+			defer GinkgoRecover()
 
-	select {
-	case <-wait:
-		// ok
-	case <-time.After(3 * time.Second):
-		c.Fatal("timeout")
-	}
-}
+			wait <- struct{}{}
+			_, _, err := ln.Receive()
+			Expect(err).NotTo(HaveOccurred())
+			wait <- struct{}{}
+		}()
+
+		select {
+		case <-wait:
+			// ok
+		case <-time.After(3 * time.Second):
+			Fail("timeout")
+		}
+
+		select {
+		case <-wait:
+			Fail("Receive is not blocked")
+		case <-time.After(time.Second):
+			// ok
+		}
+
+		_, err = db.Exec("NOTIFY test_channel")
+		Expect(err).NotTo(HaveOccurred())
+
+		select {
+		case <-wait:
+			// ok
+		case <-time.After(3 * time.Second):
+			Fail("timeout")
+		}
+	})
+})
