@@ -193,8 +193,7 @@ type Genre struct {
 	Name   string
 	Rating int `sql:"-"` // - is used to ignore field
 
-	Books      []Book      `pg:",many2many:BookGenres"` // many to many relation
-	BookGenres []BookGenre // join model for many to many relation
+	Books []Book `pg:",many2many:book_genres"` // many to many relation
 }
 
 type Author struct {
@@ -219,12 +218,9 @@ type Book struct {
 	Editor    *Author // has one relation
 	CreatedAt time.Time
 
-	Genres     []Genre     `pg:",many2many:BookGenres" gorm:"many2many:book_genres;"` // many to many relation
-	BookGenres []BookGenre // join model for many to many relation
-
+	Genres       []Genre       `pg:",many2many:book_genres" gorm:"many2many:book_genres;"` // many to many relation
 	Translations []Translation // has many relation
-
-	Comments []Comment `pg:",polymorphic:Trackable"` // has many polymorphic relation
+	Comments     []Comment     `pg:",polymorphic:Trackable"` // has many polymorphic relation
 }
 
 func (b Book) String() string {
@@ -241,8 +237,8 @@ type Translation struct {
 }
 
 type Comment struct {
-	TrackableId   int    `sql:",pk"` // can be Book.Id or Translation.Id
-	TrackableType string //`sql:",pk"` // can be "book" or "translation"
+	TrackableId   int    `sql:",pk"` // Book.Id or Translation.Id
+	TrackableType string `sql:",pk"` // "book" or "translation"
 	Text          string
 }
 

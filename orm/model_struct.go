@@ -4,11 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-
-	"gopkg.in/pg.v4/types"
 )
-
-var invalidValue = reflect.Value{}
 
 type StructModel struct {
 	table *Table
@@ -27,13 +23,6 @@ func (m *StructModel) Table() *Table {
 }
 
 func (m *StructModel) AppendParam(b []byte, name string) ([]byte, error) {
-	switch name {
-	case "Table":
-		return types.AppendField(b, m.table.Name, true), nil
-	case "PK":
-		return appendPKs(b, m.table.PKs), nil
-	}
-
 	if field, ok := m.table.FieldsMap[name]; ok {
 		return field.AppendValue(b, m.strct, true), nil
 	}

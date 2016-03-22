@@ -47,7 +47,7 @@ func (del deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	b = types.AppendField(b, del.model.Table().Name, true)
 
 	b = append(b, " WHERE "...)
-	b = appendBytes(b, " AND ", del.wheres...)
+	b = appendWheres(b, del.wheres)
 
 	return b, nil
 }

@@ -94,7 +94,7 @@ func (upd updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	b = b[:len(b)-2]
 
 	b = append(b, " WHERE "...)
-	b = appendBytes(b, " AND ", upd.wheres...)
+	b = appendWheres(b, upd.wheres)
 
 	if len(upd.returning) > 0 {
 		b = append(b, " RETURNING "...)

@@ -36,7 +36,7 @@ func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 
 	if sel.wheres != nil {
 		b = append(b, " WHERE "...)
-		b = appendBytes(b, " AND ", sel.wheres...)
+		b = appendWheres(b, sel.wheres)
 	}
 
 	if sel.orders != nil {
@@ -55,10 +55,6 @@ func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	}
 
 	return b, nil
-}
-
-func appendPKs(b []byte, pks []*Field) []byte {
-	return columns("", pks)
 }
 
 func appendField(b []byte, ss ...string) []byte {
@@ -86,6 +82,18 @@ func appendBytes(b []byte, sep string, bb ...[]byte) []byte {
 		b = append(b, bytes...)
 		if i != len(bb)-1 {
 			b = append(b, sep...)
+		}
+	}
+	return b
+}
+
+func appendWheres(b []byte, bb [][]byte) []byte {
+	for i, bytes := range bb {
+		b = append(b, '(')
+		b = append(b, bytes...)
+		b = append(b, ')')
+		if i != len(bb)-1 {
+			b = append(b, " AND "...)
 		}
 	}
 	return b

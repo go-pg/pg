@@ -138,9 +138,9 @@ func modelId(b []byte, v reflect.Value, fields []*Field) []byte {
 	return b
 }
 
-func modelIdMap(b []byte, m map[string]string, fields []*Field) []byte {
+func modelIdMap(b []byte, m map[string]string, prefix string, fields []*Field) []byte {
 	for i, f := range fields {
-		b = append(b, m[f.SQLName]...)
+		b = append(b, m[prefix+f.SQLName]...)
 		if i != len(fields)-1 {
 			b = append(b, ',')
 		}
@@ -148,13 +148,12 @@ func modelIdMap(b []byte, m map[string]string, fields []*Field) []byte {
 	return b
 }
 
-func dstValues(model TableModel) map[string][]reflect.Value {
-	path := model.Path()
+func dstValues(root reflect.Value, path []string, fields []*Field) map[string][]reflect.Value {
 	mp := make(map[string][]reflect.Value)
 	b := make([]byte, 16)
-	walk(model.Root(), path[:len(path)-1], func(v reflect.Value) {
+	walk(root, path[:len(path)-1], func(v reflect.Value) {
 		b = b[:0]
-		id := string(modelId(b, v, model.Table().PKs))
+		id := string(modelId(b, v, fields))
 		mp[id] = append(mp[id], v.FieldByName(path[len(path)-1]))
 	})
 	return mp
