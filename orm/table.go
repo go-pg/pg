@@ -147,7 +147,6 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 		decode: types.Decoder(ftype),
 
 		isEmpty: isEmptier(ftype.Kind()),
-		equal:   equaler(ftype.Kind()),
 	}
 
 	if skip {

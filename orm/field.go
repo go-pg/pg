@@ -23,7 +23,6 @@ type Field struct {
 	decode func(reflect.Value, []byte) error
 
 	isEmpty isEmptyFunc
-	equal   equalFunc
 }
 
 func (f *Field) Copy() *Field {
@@ -43,11 +42,6 @@ func (f *Field) Value(strct reflect.Value) reflect.Value {
 func (f *Field) IsEmpty(strct reflect.Value) bool {
 	fv := f.Value(strct)
 	return f.isEmpty(fv)
-}
-
-func (f *Field) Equal(strct, v2 reflect.Value) bool {
-	v1 := f.Value(strct)
-	return f.equal(v1, v2)
 }
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote bool) []byte {

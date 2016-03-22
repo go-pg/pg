@@ -119,15 +119,6 @@ func appendReturning(b []byte, v reflect.Value, fields []*Field) []byte {
 	return b
 }
 
-func equal(vals []reflect.Value, strct reflect.Value, fields []*Field) bool {
-	for i, f := range fields {
-		if !f.Equal(strct, vals[i]) {
-			return false
-		}
-	}
-	return true
-}
-
 func modelId(b []byte, v reflect.Value, fields []*Field) []byte {
 	for i, f := range fields {
 		b = f.AppendValue(b, v, false)
