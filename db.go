@@ -380,6 +380,8 @@ func copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface
 	var res types.Result
 	var err error
 	go func() {
+		// TODO: FIXME
+		// Concurrent read/writes are not supported.
 		res, err = readReadyForQuery(cn)
 		close(ready)
 	}()
