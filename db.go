@@ -376,26 +376,12 @@ func copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface
 		return nil, err
 	}
 
-	ready := make(chan struct{})
-	var res types.Result
-	var err error
-	go func() {
-		// TODO: FIXME
-		// Concurrent read/writes are not supported.
-		res, err = readReadyForQuery(cn)
-		close(ready)
-	}()
-
 	for {
-		select {
-		case <-ready:
-			break
-		default:
-		}
-
-		_, err := writeCopyData(cn.Wr, r)
-		if err == io.EOF {
-			break
+		if _, err := writeCopyData(cn.Wr, r); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
 		}
 
 		if err := cn.Wr.Flush(); err != nil {
@@ -403,19 +389,10 @@ func copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface
 		}
 	}
 
-	select {
-	case <-ready:
-	default:
-	}
-
 	writeCopyDone(cn.Wr)
 	if err := cn.Wr.Flush(); err != nil {
 		return nil, err
 	}
 
-	<-ready
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return readReadyForQueryOrError(cn)
 }
