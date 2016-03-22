@@ -89,10 +89,8 @@ func (buf *Buffer) Flush() error {
 		panic("message was not finished")
 	}
 
-	b := buf.Bytes[:]
+	_, err := buf.w.Write(buf.Bytes)
 	buf.Bytes = buf.Bytes[:0]
-
-	_, err := buf.w.Write(b)
 	return err
 }
 
@@ -101,7 +99,6 @@ func (buf *Buffer) Reset() {
 	buf.Bytes = buf.Bytes[:0]
 }
 
-// TODO: what???
 func (buf *Buffer) ReadFrom(r io.Reader) (int64, error) {
 	n, err := r.Read(buf.Bytes[len(buf.Bytes):cap(buf.Bytes)])
 	buf.Bytes = buf.Bytes[:len(buf.Bytes)+int(n)]
