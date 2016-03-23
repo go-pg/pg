@@ -38,8 +38,8 @@ func arrayAppender(v reflect.Value) valueAppender {
 	}
 }
 
-func arrayScanner(v reflect.Value) valueDecoder {
-	scanElem := Decoder(v.Type().Elem())
+func arrayScanner(v reflect.Value) valueScanner {
+	scanElem := Scanner(v.Type().Elem())
 	return func(v reflect.Value, b []byte) error {
 		p := newArrayParser(b)
 		if v.IsNil() {
@@ -79,7 +79,7 @@ type Array struct {
 	v reflect.Value
 
 	append valueAppender
-	scan   valueDecoder
+	scan   valueScanner
 }
 
 var _ ValueAppender = (*Array)(nil)
@@ -229,7 +229,7 @@ func appendFloat64Slice(b []byte, floats []float64, quote int) []byte {
 	return b
 }
 
-func decodeStringSlice(b []byte) ([]string, error) {
+func scanStringSlice(b []byte) ([]string, error) {
 	p := newArrayParser(b)
 	s := make([]string, 0)
 	for p.Valid() {
@@ -245,7 +245,7 @@ func decodeStringSlice(b []byte) ([]string, error) {
 	return s, nil
 }
 
-func decodeIntSlice(b []byte) ([]int, error) {
+func scanIntSlice(b []byte) ([]int, error) {
 	p := newArrayParser(b)
 	s := make([]int, 0)
 	for p.Valid() {
@@ -265,7 +265,7 @@ func decodeIntSlice(b []byte) ([]int, error) {
 	return s, nil
 }
 
-func decodeInt64Slice(b []byte) ([]int64, error) {
+func scanInt64Slice(b []byte) ([]int64, error) {
 	p := newArrayParser(b)
 	s := make([]int64, 0)
 	for p.Valid() {
@@ -285,7 +285,7 @@ func decodeInt64Slice(b []byte) ([]int64, error) {
 	return s, nil
 }
 
-func decodeFloat64Slice(b []byte) ([]float64, error) {
+func scanFloat64Slice(b []byte) ([]float64, error) {
 	p := newArrayParser(b)
 	slice := make([]float64, 0)
 	for p.Valid() {

@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func Decode(dst interface{}, b []byte) error {
+func Scan(dst interface{}, b []byte) error {
 	switch v := dst.(type) {
 	case *string:
 		*v = string(b)
@@ -50,26 +50,26 @@ func Decode(dst interface{}, b []byte) error {
 
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
-		return fmt.Errorf("pg: Decode(nil)")
+		return fmt.Errorf("pg: Scan(nil)")
 	}
 	if v.Kind() != reflect.Ptr {
-		return fmt.Errorf("pg: Decode(nonsettable %T)", dst)
+		return fmt.Errorf("pg: Scan(nonsettable %T)", dst)
 	}
 	vv := v.Elem()
 	if !vv.IsValid() {
-		return fmt.Errorf("pg: Decode(nonsettable %T)", dst)
+		return fmt.Errorf("pg: Scan(nonsettable %T)", dst)
 	}
-	return DecodeValue(vv, b)
+	return ScanValue(vv, b)
 }
 
-func decodeScanner(scanner sql.Scanner, b []byte) error {
+func scanSQLScanner(scanner sql.Scanner, b []byte) error {
 	if b == nil {
 		return scanner.Scan(nil)
 	}
 	return scanner.Scan(b)
 }
 
-func decodeBytes(b []byte) ([]byte, error) {
+func scanBytes(b []byte) ([]byte, error) {
 	if len(b) < 2 {
 		return nil, fmt.Errorf("pg: can't parse bytes: %q", b)
 	}
@@ -80,7 +80,7 @@ func decodeBytes(b []byte) ([]byte, error) {
 	return tmp, err
 }
 
-func decodeStringStringMap(f []byte) (map[string]string, error) {
+func scanStringStringMap(f []byte) (map[string]string, error) {
 	p := newHstoreParser(f)
 	m := make(map[string]string)
 	for p.Valid() {

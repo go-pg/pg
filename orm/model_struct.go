@@ -79,7 +79,7 @@ func (m *StructModel) ScanColumn(colIdx int, colName string, b []byte) error {
 func (m *StructModel) scanColumn(colIdx int, colName string, b []byte) (bool, error) {
 	field, ok := m.table.FieldsMap[colName]
 	if ok {
-		return true, field.DecodeValue(m.strct, b)
+		return true, field.ScanValue(m.strct, b)
 	}
 
 	joinName, fieldName := splitColumn(colName)
@@ -98,7 +98,7 @@ func (m *StructModel) scanColumn(colIdx int, colName string, b []byte) (bool, er
 			}
 			m.strct = m.strct.Elem()
 		}
-		return true, field.DecodeValue(m.strct, b)
+		return true, field.ScanValue(m.strct, b)
 	}
 
 	return false, nil
