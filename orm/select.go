@@ -20,7 +20,7 @@ type selectQuery struct {
 func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "SELECT "...)
 	if sel.columns == nil {
-		b = types.AppendField(b, sel.model.Table().ModelName, true)
+		b = types.AppendField(b, sel.model.Table().ModelName, 1)
 		b = append(b, ".*"...)
 	} else {
 		b = appendValue(b, ", ", sel.columns...)
@@ -59,7 +59,7 @@ func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 
 func appendField(b []byte, ss ...string) []byte {
 	for i, field := range ss {
-		b = types.AppendField(b, field, true)
+		b = types.AppendField(b, field, 1)
 		if i != len(ss)-1 {
 			b = append(b, ", "...)
 		}
@@ -102,7 +102,7 @@ func appendWheres(b []byte, bb [][]byte) []byte {
 func appendValue(b []byte, sep string, vv ...types.ValueAppender) []byte {
 	for i, v := range vv {
 		var err error
-		b, err = v.AppendValue(b, true)
+		b, err = v.AppendValue(b, 1)
 		if err != nil {
 			panic(err)
 		}

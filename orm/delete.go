@@ -30,7 +30,7 @@ func (del deleteModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	}
 
 	b = append(b, "DELETE FROM "...)
-	b = types.AppendField(b, table.Name, true)
+	b = types.AppendField(b, table.Name, 1)
 
 	b = append(b, " WHERE "...)
 	b = appendFieldValue(b, strct, table.PKs)
@@ -44,7 +44,7 @@ type deleteQuery struct {
 
 func (del deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "DELETE FROM "...)
-	b = types.AppendField(b, del.model.Table().Name, true)
+	b = types.AppendField(b, del.model.Table().Name, 1)
 
 	b = append(b, " WHERE "...)
 	b = appendWheres(b, del.wheres)

@@ -19,7 +19,7 @@ var (
 	float64SliceType = reflect.TypeOf([]float64(nil))
 )
 
-type valueAppender func([]byte, reflect.Value, bool) []byte
+type valueAppender func([]byte, reflect.Value, int) []byte
 
 var valueAppenders []valueAppender
 
@@ -73,14 +73,10 @@ func Appender(typ reflect.Type) valueAppender {
 		return appendBytesValue
 	}
 
-	if appender := valueAppenders[kind]; appender != nil {
-		return appender
-	}
-
-	return nil
+	return valueAppenders[kind]
 }
 
-func appendValue(b []byte, v reflect.Value, quote bool) []byte {
+func appendValue(b []byte, v reflect.Value, quote int) []byte {
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			return AppendNull(b, quote)
@@ -92,42 +88,42 @@ func appendValue(b []byte, v reflect.Value, quote bool) []byte {
 	return appender(b, v, quote)
 }
 
-func appendIfaceValue(dst []byte, v reflect.Value, quote bool) []byte {
+func appendIfaceValue(dst []byte, v reflect.Value, quote int) []byte {
 	return Append(dst, v.Interface(), quote)
 }
 
-func appendBoolValue(b []byte, v reflect.Value, _ bool) []byte {
+func appendBoolValue(b []byte, v reflect.Value, _ int) []byte {
 	return appendBool(b, v.Bool())
 }
 
-func appendIntValue(b []byte, v reflect.Value, _ bool) []byte {
+func appendIntValue(b []byte, v reflect.Value, _ int) []byte {
 	return strconv.AppendInt(b, v.Int(), 10)
 }
 
-func appendUintValue(b []byte, v reflect.Value, _ bool) []byte {
+func appendUintValue(b []byte, v reflect.Value, _ int) []byte {
 	return strconv.AppendUint(b, v.Uint(), 10)
 }
 
-func appendFloatValue(b []byte, v reflect.Value, _ bool) []byte {
+func appendFloatValue(b []byte, v reflect.Value, _ int) []byte {
 	return appendFloat(b, v.Float())
 }
 
-func appendBytesValue(b []byte, v reflect.Value, quote bool) []byte {
+func appendBytesValue(b []byte, v reflect.Value, quote int) []byte {
 	return appendBytes(b, v.Bytes(), quote)
 }
 
-func appendStringValue(b []byte, v reflect.Value, quote bool) []byte {
+func appendStringValue(b []byte, v reflect.Value, quote int) []byte {
 	return AppendString(b, v.String(), quote)
 }
 
-func appendStructValue(b []byte, v reflect.Value, quote bool) []byte {
+func appendStructValue(b []byte, v reflect.Value, quote int) []byte {
 	if v.Type() == timeType {
 		return appendTimeValue(b, v, quote)
 	}
 	return appendJSONValue(b, v, quote)
 }
 
-func appendJSONValue(b []byte, v reflect.Value, quote bool) []byte {
+func appendJSONValue(b []byte, v reflect.Value, quote int) []byte {
 	bytes, err := json.Marshal(v.Interface())
 	if err != nil {
 		panic(err)
@@ -135,12 +131,12 @@ func appendJSONValue(b []byte, v reflect.Value, quote bool) []byte {
 	return AppendJSONB(b, bytes, quote)
 }
 
-func appendTimeValue(b []byte, v reflect.Value, quote bool) []byte {
+func appendTimeValue(b []byte, v reflect.Value, quote int) []byte {
 	tm := v.Interface().(time.Time)
 	return AppendTime(b, tm, quote)
 }
 
-func appendAppenderValue(b []byte, v reflect.Value, quote bool) []byte {
+func appendAppenderValue(b []byte, v reflect.Value, quote int) []byte {
 	b, err := v.Interface().(ValueAppender).AppendValue(b, quote)
 	if err != nil {
 		panic(err)
@@ -148,6 +144,6 @@ func appendAppenderValue(b []byte, v reflect.Value, quote bool) []byte {
 	return b
 }
 
-func appendDriverValuerValue(b []byte, v reflect.Value, quote bool) []byte {
+func appendDriverValuerValue(b []byte, v reflect.Value, quote int) []byte {
 	return appendDriverValuer(b, v.Interface().(driver.Valuer), quote)
 }

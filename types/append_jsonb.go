@@ -2,8 +2,8 @@ package types
 
 import "gopkg.in/pg.v4/internal/parser"
 
-func AppendJSONB(b, jsonb []byte, quote bool) []byte {
-	if quote {
+func AppendJSONB(b, jsonb []byte, quote int) []byte {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
@@ -12,7 +12,7 @@ func AppendJSONB(b, jsonb []byte, quote bool) []byte {
 		c := p.Read()
 		switch c {
 		case '\'':
-			if quote {
+			if quote == 1 {
 				b = append(b, '\'', '\'')
 			} else {
 				b = append(b, '\'')
@@ -33,7 +33,7 @@ func AppendJSONB(b, jsonb []byte, quote bool) []byte {
 		}
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 

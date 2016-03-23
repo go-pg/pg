@@ -10,7 +10,7 @@ import (
 	"gopkg.in/pg.v4/internal/parser"
 )
 
-func Append(b []byte, v interface{}, quote bool) []byte {
+func Append(b []byte, v interface{}, quote int) []byte {
 	switch v := v.(type) {
 	case nil:
 		return AppendNull(b, quote)
@@ -59,8 +59,8 @@ func Append(b []byte, v interface{}, quote bool) []byte {
 	}
 }
 
-func AppendNull(b []byte, quote bool) []byte {
-	if quote {
+func AppendNull(b []byte, quote int) []byte {
+	if quote == 1 {
 		return append(b, "NULL"...)
 	} else {
 		return nil
@@ -78,67 +78,58 @@ func appendFloat(dst []byte, v float64) []byte {
 	return strconv.AppendFloat(dst, v, 'f', -1, 64)
 }
 
-func AppendString(b []byte, s string, quote bool) []byte {
+func AppendString(b []byte, s string, quote int) []byte {
 	return AppendStringBytes(b, []byte(s), quote)
 }
 
-func AppendStringBytes(b []byte, bytes []byte, quote bool) []byte {
-	if quote {
+func AppendStringBytes(b []byte, bytes []byte, quote int) []byte {
+	if quote == 2 {
+		b = append(b, '"')
+	} else if quote == 1 {
 		b = append(b, '\'')
 	}
 
 	for _, c := range bytes {
-		switch c {
-		case '\'':
-			if quote {
-				b = append(b, '\'', '\'')
-			} else {
-				b = append(b, '\'')
-			}
-		case '\000':
+		if c == '\000' {
 			continue
-		default:
-			b = append(b, c)
 		}
+
+		if quote == 1 {
+			if c == '\'' {
+				b = append(b, '\'', '\'')
+				continue
+			}
+		}
+
+		if quote == 2 {
+			if c == '"' {
+				b = append(b, '\\', '"')
+				continue
+			}
+			if c == '\\' {
+				b = append(b, '\\', '\\')
+				continue
+			}
+		}
+
+		b = append(b, c)
 	}
 
-	if quote {
+	if quote >= 2 {
+		b = append(b, '"')
+	} else if quote == 1 {
 		b = append(b, '\'')
 	}
 
 	return b
 }
 
-func appendSubstring(b []byte, src string, quote bool) []byte {
-	b = append(b, '"')
-	for _, c := range []byte(src) {
-		switch c {
-		case '\'':
-			if quote {
-				b = append(b, '\'', '\'')
-			} else {
-				b = append(b, '\'')
-			}
-		case '\000':
-			continue
-		case '\\':
-			b = append(b, '\\', '\\')
-		case '"':
-			b = append(b, '\\', '"')
-		default:
-			b = append(b, c)
-		}
-	}
-	b = append(b, '"')
-	return b
-}
-
-func appendBytes(b []byte, bytes []byte, quote bool) []byte {
+func appendBytes(b []byte, bytes []byte, quote int) []byte {
 	if bytes == nil {
 		return AppendNull(b, quote)
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
@@ -147,40 +138,40 @@ func appendBytes(b []byte, bytes []byte, quote bool) []byte {
 	b = append(b, "\\x"...)
 	b = append(b, tmp...)
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
 	return b
 }
 
-func AppendStringStringMap(b []byte, m map[string]string, quote bool) []byte {
+func AppendStringStringMap(b []byte, m map[string]string, quote int) []byte {
 	if m == nil {
 		return AppendNull(b, quote)
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
 	for key, value := range m {
-		b = appendSubstring(b, key, quote)
+		b = AppendString(b, key, 2)
 		b = append(b, '=', '>')
-		b = appendSubstring(b, value, quote)
+		b = AppendString(b, value, 2)
 		b = append(b, ',')
 	}
 	if len(m) > 0 {
 		b = b[:len(b)-1] // Strip trailing comma.
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
 	return b
 }
 
-func appendDriverValuer(b []byte, v driver.Valuer, quote bool) []byte {
+func appendDriverValuer(b []byte, v driver.Valuer, quote int) []byte {
 	value, err := v.Value()
 	if err != nil {
 		panic(err)
@@ -188,11 +179,11 @@ func appendDriverValuer(b []byte, v driver.Valuer, quote bool) []byte {
 	return Append(b, value, quote)
 }
 
-func AppendField(b []byte, field string, quote bool) []byte {
+func AppendField(b []byte, field string, quote int) []byte {
 	return AppendFieldBytes(b, []byte(field), quote)
 }
 
-func AppendFieldBytes(b []byte, field []byte, quote bool) []byte {
+func AppendFieldBytes(b []byte, field []byte, quote int) []byte {
 	p := parser.New(field)
 	var quoted bool
 	for p.Valid() {
@@ -209,24 +200,24 @@ func AppendFieldBytes(b []byte, field []byte, quote bool) []byte {
 				continue
 			}
 		case '.':
-			if quote {
+			if quote == 1 {
 				b = append(b, '"')
 			}
 			b = append(b, '.')
 			if p.Got("*") {
 				b = append(b, '*')
 				quoted = false
-			} else if quote {
+			} else if quote == 1 {
 				b = append(b, '"')
 			}
 			continue
 		case ' ':
 			if p.Got("AS ") || p.Got("as ") {
-				if quote {
+				if quote == 1 {
 					b = append(b, '"')
 				}
 				b = append(b, ` AS `...)
-				if quote {
+				if quote == 1 {
 					b = append(b, '"')
 				}
 			} else {
@@ -239,18 +230,18 @@ func AppendFieldBytes(b []byte, field []byte, quote bool) []byte {
 			continue
 		}
 
-		if quote && !quoted {
+		if quote == 1 && !quoted {
 			b = append(b, '"')
 			quoted = true
 		}
-		if quote && c == '"' {
+		if quote == 1 && c == '"' {
 			b = append(b, '"', '"')
 		} else {
 			b = append(b, c)
 		}
 
 	}
-	if quote && quoted {
+	if quote == 1 && quoted {
 		b = append(b, '"')
 	}
 	return b

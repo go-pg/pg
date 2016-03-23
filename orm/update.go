@@ -27,12 +27,12 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	}
 
 	b = append(b, "UPDATE "...)
-	b = types.AppendField(b, table.Name, true)
+	b = types.AppendField(b, table.Name, 1)
 	b = append(b, " SET "...)
 
 	if len(upd.columns) > 0 {
 		for i, v := range upd.columns {
-			column, err := v.AppendValue(nil, false)
+			column, err := v.AppendValue(nil, 0)
 			if err != nil {
 				return nil, err
 			}
@@ -42,25 +42,27 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 				return nil, err
 			}
 
-			b = types.AppendField(b, field.SQLName, true)
+			b = types.AppendField(b, field.SQLName, 1)
 			b = append(b, " = "...)
-			b = field.AppendValue(b, strct, true)
+			b = field.AppendValue(b, strct, 1)
 			if i != len(upd.columns)-1 {
 				b = append(b, ", "...)
 			}
 		}
 	} else {
-		for i, field := range table.Fields {
+		start := len(b)
+		for _, field := range table.Fields {
 			if field.Has(PrimaryKeyFlag) {
 				continue
 			}
 
-			b = types.AppendField(b, field.SQLName, true)
+			b = types.AppendField(b, field.SQLName, 1)
 			b = append(b, " = "...)
-			b = field.AppendValue(b, strct, true)
-			if i != len(table.Fields)-1 {
-				b = append(b, ", "...)
-			}
+			b = field.AppendValue(b, strct, 1)
+			b = append(b, ", "...)
+		}
+		if len(b) > start {
+			b = b[:len(b)-2]
 		}
 	}
 
@@ -82,16 +84,18 @@ type updateQuery struct {
 
 func (upd updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "UPDATE "...)
-	b = types.AppendField(b, upd.model.Table().Name, true)
+	b = types.AppendField(b, upd.model.Table().Name, 1)
 	b = append(b, " SET "...)
 
 	for fieldName, value := range upd.data {
-		b = types.AppendField(b, fieldName, true)
+		b = types.AppendField(b, fieldName, 1)
 		b = append(b, " = "...)
-		b = types.Append(b, value, true)
+		b = types.Append(b, value, 1)
 		b = append(b, ", "...)
 	}
-	b = b[:len(b)-2]
+	if len(upd.data) > 0 {
+		b = b[:len(b)-2]
+	}
 
 	b = append(b, " WHERE "...)
 	b = appendWheres(b, upd.wheres)

@@ -39,7 +39,7 @@ func sliceNextElemValue(v reflect.Value) reflect.Value {
 func columns(prefix string, fields []*Field) []byte {
 	var b []byte
 	for i, f := range fields {
-		b = types.AppendField(b, prefix+f.SQLName, true)
+		b = types.AppendField(b, prefix+f.SQLName, 1)
 		if i != len(fields)-1 {
 			b = append(b, ", "...)
 		}
@@ -52,7 +52,7 @@ func values(v reflect.Value, path []string, fields []*Field) []byte {
 	walk(v, path, func(v reflect.Value) {
 		b = append(b, '(')
 		for i, field := range fields {
-			b = field.AppendValue(b, v, true)
+			b = field.AppendValue(b, v, 1)
 			if i != len(fields)-1 {
 				b = append(b, ", "...)
 			}
@@ -91,9 +91,9 @@ func visitStruct(strct reflect.Value, path []string, fn func(reflect.Value)) {
 
 func appendFieldValue(b []byte, v reflect.Value, fields []*Field) []byte {
 	for i, f := range fields {
-		b = types.AppendField(b, f.SQLName, true)
+		b = types.AppendField(b, f.SQLName, 1)
 		b = append(b, " = "...)
-		b = f.AppendValue(b, v, true)
+		b = f.AppendValue(b, v, 1)
 		if i != len(fields)-1 {
 			b = append(b, " AND "...)
 		}
@@ -103,7 +103,7 @@ func appendFieldValue(b []byte, v reflect.Value, fields []*Field) []byte {
 
 func appendReturning(b []byte, v reflect.Value, fields []*Field) []byte {
 	var hasReturning bool
-	for i, f := range fields {
+	for _, f := range fields {
 		if !f.IsEmpty(v) {
 			continue
 		}
@@ -111,17 +111,18 @@ func appendReturning(b []byte, v reflect.Value, fields []*Field) []byte {
 			b = append(b, " RETURNING "...)
 			hasReturning = true
 		}
-		b = types.AppendField(b, f.SQLName, true)
-		if i != len(fields)-1 {
-			b = append(b, ", "...)
-		}
+		b = types.AppendField(b, f.SQLName, 1)
+		b = append(b, ", "...)
+	}
+	if hasReturning {
+		b = b[:len(b)-2]
 	}
 	return b
 }
 
 func modelId(b []byte, v reflect.Value, fields []*Field) []byte {
 	for i, f := range fields {
-		b = f.AppendValue(b, v, false)
+		b = f.AppendValue(b, v, 0)
 		if i != len(fields)-1 {
 			b = append(b, ',')
 		}

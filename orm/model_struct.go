@@ -24,11 +24,11 @@ func (m *StructModel) Table() *Table {
 
 func (m *StructModel) AppendParam(b []byte, name string) ([]byte, error) {
 	if field, ok := m.table.FieldsMap[name]; ok {
-		return field.AppendValue(b, m.strct, true), nil
+		return field.AppendValue(b, m.strct, 1), nil
 	}
 
 	if method, ok := m.table.Methods[name]; ok {
-		return method.AppendValue(b, m.strct.Addr(), true), nil
+		return method.AppendValue(b, m.strct.Addr(), 1), nil
 	}
 
 	return nil, fmt.Errorf("pg: can't map %q on %s", name, m.strct.Type())

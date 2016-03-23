@@ -19,7 +19,7 @@ type Field struct {
 
 	flags int8
 
-	append func([]byte, reflect.Value, bool) []byte
+	append func([]byte, reflect.Value, int) []byte
 	decode func(reflect.Value, []byte) error
 
 	isEmpty isEmptyFunc
@@ -44,7 +44,7 @@ func (f *Field) IsEmpty(strct reflect.Value) bool {
 	return f.isEmpty(fv)
 }
 
-func (f *Field) AppendValue(b []byte, strct reflect.Value, quote bool) []byte {
+func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 	fv := f.Value(strct)
 	if f.Has(NullEmptyFlag) && f.isEmpty(fv) {
 		return types.AppendNull(b, quote)
@@ -54,9 +54,6 @@ func (f *Field) AppendValue(b []byte, strct reflect.Value, quote bool) []byte {
 
 func (f *Field) DecodeValue(strct reflect.Value, b []byte) error {
 	fv := fieldByIndex(strct, f.Index)
-	if b == nil {
-		return types.DecodeValue(fv, nil)
-	}
 	return f.decode(fv, b)
 }
 
@@ -79,10 +76,10 @@ func fieldByIndex(v reflect.Value, index []int) reflect.Value {
 type method struct {
 	Index int
 
-	appender func([]byte, reflect.Value, bool) []byte
+	appender func([]byte, reflect.Value, int) []byte
 }
 
-func (m *method) AppendValue(dst []byte, v reflect.Value, quote bool) []byte {
+func (m *method) AppendValue(dst []byte, v reflect.Value, quote int) []byte {
 	mv := v.Method(m.Index).Call(nil)[0]
 	return m.appender(dst, mv, quote)
 }

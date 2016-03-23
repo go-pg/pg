@@ -3,62 +3,136 @@ package types
 import (
 	"database/sql"
 	"fmt"
+	"reflect"
 	"strconv"
 )
 
+func arrayAppender(v reflect.Value) valueAppender {
+	appendElem := Appender(v.Type().Elem())
+	return func(b []byte, v reflect.Value, quote int) []byte {
+		if v.IsNil() {
+			return AppendNull(b, quote)
+		}
+
+		if quote == 1 {
+			b = append(b, '\'')
+		}
+
+		b = append(b, '{')
+		for i := 0; i < v.Len(); i++ {
+			elem := v.Index(i)
+			b = appendElem(b, elem, 2)
+			b = append(b, ',')
+		}
+		if v.Len() > 0 {
+			b[len(b)-1] = '}' // Replace trailing comma.
+		} else {
+			b = append(b, '}')
+		}
+
+		if quote == 1 {
+			b = append(b, '\'')
+		}
+
+		return b
+	}
+}
+
+func arrayScanner(v reflect.Value) valueDecoder {
+	scanElem := Decoder(v.Type().Elem())
+	return func(v reflect.Value, b []byte) error {
+		p := newArrayParser(b)
+		if v.IsNil() {
+			v.Set(reflect.MakeSlice(v.Type(), 0, 0))
+		}
+		for p.Valid() {
+			elem, err := p.NextElem()
+			if err != nil {
+				return err
+			}
+			if elem == nil {
+				return fmt.Errorf("pg: unexpected NULL: %q", b)
+			}
+			elemValue := sliceNextElem(v)
+			if err := scanElem(elemValue, elem); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+func sliceNextElem(v reflect.Value) reflect.Value {
+	if v.Type().Elem().Kind() == reflect.Ptr {
+		elem := reflect.New(v.Type().Elem().Elem())
+		v.Set(reflect.Append(v, elem))
+		return elem.Elem()
+	}
+
+	elem := reflect.New(v.Type().Elem()).Elem()
+	v.Set(reflect.Append(v, elem))
+	elem = v.Index(v.Len() - 1)
+	return elem
+}
+
 type Array struct {
-	Value interface{}
+	v reflect.Value
+
+	append valueAppender
+	scan   valueDecoder
 }
 
 var _ ValueAppender = (*Array)(nil)
 var _ sql.Scanner = (*Array)(nil)
 
-func (a Array) AppendValue(b []byte, quote bool) ([]byte, error) {
-	switch v := a.Value.(type) {
-	case []string:
-		return appendStringSlice(b, v, quote), nil
-	case []int:
-		return appendIntSlice(b, v, quote), nil
-	case []int64:
-		return appendInt64Slice(b, v, quote), nil
-	case []float64:
-		return appendFloat64Slice(b, v, quote), nil
+func NewArray(vi interface{}) *Array {
+	v := reflect.ValueOf(vi)
+	if !v.IsValid() {
+		panic(fmt.Errorf("pg.Array(nil)", v.Type()))
 	}
-	return nil, fmt.Errorf("pg: Append(%T)", a.Value)
+	v = reflect.Indirect(v)
+	if v.Kind() != reflect.Slice {
+		panic(fmt.Errorf("pg.Array(unsupported %s)", v.Type()))
+	}
+	return &Array{
+		v: v,
+
+		append: arrayAppender(v),
+		scan:   arrayScanner(v),
+	}
 }
 
-func (a *Array) Scan(bi interface{}) error {
-	b := bi.([]byte)
-	var err error
-	switch a.Value.(type) {
-	case []string:
-		a.Value, err = decodeStringSlice(b)
-		return err
-	case []int:
-		a.Value, err = decodeIntSlice(b)
-		return err
-	case []int64:
-		a.Value, err = decodeInt64Slice(b)
-		return err
-	case []float64:
-		a.Value, err = decodeFloat64Slice(b)
-		return err
+func (a *Array) Value() interface{} {
+	if a.v.IsValid() {
+		return a.v.Interface()
 	}
-	return fmt.Errorf("pg: Decode(%T)", a.Value)
+	return nil
 }
 
-func appendStringSlice(b []byte, ss []string, quote bool) []byte {
+func (a *Array) AppendValue(b []byte, quote int) ([]byte, error) {
+	b = a.append(b, a.v, quote)
+	return b, nil
+}
+
+func (a *Array) Scan(b interface{}) error {
+	if b == nil {
+		return nil
+	}
+	return a.scan(a.v, b.([]byte))
+}
+
+func appendStringSlice(b []byte, ss []string, quote int) []byte {
 	if ss == nil {
 		return AppendNull(b, quote)
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
 	b = append(b, '{')
 	for _, s := range ss {
-		b = appendSubstring(b, s, quote)
+		b = AppendString(b, s, 2)
 		b = append(b, ',')
 	}
 	if len(ss) > 0 {
@@ -67,19 +141,19 @@ func appendStringSlice(b []byte, ss []string, quote bool) []byte {
 		b = append(b, '}')
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
 	return b
 }
 
-func appendIntSlice(b []byte, ints []int, quote bool) []byte {
+func appendIntSlice(b []byte, ints []int, quote int) []byte {
 	if ints == nil {
 		return AppendNull(b, quote)
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
@@ -94,19 +168,19 @@ func appendIntSlice(b []byte, ints []int, quote bool) []byte {
 		b = append(b, '}')
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
 	return b
 }
 
-func appendInt64Slice(b []byte, ints []int64, quote bool) []byte {
+func appendInt64Slice(b []byte, ints []int64, quote int) []byte {
 	if ints == nil {
 		return AppendNull(b, quote)
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
@@ -121,19 +195,19 @@ func appendInt64Slice(b []byte, ints []int64, quote bool) []byte {
 		b = append(b, '}')
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
 	return b
 }
 
-func appendFloat64Slice(b []byte, floats []float64, quote bool) []byte {
+func appendFloat64Slice(b []byte, floats []float64, quote int) []byte {
 	if floats == nil {
 		return AppendNull(b, quote)
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 
@@ -148,7 +222,7 @@ func appendFloat64Slice(b []byte, floats []float64, quote bool) []byte {
 		b = append(b, '}')
 	}
 
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 

@@ -28,6 +28,10 @@ var F = orm.F
 
 var FormatQuery = orm.FormatQuery
 
+func Array(v interface{}) *types.Array {
+	return types.NewArray(v)
+}
+
 func init() {
 	SetLogger(log.New(os.Stderr, "pg: ", log.LstdFlags))
 }
@@ -56,13 +60,13 @@ func (strings *Strings) ScanColumn(colIdx int, _ string, b []byte) error {
 	return nil
 }
 
-func (strings Strings) AppendValue(dst []byte, quote bool) ([]byte, error) {
+func (strings Strings) AppendValue(dst []byte, quote int) ([]byte, error) {
 	if len(strings) <= 0 {
 		return dst, nil
 	}
 
 	for _, s := range strings {
-		dst = types.AppendString(dst, s, true)
+		dst = types.AppendString(dst, s, 1)
 		dst = append(dst, ',')
 	}
 	dst = dst[:len(dst)-1]
@@ -93,7 +97,7 @@ func (ints *Ints) ScanColumn(colIdx int, colName string, b []byte) error {
 	return nil
 }
 
-func (ints Ints) AppendValue(dst []byte, quote bool) ([]byte, error) {
+func (ints Ints) AppendValue(dst []byte, quote int) ([]byte, error) {
 	if len(ints) <= 0 {
 		return dst, nil
 	}

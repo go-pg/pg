@@ -74,20 +74,12 @@ func Decoder(typ reflect.Type) valueDecoder {
 		return decodeBytesValue
 	}
 
-	if dec := valueDecoders[kind]; dec != nil {
-		return dec
-	}
-
-	return nil
+	return valueDecoders[kind]
 }
 
 func DecodeValue(v reflect.Value, b []byte) error {
 	if !v.IsValid() {
 		return fmt.Errorf("pg: Decode(nil)")
-	}
-
-	if b == nil {
-		return decodeNullValue(v)
 	}
 
 	decoder := Decoder(v.Type())
@@ -105,11 +97,19 @@ func decodeBoolValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Decode(nonsettable %s)", v.Type())
 	}
+	if b == nil {
+		v.SetBool(false)
+		return nil
+	}
 	v.SetBool(len(b) == 1 && b[0] == 't')
 	return nil
 }
 
 func decodeIntValue(v reflect.Value, b []byte) error {
+	if b == nil {
+		v.SetInt(0)
+		return nil
+	}
 	n, err := strconv.ParseInt(string(b), 10, 64)
 	if err != nil {
 		return err
@@ -119,6 +119,10 @@ func decodeIntValue(v reflect.Value, b []byte) error {
 }
 
 func decodeUintValue(v reflect.Value, b []byte) error {
+	if b == nil {
+		v.SetUint(0)
+		return nil
+	}
 	n, err := strconv.ParseUint(string(b), 10, 64)
 	if err != nil {
 		return err
@@ -128,6 +132,10 @@ func decodeUintValue(v reflect.Value, b []byte) error {
 }
 
 func decodeFloatValue(v reflect.Value, b []byte) error {
+	if b == nil {
+		v.SetFloat(0)
+		return nil
+	}
 	n, err := strconv.ParseFloat(string(b), 64)
 	if err != nil {
 		return err
@@ -142,10 +150,19 @@ func decodeStringValue(v reflect.Value, b []byte) error {
 }
 
 func decodeJSONValue(v reflect.Value, b []byte) error {
+	if b == nil {
+		v.Set(reflect.New(v.Type()).Elem())
+		return nil
+	}
 	return json.Unmarshal(b, v.Addr().Interface())
 }
 
 func decodeTimeValue(v reflect.Value, b []byte) error {
+	if b == nil {
+		// TODO: cache?
+		v.Set(reflect.ValueOf(time.Time{}))
+		return nil
+	}
 	tm, err := ParseTime(b)
 	if err != nil {
 		return err
@@ -159,6 +176,9 @@ func decodePtrValue(v reflect.Value, b []byte) error {
 		if !v.CanSet() {
 			return fmt.Errorf("pg: Decode(nonsettable %s)", v.Type())
 		}
+		if b == nil {
+			return nil
+		}
 		vv := reflect.New(v.Type().Elem())
 		v.Set(vv)
 	}
@@ -166,6 +186,10 @@ func decodePtrValue(v reflect.Value, b []byte) error {
 }
 
 func decodeBytesValue(v reflect.Value, b []byte) error {
+	if b == nil {
+		v.SetBytes(nil)
+		return nil
+	}
 	bs, err := decodeBytes(b)
 	if err != nil {
 		return err
@@ -194,23 +218,13 @@ func decodeMapValue(v reflect.Value, b []byte) error {
 	return fmt.Errorf("pg: Decode(unsupported %s)", v.Type())
 }
 
-func decodeNullValue(v reflect.Value) error {
-	kind := v.Kind()
-	switch kind {
-	case reflect.Interface:
-		return decodeNullValue(v.Elem())
-	}
-	if v.CanSet() {
-		v.Set(reflect.Zero(v.Type()))
-		return nil
-	}
-	if kind == reflect.Ptr {
-		return decodeNullValue(v.Elem())
-	}
-	return nil
-}
-
 func decodeScannerValue(v reflect.Value, b []byte) error {
+	if b == nil {
+		if v.IsNil() {
+			return nil
+		}
+		return decodeScanner(v.Interface().(sql.Scanner), nil)
+	}
 	if v.IsNil() {
 		v.Set(reflect.New(v.Type().Elem()))
 	}

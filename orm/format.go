@@ -124,7 +124,7 @@ func (f *Formatter) AppendBytes(dst []byte, src []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		dst = types.Append(dst, f.params[f.paramIndex], true)
+		dst = types.Append(dst, f.params[f.paramIndex], 1)
 		f.paramIndex++
 	}
 
