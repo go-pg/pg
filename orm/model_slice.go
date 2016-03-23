@@ -26,7 +26,7 @@ func (m *SliceModel) Value() reflect.Value {
 }
 
 func (m *SliceModel) NewModel() ColumnScanner {
-	m.strct = sliceNextElemValue(m.slice)
+	m.strct = sliceNextElem(m.slice)
 	m.StructModel.NewModel()
 	return m
 }

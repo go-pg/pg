@@ -20,7 +20,7 @@ type Field struct {
 	flags int8
 
 	append func([]byte, reflect.Value, int) []byte
-	decode func(reflect.Value, []byte) error
+	scan   func(reflect.Value, []byte) error
 
 	isEmpty isEmptyFunc
 }
@@ -52,9 +52,9 @@ func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 	return f.append(b, fv, quote)
 }
 
-func (f *Field) DecodeValue(strct reflect.Value, b []byte) error {
+func (f *Field) ScanValue(strct reflect.Value, b []byte) error {
 	fv := fieldByIndex(strct, f.Index)
-	return f.decode(fv, b)
+	return f.scan(fv, b)
 }
 
 func fieldByIndex(v reflect.Value, index []int) reflect.Value {

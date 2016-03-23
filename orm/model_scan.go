@@ -22,5 +22,5 @@ func (valuesModel) AddModel(_ ColumnScanner) error {
 }
 
 func (m *valuesModel) ScanColumn(colIdx int, _ string, b []byte) error {
-	return types.Decode(m.values[colIdx], b)
+	return types.Scan(m.values[colIdx], b)
 }

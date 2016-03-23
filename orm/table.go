@@ -144,7 +144,7 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 		Index: f.Index,
 
 		append: types.Appender(ftype),
-		decode: types.Decoder(ftype),
+		scan:   types.Scanner(ftype),
 
 		isEmpty: isEmptier(ftype.Kind()),
 	}

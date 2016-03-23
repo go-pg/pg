@@ -28,9 +28,9 @@ func NewModel(vi interface{}) (Model, error) {
 	if v.Kind() == reflect.Slice {
 		elType := indirectType(v.Type().Elem())
 		if elType == timeType || elType.Kind() != reflect.Struct {
-			return &sliceModel{
-				slice:   v,
-				decoder: types.Decoder(elType),
+			return &simpleModel{
+				slice: v,
+				scan:  types.Scanner(elType),
 			}, nil
 		}
 	}

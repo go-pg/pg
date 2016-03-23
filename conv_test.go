@@ -171,10 +171,10 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 
 func conversionTests() []conversionTest {
 	return []conversionTest{
-		{src: true, dst: nil, wanterr: "pg: Decode(nil)"},
-		{src: true, dst: new(uintptr), wanterr: "pg: Decode(unsupported uintptr)"},
-		{src: true, dst: true, wanterr: "pg: Decode(nonsettable bool)"},
-		{src: true, dst: (*bool)(nil), wanterr: "pg: Decode(nonsettable *bool)"},
+		{src: true, dst: nil, wanterr: "pg: Scan(nil)"},
+		{src: true, dst: new(uintptr), wanterr: "pg: Scan(unsupported uintptr)"},
+		{src: true, dst: true, wanterr: "pg: Scan(nonsettable bool)"},
+		{src: true, dst: (*bool)(nil), wanterr: "pg: Scan(nonsettable *bool)"},
 
 		{src: nil, dst: new(*bool), pgtype: "bool", wantnil: true},
 		{src: nil, dst: new(bool), pgtype: "bool", wantzero: true},
