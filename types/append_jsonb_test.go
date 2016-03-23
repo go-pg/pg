@@ -20,7 +20,7 @@ var jsonbTests = []struct {
 
 func TestAppendJSONB(t *testing.T) {
 	for _, test := range jsonbTests {
-		got := types.AppendJSONB(nil, []byte(test.s), false)
+		got := types.AppendJSONB(nil, []byte(test.s), 0)
 		if !bytes.Equal(got, []byte(test.wanted)) {
 			t.Errorf("got %q, wanted %q", got, test.wanted)
 		}

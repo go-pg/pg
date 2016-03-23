@@ -335,7 +335,7 @@ func writeBindExecuteMsg(buf *pool.Buffer, name string, params ...interface{}) e
 	buf.WriteInt16(int16(len(params)))
 	for _, param := range params {
 		buf.StartParam()
-		bytes := types.Append(buf.Bytes, param, false)
+		bytes := types.Append(buf.Bytes, param, 0)
 		if bytes != nil {
 			buf.Bytes = bytes
 			buf.FinishParam()

@@ -1,7 +1,7 @@
 package types
 
 type ValueAppender interface {
-	AppendValue(b []byte, quote bool) ([]byte, error)
+	AppendValue(b []byte, quote int) ([]byte, error)
 }
 
 //------------------------------------------------------------------------------
@@ -11,7 +11,7 @@ type Q string
 
 var _ ValueAppender = Q("")
 
-func (q Q) AppendValue(dst []byte, quote bool) ([]byte, error) {
+func (q Q) AppendValue(dst []byte, quote int) ([]byte, error) {
 	return append(dst, string(q)...), nil
 }
 
@@ -22,6 +22,6 @@ type F string
 
 var _ ValueAppender = F("")
 
-func (f F) AppendValue(dst []byte, quote bool) ([]byte, error) {
+func (f F) AppendValue(dst []byte, quote int) ([]byte, error) {
 	return AppendField(dst, string(f), quote), nil
 }

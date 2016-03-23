@@ -31,12 +31,12 @@ func ParseTime(b []byte) (time.Time, error) {
 	}
 }
 
-func AppendTime(b []byte, tm time.Time, quote bool) []byte {
-	if quote {
+func AppendTime(b []byte, tm time.Time, quote int) []byte {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 	b = append(b, tm.Local().Format(timestamptzFormat)...)
-	if quote {
+	if quote == 1 {
 		b = append(b, '\'')
 	}
 	return b

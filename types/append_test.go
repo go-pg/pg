@@ -29,7 +29,7 @@ var appendFieldTests = []struct {
 
 func TestAppendField(t *testing.T) {
 	for _, test := range appendFieldTests {
-		got := types.AppendField(nil, test.field, true)
+		got := types.AppendField(nil, test.field, 1)
 		if string(got) != test.wanted {
 			t.Errorf("got %q, wanted %q (field=%q)", got, test.wanted, test.field)
 		}

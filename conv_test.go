@@ -17,8 +17,12 @@ import (
 
 type JSONMap map[string]interface{}
 
-func (m *JSONMap) Scan(value interface{}) error {
-	return json.Unmarshal(value.([]byte), m)
+func (m *JSONMap) Scan(b interface{}) error {
+	if b == nil {
+		*m = nil
+		return nil
+	}
+	return json.Unmarshal(b.([]byte), m)
 }
 
 func (m JSONMap) Value() (driver.Value, error) {
@@ -62,8 +66,15 @@ type conversionTest struct {
 	wantzero bool
 }
 
-func deref(viface interface{}) interface{} {
-	v := reflect.ValueOf(viface)
+func unwrap(v interface{}) interface{} {
+	if arr, ok := v.(*types.Array); ok {
+		return arr.Value()
+	}
+	return v
+}
+
+func deref(vi interface{}) interface{} {
+	v := reflect.ValueOf(vi)
 	for v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
@@ -90,14 +101,16 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 	}
 
 	if err != nil {
-		t.Fatalf("got error %q, wanted nil", err)
+		t.Fatalf("got error %q, wanted nil (%s)", err, test)
 	}
 
-	// test.dst is a pointer to the value.
-	dst := reflect.ValueOf(test.dst).Elem().Interface()
+	dst := reflect.Indirect(reflect.ValueOf(unwrap(test.dst))).Interface()
 
 	if test.wantnil {
 		dstValue := reflect.ValueOf(dst)
+		if !dstValue.IsValid() {
+			return
+		}
 		if dstValue.IsNil() {
 			return
 		}
@@ -106,8 +119,8 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 	}
 
 	// Remove any intermediate pointers to compare values.
-	dst = deref(dst)
-	src := deref(test.src)
+	dst = deref(unwrap(dst))
+	src := deref(unwrap(test.src))
 
 	if test.wantzero {
 		dstValue := reflect.ValueOf(dst)
@@ -136,6 +149,17 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 		return
 	}
 
+	if dstTimes, ok := dst.([]time.Time); ok {
+		srcTimes := src.([]time.Time)
+		for i, dstTime := range dstTimes {
+			srcTime := srcTimes[i]
+			if dstTime.Unix() != srcTime.Unix() {
+				t.Fatalf("%#v != %#v", dstTime, srcTime)
+			}
+		}
+		return
+	}
+
 	wanted := test.wanted
 	if wanted == nil {
 		wanted = src
@@ -145,8 +169,8 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 	}
 }
 
-func TestConversion(t *testing.T) {
-	conversionTests := []conversionTest{
+func conversionTests() []conversionTest {
+	return []conversionTest{
 		{src: true, dst: nil, wanterr: "pg: Decode(nil)"},
 		{src: true, dst: new(uintptr), wanterr: "pg: Decode(unsupported uintptr)"},
 		{src: true, dst: true, wanterr: "pg: Decode(nonsettable bool)"},
@@ -198,25 +222,25 @@ func TestConversion(t *testing.T) {
 		{src: IntSlice{1, 2, 3}, dst: new(IntSlice), pgtype: "jsonb"},
 
 		{
-			src:      nil,
-			dst:      &types.Array{[]int(nil)},
-			pgtype:   "int[]",
-			wantzero: true,
+			src:     nil,
+			dst:     pg.Array([]int(nil)),
+			pgtype:  "int[]",
+			wantnil: true,
 		},
 		{
-			src:      types.Array{[]int(nil)},
-			dst:      &types.Array{[]int(nil)},
-			pgtype:   "int[]",
-			wantzero: true,
+			src:     pg.Array([]int(nil)),
+			dst:     pg.Array(new([]int)),
+			pgtype:  "int[]",
+			wantnil: true,
 		},
 		{
-			src:    types.Array{[]int{}},
-			dst:    &types.Array{[]int(nil)},
+			src:    pg.Array([]int{}),
+			dst:    pg.Array(new([]int)),
 			pgtype: "int[]",
 		},
 		{
-			src:    types.Array{[]int{1, 2, 3}},
-			dst:    &types.Array{[]int(nil)},
+			src:    pg.Array([]int{1, 2, 3}),
+			dst:    pg.Array(new([]int)),
 			pgtype: "int[]",
 		},
 
@@ -227,25 +251,25 @@ func TestConversion(t *testing.T) {
 		{src: Int64Slice{1, 2, 3}, dst: new(Int64Slice), pgtype: "jsonb"},
 
 		{
-			src:      nil,
-			dst:      &types.Array{[]int64(nil)},
-			pgtype:   "bigint[]",
-			wantzero: true,
+			src:     nil,
+			dst:     pg.Array(new([]int64)),
+			pgtype:  "bigint[]",
+			wantnil: true,
 		},
 		{
-			src:      types.Array{[]int64(nil)},
-			dst:      &types.Array{[]int64(nil)},
-			pgtype:   "bigint[]",
-			wantzero: true,
+			src:     pg.Array([]int64(nil)),
+			dst:     pg.Array(new([]int64)),
+			pgtype:  "bigint[]",
+			wantnil: true,
 		},
 		{
-			src:    types.Array{[]int64{}},
-			dst:    &types.Array{[]int64(nil)},
+			src:    pg.Array([]int64{}),
+			dst:    pg.Array(new([]int64)),
 			pgtype: "bigint[]",
 		},
 		{
-			src:    types.Array{[]int64{1, 2, 3}},
-			dst:    &types.Array{[]int64(nil)},
+			src:    pg.Array([]int64{1, 2, 3}),
+			dst:    pg.Array(new([]int64)),
 			pgtype: "bigint[]",
 		},
 
@@ -255,25 +279,25 @@ func TestConversion(t *testing.T) {
 		{src: Float64Slice{1.1, 2.22, 3.333}, dst: new(Float64Slice), pgtype: "jsonb"},
 
 		{
-			src:      nil,
-			dst:      &types.Array{[]float64(nil)},
-			pgtype:   "decimal[]",
-			wantzero: true,
+			src:     nil,
+			dst:     pg.Array(new([]float64)),
+			pgtype:  "decimal[]",
+			wantnil: true,
 		},
 		{
-			src:      types.Array{[]float64(nil)},
-			dst:      &types.Array{[]float64(nil)},
-			pgtype:   "decimal[]",
-			wantzero: true,
+			src:     pg.Array([]float64(nil)),
+			dst:     pg.Array(new([]float64)),
+			pgtype:  "decimal[]",
+			wantnil: true,
 		},
 		{
-			src:    types.Array{[]float64{}},
-			dst:    &types.Array{[]float64(nil)},
+			src:    pg.Array([]float64{}),
+			dst:    pg.Array(new([]float64)),
 			pgtype: "decimal[]",
 		},
 		{
-			src:    types.Array{[]float64{1.1, 2.22, 3.333}},
-			dst:    &types.Array{[]float64(nil)},
+			src:    pg.Array([]float64{1.1, 2.22, 3.333}),
+			dst:    pg.Array(new([]float64)),
 			pgtype: "decimal[]",
 		},
 
@@ -284,25 +308,25 @@ func TestConversion(t *testing.T) {
 		{src: StringSlice{"foo", "bar"}, dst: new(StringSlice), pgtype: "jsonb"},
 
 		{
-			src:      nil,
-			dst:      &types.Array{[]string(nil)},
-			pgtype:   "text[]",
-			wantzero: true,
+			src:     nil,
+			dst:     pg.Array(new([]string)),
+			pgtype:  "text[]",
+			wantnil: true,
 		},
 		{
-			src:      types.Array{[]string(nil)},
-			dst:      &types.Array{[]string(nil)},
-			pgtype:   "text[]",
-			wantzero: true,
+			src:     pg.Array([]string(nil)),
+			dst:     pg.Array(new([]string)),
+			pgtype:  "text[]",
+			wantnil: true,
 		},
 		{
-			src:    types.Array{[]string{}},
-			dst:    &types.Array{[]string(nil)},
+			src:    pg.Array([]string{}),
+			dst:    pg.Array(new([]string)),
 			pgtype: "text[]",
 		},
 		{
-			src:    types.Array{[]string{"one", "two", "three"}},
-			dst:    &types.Array{[]string(nil)},
+			src:    pg.Array([]string{"one", "two", "three"}),
+			dst:    pg.Array(new([]string)),
 			pgtype: "text[]",
 		},
 
@@ -324,6 +348,8 @@ func TestConversion(t *testing.T) {
 			pgtype: "jsonb",
 		},
 
+		{src: nil, dst: new(*sql.NullBool), pgtype: "bool", wantnil: true},
+		{src: nil, dst: &sql.NullBool{}, pgtype: "bool", wanted: sql.NullBool{}},
 		{src: &sql.NullBool{}, dst: &sql.NullBool{}, pgtype: "bool"},
 		{src: &sql.NullBool{Valid: true}, dst: &sql.NullBool{}, pgtype: "bool"},
 		{src: &sql.NullBool{Valid: true, Bool: true}, dst: &sql.NullBool{}, pgtype: "bool"},
@@ -358,6 +384,29 @@ func TestConversion(t *testing.T) {
 		{src: time.Now(), dst: new(*time.Time), pgtype: "timestamptz"},
 		{src: nil, dst: new(*time.Time), pgtype: "timestamptz", wantnil: true},
 
+		{
+			src:     nil,
+			dst:     pg.Array(new([]time.Time)),
+			pgtype:  "timestamptz[]",
+			wantnil: true,
+		},
+		{
+			src:     pg.Array([]time.Time(nil)),
+			dst:     pg.Array(new([]time.Time)),
+			pgtype:  "timestamptz[]",
+			wantnil: true,
+		},
+		{
+			src:    pg.Array([]time.Time{}),
+			dst:    pg.Array(new([]time.Time)),
+			pgtype: "timestamptz[]",
+		},
+		{
+			src:    pg.Array([]time.Time{time.Now(), time.Now(), time.Now()}),
+			dst:    pg.Array(new([]time.Time)),
+			pgtype: "timestamptz[]",
+		},
+
 		{src: 1, dst: new(pg.Ints), wanted: pg.Ints{1}},
 		{src: "hello", dst: new(pg.Strings), wanted: pg.Strings{"hello"}},
 		{src: 1, dst: new(pg.IntSet), wanted: pg.IntSet{1: struct{}{}}},
@@ -376,12 +425,14 @@ func TestConversion(t *testing.T) {
 		{src: Struct{Foo: "bar"}, dst: new(*Struct), pgtype: "json"},
 		{src: `{"foo": "bar"}`, dst: new(Struct), wanted: Struct{Foo: "bar"}},
 	}
+}
 
+func TestConversion(t *testing.T) {
 	db := pg.Connect(pgOptions())
 	db.Exec("CREATE EXTENSION hstore")
 	defer db.Exec("DROP EXTENSION hstore")
 
-	for i, test := range conversionTests {
+	for i, test := range conversionTests() {
 		test.i = i
 
 		var err error
@@ -394,7 +445,7 @@ func TestConversion(t *testing.T) {
 		test.Assert(t, err)
 	}
 
-	for i, test := range conversionTests {
+	for i, test := range conversionTests() {
 		test.i = i
 
 		if test.pgtype == "" {
@@ -419,7 +470,7 @@ func TestConversion(t *testing.T) {
 		}
 	}
 
-	for i, test := range conversionTests {
+	for i, test := range conversionTests() {
 		test.i = i
 
 		if _, ok := test.dst.(orm.ColumnScanner); ok {
@@ -430,7 +481,7 @@ func TestConversion(t *testing.T) {
 		test.Assert(t, err)
 	}
 
-	for i, test := range conversionTests {
+	for i, test := range conversionTests() {
 		test.i = i
 
 		if _, ok := test.dst.(orm.ColumnScanner); ok {
