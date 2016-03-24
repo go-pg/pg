@@ -28,6 +28,7 @@ var F = orm.F
 
 var FormatQuery = orm.FormatQuery
 
+// Array returns an Array type that represents PostgreSQL array of any type.
 func Array(v interface{}) *types.Array {
 	return types.NewArray(v)
 }

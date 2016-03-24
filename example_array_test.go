@@ -6,13 +6,13 @@ import (
 	"gopkg.in/pg.v4"
 )
 
-type Item struct {
-	Id      int64
-	Emails  []string `pg:",array"` // PostgreSQL array type
-	Numbers []int    `pg:",array"` // PostgreSQL array type
-}
-
 func Example_postgresqlArrayStructTag() {
+	type Item struct {
+		Id      int64
+		Emails  []string `pg:",array"` // marshalled as PostgreSQL array
+		Numbers []int    `pg:",array"` // marshalled as PostgreSQL array
+	}
+
 	_, err := db.Exec(`CREATE TEMP TABLE items (id serial, emails text[], numbers int[])`)
 	if err != nil {
 		panic(err)
@@ -36,7 +36,7 @@ func Example_postgresqlArrayStructTag() {
 	// Output: {1 [one@example.com two@example.com] [123 321]}
 }
 
-func Example_postgresqlArrayVar() {
+func ExampleArray() {
 	src := []string{"one@example.com", "two@example.com"}
 	var dst []string
 	_, err := db.QueryOne(pg.Scan(pg.Array(&dst)), `SELECT ?`, pg.Array(src))
