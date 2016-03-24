@@ -143,25 +143,80 @@ func ExampleListener() {
 	// Output: mychan "hello world" <nil>
 }
 
+func txExample() *pg.DB {
+	db := pg.Connect(&pg.Options{
+		User: "postgres",
+	})
+
+	queries := []string{
+		`DROP TABLE IF EXISTS tx_test`,
+		`CREATE TABLE tx_test(counter int)`,
+		`INSERT INTO tx_test (counter) VALUES (0)`,
+	}
+	for _, q := range queries {
+		_, err := db.Exec(q)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return db
+}
+
 func ExampleDB_Begin() {
+	db := txExample()
+
 	tx, err := db.Begin()
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = tx.Exec(`CREATE TABLE tx_test()`)
+	var counter int
+	_, err = tx.QueryOne(pg.Scan(&counter), `SELECT counter FROM tx_test`)
+	if err != nil {
+		tx.Rollback()
+		panic(err)
+	}
+
+	counter++
+
+	_, err = tx.Exec(`UPDATE tx_test SET counter = ?`, counter)
+	if err != nil {
+		tx.Rollback()
+		panic(err)
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		panic(err)
 	}
 
-	err = tx.Rollback()
+	fmt.Println(counter)
+	// Output: 1
+}
+
+func ExampleDB_RunInTransaction() {
+	db := txExample()
+
+	var counter int
+	// Transaction is automatically rollbacked on error.
+	err := db.RunInTransaction(func(tx *pg.Tx) error {
+		_, err := tx.QueryOne(pg.Scan(&counter), `SELECT counter FROM tx_test`)
+		if err != nil {
+			return err
+		}
+
+		counter++
+
+		_, err = tx.Exec(`UPDATE tx_test SET counter = ?`, counter)
+		return err
+	})
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = db.Exec(`SELECT * FROM tx_test`)
-	fmt.Println(err)
-	// Output: ERROR #42P01 relation "tx_test" does not exist:
+	fmt.Println(counter)
+	// Output: 1
 }
 
 func ExampleDB_Prepare() {
