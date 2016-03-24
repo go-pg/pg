@@ -9,8 +9,8 @@ import (
 type Array struct {
 	v reflect.Value
 
-	append valueAppender
-	scan   valueScanner
+	append AppenderFunc
+	scan   ScannerFunc
 }
 
 var _ ValueAppender = (*Array)(nil)
@@ -28,8 +28,8 @@ func NewArray(vi interface{}) *Array {
 	return &Array{
 		v: v,
 
-		append: arrayAppender(v),
-		scan:   arrayScanner(v),
+		append: ArrayAppender(v.Type()),
+		scan:   ArrayScanner(v.Type()),
 	}
 }
 

@@ -6,7 +6,7 @@ import (
 	"strconv"
 )
 
-var sliceScanner = []valueScanner{
+var sliceScanner = []ScannerFunc{
 	reflect.Bool:          nil,
 	reflect.Int:           scanIntSliceValue,
 	reflect.Int8:          nil,
@@ -35,8 +35,8 @@ var sliceScanner = []valueScanner{
 	reflect.UnsafePointer: nil,
 }
 
-func arrayScanner(v reflect.Value) valueScanner {
-	elemType := v.Type().Elem()
+func ArrayScanner(typ reflect.Type) ScannerFunc {
+	elemType := typ.Elem()
 
 	if scanner := sliceScanner[elemType.Kind()]; scanner != nil {
 		return scanner

@@ -20,12 +20,12 @@ var (
 	timeType    = timePtrType.Elem()
 )
 
-type valueScanner func(reflect.Value, []byte) error
+type ScannerFunc func(reflect.Value, []byte) error
 
-var valueScanners []valueScanner
+var valueScanners []ScannerFunc
 
 func init() {
-	valueScanners = []valueScanner{
+	valueScanners = []ScannerFunc{
 		reflect.Bool:          scanBoolValue,
 		reflect.Int:           scanIntValue,
 		reflect.Int8:          scanIntValue,
@@ -55,7 +55,7 @@ func init() {
 	}
 }
 
-func Scanner(typ reflect.Type) valueScanner {
+func Scanner(typ reflect.Type) ScannerFunc {
 	if typ == timeType {
 		return scanTimeValue
 	}

@@ -12,7 +12,7 @@ var (
 	float64SliceType = reflect.TypeOf([]float64(nil))
 )
 
-var sliceAppenders = []valueAppender{
+var sliceAppenders = []AppenderFunc{
 	reflect.Bool:          nil,
 	reflect.Int:           appendIntSliceValue,
 	reflect.Int8:          nil,
@@ -41,8 +41,8 @@ var sliceAppenders = []valueAppender{
 	reflect.UnsafePointer: nil,
 }
 
-func arrayAppender(v reflect.Value) valueAppender {
-	elemType := v.Type().Elem()
+func ArrayAppender(typ reflect.Type) AppenderFunc {
+	elemType := typ.Elem()
 
 	if appender := sliceAppenders[elemType.Kind()]; appender != nil {
 		return appender
