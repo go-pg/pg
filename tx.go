@@ -26,6 +26,7 @@ type Tx struct {
 	done bool
 }
 
+// Begin starts a transaction. Most callers should use RunInTransaction instead.
 func (db *DB) Begin() (*Tx, error) {
 	cn, err := db.conn()
 	if err != nil {
@@ -77,6 +78,7 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 	return prepare(tx.db, cn, q)
 }
 
+// Exec executes a query with the given parameters in a transaction.
 func (tx *Tx) Exec(query interface{}, params ...interface{}) (types.Result, error) {
 	if tx.done {
 		return nil, errTxDone
@@ -92,6 +94,9 @@ func (tx *Tx) Exec(query interface{}, params ...interface{}) (types.Result, erro
 	return res, nil
 }
 
+// ExecOne acts like Exec, but query must affect only one row. It
+// returns ErrNoRows error when query returns zero rows or
+// ErrMultiRows when query returns multiple rows.
 func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (types.Result, error) {
 	res, err := tx.Exec(query, params...)
 	if err != nil {
@@ -100,6 +105,7 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (types.Result, e
 	return assertOneAffected(res, nil)
 }
 
+// Query executes a query with the given parameters in a transaction.
 func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (types.Result, error) {
 	if tx.done {
 		return nil, errTxDone
@@ -114,6 +120,9 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 	return res, nil
 }
 
+// QueryOne acts like Query, but query must return only one row. It
+// returns ErrNoRows error when query returns zero rows or
+// ErrMultiRows when query returns multiple rows.
 func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (types.Result, error) {
 	mod, err := newSingleModel(model)
 	if err != nil {
@@ -126,6 +135,7 @@ func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface
 	return assertOneAffected(res, mod)
 }
 
+// Commit commits the transaction.
 func (tx *Tx) Commit() (err error) {
 	if tx.done {
 		return errTxDone
@@ -142,6 +152,7 @@ func (tx *Tx) Commit() (err error) {
 	return err
 }
 
+// Rollback aborts the transaction.
 func (tx *Tx) Rollback() (err error) {
 	if tx.done {
 		return errTxDone

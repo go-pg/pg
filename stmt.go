@@ -118,7 +118,7 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (types.Result,
 	return extQueryData(cn, stmt.name, model, stmt.columns, params...)
 }
 
-// Query executes a prepared query statement with the given arguments.
+// Query executes a prepared query statement with the given parameters.
 func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res types.Result, err error) {
 	for i := 0; i < 3; i++ {
 		res, err = stmt.query(model, params...)
