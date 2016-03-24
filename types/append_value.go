@@ -12,12 +12,12 @@ var (
 	appenderType = reflect.TypeOf(new(ValueAppender)).Elem()
 )
 
-type valueAppender func([]byte, reflect.Value, int) []byte
+type AppenderFunc func([]byte, reflect.Value, int) []byte
 
-var valueAppenders []valueAppender
+var valueAppenders []AppenderFunc
 
 func init() {
-	valueAppenders = []valueAppender{
+	valueAppenders = []AppenderFunc{
 		reflect.Bool:          appendBoolValue,
 		reflect.Int:           appendIntValue,
 		reflect.Int8:          appendIntValue,
@@ -47,7 +47,7 @@ func init() {
 	}
 }
 
-func Appender(typ reflect.Type) valueAppender {
+func Appender(typ reflect.Type) AppenderFunc {
 	if typ == timeType {
 		return appendTimeValue
 	}

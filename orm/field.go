@@ -7,9 +7,9 @@ import (
 )
 
 const (
-	NullEmptyFlag  = 1 << iota
 	PrimaryKeyFlag = 1 << iota
 	ForeignKeyFlag = 1 << iota
+	NullEmptyFlag  = 1 << iota
 )
 
 type Field struct {
@@ -19,8 +19,8 @@ type Field struct {
 
 	flags int8
 
-	append func([]byte, reflect.Value, int) []byte
-	scan   func(reflect.Value, []byte) error
+	append types.AppenderFunc
+	scan   types.ScannerFunc
 
 	isEmpty isEmptyFunc
 }

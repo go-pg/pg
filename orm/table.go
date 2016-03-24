@@ -136,15 +136,25 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 
 	_, pgOpt := parseTag(f.Tag.Get("pg"))
 
+	var appender types.AppenderFunc
+	var scanner types.ScannerFunc
 	ftype := indirectType(f.Type)
+	if _, ok := pgOpt.Get("array"); ok {
+		appender = types.ArrayAppender(ftype)
+		scanner = types.ArrayScanner(ftype)
+	} else {
+		appender = types.Appender(ftype)
+		scanner = types.Scanner(ftype)
+	}
+
 	field := Field{
 		GoName:  f.Name,
 		SQLName: sqlName,
 
 		Index: f.Index,
 
-		append: types.Appender(ftype),
-		scan:   types.Scanner(ftype),
+		append: appender,
+		scan:   scanner,
 
 		isEmpty: isEmptier(ftype.Kind()),
 	}
