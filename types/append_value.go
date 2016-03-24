@@ -12,13 +12,6 @@ var (
 	appenderType = reflect.TypeOf(new(ValueAppender)).Elem()
 )
 
-var (
-	stringSliceType  = reflect.TypeOf([]string(nil))
-	intSliceType     = reflect.TypeOf([]int(nil))
-	int64SliceType   = reflect.TypeOf([]int64(nil))
-	float64SliceType = reflect.TypeOf([]float64(nil))
-)
-
 type valueAppender func([]byte, reflect.Value, int) []byte
 
 var valueAppenders []valueAppender
