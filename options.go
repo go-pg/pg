@@ -11,7 +11,8 @@ import (
 type Options struct {
 	// The network type, either tcp or unix.
 	// Default is tcp.
-	Network  string
+	Network string
+	// TCP host:port or Unix socket depending on Network.
 	Addr     string
 	User     string
 	Password string
@@ -19,7 +20,7 @@ type Options struct {
 	// Whether to use secure TCP/IP connections (TLS).
 	SSL bool
 
-	// Run-time configuration parameters to be set on connection.
+	// PostgreSQL run-time configuration parameters to be set on connection.
 	Params map[string]interface{}
 
 	// The maximum number of retries before giving up.
