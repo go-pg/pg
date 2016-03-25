@@ -922,7 +922,7 @@ func readString(cn *pool.Conn) (string, error) {
 }
 
 func readError(cn *pool.Conn) (error, error) {
-	e := &pgError{make(map[byte]string)}
+	e := pgError{make(map[byte]string)}
 	for {
 		c, err := cn.Rd.ReadByte()
 		if err != nil {
@@ -942,7 +942,7 @@ func readError(cn *pool.Conn) (error, error) {
 	case "23000", "23001", "23502", "23503", "23505", "23514", "23P01":
 		return &IntegrityError{pgError: e}, nil
 	}
-	return e, nil
+	return &e, nil
 }
 
 func readMessageType(cn *pool.Conn) (byte, int, error) {

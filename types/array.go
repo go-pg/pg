@@ -47,7 +47,7 @@ func (a *Array) AppendValue(b []byte, quote int) ([]byte, error) {
 
 func (a *Array) Scan(b interface{}) error {
 	if b == nil {
-		return nil
+		return a.scan(a.v, nil)
 	}
 	return a.scan(a.v, b.([]byte))
 }

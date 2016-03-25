@@ -4,44 +4,31 @@ import (
 	"fmt"
 	"io"
 	"net"
+
+	"gopkg.in/pg.v4/internal"
 )
 
 var (
-	ErrSSLNotSupported = errorf("pg: SSL is not enabled on the server")
+	ErrSSLNotSupported = internal.Errorf("pg: SSL is not enabled on the server")
 
-	ErrNoRows    = errorf("pg: no rows in result set")
-	ErrMultiRows = errorf("pg: multiple rows in result set")
+	ErrNoRows    = internal.Errorf("pg: no rows in result set")
+	ErrMultiRows = internal.Errorf("pg: multiple rows in result set")
 
-	errClosed         = errorf("pg: database is closed")
-	errTxDone         = errorf("pg: transaction has already been committed or rolled back")
-	errStmtClosed     = errorf("pg: statement is closed")
-	errListenerClosed = errorf("pg: listener is closed")
-)
-
-var (
-	_ Error = &pgError{}
-	_ Error = &pgError{}
+	errClosed         = internal.Errorf("pg: database is closed")
+	errTxDone         = internal.Errorf("pg: transaction has already been committed or rolled back")
+	errStmtClosed     = internal.Errorf("pg: statement is closed")
+	errListenerClosed = internal.Errorf("pg: listener is closed")
 )
 
 type Error interface {
 	Field(byte) string
 }
 
-type dbError struct {
-	s string
-}
-
-func errorf(s string, args ...interface{}) dbError {
-	return dbError{s: fmt.Sprintf(s, args...)}
-}
-
-func (err dbError) Error() string {
-	return err.s
-}
-
 type pgError struct {
 	c map[byte]string
 }
+
+var _ Error = (*pgError)(nil)
 
 func (err *pgError) Field(k byte) string {
 	return err.c[k]
@@ -55,14 +42,14 @@ func (err *pgError) Error() string {
 }
 
 type IntegrityError struct {
-	*pgError
+	pgError
 }
 
 func isBadConn(err error, allowTimeout bool) bool {
 	if err == nil {
 		return false
 	}
-	if _, ok := err.(dbError); ok {
+	if _, ok := err.(internal.Error); ok {
 		return false
 	}
 	if pgErr, ok := err.(Error); ok && pgErr.Field('S') != "FATAL" {

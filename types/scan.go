@@ -3,10 +3,11 @@ package types
 import (
 	"database/sql"
 	"encoding/hex"
-	"fmt"
 	"reflect"
 	"strconv"
 	"time"
+
+	"gopkg.in/pg.v4/internal"
 )
 
 func Scan(dst interface{}, b []byte) error {
@@ -50,16 +51,16 @@ func Scan(dst interface{}, b []byte) error {
 
 	v := reflect.ValueOf(dst)
 	if !v.IsValid() {
-		return fmt.Errorf("pg: Scan(nil)")
+		return internal.Errorf("pg: Scan(nil)")
 	}
 	if v.Kind() != reflect.Ptr {
-		return fmt.Errorf("pg: Scan(nonsettable %T)", dst)
+		return internal.Errorf("pg: Scan(nonsettable %T)", dst)
 	}
-	vv := v.Elem()
-	if !vv.IsValid() {
-		return fmt.Errorf("pg: Scan(nonsettable %T)", dst)
+	v = v.Elem()
+	if !v.IsValid() {
+		return internal.Errorf("pg: Scan(nonsettable %T)", dst)
 	}
-	return ScanValue(vv, b)
+	return ScanValue(v, b)
 }
 
 func scanSQLScanner(scanner sql.Scanner, b []byte) error {
@@ -71,7 +72,7 @@ func scanSQLScanner(scanner sql.Scanner, b []byte) error {
 
 func scanBytes(b []byte) ([]byte, error) {
 	if len(b) < 2 {
-		return nil, fmt.Errorf("pg: can't parse bytes: %q", b)
+		return nil, internal.Errorf("pg: can't parse bytes: %q", b)
 	}
 
 	b = b[2:] // Trim off "\\x".
@@ -89,14 +90,14 @@ func scanStringStringMap(f []byte) (map[string]string, error) {
 			return nil, err
 		}
 		if key == nil {
-			return nil, fmt.Errorf("pg: unexpected NULL: %q", f)
+			return nil, internal.Errorf("pg: unexpected NULL: %q", f)
 		}
 		value, err := p.NextValue()
 		if err != nil {
 			return nil, err
 		}
 		if value == nil {
-			return nil, fmt.Errorf("pg: unexpected NULL: %q", f)
+			return nil, internal.Errorf("pg: unexpected NULL: %q", f)
 		}
 		m[string(key)] = string(value)
 	}
