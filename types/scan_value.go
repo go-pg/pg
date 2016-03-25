@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"strconv"
 	"time"
+
+	"gopkg.in/pg.v4/internal"
 )
 
 var (
@@ -79,7 +80,7 @@ func Scanner(typ reflect.Type) ScannerFunc {
 
 func ScanValue(v reflect.Value, b []byte) error {
 	if !v.IsValid() {
-		return fmt.Errorf("pg: Scan(nil)")
+		return internal.Errorf("pg: Scan(nil)")
 	}
 
 	scanner := Scanner(v.Type())
@@ -88,14 +89,14 @@ func ScanValue(v reflect.Value, b []byte) error {
 	}
 
 	if v.Kind() == reflect.Interface {
-		return fmt.Errorf("pg: Scan(nil)")
+		return internal.Errorf("pg: Scan(nil)")
 	}
-	return fmt.Errorf("pg: Scan(unsupported %s)", v.Type())
+	return internal.Errorf("pg: Scan(unsupported %s)", v.Type())
 }
 
 func scanBoolValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+		return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	if b == nil {
 		v.SetBool(false)
@@ -106,6 +107,9 @@ func scanBoolValue(v reflect.Value, b []byte) error {
 }
 
 func scanIntValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
 	if b == nil {
 		v.SetInt(0)
 		return nil
@@ -119,6 +123,9 @@ func scanIntValue(v reflect.Value, b []byte) error {
 }
 
 func scanUintValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
 	if b == nil {
 		v.SetUint(0)
 		return nil
@@ -132,6 +139,9 @@ func scanUintValue(v reflect.Value, b []byte) error {
 }
 
 func scanFloatValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
 	if b == nil {
 		v.SetFloat(0)
 		return nil
@@ -145,11 +155,17 @@ func scanFloatValue(v reflect.Value, b []byte) error {
 }
 
 func scanStringValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
 	v.SetString(string(b))
 	return nil
 }
 
 func scanJSONValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
 	if b == nil {
 		v.Set(reflect.New(v.Type()).Elem())
 		return nil
@@ -157,10 +173,14 @@ func scanJSONValue(v reflect.Value, b []byte) error {
 	return json.Unmarshal(b, v.Addr().Interface())
 }
 
+var zeroTimeValue = reflect.ValueOf(time.Time{})
+
 func scanTimeValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
 	if b == nil {
-		// TODO: cache?
-		v.Set(reflect.ValueOf(time.Time{}))
+		v.Set(zeroTimeValue)
 		return nil
 	}
 	tm, err := ParseTime(b)
@@ -174,7 +194,7 @@ func scanTimeValue(v reflect.Value, b []byte) error {
 func scanPtrValue(v reflect.Value, b []byte) error {
 	if v.IsNil() {
 		if !v.CanSet() {
-			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+			return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
 		}
 		if b == nil {
 			return nil
@@ -186,6 +206,9 @@ func scanPtrValue(v reflect.Value, b []byte) error {
 }
 
 func scanBytesValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
 	if b == nil {
 		v.SetBytes(nil)
 		return nil
@@ -200,7 +223,7 @@ func scanBytesValue(v reflect.Value, b []byte) error {
 
 func scanInterfaceValue(v reflect.Value, b []byte) error {
 	if v.IsNil() {
-		return fmt.Errorf("pg: Scan(nil)")
+		return internal.Errorf("pg: Scan(nil)")
 	}
 	return ScanValue(v.Elem(), b)
 }
@@ -215,7 +238,7 @@ func scanMapValue(v reflect.Value, b []byte) error {
 		v.Set(reflect.ValueOf(m))
 		return nil
 	}
-	return fmt.Errorf("pg: Scan(unsupported %s)", v.Type())
+	return internal.Errorf("pg: Scan(unsupported %s)", v.Type())
 }
 
 func scanSQLScannerValue(v reflect.Value, b []byte) error {
@@ -232,5 +255,8 @@ func scanSQLScannerValue(v reflect.Value, b []byte) error {
 }
 
 func scanSQLScannerAddrValue(v reflect.Value, b []byte) error {
+	if !v.CanAddr() {
+		return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
 	return scanSQLScanner(v.Addr().Interface().(sql.Scanner), b)
 }
