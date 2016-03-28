@@ -125,9 +125,9 @@ func (q *Query) Offset(n int) *Query {
 	return q
 }
 
-func (q *Query) Count(count *int) error {
+func (q *Query) Count() (int, error) {
 	if q.err != nil {
-		return q.err
+		return 0, q.err
 	}
 
 	q.columns = []types.ValueAppender{types.Q("COUNT(*)")}
@@ -147,12 +147,9 @@ func (q *Query) Count(count *int) error {
 		Query: q,
 	}
 
-	_, err := q.db.Query(Scan(count), sel, q.model)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	var count int
+	_, err := q.db.Query(Scan(&count), sel, q.model)
+	return count, err
 }
 
 func (q *Query) First() error {
