@@ -356,8 +356,7 @@ func ExampleDB_Model_selectSomeColumns() {
 func ExampleDB_Model_count() {
 	db := connectDB()
 
-	var count int
-	err := db.Model(Book{}).Count(&count)
+	count, err := db.Model(Book{}).Count()
 	if err != nil {
 		panic(err)
 	}
@@ -476,8 +475,7 @@ func ExampleDB_Delete_multipleRows() {
 		panic(err)
 	}
 
-	var count int
-	err = db.Model(Book{}).Count(&count)
+	count, err := db.Model(Book{}).Count()
 	if err != nil {
 		panic(err)
 	}
