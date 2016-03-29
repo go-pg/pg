@@ -190,12 +190,12 @@ func (db *DB) Listen(channels ...string) (*Listener, error) {
 }
 
 // CopyFrom copies data from reader to a table.
-func (db *DB) CopyFrom(r io.Reader, q string, params ...interface{}) (types.Result, error) {
+func (db *DB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (types.Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
-	res, err := copyFrom(cn, r, q, params...)
+	res, err := copyFrom(cn, r, query, params...)
 	if err != nil {
 		db.freeConn(cn, err)
 		return nil, err
@@ -205,13 +205,13 @@ func (db *DB) CopyFrom(r io.Reader, q string, params ...interface{}) (types.Resu
 }
 
 // CopyTo copies data from a table to writer.
-func (db *DB) CopyTo(w io.WriteCloser, q string, params ...interface{}) (types.Result, error) {
+func (db *DB) CopyTo(w io.WriteCloser, query interface{}, params ...interface{}) (types.Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := writeQueryMsg(cn.Wr, q, params...); err != nil {
+	if err := writeQueryMsg(cn.Wr, query, params...); err != nil {
 		db.pool.Put(cn)
 		return nil, err
 	}

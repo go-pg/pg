@@ -22,8 +22,7 @@ func AppendQuery(dst []byte, src interface{}, params ...interface{}) (b []byte, 
 	case QueryAppender:
 		return src.AppendQuery(dst, params...)
 	case string:
-		f := NewFormatter(params)
-		return f.Append(dst, src)
+		return Formatter{}.Append(dst, src, params...)
 	default:
 		return nil, fmt.Errorf("pg: can't append %T", src)
 	}
@@ -33,8 +32,7 @@ func FormatQuery(query string, params ...interface{}) ([]byte, error) {
 	if len(params) == 0 {
 		return []byte(query), nil
 	}
-	f := NewFormatter(params)
-	return f.Append(nil, query)
+	return Formatter{}.Append(nil, query, params...)
 }
 
 func Q(s string, params ...interface{}) types.Q {
@@ -54,17 +52,7 @@ func F(s string, params ...interface{}) types.F {
 }
 
 type Formatter struct {
-	params      []interface{}
-	paramsIndex int
-
-	model     TableModel
 	paramsMap map[string]interface{}
-}
-
-func NewFormatter(params []interface{}) *Formatter {
-	return &Formatter{
-		params: params,
-	}
 }
 
 func (f *Formatter) SetParam(key string, value interface{}) {
@@ -74,14 +62,16 @@ func (f *Formatter) SetParam(key string, value interface{}) {
 	f.paramsMap[key] = value
 }
 
-func (f *Formatter) Append(dst []byte, src string) ([]byte, error) {
-	return f.AppendBytes(dst, []byte(src))
+func (f Formatter) Append(dst []byte, src string, params ...interface{}) ([]byte, error) {
+	return f.AppendBytes(dst, []byte(src), params...)
 }
 
-func (f *Formatter) AppendBytes(dst, src []byte) ([]byte, error) {
+func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) ([]byte, error) {
 	var err error
-	p := parser.New(src)
+	var paramsIndex int
+	var model TableModel
 
+	p := parser.New(src)
 	for p.Valid() {
 		b, ok := p.JumpTo('?')
 		if !ok {
@@ -96,52 +86,45 @@ func (f *Formatter) AppendBytes(dst, src []byte) ([]byte, error) {
 		dst = append(dst, b...)
 
 		if name := string(p.ReadIdentifier()); name != "" {
-			dst, err = f.appendNamedParam(dst, name)
+			if f.paramsMap != nil {
+				if param, ok := f.paramsMap[name]; ok {
+					dst = types.Append(dst, param, 1)
+					continue
+				}
+			}
+
+			if model == nil {
+				if len(params) == 0 {
+					err = errors.New("pg: expected at least one parameter, got nothing")
+					return nil, err
+				}
+				last := params[len(params)-1]
+				params = params[:len(params)-1]
+
+				model, err = NewTableModel(last)
+				if err != nil {
+					return nil, err
+				}
+			}
+
+			dst, err = model.AppendParam(dst, name)
 			if err != nil {
 				return nil, err
 			}
 			continue
 		}
 
-		if f.paramsIndex >= len(f.params) {
+		if paramsIndex >= len(params) {
 			err := fmt.Errorf(
 				"pg: expected at least %d parameters, got %d",
-				f.paramsIndex+1, len(f.params),
+				paramsIndex+1, len(params),
 			)
 			return nil, err
 		}
 
-		dst = types.Append(dst, f.params[f.paramsIndex], 1)
-		f.paramsIndex++
+		dst = types.Append(dst, params[paramsIndex], 1)
+		paramsIndex++
 	}
 
 	return dst, nil
-}
-
-func (f *Formatter) appendNamedParam(dst []byte, name string) ([]byte, error) {
-	if f.paramsMap != nil {
-		if param, ok := f.paramsMap[name]; ok {
-			dst = types.Append(dst, param, 1)
-			return dst, nil
-		}
-	}
-
-	if f.model == nil {
-		if err := f.initModel(); err != nil {
-			return nil, err
-		}
-	}
-	return f.model.AppendParam(dst, name)
-}
-
-func (f *Formatter) initModel() error {
-	if len(f.params) == 0 {
-		return errors.New("pg: expected at least one parameter, got nothing")
-	}
-	last := f.params[len(f.params)-1]
-	f.params = f.params[:len(f.params)-1]
-
-	var err error
-	f.model, err = NewTableModel(last)
-	return err
 }
