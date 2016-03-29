@@ -9,9 +9,9 @@ import (
 )
 
 func FormatQuery(query string, params ...interface{}) (types.Q, error) {
-	b, err := AppendQuery(nil, query, params...)
+	b, err := AppendQuery(make([]byte, 0, len(query)), query, params...)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	return types.Q(b), nil
 }
@@ -61,9 +61,11 @@ func F(s string, params ...interface{}) types.F {
 }
 
 type Formatter struct {
-	params     []interface{}
-	paramIndex int
-	model      TableModel
+	params      []interface{}
+	paramsIndex int
+
+	model     TableModel
+	paramsMap map[string]interface{}
 }
 
 func NewFormatter(params []interface{}) *Formatter {
@@ -72,61 +74,81 @@ func NewFormatter(params []interface{}) *Formatter {
 	}
 }
 
+func (f *Formatter) SetParam(key string, value interface{}) {
+	if f.paramsMap == nil {
+		f.paramsMap = make(map[string]interface{})
+	}
+	f.paramsMap[key] = value
+}
+
 func (f *Formatter) Append(dst []byte, src string) ([]byte, error) {
 	return f.AppendBytes(dst, []byte(src))
 }
 
-func (f *Formatter) AppendBytes(dst []byte, src []byte) ([]byte, error) {
+func (f *Formatter) AppendBytes(dst, src []byte) ([]byte, error) {
+	var err error
 	p := parser.New(src)
 
 	for p.Valid() {
-		ch := p.Read()
-		if ch == '\\' {
-			if p.Peek() == '?' {
-				p.Skip('?')
-				dst = append(dst, '?')
-				continue
-			}
-		} else if ch != '?' {
-			dst = append(dst, ch)
+		b, ok := p.JumpTo('?')
+		if !ok {
+			dst = append(dst, b...)
 			continue
 		}
+		if len(b) > 0 && b[len(b)-1] == '\\' {
+			dst = append(dst, b[:len(b)-1]...)
+			dst = append(dst, '?')
+			continue
+		}
+		dst = append(dst, b...)
 
 		if name := string(p.ReadIdentifier()); name != "" {
-			if f.model == nil {
-				if len(f.params) == 0 {
-					return nil, errors.New("pg: expected at least one parameter, got nothing")
-				}
-				last := f.params[len(f.params)-1]
-				f.params = f.params[:len(f.params)-1]
-
-				var err error
-				f.model, err = NewTableModel(last)
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			var err error
-			dst, err = f.model.AppendParam(dst, name)
+			dst, err = f.appendNamedParam(dst, name)
 			if err != nil {
 				return nil, err
 			}
-
 			continue
 		}
 
-		if f.paramIndex >= len(f.params) {
+		if f.paramsIndex >= len(f.params) {
 			err := fmt.Errorf(
 				"pg: expected at least %d parameters, got %d",
-				f.paramIndex+1, len(f.params),
+				f.paramsIndex+1, len(f.params),
 			)
 			return nil, err
 		}
 
-		dst = types.Append(dst, f.params[f.paramIndex], 1)
-		f.paramIndex++
+		dst = types.Append(dst, f.params[f.paramsIndex], 1)
+		f.paramsIndex++
 	}
 
 	return dst, nil
+}
+
+func (f *Formatter) appendNamedParam(dst []byte, name string) ([]byte, error) {
+	if f.paramsMap != nil {
+		if param, ok := f.paramsMap[name]; ok {
+			dst = types.Append(dst, param, 1)
+			return dst, nil
+		}
+	}
+
+	if f.model == nil {
+		if err := f.initModel(); err != nil {
+			return nil, err
+		}
+	}
+	return f.model.AppendParam(dst, name)
+}
+
+func (f *Formatter) initModel() error {
+	if len(f.params) == 0 {
+		return errors.New("pg: expected at least one parameter, got nothing")
+	}
+	last := f.params[len(f.params)-1]
+	f.params = f.params[:len(f.params)-1]
+
+	var err error
+	f.model, err = NewTableModel(last)
+	return err
 }

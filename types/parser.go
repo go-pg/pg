@@ -37,7 +37,7 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 	}
 
 	if !p.Got(`"`) {
-		b := p.ReadSep([]byte{','})
+		b := p.ReadSep(',')
 		if bytes.Equal(b, pgNull) {
 			return nil, nil
 		}
@@ -135,7 +135,8 @@ func (p *hstoreParser) NextKey() ([]byte, error) {
 
 func (p *hstoreParser) NextValue() ([]byte, error) {
 	if !p.Got(`"`) {
-		bb := p.ReadSep([]byte(", "))
+		bb := p.ReadSep(',')
+		p.Skip(' ')
 		if bytes.Equal(bb, pgNull) {
 			return nil, nil
 		}
