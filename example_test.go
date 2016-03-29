@@ -240,9 +240,9 @@ func ExampleInts() {
 
 func ExampleInts_in() {
 	ids := pg.Ints{1, 2, 3}
-	q, err := pg.FormatQuery(`SELECT * FROM table WHERE id IN (?)`, ids)
-	fmt.Println(string(q), err)
-	// Output: SELECT * FROM table WHERE id IN (1,2,3) <nil>
+	q := pg.Q(`SELECT * FROM table WHERE id IN (?)`, ids)
+	fmt.Println(string(q))
+	// Output: SELECT * FROM table WHERE id IN (1,2,3)
 }
 
 func ExampleStrings() {
