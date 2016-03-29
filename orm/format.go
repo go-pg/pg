@@ -8,14 +8,6 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
-func FormatQuery(query string, params ...interface{}) (types.Q, error) {
-	b, err := AppendQuery(make([]byte, 0, len(query)), query, params...)
-	if err != nil {
-		return nil, err
-	}
-	return types.Q(b), nil
-}
-
 func AppendQuery(dst []byte, src interface{}, params ...interface{}) (b []byte, retErr error) {
 	defer func() {
 		if v := recover(); v != nil {
@@ -30,18 +22,19 @@ func AppendQuery(dst []byte, src interface{}, params ...interface{}) (b []byte, 
 	case QueryAppender:
 		return src.AppendQuery(dst, params...)
 	case string:
-		return Format(dst, src, params...)
+		f := NewFormatter(params)
+		return f.Append(dst, src)
 	default:
 		return nil, fmt.Errorf("pg: can't append %T", src)
 	}
 }
 
-func Format(dst []byte, src string, params ...interface{}) ([]byte, error) {
+func FormatQuery(query string, params ...interface{}) ([]byte, error) {
 	if len(params) == 0 {
-		return append(dst, src...), nil
+		return []byte(query), nil
 	}
 	f := NewFormatter(params)
-	return f.Append(dst, src)
+	return f.Append(nil, query)
 }
 
 func Q(s string, params ...interface{}) types.Q {
@@ -53,7 +46,7 @@ func Q(s string, params ...interface{}) types.Q {
 }
 
 func F(s string, params ...interface{}) types.F {
-	b, err := Format(nil, s, params...)
+	b, err := FormatQuery(s, params...)
 	if err != nil {
 		panic(err)
 	}

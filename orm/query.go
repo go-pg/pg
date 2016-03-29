@@ -90,7 +90,7 @@ func (q *Query) Where(where string, params ...interface{}) *Query {
 		}
 	}
 
-	b, err := Format(nil, where, params...)
+	b, err := FormatQuery(where, params...)
 	if err != nil {
 		q.setErr(err)
 	} else {
@@ -101,7 +101,7 @@ func (q *Query) Where(where string, params ...interface{}) *Query {
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
-	b, err := Format(nil, join, params...)
+	b, err := FormatQuery(join, params...)
 	if err != nil {
 		q.setErr(err)
 	} else {
