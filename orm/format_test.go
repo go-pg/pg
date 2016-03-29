@@ -33,14 +33,18 @@ func (EmbeddedStructFormatter) Method2() string {
 	return "method_value2"
 }
 
-type formatTest struct {
-	q       string
-	args    []interface{}
-	wanted  string
-	wanterr string
-}
+type (
+	params    []interface{}
+	paramsMap map[string]interface{}
+)
 
-type args []interface{}
+type formatTest struct {
+	q         string
+	params    params
+	paramsMap paramsMap
+	wanted    string
+	wanterr   string
+}
 
 var (
 	structv         = &StructFormatter{String: "value"}
@@ -48,28 +52,37 @@ var (
 )
 
 var formatTests = []formatTest{
-	{q: "?", wanted: "?"},
-	{q: "?", args: args{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
-	{q: "?", args: args{orm.Q("query")}, wanted: "query"},
-	{q: "?", args: args{orm.F("field")}, wanted: `"field"`},
-	{q: "?null_empty", args: args{structv}, wanted: `NULL`},
-	{q: "?", args: args{structv}, wanted: `'{"String":"value","NullEmpty":""}'`},
-	{q: `\? ?`, args: args{1}, wanted: "? 1"},
-	{q: "? ?string ?", args: args{"one", "two", structv}, wanted: "'one' 'value' 'two'"},
-	{q: "?string ?Method", args: args{structv}, wanted: "'value' 'method_value'"},
-	{q: "?string ?Method ?Method2", args: args{embeddedStructv}, wanted: "'hello' 'method_value' 'method_value2'"},
-	{q: "? ? ?", args: args{"foo", "bar"}, wanterr: "pg: expected at least 3 parameters, got 2"},
-	{q: "?bar", args: args{structv}, wanterr: `pg: can't map "bar" on orm_test.StructFormatter`},
-	{q: "?MethodWithArgs", args: args{structv}, wanterr: `pg: can't map "MethodWithArgs" on orm_test.StructFormatter`},
-	{q: "?MethodWithCompositeReturn", args: args{structv}, wanterr: `pg: can't map "MethodWithCompositeReturn" on orm_test.StructFormatter`},
+	{q: "?", wanted: "?", wanterr: "pg: expected at least 1 parameters, got 0"},
+	{q: "? ? ?", params: params{"foo", "bar"}, wanterr: "pg: expected at least 3 parameters, got 2"},
+	{q: "?bar", params: params{structv}, wanterr: `pg: can't map "bar" on orm_test.StructFormatter`},
+	{q: "?MethodWithParams", params: params{structv}, wanterr: `pg: can't map "MethodWithParams" on orm_test.StructFormatter`},
+	{q: "?MethodWithCompositeReturn", params: params{structv}, wanterr: `pg: can't map "MethodWithCompositeReturn" on orm_test.StructFormatter`},
+
+	{q: "?", params: params{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
+	{q: "?", params: params{orm.Q("query")}, wanted: "query"},
+	{q: "?", params: params{orm.F("field")}, wanted: `"field"`},
+	{q: "?", params: params{structv}, wanted: `'{"String":"value","NullEmpty":""}'`},
+	{q: `\? ?`, params: params{1}, wanted: "? 1"},
+
+	{q: "?null_empty", params: params{structv}, wanted: `NULL`},
+	{q: "? ?string ?", params: params{"one", "two", structv}, wanted: "'one' 'value' 'two'"},
+	{q: "?string ?Method", params: params{structv}, wanted: "'value' 'method_value'"},
+	{q: "?string ?Method ?Method2", params: params{embeddedStructv}, wanted: "'value' 'method_value' 'method_value2'"},
+
+	{q: "?string", params: params{structv}, paramsMap: map[string]interface{}{"string": "my_value"}, wanted: "'my_value'"},
 }
 
 func TestFormatQuery(t *testing.T) {
 	for i, test := range formatTests {
-		got, err := orm.FormatQuery(test.q, test.args...)
+		f := orm.NewFormatter(test.params)
+		for k, v := range test.paramsMap {
+			f.SetParam(k, v)
+		}
+
+		got, err := f.Append(nil, test.q)
 		if test.wanterr != "" {
 			if err == nil {
-				t.Fatalf("expected error (q=%q args=%v)", test.q, test.args)
+				t.Fatalf("expected error (q=%q params=%v)", test.q, test.params)
 			}
 			if err.Error() != test.wanterr {
 				t.Fatalf("got %q, wanted %q", err.Error(), test.wanterr)
@@ -81,7 +94,10 @@ func TestFormatQuery(t *testing.T) {
 			continue
 		}
 		if string(got) != test.wanted {
-			t.Fatalf("got %q, wanted %q (q=%q args=%v)", got, test.wanted, test.q, test.args)
+			t.Fatalf(
+				"got %q, wanted %q (q=%q params=%v paramsMap=%v)",
+				got, test.wanted, test.q, test.params, test.paramsMap,
+			)
 		}
 	}
 }

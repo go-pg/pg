@@ -19,7 +19,6 @@ func isAlnum(c byte) bool {
 
 type Parser struct {
 	b   []byte
-	pos int
 	err error
 }
 
@@ -28,70 +27,95 @@ func New(b []byte) *Parser {
 }
 
 func (p *Parser) Bytes() []byte {
-	return p.b[p.pos:]
+	return p.b
 }
 
 func (p *Parser) Valid() bool {
-	return p.pos < len(p.b)
+	return len(p.b) > 0
 }
 
 func (p *Parser) Read() byte {
-	c := p.b[p.pos]
-	p.pos++
+	c := p.b[0]
+	p.Skip(c)
 	return c
 }
 
 func (p *Parser) Peek() byte {
 	if p.Valid() {
-		return p.b[p.pos]
+		return p.b[0]
 	}
 	return 0
 }
 
-func (p *Parser) Skip(c byte) {
-	p.pos++
+func (p *Parser) Skip(_ byte) {
+	if p.Valid() {
+		p.b = p.b[1:]
+	}
+}
+
+func (p *Parser) JumpTo(c byte) ([]byte, bool) {
+	ind := bytes.IndexByte(p.b, c)
+	if ind == -1 {
+		b := p.b
+		p.b = p.b[len(p.b):]
+		return b, false
+	}
+	b := p.b[:ind]
+	p.b = p.b[ind+1:]
+	return b, true
 }
 
 func (p *Parser) Got(s string) bool {
-	end := p.pos + len(s)
-	if end <= len(p.b) && bytes.Equal(p.b[p.pos:end], []byte(s)) {
-		p.pos = end
-		return true
+	if len(s) > len(p.b) {
+		return false
 	}
-	return false
+	if !bytes.Equal(p.b[:len(s)], []byte(s)) {
+		return false
+	}
+	p.b = p.b[len(s):]
+	return true
 }
 
-func (p *Parser) ReadSep(sep []byte) []byte {
-	start := p.pos
-	end := bytes.Index(p.b[start:], sep)
-	if end >= 0 {
-		p.pos += end + len(sep)
-		return p.b[start : p.pos-len(sep)]
+func (p *Parser) ReadSep(c byte) []byte {
+	ind := bytes.IndexByte(p.b, c)
+	if ind == -1 {
+		b := p.b
+		p.b = p.b[len(p.b):]
+		return b
 	}
-	p.pos = len(p.b)
-	return p.b[start:p.pos]
+	b := p.b[:ind]
+	p.b = p.b[ind+1:]
+	return b
 }
 
 func (p *Parser) ReadIdentifier() []byte {
-	start := p.pos
-	for p.Valid() {
-		ch := p.Read()
+	end := len(p.b)
+	for i, ch := range p.b {
 		if !(isAlnum(ch) || ch == '_') {
-			p.pos--
+			end = i
 			break
 		}
 	}
-	return p.b[start:p.pos]
+	if end <= 0 {
+		return nil
+	}
+	b := p.b[:end]
+	p.b = p.b[end:]
+	return b
 }
 
 func (p *Parser) ReadNumber() int {
-	start := p.pos
-	for p.Valid() {
-		if !isNum(p.Read()) {
-			p.pos--
+	end := len(p.b)
+	for i, ch := range p.b {
+		if !isNum(ch) {
+			end = i
 			break
 		}
 	}
-	n, _ := strconv.Atoi(string(p.b[start:p.pos]))
+	if end <= 0 {
+		return 0
+	}
+	n, _ := strconv.Atoi(string(p.b[:end]))
+	p.b = p.b[end:]
 	return n
 }
