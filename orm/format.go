@@ -62,6 +62,14 @@ func (f *Formatter) SetParam(key string, value interface{}) {
 	f.paramsMap[key] = value
 }
 
+func (f Formatter) Q(query string, params ...interface{}) types.Q {
+	b, err := f.Append(nil, query, params...)
+	if err != nil {
+		panic(err)
+	}
+	return types.Q(b)
+}
+
 func (f Formatter) Append(dst []byte, src string, params ...interface{}) ([]byte, error) {
 	return f.AppendBytes(dst, []byte(src), params...)
 }
