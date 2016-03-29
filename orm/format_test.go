@@ -74,12 +74,12 @@ var formatTests = []formatTest{
 
 func TestFormatQuery(t *testing.T) {
 	for i, test := range formatTests {
-		f := orm.NewFormatter(test.params)
+		var f orm.Formatter
 		for k, v := range test.paramsMap {
 			f.SetParam(k, v)
 		}
 
-		got, err := f.Append(nil, test.q)
+		got, err := f.Append(nil, test.q, test.params...)
 		if test.wanterr != "" {
 			if err == nil {
 				t.Fatalf("expected error (q=%q params=%v)", test.q, test.params)

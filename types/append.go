@@ -200,15 +200,16 @@ func AppendFieldBytes(b []byte, field []byte, quote int) []byte {
 				continue
 			}
 		case '.':
-			if quote == 1 {
+			if quoted && quote == 1 {
 				b = append(b, '"')
+				quoted = false
 			}
 			b = append(b, '.')
 			if p.Got("*") {
 				b = append(b, '*')
-				quoted = false
 			} else if quote == 1 {
 				b = append(b, '"')
+				quoted = true
 			}
 			continue
 		case ' ':
@@ -230,7 +231,7 @@ func AppendFieldBytes(b []byte, field []byte, quote int) []byte {
 			continue
 		}
 
-		if quote == 1 && !quoted {
+		if !quoted && quote == 1 {
 			b = append(b, '"')
 			quoted = true
 		}
