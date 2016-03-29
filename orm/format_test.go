@@ -1,35 +1,36 @@
 package orm_test
 
 import (
+	"fmt"
 	"math"
 	"testing"
 
 	"gopkg.in/pg.v4/orm"
 )
 
-type structFormatter struct {
-	Foo       string
+type StructFormatter struct {
+	String    string
 	NullEmpty string `pg:",nullempty"`
 }
 
-func (structFormatter) Meth() string {
-	return "value"
+func (StructFormatter) Method() string {
+	return "method_value"
 }
 
-func (structFormatter) MethWithArgs(string) string {
-	return "value"
+func (StructFormatter) MethodWithArgs(string) string {
+	return "method_value"
 }
 
-func (structFormatter) MethWithCompositeReturn() (string, string) {
-	return "value1", "value2"
+func (StructFormatter) MethodWithCompositeReturn() (string, string) {
+	return "method_value1", "method_value2"
 }
 
-type embeddedStructFormatter struct {
-	*structFormatter
+type EmbeddedStructFormatter struct {
+	*StructFormatter
 }
 
-func (embeddedStructFormatter) Meth2() string {
-	return "value2"
+func (EmbeddedStructFormatter) Method2() string {
+	return "method_value2"
 }
 
 type formatTest struct {
@@ -42,8 +43,8 @@ type formatTest struct {
 type args []interface{}
 
 var (
-	structv         = &structFormatter{Foo: "bar"}
-	embeddedStructv = &embeddedStructFormatter{structv}
+	structv         = &StructFormatter{String: "value"}
+	embeddedStructv = &EmbeddedStructFormatter{structv}
 )
 
 var formatTests = []formatTest{
@@ -52,15 +53,15 @@ var formatTests = []formatTest{
 	{q: "?", args: args{orm.Q("query")}, wanted: "query"},
 	{q: "?", args: args{orm.F("field")}, wanted: `"field"`},
 	{q: "?null_empty", args: args{structv}, wanted: `NULL`},
-	{q: "?", args: args{structv}, wanted: `'{"Foo":"bar","NullEmpty":""}'`},
+	{q: "?", args: args{structv}, wanted: `'{"String":"value","NullEmpty":""}'`},
 	{q: `\? ?`, args: args{1}, wanted: "? 1"},
-	{q: "? ?foo ?", args: args{"one", "two", structv}, wanted: "'one' 'bar' 'two'"},
-	{q: "?foo ?Meth", args: args{structv}, wanted: "'bar' 'value'"},
-	{q: "?foo ?Meth ?Meth2", args: args{embeddedStructv}, wanted: "'bar' 'value' 'value2'"},
+	{q: "? ?string ?", args: args{"one", "two", structv}, wanted: "'one' 'value' 'two'"},
+	{q: "?string ?Method", args: args{structv}, wanted: "'value' 'method_value'"},
+	{q: "?string ?Method ?Method2", args: args{embeddedStructv}, wanted: "'hello' 'method_value' 'method_value2'"},
 	{q: "? ? ?", args: args{"foo", "bar"}, wanterr: "pg: expected at least 3 parameters, got 2"},
-	{q: "?bar", args: args{structv}, wanterr: `pg: can't map "bar" on orm_test.structFormatter`},
-	{q: "?MethWithArgs", args: args{structv}, wanterr: `pg: can't map "MethWithArgs" on orm_test.structFormatter`},
-	{q: "?MethWithCompositeReturn", args: args{structv}, wanterr: `pg: can't map "MethWithCompositeReturn" on orm_test.structFormatter`},
+	{q: "?bar", args: args{structv}, wanterr: `pg: can't map "bar" on orm_test.StructFormatter`},
+	{q: "?MethodWithArgs", args: args{structv}, wanterr: `pg: can't map "MethodWithArgs" on orm_test.StructFormatter`},
+	{q: "?MethodWithCompositeReturn", args: args{structv}, wanterr: `pg: can't map "MethodWithCompositeReturn" on orm_test.StructFormatter`},
 }
 
 func TestFormatQuery(t *testing.T) {
@@ -81,6 +82,52 @@ func TestFormatQuery(t *testing.T) {
 		}
 		if string(got) != test.wanted {
 			t.Fatalf("got %q, wanted %q (q=%q args=%v)", got, test.wanted, test.q, test.args)
+		}
+	}
+}
+
+func BenchmarkFormatQueryWithoutParams(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, err := orm.FormatQuery("SELECT * FROM my_table WHERE id = 1")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkFormatQuerySimpleParam(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_, err := orm.FormatQuery("SELECT * FROM my_table WHERE id = ?", 1)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkFormatQuerySprintf(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		_ = fmt.Sprintf("SELECT * FROM my_table WHERE id = %d", 1)
+	}
+}
+
+func BenchmarkFormatQueryStructParam(b *testing.B) {
+	param := StructFormatter{
+		String: "1",
+	}
+	for i := 0; i < b.N; i++ {
+		_, err := orm.FormatQuery("SELECT * FROM my_table WHERE id = ?string", param)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkFormatQueryStructMethod(b *testing.B) {
+	param := StructFormatter{}
+	for i := 0; i < b.N; i++ {
+		_, err := orm.FormatQuery("SELECT * FROM my_table WHERE id = ?Method", &param)
+		if err != nil {
+			b.Fatal(err)
 		}
 	}
 }

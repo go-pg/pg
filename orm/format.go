@@ -9,9 +9,9 @@ import (
 )
 
 func FormatQuery(query string, params ...interface{}) (types.Q, error) {
-	b, err := AppendQuery(nil, query, params...)
+	b, err := AppendQuery(make([]byte, 0, len(query)), query, params...)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	return types.Q(b), nil
 }
@@ -76,7 +76,7 @@ func (f *Formatter) Append(dst []byte, src string) ([]byte, error) {
 	return f.AppendBytes(dst, []byte(src))
 }
 
-func (f *Formatter) AppendBytes(dst []byte, src []byte) ([]byte, error) {
+func (f *Formatter) AppendBytes(dst, src []byte) ([]byte, error) {
 	p := parser.New(src)
 
 	for p.Valid() {
@@ -94,15 +94,7 @@ func (f *Formatter) AppendBytes(dst []byte, src []byte) ([]byte, error) {
 
 		if name := string(p.ReadIdentifier()); name != "" {
 			if f.model == nil {
-				if len(f.params) == 0 {
-					return nil, errors.New("pg: expected at least one parameter, got nothing")
-				}
-				last := f.params[len(f.params)-1]
-				f.params = f.params[:len(f.params)-1]
-
-				var err error
-				f.model, err = NewTableModel(last)
-				if err != nil {
+				if err := f.initModel(); err != nil {
 					return nil, err
 				}
 			}
@@ -129,4 +121,16 @@ func (f *Formatter) AppendBytes(dst []byte, src []byte) ([]byte, error) {
 	}
 
 	return dst, nil
+}
+
+func (f *Formatter) initModel() error {
+	if len(f.params) == 0 {
+		return errors.New("pg: expected at least one parameter, got nothing")
+	}
+	last := f.params[len(f.params)-1]
+	f.params = f.params[:len(f.params)-1]
+
+	var err error
+	f.model, err = NewTableModel(last)
+	return err
 }
