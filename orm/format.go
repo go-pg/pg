@@ -78,6 +78,7 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) ([]byte, 
 	var paramsIndex int
 	var model *StructModel
 	var modelErr error
+	var buf []byte
 
 	p := parser.New(src)
 	for p.Valid() {
@@ -140,19 +141,13 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) ([]byte, 
 			if err != nil {
 				return nil, err
 			}
-		case types.F:
-			// TODO: reuse memory
-			field, err := param.AppendValue(nil, 1)
-			if err != nil {
-				return nil, err
-			}
-
-			dst, err = f.AppendBytes(dst, field)
-			if err != nil {
-				return nil, err
-			}
 		default:
-			dst = types.Append(dst, param, 1)
+			value := types.Append(buf[:0], param, 1)
+
+			dst, err = f.AppendBytes(dst, value)
+			if err != nil {
+				return nil, err
+			}
 		}
 		paramsIndex++
 	}

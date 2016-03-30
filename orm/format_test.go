@@ -75,6 +75,7 @@ var formatTests = []formatTest{
 	{q: "?string", params: params{structv}, paramsMap: paramsMap{"string": "my_value"}, wanted: "'my_value'"},
 	{q: "?", params: params{types.Q("?string")}, paramsMap: paramsMap{"string": "my_value"}, wanted: "'my_value'"},
 	{q: "?", params: params{types.F("?string")}, paramsMap: paramsMap{"string": types.Q("my_value")}, wanted: `"my_value"`},
+	{q: "?", params: params{"?string"}, paramsMap: paramsMap{"string": "my_value"}, wanted: "''my_value''"},
 }
 
 func TestFormatQuery(t *testing.T) {
