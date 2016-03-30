@@ -10,7 +10,6 @@ type TableModel interface {
 	Table() *Table
 
 	Model
-	AppendParam([]byte, string) ([]byte, bool)
 
 	Join(string) (string, error)
 	GetJoin(string) (*Join, bool)

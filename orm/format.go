@@ -8,46 +8,29 @@ import (
 )
 
 func AppendQuery(dst []byte, src interface{}, params ...interface{}) (b []byte, retErr error) {
-	defer func() {
-		if v := recover(); v != nil {
-			if err, ok := v.(error); ok {
-				retErr = err
-			} else {
-				retErr = fmt.Errorf("recovered from %q", v)
-			}
-		}
-	}()
 	switch src := src.(type) {
 	case QueryAppender:
 		return src.AppendQuery(dst, params...)
 	case string:
-		return Formatter{}.Append(dst, src, params...)
+		return Formatter{}.Append(dst, src, params...), nil
 	default:
 		return nil, fmt.Errorf("pg: can't append %T", src)
 	}
 }
 
-func FormatQuery(query string, params ...interface{}) ([]byte, error) {
+func FormatQuery(query string, params ...interface{}) []byte {
 	if len(params) == 0 {
-		return []byte(query), nil
+		return []byte(query)
 	}
 	return Formatter{}.Append(nil, query, params...)
 }
 
 func Q(s string, params ...interface{}) types.Q {
-	q, err := FormatQuery(s, params...)
-	if err != nil {
-		panic(err)
-	}
-	return q
+	return FormatQuery(s, params...)
 }
 
 func F(s string, params ...interface{}) types.F {
-	b, err := FormatQuery(s, params...)
-	if err != nil {
-		panic(err)
-	}
-	return types.F(b)
+	return FormatQuery(s, params...)
 }
 
 type Formatter struct {
@@ -61,20 +44,11 @@ func (f *Formatter) SetParam(key string, value interface{}) {
 	f.paramsMap[key] = value
 }
 
-func (f Formatter) Q(query string, params ...interface{}) types.Q {
-	b, err := f.Append(nil, query, params...)
-	if err != nil {
-		panic(err)
-	}
-	return types.Q(b)
-}
-
-func (f Formatter) Append(dst []byte, src string, params ...interface{}) ([]byte, error) {
+func (f Formatter) Append(dst []byte, src string, params ...interface{}) []byte {
 	return f.AppendBytes(dst, []byte(src), params...)
 }
 
-func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) ([]byte, error) {
-	var err error
+func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
 	var paramsIndex int
 	var model *StructModel
 	var modelErr error
@@ -118,8 +92,9 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) ([]byte, 
 				params = params[:len(params)-1]
 			}
 
-			dst, ok = model.AppendParam(dst, name)
+			buf, ok = model.AppendParam(buf[:0], name)
 			if ok {
+				dst = f.AppendBytes(dst, buf)
 				continue
 			}
 
@@ -135,22 +110,11 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) ([]byte, 
 		}
 
 		param := params[paramsIndex]
-		switch param := param.(type) {
-		case types.Q:
-			dst, err = f.AppendBytes(dst, param)
-			if err != nil {
-				return nil, err
-			}
-		default:
-			value := types.Append(buf[:0], param, 1)
-
-			dst, err = f.AppendBytes(dst, value)
-			if err != nil {
-				return nil, err
-			}
-		}
 		paramsIndex++
+
+		buf = types.Append(buf[:0], param, 1)
+		dst = f.AppendBytes(dst, buf)
 	}
 
-	return dst, nil
+	return dst
 }

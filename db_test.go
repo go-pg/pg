@@ -1,8 +1,6 @@
 package pg_test
 
 import (
-	"database/sql/driver"
-	"errors"
 	"fmt"
 	"net"
 	"testing"
@@ -32,29 +30,6 @@ func pgOptions() *pg.Options {
 		IdleCheckFrequency: time.Second,
 	}
 }
-
-type valuerError string
-
-func (e valuerError) Value() (driver.Value, error) {
-	return nil, errors.New(string(e))
-}
-
-var _ = Describe("driver.Valuer", func() {
-	var db *pg.DB
-
-	BeforeEach(func() {
-		db = pg.Connect(pgOptions())
-	})
-
-	AfterEach(func() {
-		Expect(db.Close()).NotTo(HaveOccurred())
-	})
-
-	It("handles driver.Valuer error", func() {
-		_, err := db.Exec("SELECT ?", valuerError("driver.Valuer error"))
-		Expect(err).To(MatchError("driver.Valuer error"))
-	})
-})
 
 var _ = Describe("Collection", func() {
 	var db *pg.DB

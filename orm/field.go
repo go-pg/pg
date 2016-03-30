@@ -79,8 +79,12 @@ type method struct {
 	appender func([]byte, reflect.Value, int) []byte
 }
 
-func (m *method) AppendValue(dst []byte, v reflect.Value, quote int) []byte {
-	mv := v.Method(m.Index).Call(nil)[0]
+func (m *method) Value(strct reflect.Value) reflect.Value {
+	return strct.Method(m.Index).Call(nil)[0]
+}
+
+func (m *method) AppendValue(dst []byte, strct reflect.Value, quote int) []byte {
+	mv := m.Value(strct)
 	return m.appender(dst, mv, quote)
 }
 
