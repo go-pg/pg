@@ -56,10 +56,10 @@ var formatTests = []formatTest{
 	{q: "?", wanted: "?"},
 	{q: "? ? ?", params: params{"foo", "bar"}, wanted: "'foo' 'bar' ?"},
 
-	{q: "?foo", wanted: "?foo"},
-	{q: "?foo", params: params{structv}, wanted: "?foo"},
-	{q: "?MethodWithArgs", params: params{structv}, wanted: "?MethodWithArgs"},
-	{q: "?MethodWithCompositeReturn", params: params{structv}, wanted: "?MethodWithCompositeReturn"},
+	{q: "one ?foo two", wanted: "one ?foo two"},
+	{q: "one ?foo two", params: params{structv}, wanted: "one ?foo two"},
+	{q: "one ?MethodWithArgs two", params: params{structv}, wanted: "one ?MethodWithArgs two"},
+	{q: "one ?MethodWithCompositeReturn two", params: params{structv}, wanted: "one ?MethodWithCompositeReturn two"},
 
 	{q: "?", params: params{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
 	{q: "?", params: params{orm.Q("query")}, wanted: "query"},
