@@ -10,7 +10,7 @@ type TableModel interface {
 	Table() *Table
 
 	Model
-	AppendParam([]byte, string) ([]byte, error)
+	AppendParam([]byte, string) ([]byte, bool)
 
 	Join(string) (string, error)
 	GetJoin(string) (*Join, bool)
@@ -27,7 +27,7 @@ type TableModel interface {
 }
 
 func NewTableModel(v interface{}) (TableModel, error) {
-	switch v := (v).(type) {
+	switch v := v.(type) {
 	case TableModel:
 		return v, nil
 	case reflect.Value:

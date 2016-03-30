@@ -53,11 +53,13 @@ var (
 )
 
 var formatTests = []formatTest{
-	{q: "?", wanted: "?", wanterr: "pg: expected at least 1 parameters, got 0"},
-	{q: "? ? ?", params: params{"foo", "bar"}, wanterr: "pg: expected at least 3 parameters, got 2"},
-	{q: "?bar", params: params{structv}, wanterr: `pg: can't map "bar" on orm_test.StructFormatter`},
-	{q: "?MethodWithParams", params: params{structv}, wanterr: `pg: can't map "MethodWithParams" on orm_test.StructFormatter`},
-	{q: "?MethodWithCompositeReturn", params: params{structv}, wanterr: `pg: can't map "MethodWithCompositeReturn" on orm_test.StructFormatter`},
+	{q: "?", wanted: "?"},
+	{q: "? ? ?", params: params{"foo", "bar"}, wanted: "'foo' 'bar' ?"},
+
+	{q: "?foo", wanted: "?foo"},
+	{q: "?foo", params: params{structv}, wanted: "?foo"},
+	{q: "?MethodWithArgs", params: params{structv}, wanted: "?MethodWithArgs"},
+	{q: "?MethodWithCompositeReturn", params: params{structv}, wanted: "?MethodWithCompositeReturn"},
 
 	{q: "?", params: params{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
 	{q: "?", params: params{orm.Q("query")}, wanted: "query"},

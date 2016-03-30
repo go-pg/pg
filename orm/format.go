@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"errors"
 	"fmt"
 
 	"gopkg.in/pg.v4/internal/parser"
@@ -77,7 +76,8 @@ func (f Formatter) Append(dst []byte, src string, params ...interface{}) ([]byte
 func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) ([]byte, error) {
 	var err error
 	var paramsIndex int
-	var model TableModel
+	var model *StructModel
+	var modelErr error
 
 	p := parser.New(src)
 	for p.Valid() {
@@ -101,33 +101,36 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) ([]byte, 
 				}
 			}
 
+			if modelErr != nil {
+				goto restore_param
+			}
+
 			if model == nil {
 				if len(params) == 0 {
-					err = errors.New("pg: expected at least one parameter, got nothing")
-					return nil, err
+					goto restore_param
 				}
-				last := params[len(params)-1]
+
+				model, modelErr = NewStructModel(params[len(params)-1])
+				if modelErr != nil {
+					goto restore_param
+				}
 				params = params[:len(params)-1]
-
-				model, err = NewTableModel(last)
-				if err != nil {
-					return nil, err
-				}
 			}
 
-			dst, err = model.AppendParam(dst, name)
-			if err != nil {
-				return nil, err
+			dst, ok = model.AppendParam(dst, name)
+			if ok {
+				continue
 			}
+
+		restore_param:
+			dst = append(dst, '?')
+			dst = append(dst, name...)
 			continue
 		}
 
 		if paramsIndex >= len(params) {
-			err = fmt.Errorf(
-				"pg: expected at least %d parameters, got %d",
-				paramsIndex+1, len(params),
-			)
-			return nil, err
+			dst = append(dst, '?')
+			continue
 		}
 
 		param := params[paramsIndex]

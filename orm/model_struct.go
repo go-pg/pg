@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -18,20 +19,48 @@ type StructModel struct {
 
 var _ TableModel = (*StructModel)(nil)
 
+func NewStructModel(v interface{}) (*StructModel, error) {
+	switch v := v.(type) {
+	case *StructModel:
+		return v, nil
+	case reflect.Value:
+		return newStructModelValue(v)
+	default:
+		return newStructModelValue(reflect.ValueOf(v))
+	}
+}
+
+func newStructModelValue(v reflect.Value) (*StructModel, error) {
+	if !v.IsValid() {
+		return nil, errors.New("pg: NewStructModel(nil)")
+	}
+	v = reflect.Indirect(v)
+
+	if v.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("pg: NewStructModel(unsupported %s)", v.Type())
+	}
+
+	return &StructModel{
+		table: Tables.Get(v.Type()),
+		root:  v,
+		strct: v,
+	}, nil
+}
+
 func (m *StructModel) Table() *Table {
 	return m.table
 }
 
-func (m *StructModel) AppendParam(b []byte, name string) ([]byte, error) {
+func (m *StructModel) AppendParam(b []byte, name string) ([]byte, bool) {
 	if field, ok := m.table.FieldsMap[name]; ok {
-		return field.AppendValue(b, m.strct, 1), nil
+		return field.AppendValue(b, m.strct, 1), true
 	}
 
 	if method, ok := m.table.Methods[name]; ok {
-		return method.AppendValue(b, m.strct.Addr(), 1), nil
+		return method.AppendValue(b, m.strct.Addr(), 1), true
 	}
 
-	return nil, fmt.Errorf("pg: can't map %q on %s", name, m.strct.Type())
+	return nil, false
 }
 
 func (m *StructModel) Kind() reflect.Kind {
