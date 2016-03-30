@@ -52,16 +52,16 @@ func (m *StructModel) Table() *Table {
 	return m.table
 }
 
-func (m *StructModel) AppendParam(b []byte, name string) ([]byte, bool) {
+func (m *StructModel) AppendParam(dst []byte, name string) ([]byte, bool) {
 	if field, ok := m.table.FieldsMap[name]; ok {
-		return field.AppendValue(b, m.strct, 1), true
+		return field.AppendValue(dst, m.strct, 1), true
 	}
 
 	if method, ok := m.table.Methods[name]; ok {
-		return method.AppendValue(b, m.strct.Addr(), 1), true
+		return method.AppendValue(dst, m.strct.Addr(), 1), true
 	}
 
-	return b, false
+	return dst, false
 }
 
 func (m *StructModel) Kind() reflect.Kind {

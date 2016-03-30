@@ -47,16 +47,23 @@ func Append(b []byte, v interface{}, quote int) []byte {
 	case []byte:
 		return appendBytes(b, v, quote)
 	case ValueAppender:
-		b, err := v.AppendValue(b, quote)
+		bb, err := v.AppendValue(b, quote)
 		if err != nil {
-			panic(err)
+			return appendError(b, err)
 		}
-		return b
+		return bb
 	case driver.Valuer:
 		return appendDriverValuer(b, v, quote)
 	default:
 		return appendValue(b, reflect.ValueOf(v), quote)
 	}
+}
+
+func appendError(b []byte, err error) []byte {
+	b = append(b, "?!("...)
+	b = append(b, err.Error()...)
+	b = append(b, ')')
+	return b
 }
 
 func AppendNull(b []byte, quote int) []byte {
@@ -174,7 +181,7 @@ func AppendStringStringMap(b []byte, m map[string]string, quote int) []byte {
 func appendDriverValuer(b []byte, v driver.Valuer, quote int) []byte {
 	value, err := v.Value()
 	if err != nil {
-		panic(err)
+		return appendError(b, err)
 	}
 	return Append(b, value, quote)
 }

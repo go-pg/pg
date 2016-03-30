@@ -90,23 +90,15 @@ func (q *Query) Where(where string, params ...interface{}) *Query {
 		}
 	}
 
-	b, err := FormatQuery(where, params...)
-	if err != nil {
-		q.setErr(err)
-	} else {
-		q.wheres = append(q.wheres, b)
-	}
+	b := FormatQuery(where, params...)
+	q.wheres = append(q.wheres, b)
 
 	return q
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
-	b, err := FormatQuery(join, params...)
-	if err != nil {
-		q.setErr(err)
-	} else {
-		q.joins = append(q.joins, b)
-	}
+	b := FormatQuery(join, params...)
+	q.joins = append(q.joins, b)
 	return q
 }
 

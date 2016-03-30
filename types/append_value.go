@@ -119,7 +119,7 @@ func appendStructValue(b []byte, v reflect.Value, quote int) []byte {
 func appendJSONValue(b []byte, v reflect.Value, quote int) []byte {
 	bytes, err := json.Marshal(v.Interface())
 	if err != nil {
-		panic(err)
+		return appendError(b, err)
 	}
 	return AppendJSONB(b, bytes, quote)
 }
@@ -132,7 +132,7 @@ func appendTimeValue(b []byte, v reflect.Value, quote int) []byte {
 func appendAppenderValue(b []byte, v reflect.Value, quote int) []byte {
 	b, err := v.Interface().(ValueAppender).AppendValue(b, quote)
 	if err != nil {
-		panic(err)
+		return appendError(b, err)
 	}
 	return b
 }
