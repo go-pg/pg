@@ -123,14 +123,34 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) ([]byte, 
 		}
 
 		if paramsIndex >= len(params) {
-			err := fmt.Errorf(
+			err = fmt.Errorf(
 				"pg: expected at least %d parameters, got %d",
 				paramsIndex+1, len(params),
 			)
 			return nil, err
 		}
 
-		dst = types.Append(dst, params[paramsIndex], 1)
+		param := params[paramsIndex]
+		switch param := param.(type) {
+		case types.Q:
+			dst, err = f.AppendBytes(dst, param)
+			if err != nil {
+				return nil, err
+			}
+		case types.F:
+			// TODO: reuse memory
+			field, err := param.AppendValue(nil, 1)
+			if err != nil {
+				return nil, err
+			}
+
+			dst, err = f.AppendBytes(dst, field)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			dst = types.Append(dst, param, 1)
+		}
 		paramsIndex++
 	}
 

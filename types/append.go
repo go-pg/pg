@@ -190,10 +190,6 @@ func AppendFieldBytes(b []byte, field []byte, quote int) []byte {
 		c := p.Read()
 
 		switch c {
-		case '\\':
-			if p.Got("?") {
-				c = '?'
-			}
 		case '*':
 			if !quoted {
 				b = append(b, '*')
@@ -224,10 +220,6 @@ func AppendFieldBytes(b []byte, field []byte, quote int) []byte {
 			} else {
 				b = append(b, ' ')
 			}
-			continue
-		case '?':
-			b = append(b, '?')
-			b = append(b, p.ReadIdentifier()...)
 			continue
 		}
 

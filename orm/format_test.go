@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"gopkg.in/pg.v4/orm"
+	"gopkg.in/pg.v4/types"
 )
 
 type StructFormatter struct {
@@ -69,7 +70,9 @@ var formatTests = []formatTest{
 	{q: "?string ?Method", params: params{structv}, wanted: "'value' 'method_value'"},
 	{q: "?string ?Method ?Method2", params: params{embeddedStructv}, wanted: "'value' 'method_value' 'method_value2'"},
 
-	{q: "?string", params: params{structv}, paramsMap: map[string]interface{}{"string": "my_value"}, wanted: "'my_value'"},
+	{q: "?string", params: params{structv}, paramsMap: paramsMap{"string": "my_value"}, wanted: "'my_value'"},
+	{q: "?", params: params{types.Q("?string")}, paramsMap: paramsMap{"string": "my_value"}, wanted: "'my_value'"},
+	{q: "?", params: params{types.F("?string")}, paramsMap: paramsMap{"string": types.Q("my_value")}, wanted: `"my_value"`},
 }
 
 func TestFormatQuery(t *testing.T) {
