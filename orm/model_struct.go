@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// TODO: extract AppendParam to separate struct and use it in Formatter
 type StructModel struct {
 	table *Table
 	joins []Join
@@ -60,7 +61,7 @@ func (m *StructModel) AppendParam(b []byte, name string) ([]byte, bool) {
 		return method.AppendValue(b, m.strct.Addr(), 1), true
 	}
 
-	return nil, false
+	return b, false
 }
 
 func (m *StructModel) Kind() reflect.Kind {
