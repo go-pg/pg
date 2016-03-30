@@ -20,9 +20,8 @@ var appendFieldTests = []struct {
 	{"id AS pk", `"id" AS "pk"`},
 	{"table.id AS table__id", `"table"."id" AS "table__id"`},
 
-	{"?shard", `?shard`},
-	{"?shard.id", `?shard."id"`},
-	{`\?shard`, `"?shard"`},
+	{"?shard", `"?shard"`},
+	{"?shard.id", `"?shard"."id"`},
 
 	{`"`, `""""`},
 	{`'`, `"'"`},
