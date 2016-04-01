@@ -45,10 +45,15 @@ func (f *Formatter) SetParam(key string, value interface{}) {
 }
 
 func (f Formatter) Append(dst []byte, src string, params ...interface{}) []byte {
-	return f.AppendBytes(dst, []byte(src), params...)
+	return f.append(dst, []byte(src), params, true)
 }
 
 func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
+	return f.append(dst, src, params, true)
+}
+
+// TODO: add formatContext and split this method
+func (f Formatter) append(dst, src []byte, params []interface{}, escape bool) []byte {
 	var paramsIndex int
 	var model *StructModel
 	var modelErr error
@@ -62,7 +67,11 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
 			continue
 		}
 		if len(b) > 0 && b[len(b)-1] == '\\' {
-			dst = append(dst, b[:len(b)-1]...)
+			if escape {
+				dst = append(dst, b[:len(b)-1]...)
+			} else {
+				dst = append(dst, b...)
+			}
 			dst = append(dst, '?')
 			continue
 		}
@@ -92,9 +101,8 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
 				params = params[:len(params)-1]
 			}
 
-			buf, ok = model.AppendParam(buf[:0], name)
+			dst, ok = model.FormatParam(f, dst, buf[:0], name)
 			if ok {
-				dst = f.AppendBytes(dst, buf)
 				continue
 			}
 
@@ -112,8 +120,16 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
 		param := params[paramsIndex]
 		paramsIndex++
 
-		buf = types.Append(buf[:0], param, 1)
-		dst = f.AppendBytes(dst, buf)
+		switch param := param.(type) {
+		case types.Q:
+			buf = types.Append(buf[:0], param, 1)
+			dst = f.append(dst, buf, nil, false)
+		case types.F:
+			buf = types.Append(buf[:0], param, 1)
+			dst = f.append(dst, buf, nil, false)
+		default:
+			dst = types.Append(dst, param, 1)
+		}
 	}
 
 	return dst

@@ -26,8 +26,8 @@ func (StructFormatter) Method() string {
 	return "method_value"
 }
 
-func (StructFormatter) MethodParam() string {
-	return "?string"
+func (StructFormatter) MethodParam() types.Q {
+	return types.Q("?string")
 }
 
 func (StructFormatter) MethodWithArgs(string) string {
@@ -79,7 +79,10 @@ var formatTests = []formatTest{
 	{q: "?", params: params{orm.Q("query")}, wanted: "query"},
 	{q: "?", params: params{orm.F("field")}, wanted: `"field"`},
 	{q: "?", params: params{structv}, wanted: `'{"String":"field_value","NullEmpty":""}'`},
+
 	{q: `\? ?`, params: params{1}, wanted: "? 1"},
+	{q: `?`, params: params{`\?`}, wanted: `'\?'`},
+	{q: `?`, params: params{`\?param`}, wanted: `'\?param'`},
 
 	{q: "?null_empty", params: params{structv}, wanted: `NULL`},
 	{q: "? ?string ?", params: params{"one", "two", structv}, wanted: "'one' 'field_value' 'two'"},
@@ -90,8 +93,7 @@ var formatTests = []formatTest{
 
 	{q: "?", params: params{types.Q("?string")}, paramsMap: paramsMap{"string": "my_value"}, wanted: "'my_value'"},
 	{q: "?", params: params{types.F("?string")}, paramsMap: paramsMap{"string": types.Q("my_value")}, wanted: `"my_value"`},
-	{q: "?", params: params{"?string"}, paramsMap: paramsMap{"string": "my_value"}, wanted: "''my_value''"},
-	{q: "?MethodParam", params: params{structv}, paramsMap: paramsMap{"string": "my_value"}, wanted: "''my_value''"},
+	{q: "?MethodParam", params: params{structv}, paramsMap: paramsMap{"string": "my_value"}, wanted: "'my_value'"},
 }
 
 func TestFormatQuery(t *testing.T) {

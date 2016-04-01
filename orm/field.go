@@ -6,10 +6,16 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
+var (
+	queryType = reflect.TypeOf(types.Q(nil))
+	fieldType = reflect.TypeOf(types.F(nil))
+)
+
 const (
 	PrimaryKeyFlag = 1 << iota
 	ForeignKeyFlag = 1 << iota
 	NullEmptyFlag  = 1 << iota
+	FormatFlag     = 1 << iota
 )
 
 type Field struct {
@@ -76,7 +82,13 @@ func fieldByIndex(v reflect.Value, index []int) reflect.Value {
 type method struct {
 	Index int
 
+	flags int8
+
 	appender func([]byte, reflect.Value, int) []byte
+}
+
+func (m *method) Has(flag int8) bool {
+	return m.flags&flag != 0
 }
 
 func (m *method) Value(strct reflect.Value) reflect.Value {
@@ -86,22 +98,4 @@ func (m *method) Value(strct reflect.Value) reflect.Value {
 func (m *method) AppendValue(dst []byte, strct reflect.Value, quote int) []byte {
 	mv := m.Value(strct)
 	return m.appender(dst, mv, quote)
-}
-
-func isEmptyValue(v reflect.Value) bool {
-	switch v.Kind() {
-	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
-		return v.Len() == 0
-	case reflect.Bool:
-		return !v.Bool()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return v.Int() == 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return v.Uint() == 0
-	case reflect.Float32, reflect.Float64:
-		return v.Float() == 0
-	case reflect.Interface, reflect.Ptr:
-		return v.IsNil()
-	}
-	return false
 }
