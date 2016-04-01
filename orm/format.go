@@ -45,10 +45,14 @@ func (f *Formatter) SetParam(key string, value interface{}) {
 }
 
 func (f Formatter) Append(dst []byte, src string, params ...interface{}) []byte {
-	return f.AppendBytes(dst, []byte(src), params...)
+	return f.append(dst, []byte(src), params, true)
 }
 
 func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
+	return f.append(dst, src, params, true)
+}
+
+func (f Formatter) append(dst, src []byte, params []interface{}, escape bool) []byte {
 	var paramsIndex int
 	var model *StructModel
 	var modelErr error
@@ -62,7 +66,11 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
 			continue
 		}
 		if len(b) > 0 && b[len(b)-1] == '\\' {
-			dst = append(dst, b[:len(b)-1]...)
+			if escape {
+				dst = append(dst, b[:len(b)-1]...)
+			} else {
+				dst = append(dst, b...)
+			}
 			dst = append(dst, '?')
 			continue
 		}
@@ -94,7 +102,7 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
 
 			buf, ok = model.AppendParam(buf[:0], name)
 			if ok {
-				dst = f.AppendBytes(dst, buf)
+				dst = f.append(dst, buf, nil, false)
 				continue
 			}
 
@@ -113,7 +121,7 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
 		paramsIndex++
 
 		buf = types.Append(buf[:0], param, 1)
-		dst = f.AppendBytes(dst, buf)
+		dst = f.append(dst, buf, nil, false)
 	}
 
 	return dst

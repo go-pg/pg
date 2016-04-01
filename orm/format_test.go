@@ -79,7 +79,10 @@ var formatTests = []formatTest{
 	{q: "?", params: params{orm.Q("query")}, wanted: "query"},
 	{q: "?", params: params{orm.F("field")}, wanted: `"field"`},
 	{q: "?", params: params{structv}, wanted: `'{"String":"field_value","NullEmpty":""}'`},
+
 	{q: `\? ?`, params: params{1}, wanted: "? 1"},
+	{q: `?`, params: params{`\?`}, wanted: `'\?'`},
+	{q: `?`, params: params{`\?param`}, wanted: `'\?param'`},
 
 	{q: "?null_empty", params: params{structv}, wanted: `NULL`},
 	{q: "? ?string ?", params: params{"one", "two", structv}, wanted: "'one' 'field_value' 'two'"},
