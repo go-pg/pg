@@ -103,12 +103,19 @@ func newTable(typ reflect.Type) *Table {
 		if m.Type.NumOut() != 1 {
 			continue
 		}
-		method := &method{
+
+		retType := m.Type.Out(0)
+		method := method{
 			Index: m.Index,
 
-			appender: types.Appender(m.Type.Out(0)),
+			appender: types.Appender(retType),
 		}
-		table.Methods[m.Name] = method
+
+		if retType == queryType || retType == fieldType {
+			method.flags |= FormatFlag
+		}
+
+		table.Methods[m.Name] = &method
 	}
 
 	Tables.tables[typ] = table
@@ -138,13 +145,13 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 
 	var appender types.AppenderFunc
 	var scanner types.ScannerFunc
-	ftype := indirectType(f.Type)
+	fieldType := indirectType(f.Type)
 	if _, ok := pgOpt.Get("array"); ok {
-		appender = types.ArrayAppender(ftype)
-		scanner = types.ArrayScanner(ftype)
+		appender = types.ArrayAppender(fieldType)
+		scanner = types.ArrayScanner(fieldType)
 	} else {
-		appender = types.Appender(ftype)
-		scanner = types.Scanner(ftype)
+		appender = types.Appender(fieldType)
+		scanner = types.Scanner(fieldType)
 	}
 
 	field := Field{
@@ -156,7 +163,7 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 		append: appender,
 		scan:   scanner,
 
-		isEmpty: isEmptier(ftype.Kind()),
+		isEmpty: isEmptier(fieldType.Kind()),
 	}
 
 	if skip {
@@ -177,15 +184,19 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 		field.flags |= ForeignKeyFlag
 	}
 
+	if fieldType == queryType || fieldType == fieldType {
+		field.flags |= FormatFlag
+	}
+
 	var polymorphic string
 	if s, _ := pgOpt.Get("polymorphic:"); s != "" {
 		polymorphic = Underscore(s) + "_"
 	}
 
-	switch ftype.Kind() {
+	switch fieldType.Kind() {
 	case reflect.Slice:
-		if ftype.Elem().Kind() == reflect.Struct {
-			joinTable := newTable(ftype.Elem())
+		if fieldType.Elem().Kind() == reflect.Struct {
+			joinTable := newTable(fieldType.Elem())
 
 			if m2mTable, _ := pgOpt.Get("many2many:"); m2mTable != "" {
 				t.addRelation(&Relation{
@@ -223,7 +234,7 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 			}
 		}
 	case reflect.Struct:
-		joinTable := newTable(ftype)
+		joinTable := newTable(fieldType)
 		if len(joinTable.Fields) == 0 {
 			break
 		}

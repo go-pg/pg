@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	appenderType = reflect.TypeOf(new(ValueAppender)).Elem()
+	appenderType = reflect.TypeOf((*ValueAppender)(nil)).Elem()
 )
 
 type AppenderFunc func([]byte, reflect.Value, int) []byte

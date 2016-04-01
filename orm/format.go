@@ -52,6 +52,7 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
 	return f.append(dst, src, params, true)
 }
 
+// TODO: add formatContext and split this method
 func (f Formatter) append(dst, src []byte, params []interface{}, escape bool) []byte {
 	var paramsIndex int
 	var model *StructModel
@@ -100,9 +101,8 @@ func (f Formatter) append(dst, src []byte, params []interface{}, escape bool) []
 				params = params[:len(params)-1]
 			}
 
-			buf, ok = model.AppendParam(buf[:0], name)
+			dst, ok = model.FormatParam(f, dst, buf[:0], name)
 			if ok {
-				dst = f.append(dst, buf, nil, false)
 				continue
 			}
 
@@ -120,8 +120,16 @@ func (f Formatter) append(dst, src []byte, params []interface{}, escape bool) []
 		param := params[paramsIndex]
 		paramsIndex++
 
-		buf = types.Append(buf[:0], param, 1)
-		dst = f.append(dst, buf, nil, false)
+		switch param := param.(type) {
+		case types.Q:
+			buf = types.Append(buf[:0], param, 1)
+			dst = f.append(dst, buf, nil, false)
+		case types.F:
+			buf = types.Append(buf[:0], param, 1)
+			dst = f.append(dst, buf, nil, false)
+		default:
+			dst = types.Append(dst, param, 1)
+		}
 	}
 
 	return dst

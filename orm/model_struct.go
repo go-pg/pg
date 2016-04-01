@@ -52,13 +52,25 @@ func (m *StructModel) Table() *Table {
 	return m.table
 }
 
-func (m *StructModel) AppendParam(dst []byte, name string) ([]byte, bool) {
+func (m *StructModel) FormatParam(f Formatter, dst, buf []byte, name string) ([]byte, bool) {
 	if field, ok := m.table.FieldsMap[name]; ok {
-		return field.AppendValue(dst, m.strct, 1), true
+		if field.Has(FormatFlag) {
+			buf := field.AppendValue(buf, m.strct, 1)
+			dst = f.append(dst, buf, nil, false)
+		} else {
+			dst = field.AppendValue(dst, m.strct, 1)
+		}
+		return dst, true
 	}
 
 	if method, ok := m.table.Methods[name]; ok {
-		return method.AppendValue(dst, m.strct.Addr(), 1), true
+		if method.Has(FormatFlag) {
+			buf := method.AppendValue(buf, m.strct.Addr(), 1)
+			dst = f.append(dst, buf, nil, false)
+		} else {
+			dst = method.AppendValue(dst, m.strct.Addr(), 1)
+		}
+		return dst, true
 	}
 
 	return dst, false
