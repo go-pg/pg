@@ -12,12 +12,13 @@ type Query struct {
 	model TableModel
 	err   error
 
-	tables    []string
-	columns   []types.ValueAppender
-	returning []types.ValueAppender
-	wheres    [][]byte
-	joins     [][]byte
-	orders    []string
+	tables    []byte
+	fields    []string
+	columns   []byte
+	returning []byte
+	where     []byte
+	join      []byte
+	order     []byte
 	limit     int
 	offset    int
 }
@@ -30,7 +31,8 @@ func NewQuery(db dber, v interface{}) *Query {
 		err:   err,
 	}
 	if err == nil {
-		q.tables = append(q.tables, q.model.Table().Name+" AS "+q.model.Table().ModelName)
+		q.tables = types.AppendField(
+			q.tables, q.model.Table().Name+" AS "+q.model.Table().ModelName, 1)
 	}
 	return &q
 }
@@ -41,7 +43,14 @@ func (q *Query) setErr(err error) {
 	}
 }
 
-func (q *Query) Columns(columns ...interface{}) *Query {
+func (q *Query) Table(names ...string) *Query {
+	for _, name := range names {
+		q.tables = types.AppendField(q.tables, name, 1)
+	}
+	return q
+}
+
+func (q *Query) Column(columns ...interface{}) *Query {
 loop:
 	for _, column := range columns {
 		switch column := column.(type) {
@@ -49,11 +58,19 @@ loop:
 			if _, err := q.model.Join(column); err == nil {
 				continue loop
 			}
-			q.columns = append(q.columns, types.F(column))
+			q.fields = append(q.fields, column)
+
+			q.columns = appendSep(q.columns, ", ")
+			q.columns = types.AppendField(q.columns, column, 1)
 		case types.ValueAppender:
-			q.columns = append(q.columns, column)
+			var err error
+			q.columns = appendSep(q.columns, ", ")
+			q.columns, err = column.AppendValue(q.columns, 1)
+			if err != nil {
+				q.setErr(err)
+			}
 		default:
-			panic(fmt.Sprintf("unsupported column type: %T", column))
+			q.setErr(fmt.Errorf("unsupported column type: %T", column))
 		}
 	}
 	return q
@@ -61,20 +78,21 @@ loop:
 
 func (q *Query) Returning(columns ...interface{}) *Query {
 	for _, column := range columns {
+		q.returning = appendSep(q.returning, ", ")
+
 		switch column := column.(type) {
 		case string:
-			q.returning = append(q.returning, types.F(column))
+			q.returning = types.AppendField(q.returning, column, 1)
 		case types.ValueAppender:
-			q.returning = append(q.returning, column)
+			var err error
+			q.returning, err = column.AppendValue(q.returning, 1)
+			if err != nil {
+				q.setErr(err)
+			}
 		default:
-			panic(fmt.Sprintf("unsupported column type: %T", column))
+			q.setErr(fmt.Errorf("unsupported column type: %T", column))
 		}
 	}
-	return q
-}
-
-func (q *Query) Table(name string) *Query {
-	q.tables = append(q.tables, name)
 	return q
 }
 
@@ -90,20 +108,23 @@ func (q *Query) Where(where string, params ...interface{}) *Query {
 		}
 	}
 
-	b := FormatQuery(where, params...)
-	q.wheres = append(q.wheres, b)
+	q.where = appendSep(q.where, " AND ")
+	q.where = append(q.where, '(')
+	q.where = Formatter{}.Append(q.where, where, params...)
+	q.where = append(q.where, ')')
 
 	return q
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
-	b := FormatQuery(join, params...)
-	q.joins = append(q.joins, b)
+	q.join = appendSep(q.join, " ")
+	q.join = Formatter{}.Append(q.join, join, params...)
 	return q
 }
 
-func (q *Query) Order(order string) *Query {
-	q.orders = append(q.orders, order)
+func (q *Query) Order(order string, params ...interface{}) *Query {
+	q.order = appendSep(q.join, ", ")
+	q.order = Formatter{}.Append(q.order, order, params...)
 	return q
 }
 
@@ -122,8 +143,8 @@ func (q *Query) Count() (int, error) {
 		return 0, q.err
 	}
 
-	q.columns = []types.ValueAppender{types.Q("COUNT(*)")}
-	q.orders = nil
+	q.columns = types.Q("COUNT(*)")
+	q.order = nil
 	q.limit = 0
 	q.offset = 0
 

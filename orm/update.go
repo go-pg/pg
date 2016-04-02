@@ -30,14 +30,9 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	b = types.AppendField(b, table.Name, 1)
 	b = append(b, " SET "...)
 
-	if len(upd.columns) > 0 {
-		for i, v := range upd.columns {
-			column, err := v.AppendValue(nil, 0)
-			if err != nil {
-				return nil, err
-			}
-
-			field, err := table.GetField(string(column))
+	if len(upd.fields) > 0 {
+		for i, fieldName := range upd.fields {
+			field, err := table.GetField(fieldName)
 			if err != nil {
 				return nil, err
 			}
@@ -45,7 +40,7 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 			b = types.AppendField(b, field.SQLName, 1)
 			b = append(b, " = "...)
 			b = field.AppendValue(b, strct, 1)
-			if i != len(upd.columns)-1 {
+			if i != len(upd.fields)-1 {
 				b = append(b, ", "...)
 			}
 		}
@@ -71,7 +66,7 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 
 	if len(upd.returning) > 0 {
 		b = append(b, " RETURNING "...)
-		b = appendValue(b, ", ", upd.returning...)
+		b = append(b, upd.returning...)
 	}
 
 	return b, nil
@@ -98,11 +93,11 @@ func (upd updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	}
 
 	b = append(b, " WHERE "...)
-	b = appendWheres(b, upd.wheres)
+	b = append(b, upd.where...)
 
 	if len(upd.returning) > 0 {
 		b = append(b, " RETURNING "...)
-		b = appendValue(b, ", ", upd.returning...)
+		b = append(b, upd.returning...)
 	}
 
 	return b, nil

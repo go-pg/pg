@@ -88,7 +88,7 @@ func ExampleDB_Query() {
 
 	var story Story
 	err = db.Model(&story).
-		Columns("story.*", "User").
+		Column("story.*", "User").
 		Where("story.id = ?", story1.Id).
 		Select()
 	if err != nil {

@@ -8,7 +8,7 @@ import (
 
 var (
 	queryType = reflect.TypeOf(types.Q(nil))
-	fieldType = reflect.TypeOf(types.F(nil))
+	fieldType = reflect.TypeOf(types.F(""))
 )
 
 const (

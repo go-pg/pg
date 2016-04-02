@@ -18,10 +18,10 @@ func (q Q) AppendValue(dst []byte, quote int) ([]byte, error) {
 //------------------------------------------------------------------------------
 
 // F is a ValueAppender that represents SQL field, e.g. table or column name.
-type F []byte
+type F string
 
-var _ ValueAppender = F(nil)
+var _ ValueAppender = F("")
 
 func (f F) AppendValue(dst []byte, quote int) ([]byte, error) {
-	return AppendFieldBytes(dst, f, quote), nil
+	return AppendField(dst, string(f), quote), nil
 }

@@ -23,25 +23,25 @@ func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 		b = types.AppendField(b, sel.model.Table().ModelName, 1)
 		b = append(b, ".*"...)
 	} else {
-		b = appendValue(b, ", ", sel.columns...)
+		b = append(b, sel.columns...)
 	}
 
 	b = append(b, " FROM "...)
-	b = appendField(b, sel.tables...)
+	b = append(b, sel.tables...)
 
-	if sel.joins != nil {
+	if sel.join != nil {
 		b = append(b, ' ')
-		b = appendBytes(b, " ", sel.joins...)
+		b = append(b, sel.join...)
 	}
 
-	if sel.wheres != nil {
+	if sel.where != nil {
 		b = append(b, " WHERE "...)
-		b = appendWheres(b, sel.wheres)
+		b = append(b, sel.where...)
 	}
 
-	if sel.orders != nil {
+	if sel.order != nil {
 		b = append(b, " ORDER BY "...)
-		b = appendString(b, ", ", sel.orders...)
+		b = append(b, sel.order...)
 	}
 
 	if sel.limit != 0 {
@@ -55,60 +55,4 @@ func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	}
 
 	return b, nil
-}
-
-func appendField(b []byte, ss ...string) []byte {
-	for i, field := range ss {
-		b = types.AppendField(b, field, 1)
-		if i != len(ss)-1 {
-			b = append(b, ", "...)
-		}
-	}
-	return b
-}
-
-func appendString(b []byte, sep string, ss ...string) []byte {
-	for i, s := range ss {
-		b = append(b, s...)
-		if i != len(ss)-1 {
-			b = append(b, sep...)
-		}
-	}
-	return b
-}
-
-func appendBytes(b []byte, sep string, bb ...[]byte) []byte {
-	for i, bytes := range bb {
-		b = append(b, bytes...)
-		if i != len(bb)-1 {
-			b = append(b, sep...)
-		}
-	}
-	return b
-}
-
-func appendWheres(b []byte, bb [][]byte) []byte {
-	for i, bytes := range bb {
-		b = append(b, '(')
-		b = append(b, bytes...)
-		b = append(b, ')')
-		if i != len(bb)-1 {
-			b = append(b, " AND "...)
-		}
-	}
-	return b
-}
-
-func appendValue(b []byte, sep string, vv ...types.ValueAppender) []byte {
-	for i, v := range vv {
-		var err error
-		b, err = v.AppendValue(b, 1)
-		if err != nil {
-			panic(err)
-		}
-		if i != len(vv)-1 {
-			b = append(b, sep...)
-		}
-	}
-	return b
 }
