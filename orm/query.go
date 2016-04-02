@@ -31,8 +31,9 @@ func NewQuery(db dber, v interface{}) *Query {
 		err:   err,
 	}
 	if err == nil {
-		q.tables = types.AppendField(
-			q.tables, q.model.Table().Name+" AS "+q.model.Table().ModelName, 1)
+		q.tables = types.AppendField(q.tables, q.model.Table().Name, 1)
+		q.tables = append(q.tables, " AS "...)
+		q.tables = types.AppendField(q.tables, q.model.Table().ModelName, 1)
 	}
 	return &q
 }

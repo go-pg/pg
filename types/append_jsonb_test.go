@@ -2,6 +2,7 @@ package types_test
 
 import (
 	"bytes"
+	"encoding/json"
 	"testing"
 
 	"gopkg.in/pg.v4/types"
@@ -24,5 +25,19 @@ func TestAppendJSONB(t *testing.T) {
 		if !bytes.Equal(got, []byte(test.wanted)) {
 			t.Errorf("got %q, wanted %q", got, test.wanted)
 		}
+	}
+}
+
+func BenchmarkAppendJSONB(b *testing.B) {
+	bytes, err := json.Marshal(jsonbTests)
+	if err != nil {
+		b.Fatal(err)
+	}
+	buf := make([]byte, 1024)
+
+	b.ResetTimer()
+
+	for i := 0; i < b.N; i++ {
+		_ = types.AppendJSONB(buf[:0], bytes, 1)
 	}
 }

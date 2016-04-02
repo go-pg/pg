@@ -44,21 +44,20 @@ func (f *Formatter) SetParam(key string, value interface{}) {
 }
 
 func (f Formatter) Append(dst []byte, src string, params ...interface{}) []byte {
-	return f.append(dst, []byte(src), params, true)
+	return f.append(dst, parser.NewString(src), params, true)
 }
 
 func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
-	return f.append(dst, src, params, true)
+	return f.append(dst, parser.New(src), params, true)
 }
 
 // TODO: add formatContext and split this method
-func (f Formatter) append(dst, src []byte, params []interface{}, escape bool) []byte {
+func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}, escape bool) []byte {
 	var paramsIndex int
 	var model *StructModel
 	var modelErr error
 	var buf []byte
 
-	p := parser.New(src)
 	for p.Valid() {
 		b, ok := p.JumpTo('?')
 		if !ok {
@@ -122,10 +121,10 @@ func (f Formatter) append(dst, src []byte, params []interface{}, escape bool) []
 		switch param := param.(type) {
 		case types.Q:
 			buf = types.Append(buf[:0], param, 1)
-			dst = f.append(dst, buf, nil, false)
+			dst = f.append(dst, parser.New(buf), nil, false)
 		case types.F:
 			buf = types.Append(buf[:0], param, 1)
-			dst = f.append(dst, buf, nil, false)
+			dst = f.append(dst, parser.New(buf), nil, false)
 		default:
 			dst = types.Append(dst, param, 1)
 		}
