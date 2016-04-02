@@ -133,7 +133,7 @@ func ExampleDB_Query() {
 
 	var story Story
 	err = db.Model(&story).
-		Columns("story.*", "User").
+		Column("story.*", "User").
 		Where("story.id = ?", story1.Id).
 		Select()
 	if err != nil {
@@ -153,7 +153,7 @@ func ExampleDB_Query() {
 
 - No `rows.Close` to manually manage connections.
 - go-pg automatically maps rows on Go structs and slice.
-- go-pg is at least 3x faster than GORM on querying 100 rows from table.
+- go-pg is 2x-10x faster than GORM on querying 100 rows from table.
 
     ```
     BenchmarkQueryRowsGopgOptimized-4	   10000	    158443 ns/op	   83432 B/op	     625 allocs/op
@@ -168,20 +168,21 @@ func ExampleDB_Query() {
     Has one relation:
 
     ```
-    BenchmarkModelHasOneGopg-4      	    5000	    330512 ns/op	   86938 B/op	    1286 allocs/op
-    BenchmarkModelHasOneGORM-4      	     300	   4650123 ns/op	 1519349 B/op	   71708 allocs/op
+    BenchmarkModelHasOneGopg-4                 	    5000	    313091 ns/op	   78481 B/op	    1290 allocs/op
+    BenchmarkModelHasOneGORM-4                 	     500	   3849634 ns/op	 1529982 B/op	   71636 allocs/op
+
     ```
 
     go-pg:
 
     ```go
-    db.Model(&books).Columns("book.*", "Author").Limit(100).Select()
+    db.Model(&books).Column("book.*", "Author").Limit(100).Select()
     ```
 
     ```sql
     SELECT "book".*, "author"."id" AS "author__id", "author"."name" AS "author__name"
-    FROM "books" AS "book", "authors" AS "author"
-    WHERE "author"."id" = "books"."author_id"
+    FROM "books" AS "book"
+    LEFT JOIN "authors" AS "author" ON "author"."id" = "book"."author_id"
     LIMIT 100
     ```
 
@@ -199,14 +200,14 @@ func ExampleDB_Query() {
     Has many relation:
 
     ```
-    BenchmarkModelHasManyGopg-4     	     500	   3342343 ns/op	  417798 B/op	    8696 allocs/op
-    BenchmarkModelHasManyGORM-4     	      50	  29204802 ns/op	 9930670 B/op	  517602 allocs/op
+    BenchmarkModelHasManyGopg-4                	     500	   3034576 ns/op	  409288 B/op	    8700 allocs/op
+    BenchmarkModelHasManyGORM-4                	      50	  24677309 ns/op	10121839 B/op	  519411 allocs/op
     ```
 
     go-pg:
 
     ```go
-    db.Model(&books).Columns("book.*", "Translations").Limit(100).Select()
+    db.Model(&books).Column("book.*", "Translations").Limit(100).Select()
     ```
 
     ```sql
@@ -231,14 +232,14 @@ func ExampleDB_Query() {
     Has many to many relation:
 
     ```
-    BenchmarkModelHasMany2ManyGopg-4	     500	   3795954 ns/op	  492776 B/op	    9722 allocs/op
-    BenchmarkModelHasMany2ManyGORM-4	     200	   9165749 ns/op	 3112733 B/op	   66447 allocs/op
+    BenchmarkModelHasMany2ManyGopg-4           	     500	   3329123 ns/op	  394738 B/op	    9739 allocs/op
+    BenchmarkModelHasMany2ManyGORM-4           	     200	   7847630 ns/op	 3350304 B/op	   66239 allocs/op
     ```
 
     go-pg:
 
     ```go
-    db.Model(&books).Columns("book.*", "Genres").Limit(100).Select()
+    db.Model(&books).Column("book.*", "Genres").Limit(100).Select()
     ```
 
     ```sql
@@ -330,14 +331,14 @@ type Comment struct {
 ```go
 var book Book
 err := db.Model(&book).
-	Columns("book.*", "Author", "Editor", "Genres", "Comments", "Translations", "Translations.Comments").
+	Column("book.*", "Author", "Editor", "Genres", "Comments", "Translations", "Translations.Comments").
 	Order("book.id DESC").
 	Limit(1).
 	Select()
 
 var books []Book
 err := db.Model(&book).
-	Columns("book.*", "Author", "Editor", "Genres", "Comments", "Translations", "Translations.Comments").
+	Column("book.*", "Author", "Editor", "Genres", "Comments", "Translations", "Translations.Comments").
 	Order("book.id DESC").
 	Limit(10).
 	Select()
@@ -384,6 +385,5 @@ err := db.Model(&Book{}).Where("id IN (?)", ids).Delete()
 ### Count rows
 
 ```go
-var count int
-err := db.Model(&Book{}).Count(&count)
+count, err := db.Model(&Book{}).Count()
 ```
