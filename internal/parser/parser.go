@@ -5,25 +5,16 @@ import (
 	"strconv"
 )
 
-func isNum(c byte) bool {
-	return c >= '0' && c <= '9'
-}
-
-func isAlpha(c byte) bool {
-	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
-}
-
-func isAlnum(c byte) bool {
-	return isAlpha(c) || isNum(c)
-}
-
 type Parser struct {
-	b   []byte
-	err error
+	b []byte
 }
 
 func New(b []byte) *Parser {
 	return &Parser{b: b}
+}
+
+func NewString(s string) *Parser {
+	return &Parser{b: []byte(s)}
 }
 
 func (p *Parser) Bytes() []byte {

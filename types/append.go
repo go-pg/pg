@@ -187,11 +187,14 @@ func appendDriverValuer(b []byte, v driver.Valuer, quote int) []byte {
 }
 
 func AppendField(b []byte, field string, quote int) []byte {
-	return AppendFieldBytes(b, []byte(field), quote)
+	return appendField(b, parser.NewString(field), quote)
 }
 
 func AppendFieldBytes(b []byte, field []byte, quote int) []byte {
-	p := parser.New(field)
+	return appendField(b, parser.New(field), quote)
+}
+
+func appendField(b []byte, p *parser.Parser, quote int) []byte {
 	var quoted bool
 	for p.Valid() {
 		c := p.Read()
