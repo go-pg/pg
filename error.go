@@ -9,10 +9,10 @@ import (
 )
 
 var (
-	ErrSSLNotSupported = internal.Errorf("pg: SSL is not enabled on the server")
-
 	ErrNoRows    = internal.Errorf("pg: no rows in result set")
 	ErrMultiRows = internal.Errorf("pg: multiple rows in result set")
+
+	errSSLNotSupported = internal.Errorf("pg: SSL is not enabled on the server")
 
 	errClosed         = internal.Errorf("pg: database is closed")
 	errTxDone         = internal.Errorf("pg: transaction has already been committed or rolled back")

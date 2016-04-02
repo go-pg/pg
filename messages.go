@@ -114,7 +114,7 @@ func enableSSL(cn *pool.Conn) error {
 		return err
 	}
 	if b[0] != 'S' {
-		return ErrSSLNotSupported
+		return errSSLNotSupported
 	}
 
 	tlsConf := &tls.Config{
