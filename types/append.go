@@ -86,17 +86,13 @@ func appendFloat(dst []byte, v float64) []byte {
 }
 
 func AppendString(b []byte, s string, quote int) []byte {
-	return AppendStringBytes(b, []byte(s), quote)
-}
-
-func AppendStringBytes(b []byte, bytes []byte, quote int) []byte {
 	if quote == 2 {
 		b = append(b, '"')
 	} else if quote == 1 {
 		b = append(b, '\'')
 	}
 
-	for _, c := range bytes {
+	for _, c := range []byte(s) {
 		if c == '\000' {
 			continue
 		}

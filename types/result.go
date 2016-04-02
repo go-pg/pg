@@ -5,8 +5,6 @@ import (
 	"strconv"
 )
 
-var resultSep = []byte{' '}
-
 type Result interface {
 	Affected() int
 }
@@ -16,11 +14,11 @@ type result struct {
 	affected int
 }
 
-func ParseResult(b []byte) Result {
+func ParseResult(b []byte) result {
 	res := result{
 		affected: -1,
 	}
-	ind := bytes.LastIndex(b, resultSep)
+	ind := bytes.LastIndexByte(b, ' ')
 	if ind == -1 {
 		return res
 	}
