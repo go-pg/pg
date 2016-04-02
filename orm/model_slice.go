@@ -9,8 +9,8 @@ type SliceModel struct {
 
 var _ TableModel = (*SliceModel)(nil)
 
-func (m *SliceModel) Join(name string) (string, error) {
-	return join(m, name)
+func (m *SliceModel) Join(name string) *Join {
+	return join(&m.StructModel, m.Value(), name)
 }
 
 func (m *SliceModel) Kind() reflect.Kind {

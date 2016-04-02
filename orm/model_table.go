@@ -11,8 +11,8 @@ type TableModel interface {
 
 	Model
 
-	Join(string) (string, error)
-	GetJoin(string) (*Join, bool)
+	Join(string) *Join
+	GetJoin(string) *Join
 	GetJoins() []Join
 	AddJoin(Join) *Join
 

@@ -128,8 +128,7 @@ func (m *StructModel) scanColumn(colIdx int, colName string, b []byte) (bool, er
 
 	joinName, fieldName := splitColumn(colName)
 	if joinName != "" {
-		join, ok := m.GetJoin(joinName)
-		if ok {
+		if join := m.GetJoin(joinName); join != nil {
 			return join.JoinModel.scanColumn(colIdx, fieldName, b)
 		}
 	}
@@ -148,14 +147,14 @@ func (m *StructModel) scanColumn(colIdx int, colName string, b []byte) (bool, er
 	return false, nil
 }
 
-func (m *StructModel) GetJoin(name string) (*Join, bool) {
+func (m *StructModel) GetJoin(name string) *Join {
 	for i := range m.joins {
 		j := &m.joins[i]
 		if j.Rel.Field.GoName == name || j.Rel.Field.SQLName == name {
-			return j, true
+			return j
 		}
 	}
-	return nil, false
+	return nil
 }
 
 func (m *StructModel) GetJoins() []Join {
@@ -167,44 +166,36 @@ func (m *StructModel) AddJoin(j Join) *Join {
 	return &m.joins[len(m.joins)-1]
 }
 
-func (m *StructModel) Join(name string) (string, error) {
-	return join(m, name)
+func (m *StructModel) Join(name string) *Join {
+	return join(m, m.Value(), name)
 }
 
-func join(m TableModel, name string) (string, error) {
+func join(m *StructModel, bind reflect.Value, name string) *Join {
 	path := strings.Split(name, ".")
-	var sqlPath []string
 
 	join := Join{
 		BaseModel: m,
 		JoinModel: m,
 	}
-	bind := m.Value()
 	var lastJoin *Join
-	var retErr error
+	var hasColumnName bool
 
 	for i, name := range path {
 		rel, ok := join.JoinModel.Table().Relations[name]
 		if !ok {
-			retErr = fmt.Errorf(
-				"pg: %s doesn't have %s relation",
-				join.BaseModel.Table().ModelName, name,
-			)
+			hasColumnName = true
 			break
 		}
-
 		join.Rel = rel
-		sqlPath = append(sqlPath, rel.Field.SQLName)
 
-		if j, ok := join.JoinModel.GetJoin(name); ok {
+		if j := join.JoinModel.GetJoin(name); j != nil {
 			join.BaseModel = j.BaseModel
 			join.JoinModel = j.JoinModel
 			lastJoin = j
 		} else {
 			model, err := NewTableModelPath(bind, path[:i+1], rel.Join)
 			if err != nil {
-				retErr = err
-				break
+				return nil
 			}
 
 			join.BaseModel = join.JoinModel
@@ -215,22 +206,21 @@ func join(m TableModel, name string) (string, error) {
 
 	// No joins with such name.
 	if lastJoin == nil {
-		return "", retErr
+		return nil
 	}
 
-	if retErr == nil {
-		lastJoin.SelectAll = true
-	} else {
+	if hasColumnName {
 		column := path[len(path)-1]
 		if column == "_" {
 			column = path[len(path)-2]
 		} else {
 			lastJoin.Columns = append(lastJoin.Columns, column)
 		}
-		sqlPath = append(sqlPath, column)
+	} else {
+		lastJoin.SelectAll = true
 	}
 
-	return strings.Join(sqlPath, "."), nil
+	return lastJoin
 }
 
 func splitColumn(s string) (string, string) {

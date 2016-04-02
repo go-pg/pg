@@ -56,11 +56,11 @@ loop:
 	for _, column := range columns {
 		switch column := column.(type) {
 		case string:
-			if _, err := q.model.Join(column); err == nil {
+			if j := q.model.Join(column); j != nil {
 				continue loop
 			}
-			q.fields = append(q.fields, column)
 
+			q.fields = append(q.fields, column)
 			q.columns = appendSep(q.columns, ", ")
 			q.columns = types.AppendField(q.columns, column, 1)
 		case types.ValueAppender:
@@ -98,22 +98,10 @@ func (q *Query) Returning(columns ...interface{}) *Query {
 }
 
 func (q *Query) Where(where string, params ...interface{}) *Query {
-	if false {
-		for i, param := range params {
-			if f, ok := param.(types.F); ok {
-				column, err := q.model.Join(string(f) + "._")
-				if err == nil {
-					params[i] = types.F(column)
-				}
-			}
-		}
-	}
-
 	q.where = appendSep(q.where, " AND ")
 	q.where = append(q.where, '(')
 	q.where = Formatter{}.Append(q.where, where, params...)
 	q.where = append(q.where, ')')
-
 	return q
 }
 
@@ -144,6 +132,7 @@ func (q *Query) Scan(values ...interface{}) error {
 		return q.err
 	}
 
+	q.joinHasOne()
 	sel := &selectQuery{
 		Query: q,
 	}
@@ -156,21 +145,17 @@ func (q *Query) Count() (int, error) {
 		return 0, q.err
 	}
 
+	q.joinHasOne()
 	q.columns = types.Q("COUNT(*)")
 	q.order = nil
 	q.limit = 0
 	q.offset = 0
 
-	joins := q.model.GetJoins()
-	for i := range joins {
-		j := &joins[i]
-		if j.Rel.One {
-			j.JoinOne(q)
-		}
+	sel := &selectQuery{
+		Query: q,
 	}
-
 	var count int
-	err := q.Scan(&count)
+	_, err := q.db.QueryOne(Scan(&count), sel, q.model)
 	return count, err
 }
 
@@ -186,14 +171,7 @@ func (q *Query) Last() error {
 }
 
 func (q *Query) Select() error {
-	joins := q.model.GetJoins()
-	for i := range joins {
-		j := &joins[i]
-		if j.Rel.One {
-			j.JoinOne(q)
-		}
-	}
-
+	q.joinHasOne()
 	sel := &selectQuery{
 		Query: q,
 	}
@@ -207,7 +185,17 @@ func (q *Query) Select() error {
 		return err
 	}
 
-	return selectJoins(q.db, joins)
+	return selectJoins(q.db, q.model.GetJoins())
+}
+
+func (q *Query) joinHasOne() {
+	joins := q.model.GetJoins()
+	for i := range joins {
+		j := &joins[i]
+		if j.Rel.One {
+			j.JoinOne(q)
+		}
+	}
 }
 
 func selectJoins(db dber, joins []Join) error {
