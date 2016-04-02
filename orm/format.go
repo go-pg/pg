@@ -18,19 +18,18 @@ func AppendQuery(dst []byte, src interface{}, params ...interface{}) (b []byte, 
 	}
 }
 
-func FormatQuery(query string, params ...interface{}) []byte {
+func Q(query string, params ...interface{}) types.Q {
 	if len(params) == 0 {
-		return []byte(query)
+		return types.Q(query)
 	}
 	return Formatter{}.Append(nil, query, params...)
 }
 
-func Q(s string, params ...interface{}) types.Q {
-	return FormatQuery(s, params...)
-}
-
-func F(s string, params ...interface{}) types.F {
-	return FormatQuery(s, params...)
+func F(field string, params ...interface{}) types.F {
+	if len(params) == 0 {
+		return types.F(field)
+	}
+	return types.F(Formatter{}.Append(nil, field, params...))
 }
 
 type Formatter struct {

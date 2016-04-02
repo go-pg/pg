@@ -115,19 +115,19 @@ func TestFormatQuery(t *testing.T) {
 
 func BenchmarkFormatQueryWithoutParams(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = orm.FormatQuery("SELECT * FROM my_table WHERE id = 1")
+		_ = orm.Q("SELECT * FROM my_table WHERE id = 1")
 	}
 }
 
 func BenchmarkFormatQuery1Param(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = orm.FormatQuery("SELECT * FROM my_table WHERE id = ?", 1)
+		_ = orm.Q("SELECT * FROM my_table WHERE id = ?", 1)
 	}
 }
 
 func BenchmarkFormatQuery10Params(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		_ = orm.FormatQuery(
+		_ = orm.Q(
 			"SELECT * FROM my_table WHERE id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 			1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 		)
@@ -145,13 +145,13 @@ func BenchmarkFormatQueryStructParam(b *testing.B) {
 		String: "1",
 	}
 	for i := 0; i < b.N; i++ {
-		_ = orm.FormatQuery("SELECT * FROM my_table WHERE id = ?string", param)
+		_ = orm.Q("SELECT * FROM my_table WHERE id = ?string", param)
 	}
 }
 
 func BenchmarkFormatQueryStructMethod(b *testing.B) {
 	param := StructFormatter{}
 	for i := 0; i < b.N; i++ {
-		_ = orm.FormatQuery("SELECT * FROM my_table WHERE id = ?Method", &param)
+		_ = orm.Q("SELECT * FROM my_table WHERE id = ?Method", &param)
 	}
 }

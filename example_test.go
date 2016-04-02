@@ -326,11 +326,11 @@ func ExampleDB_Model_selectFirstAndLastRow() {
 	// Output: Book<Id=1 Title="book 1"> Book<Id=3 Title="book 3">
 }
 
-func ExampleDB_Model_selectAllColumns() {
+func ExampleDB_Model_selectAllColumn() {
 	db := connectDB()
 
 	var book Book
-	err := db.Model(&book).Columns("book.*").First()
+	err := db.Model(&book).Column("book.*").First()
 	if err != nil {
 		panic(err)
 	}
@@ -338,12 +338,12 @@ func ExampleDB_Model_selectAllColumns() {
 	// Output: Book<Id=1 Title="book 1"> 10
 }
 
-func ExampleDB_Model_selectSomeColumns() {
+func ExampleDB_Model_selectSomeColumn() {
 	db := connectDB()
 
 	var book Book
 	err := db.Model(&book).
-		Columns("book.id").
+		Column("book.id").
 		First()
 	if err != nil {
 		panic(err)
@@ -386,7 +386,7 @@ func ExampleDB_Update() {
 	// Output: Book<Id=1 Title="updated book 1">
 }
 
-func ExampleDB_Update_someColumns() {
+func ExampleDB_Update_someColumn() {
 	db := connectDB()
 
 	book := Book{
@@ -394,7 +394,7 @@ func ExampleDB_Update_someColumns() {
 		Title:    "updated book 1",
 		AuthorID: 2,
 	}
-	err := db.Model(&book).Columns("title").Returning("*").Update()
+	err := db.Model(&book).Column("title").Returning("*").Update()
 	if err != nil {
 		panic(err)
 	}

@@ -11,19 +11,23 @@ type Join struct {
 	Columns   []string
 }
 
-func (j *Join) AppendColumns(columns []types.ValueAppender) []types.ValueAppender {
+func (j *Join) AppendColumns(columns []byte) []byte {
 	alias := j.Rel.Field.SQLName
 	prefix := alias + "__"
 
 	if j.SelectAll {
 		for _, f := range j.JoinModel.Table().Fields {
 			q := Q("?.? AS ?", types.F(alias), types.F(f.SQLName), types.F(prefix+f.SQLName))
-			columns = append(columns, q)
+
+			columns = appendSep(columns, ", ")
+			columns = append(columns, q...)
 		}
 	} else {
 		for _, column := range j.Columns {
 			q := Q("?.? AS ?", types.F(alias), types.F(column), types.F(prefix+column))
-			columns = append(columns, q)
+
+			columns = appendSep(columns, ", ")
+			columns = append(columns, q...)
 		}
 	}
 
@@ -70,7 +74,9 @@ func (j *Join) selectMany(db dber) error {
 
 	manyModel := newManyModel(j)
 	q := NewQuery(db, manyModel)
-	q.columns = append(q.columns, types.F(j.JoinModel.Table().ModelName+".*"))
+
+	q.columns = appendSep(q.columns, ", ")
+	q.columns = types.AppendField(q.columns, j.JoinModel.Table().ModelName+".*", 1)
 
 	cols := columns(j.JoinModel.Table().ModelName+".", j.Rel.FKs)
 	vals := values(root, path, j.BaseModel.Table().PKs)
@@ -98,7 +104,7 @@ func (j *Join) selectM2M(db dber) error {
 
 	m2mModel := newM2MModel(j)
 	q := NewQuery(db, m2mModel)
-	q.Columns("*")
+	q.Column("*")
 	q.Join(
 		"JOIN ? ON (?) IN (?)",
 		types.F(j.Rel.M2MTableName),

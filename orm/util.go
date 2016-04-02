@@ -150,3 +150,10 @@ func dstValues(root reflect.Value, path []string, fields []*Field) map[string][]
 	})
 	return mp
 }
+
+func appendSep(b []byte, sep string) []byte {
+	if len(b) > 0 {
+		b = append(b, sep...)
+	}
+	return b
+}
