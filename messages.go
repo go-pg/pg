@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/golang/glog"
-
 	"gopkg.in/pg.v4/internal/pool"
 	"gopkg.in/pg.v4/orm"
 	"gopkg.in/pg.v4/types"
@@ -958,63 +956,11 @@ func readMessageType(cn *pool.Conn) (byte, int, error) {
 }
 
 func logNotice(cn *pool.Conn, msgLen int) error {
-	if !glog.V(2) {
-		_, err := cn.ReadN(msgLen)
-		return err
-	}
-
-	var level string
-	var logger func(string, ...interface{})
-	for {
-		c, err := cn.Rd.ReadByte()
-		if err != nil {
-			return err
-		}
-		if c == 0 {
-			break
-		}
-		s, err := readString(cn)
-		if err != nil {
-			return err
-		}
-
-		switch c {
-		case 'S':
-			level = s
-			switch level {
-			case "DEBUG", "LOG", "INFO", "NOTICE":
-				logger = glog.Infof
-			case "WARNING":
-				logger = glog.Warningf
-			case "EXCEPTION":
-				logger = glog.Errorf
-			default:
-				logger = glog.Fatalf
-			}
-		case 'M':
-			logger("pg %s message: %s", level, s)
-		}
-	}
-
-	return nil
+	_, err := cn.ReadN(msgLen)
+	return err
 }
 
 func logParameterStatus(cn *pool.Conn, msgLen int) error {
-	if !glog.V(2) {
-		_, err := cn.ReadN(msgLen)
-		return err
-	}
-
-	name, err := readString(cn)
-	if err != nil {
-		return err
-	}
-
-	value, err := readString(cn)
-	if err != nil {
-		return err
-	}
-
-	glog.Infof("pg parameter status: %s=%q", name, value)
-	return nil
+	_, err := cn.ReadN(msgLen)
+	return err
 }
