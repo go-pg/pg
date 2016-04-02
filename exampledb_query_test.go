@@ -73,6 +73,9 @@ func ExampleDB_Query() {
 		UserId: user1.Id,
 	}
 	err = db.Create(story1)
+	if err != nil {
+		panic(err)
+	}
 
 	var user User
 	err = db.Model(&user).Where("id = ?", user1.Id).Select()
