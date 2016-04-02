@@ -6,7 +6,7 @@ import (
 	"gopkg.in/pg.v4"
 )
 
-func ExampleDB_Model_postgresqlArrayStructTag() {
+func ExampleDB_Model_postgresArrayStructTag() {
 	type Item struct {
 		Id      int64
 		Emails  []string `pg:",array"` // marshalled as PostgreSQL array

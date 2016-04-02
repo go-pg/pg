@@ -10,10 +10,8 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
-var (
-	// Discard can be used with Query and QueryOne to discard rows.
-	Discard orm.Discard
-)
+// Discard is be used with Query and QueryOne to discard rows.
+var Discard orm.Discard
 
 // Scan returns ColumnScanner that copies the columns in the
 // row into the values.

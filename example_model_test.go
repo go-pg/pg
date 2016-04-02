@@ -27,7 +27,7 @@ func ExampleDB_Create() {
 	}
 }
 
-func ExampleDB_Model_selectFirstAndLastRow() {
+func ExampleDB_Model_firstRow() {
 	db := connectDB()
 
 	var firstBook Book
@@ -35,15 +35,20 @@ func ExampleDB_Model_selectFirstAndLastRow() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(firstBook)
+	// Output: Book<Id=1 Title="book 1">
+}
+
+func ExampleDB_Model_lastRow() {
+	db := connectDB()
 
 	var lastBook Book
-	err = db.Model(&lastBook).Last()
+	err := db.Model(&lastBook).Last()
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println(firstBook, lastBook)
-	// Output: Book<Id=1 Title="book 1"> Book<Id=3 Title="book 3">
+	fmt.Println(lastBook)
+	// Output: Book<Id=3 Title="book 3">
 }
 
 func ExampleDB_Model_selectAllColumn() {

@@ -109,7 +109,7 @@ func ExampleDB_QueryOne_returning_id() {
 	// Output: {1 admin}
 }
 
-func ExampleDB_QueryOne_Scan() {
+func ExampleScan() {
 	var s1, s2 string
 	_, err := db.QueryOne(pg.Scan(&s1, &s2), `SELECT ?, ?`, "foo", "bar")
 	fmt.Println(s1, s2, err)

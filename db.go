@@ -136,8 +136,8 @@ func (db *DB) ExecOne(query interface{}, params ...interface{}) (types.Result, e
 	return assertOneAffected(res, nil)
 }
 
-// Query executes a query that returns rows, typically a SELECT. The
-// params are for any placeholder parameters in the query.
+// Query executes a query that returns rows, typically a SELECT.
+// The params are for any placeholder parameters in the query.
 func (db *DB) Query(model, query interface{}, params ...interface{}) (res types.Result, err error) {
 	for i := 0; i < 3; i++ {
 		var cn *pool.Conn
@@ -235,18 +235,22 @@ func (db *DB) CopyTo(w io.WriteCloser, query interface{}, params ...interface{})
 	return res, nil
 }
 
+// Model returns new query for the model.
 func (db *DB) Model(model interface{}) *orm.Query {
 	return orm.NewQuery(db, model)
 }
 
+// Create inserts model into database.
 func (db *DB) Create(model interface{}) error {
 	return orm.Create(db, model)
 }
 
+// Update updates model in database.
 func (db *DB) Update(model interface{}) error {
 	return orm.Update(db, model)
 }
 
+// Delete deletes model in database.
 func (db *DB) Delete(model interface{}) error {
 	return orm.Delete(db, model)
 }
