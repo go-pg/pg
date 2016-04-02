@@ -139,6 +139,18 @@ func (q *Query) Offset(n int) *Query {
 	return q
 }
 
+func (q *Query) Scan(values ...interface{}) error {
+	if q.err != nil {
+		return q.err
+	}
+
+	sel := &selectQuery{
+		Query: q,
+	}
+	_, err := q.db.QueryOne(Scan(values...), sel, q.model)
+	return err
+}
+
 func (q *Query) Count() (int, error) {
 	if q.err != nil {
 		return 0, q.err
@@ -157,12 +169,8 @@ func (q *Query) Count() (int, error) {
 		}
 	}
 
-	sel := &selectQuery{
-		Query: q,
-	}
-
 	var count int
-	_, err := q.db.Query(Scan(&count), sel, q.model)
+	err := q.Scan(&count)
 	return count, err
 }
 
@@ -178,11 +186,7 @@ func (q *Query) Last() error {
 }
 
 func (q *Query) Select() error {
-	return q.selectModel(q.model)
-}
-
-func (q *Query) selectModel(model TableModel) error {
-	joins := model.GetJoins()
+	joins := q.model.GetJoins()
 	for i := range joins {
 		j := &joins[i]
 		if j.Rel.One {
@@ -194,10 +198,10 @@ func (q *Query) selectModel(model TableModel) error {
 		Query: q,
 	}
 	var err error
-	if model.Kind() == reflect.Slice {
-		_, err = q.db.Query(model, sel, model)
+	if q.model.Kind() == reflect.Slice {
+		_, err = q.db.Query(q.model, sel, q.model)
 	} else {
-		_, err = q.db.QueryOne(model, sel, model)
+		_, err = q.db.QueryOne(q.model, sel, q.model)
 	}
 	if err != nil {
 		return err

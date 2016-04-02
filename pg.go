@@ -15,14 +15,20 @@ var Discard orm.Discard
 
 // Scan returns ColumnScanner that copies the columns in the
 // row into the values.
-var Scan = orm.Scan
+func Scan(values ...interface{}) orm.ColumnScanner {
+	return orm.Scan(values...)
+}
 
 // Q returns a ValueAppender that represents safe SQL query.
-var Q = orm.Q
+func Q(query string, params ...interface{}) types.Q {
+	return orm.Q(query, params...)
+}
 
 // F returns a ValueAppender that represents SQL identifier,
 // e.g. table or column name.
-var F = orm.F
+func F(field string, params ...interface{}) types.F {
+	return orm.F(field, params...)
+}
 
 // Array returns an Array type that represents PostgreSQL array of any type.
 func Array(v interface{}) *types.Array {
