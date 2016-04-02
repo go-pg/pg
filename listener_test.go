@@ -31,6 +31,21 @@ var _ = Context("Listener", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	It("reuses connection", func() {
+		for i := 0; i < 100; i++ {
+			_, _, err := ln.ReceiveTimeout(time.Nanosecond)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(MatchRegexp(".+ i/o timeout"))
+		}
+
+		st := db.Pool().Stats()
+		Expect(st.Requests).To(Equal(uint32(1)))
+		Expect(st.Hits).To(Equal(uint32(0)))
+		Expect(st.Timeouts).To(Equal(uint32(0)))
+		Expect(st.TotalConns).To(Equal(uint32(1)))
+		Expect(st.FreeConns).To(Equal(uint32(0)))
+	})
+
 	It("listens for notifications", func() {
 		wait := make(chan struct{}, 2)
 		go func() {
