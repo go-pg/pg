@@ -12,26 +12,31 @@ type Join struct {
 }
 
 func (j *Join) AppendColumns(columns []byte) []byte {
-	alias := j.Rel.Field.SQLName
-	prefix := alias + "__"
+	table := j.Rel.Field.SQLName
+	prefix := table + "__"
 
 	if j.SelectAll {
 		for _, f := range j.JoinModel.Table().Fields {
-			q := Q("?.? AS ?", types.F(alias), types.F(f.SQLName), types.F(prefix+f.SQLName))
-
 			columns = appendSep(columns, ", ")
-			columns = append(columns, q...)
+			columns = appendColumn(columns, table, f.SQLName, prefix+f.SQLName)
 		}
 	} else {
 		for _, column := range j.Columns {
-			q := Q("?.? AS ?", types.F(alias), types.F(column), types.F(prefix+column))
-
 			columns = appendSep(columns, ", ")
-			columns = append(columns, q...)
+			columns = appendColumn(columns, table, column, prefix+column)
 		}
 	}
 
 	return columns
+}
+
+func appendColumn(b []byte, table, column, columnAlias string) []byte {
+	b = types.AppendField(b, table, 1)
+	b = append(b, '.')
+	b = types.AppendField(b, column, 1)
+	b = append(b, " AS "...)
+	b = types.AppendField(b, columnAlias, 1)
+	return b
 }
 
 func (j *Join) JoinOne(q *Query) {

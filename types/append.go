@@ -215,19 +215,6 @@ func AppendFieldBytes(b []byte, field []byte, quote int) []byte {
 				quoted = true
 			}
 			continue
-		case ' ':
-			if p.Got("AS ") || p.Got("as ") {
-				if quote == 1 {
-					b = append(b, '"')
-				}
-				b = append(b, ` AS `...)
-				if quote == 1 {
-					b = append(b, '"')
-				}
-			} else {
-				b = append(b, ' ')
-			}
-			continue
 		}
 
 		if !quoted && quote == 1 {
