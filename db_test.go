@@ -172,10 +172,18 @@ type Genre struct {
 	Books []Book `pg:",many2many:book_genres"` // many to many relation
 }
 
+func (g Genre) String() string {
+	return fmt.Sprintf("Genre<Id=%d Name=%q>", g.Id, g.Name)
+}
+
 type Author struct {
 	ID    int // both "Id" and "ID" are detected as primary key
 	Name  string
 	Books []Book // has many relation
+}
+
+func (a Author) String() string {
+	return fmt.Sprintf("Author<ID=%d Name=%q>", a.ID, a.Name)
 }
 
 type BookGenre struct {

@@ -17,49 +17,6 @@ func init() {
 	})
 }
 
-func connectDB() *pg.DB {
-	db := pg.Connect(&pg.Options{
-		User: "postgres",
-	})
-
-	err := createTestSchema(db)
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.Create(&Book{
-		Title:     "book 1",
-		AuthorID:  10,
-		EditorID:  11,
-		CreatedAt: time.Now(),
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.Create(&Book{
-		Title:     "book 2",
-		AuthorID:  10,
-		EditorID:  12,
-		CreatedAt: time.Now(),
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.Create(&Book{
-		Title:     "book 3",
-		AuthorID:  11,
-		EditorID:  11,
-		CreatedAt: time.Now(),
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	return db
-}
-
 func ExampleConnect() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
