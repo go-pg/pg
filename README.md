@@ -27,12 +27,7 @@ Examples: http://godoc.org/gopkg.in/pg.v4#pkg-examples.
 * [Quickstart](#quickstart)
 * [Why go-pg](#why-go-pg)
 * [Howto](#howto)
-* [ORM](#orm)
-  * [Model definition](#model-definition)
-  * [Select model](#select-model)
-  * [Update specified columns](#update-specified-columns)
-  * [Delete multiple models](#delete-multiple-models)
-  * [Count rows](#count-rows)
+* [Model definition](#model-definition)
 
 ## Installation
 
@@ -269,12 +264,12 @@ func ExampleDB_Query() {
 
 Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to get the idea how to use this package.
 
-## ORM
-
-### Model definition
+## Model definition
 
 ```go
 type Genre struct {
+	TableName struct{} `sql:"genres"` // specifies custom table name
+
 	Id     int // Id is automatically detected as primary key
 	Name   string
 	Rating int `sql:"-"` // - is used to ignore field
@@ -282,10 +277,18 @@ type Genre struct {
 	Books []Book `pg:",many2many:book_genres"` // many to many relation
 }
 
+func (g Genre) String() string {
+	return fmt.Sprintf("Genre<Id=%d Name=%q>", g.Id, g.Name)
+}
+
 type Author struct {
 	ID    int // both "Id" and "ID" are detected as primary key
 	Name  string
 	Books []Book // has many relation
+}
+
+func (a Author) String() string {
+	return fmt.Sprintf("Author<ID=%d Name=%q>", a.ID, a.Name)
 }
 
 type BookGenre struct {
@@ -327,66 +330,4 @@ type Comment struct {
 	TrackableType string `sql:",pk"` // "book" or "translation"
 	Text          string
 }
-```
-
-### Select model
-
-```go
-var book Book
-err := db.Model(&book).
-	Column("book.*", "Author", "Editor", "Genres", "Comments", "Translations", "Translations.Comments").
-	Order("book.id DESC").
-	Limit(1).
-	Select()
-
-var books []Book
-err := db.Model(&book).
-	Column("book.*", "Author", "Editor", "Genres", "Comments", "Translations", "Translations.Comments").
-	Order("book.id DESC").
-	Limit(10).
-	Select()
-```
-
-### Create, update, and delete model
-
-```go
-book := Book{
-	Title:     "book 1",
-	AuthorID:  10,
-	EditorID:  11,
-	CreatedAt: time.Now(),
-}
-err := db.Create(&book)
-
-err = db.Update(book)
-
-err = db.Delete(book)
-```
-
-### Update specified columns
-
-```go
-id := 100
-data := map[string]interface{}{
-	"title": pg.Q("concat(?, title, ?)", "prefix ", " suffix"),
-}
-
-var book Book
-err := db.Model(&book).
-	Where("id = ?", id).
-	Returning("*").
-	UpdateValues(data)
-```
-
-### Delete multiple models
-
-```go
-ids := pg.Ints{100, 101}
-err := db.Model(&Book{}).Where("id IN (?)", ids).Delete()
-```
-
-### Count rows
-
-```go
-count, err := db.Model(&Book{}).Count()
 ```

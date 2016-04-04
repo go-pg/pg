@@ -165,6 +165,8 @@ var _ = Describe("DB.Create", func() {
 })
 
 type Genre struct {
+	TableName struct{} `sql:"genres"` // specifies custom table name
+
 	Id     int // Id is automatically detected as primary key
 	Name   string
 	Rating int `sql:"-"` // - is used to ignore field
