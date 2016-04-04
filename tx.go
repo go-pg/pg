@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"gopkg.in/pg.v4/internal/pool"
+	"gopkg.in/pg.v4/orm"
 	"gopkg.in/pg.v4/types"
 )
 
@@ -133,6 +134,26 @@ func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface
 		return nil, err
 	}
 	return assertOneAffected(res, mod)
+}
+
+// Model returns new query for the model.
+func (tx *Tx) Model(model interface{}) *orm.Query {
+	return orm.NewQuery(tx, model)
+}
+
+// Create inserts model into database.
+func (tx *Tx) Create(model interface{}) error {
+	return orm.Create(tx, model)
+}
+
+// Update updates model in database.
+func (tx *Tx) Update(model interface{}) error {
+	return orm.Update(tx, model)
+}
+
+// Delete deletes model in database.
+func (tx *Tx) Delete(model interface{}) error {
+	return orm.Delete(tx, model)
 }
 
 // Commit commits the transaction.
