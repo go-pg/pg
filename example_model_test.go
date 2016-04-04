@@ -1,6 +1,7 @@
 package pg_test
 
 import (
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -154,6 +155,20 @@ func ExampleDB_Model_countRows() {
 
 	fmt.Println(count)
 	// Output: 3
+}
+
+func ExampleDB_Model_nullEmptyValue() {
+	type Example struct {
+		Hello string `sql:",null"`
+	}
+
+	var str sql.NullString
+	_, err := db.QueryOne(pg.Scan(&str), "SELECT ?hello", Example{Hello: ""})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(str.Valid)
+	// Output: false
 }
 
 func ExampleDB_Model_hasOne() {

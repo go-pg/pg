@@ -19,7 +19,7 @@ func (e ValuerError) Value() (driver.Value, error) {
 
 type StructFormatter struct {
 	String    string
-	NullEmpty string `pg:",nullempty"`
+	NullEmpty string `sql:",null"`
 }
 
 func (StructFormatter) Method() string {

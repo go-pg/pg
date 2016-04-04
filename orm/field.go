@@ -14,7 +14,7 @@ var (
 const (
 	PrimaryKeyFlag = 1 << iota
 	ForeignKeyFlag = 1 << iota
-	NullEmptyFlag  = 1 << iota
+	NullFlag       = 1 << iota
 	FormatFlag     = 1 << iota
 )
 
@@ -52,7 +52,7 @@ func (f *Field) IsEmpty(strct reflect.Value) bool {
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 	fv := f.Value(strct)
-	if f.Has(NullEmptyFlag) && f.isEmpty(fv) {
+	if f.Has(NullFlag) && f.isEmpty(fv) {
 		return types.AppendNull(b, quote)
 	}
 	return f.append(b, fv, quote)
