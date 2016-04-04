@@ -97,7 +97,7 @@ func AppendString(b []byte, s string, quote int) []byte {
 			continue
 		}
 
-		if quote == 1 {
+		if quote >= 1 {
 			if c == '\'' {
 				b = append(b, '\'', '\'')
 				continue
