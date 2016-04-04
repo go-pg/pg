@@ -171,8 +171,8 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 		return nil
 	}
 
-	if _, ok := pgOpt.Get("nullempty"); ok {
-		field.flags |= NullEmptyFlag
+	if _, ok := sqlOpt.Get("null"); ok {
+		field.flags |= NullFlag
 	}
 	if field.SQLName == "id" {
 		field.flags |= PrimaryKeyFlag
