@@ -5,8 +5,8 @@ Supports:
 - Basic types: integers, floats, string, bool, time.Time.
 - sql.NullBool, sql.NullString, sql.NullInt64 and sql.NullFloat64.
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
+- Structs, maps and arrays are marshalled as JSON by default.
 - PostgreSQL Arrays using [array tag](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-PostgresqlArrayStructTag) and [Array wrapper](https://godoc.org/gopkg.in/pg.v4#example-Array).
-- [JSON](https://godoc.org/gopkg.in/pg.v4#ex-package--Json).
 - [Transactions](http://godoc.org/gopkg.in/pg.v4#example-DB-Begin).
 - [Prepared statements](http://godoc.org/gopkg.in/pg.v4#example-DB-Prepare).
 - [Notifications](http://godoc.org/gopkg.in/pg.v4#example-Listener) using `LISTEN` and `NOTIFY`.
