@@ -119,7 +119,7 @@ func ExampleDB_Create_onConflict() {
 		panic(err)
 	}
 
-	// Output: created
+	// created
 	// did nothing
 }
 

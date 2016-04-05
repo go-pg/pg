@@ -220,7 +220,7 @@ func selectJoins(db dber, joins []Join) error {
 	return nil
 }
 
-func (q *Query) Create() (types.Result, error) {
+func (q *Query) Create() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
@@ -230,7 +230,7 @@ func (q *Query) Create() (types.Result, error) {
 	return q.db.Query(q.model, ins, q.model)
 }
 
-func (q *Query) Update() (types.Result, error) {
+func (q *Query) Update() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
@@ -240,7 +240,7 @@ func (q *Query) Update() (types.Result, error) {
 	return q.db.Query(q.model, upd, q.model)
 }
 
-func (q *Query) UpdateValues(data map[string]interface{}) (types.Result, error) {
+func (q *Query) UpdateValues(data map[string]interface{}) (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
@@ -251,7 +251,7 @@ func (q *Query) UpdateValues(data map[string]interface{}) (types.Result, error) 
 	return q.db.Query(q.model, upd, q.model)
 }
 
-func (q *Query) Delete() (types.Result, error) {
+func (q *Query) Delete() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}

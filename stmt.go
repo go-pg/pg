@@ -65,7 +65,7 @@ func (stmt *Stmt) conn() (*pool.Conn, error) {
 	return stmt._cn, nil
 }
 
-func (stmt *Stmt) exec(params ...interface{}) (types.Result, error) {
+func (stmt *Stmt) exec(params ...interface{}) (*types.Result, error) {
 	defer stmt.mu.Unlock()
 	stmt.mu.Lock()
 
@@ -77,7 +77,7 @@ func (stmt *Stmt) exec(params ...interface{}) (types.Result, error) {
 }
 
 // Exec executes a prepared statement with the given parameters.
-func (stmt *Stmt) Exec(params ...interface{}) (res types.Result, err error) {
+func (stmt *Stmt) Exec(params ...interface{}) (res *types.Result, err error) {
 	for i := 0; i < 3; i++ {
 		res, err = stmt.exec(params...)
 
@@ -99,7 +99,7 @@ func (stmt *Stmt) Exec(params ...interface{}) (res types.Result, err error) {
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (stmt *Stmt) ExecOne(params ...interface{}) (types.Result, error) {
+func (stmt *Stmt) ExecOne(params ...interface{}) (*types.Result, error) {
 	res, err := stmt.Exec(params...)
 	if err != nil {
 		return nil, err
@@ -107,7 +107,7 @@ func (stmt *Stmt) ExecOne(params ...interface{}) (types.Result, error) {
 	return assertOneAffected(res)
 }
 
-func (stmt *Stmt) query(model interface{}, params ...interface{}) (types.Result, error) {
+func (stmt *Stmt) query(model interface{}, params ...interface{}) (*types.Result, error) {
 	defer stmt.mu.Unlock()
 	stmt.mu.Lock()
 
@@ -119,7 +119,7 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (types.Result,
 }
 
 // Query executes a prepared query statement with the given parameters.
-func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res types.Result, err error) {
+func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res *types.Result, err error) {
 	for i := 0; i < 3; i++ {
 		res, err = stmt.query(model, params...)
 
@@ -141,7 +141,7 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res types.Res
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (types.Result, error) {
+func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (*types.Result, error) {
 	mod, err := newSingleModel(model)
 	if err != nil {
 		return nil, err
@@ -167,7 +167,7 @@ func (stmt *Stmt) Close() error {
 	return err
 }
 
-func extQuery(cn *pool.Conn, name string, params ...interface{}) (types.Result, error) {
+func extQuery(cn *pool.Conn, name string, params ...interface{}) (*types.Result, error) {
 	if err := writeBindExecuteMsg(cn.Wr, name, params...); err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func extQuery(cn *pool.Conn, name string, params ...interface{}) (types.Result, 
 	return readExtQuery(cn)
 }
 
-func extQueryData(cn *pool.Conn, name string, model interface{}, columns []string, params ...interface{}) (types.Result, error) {
+func extQueryData(cn *pool.Conn, name string, model interface{}, columns []string, params ...interface{}) (*types.Result, error) {
 	if err := writeBindExecuteMsg(cn.Wr, name, params...); err != nil {
 		return nil, err
 	}

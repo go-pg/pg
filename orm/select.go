@@ -7,10 +7,10 @@ import (
 )
 
 type dber interface {
-	Exec(q interface{}, params ...interface{}) (types.Result, error)
-	ExecOne(q interface{}, params ...interface{}) (types.Result, error)
-	Query(coll, query interface{}, params ...interface{}) (types.Result, error)
-	QueryOne(model, query interface{}, params ...interface{}) (types.Result, error)
+	Exec(q interface{}, params ...interface{}) (*types.Result, error)
+	ExecOne(q interface{}, params ...interface{}) (*types.Result, error)
+	Query(coll, query interface{}, params ...interface{}) (*types.Result, error)
+	QueryOne(model, query interface{}, params ...interface{}) (*types.Result, error)
 }
 
 type selectQuery struct {

@@ -80,7 +80,7 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 }
 
 // Exec executes a query with the given parameters in a transaction.
-func (tx *Tx) Exec(query interface{}, params ...interface{}) (types.Result, error) {
+func (tx *Tx) Exec(query interface{}, params ...interface{}) (*types.Result, error) {
 	if tx.done {
 		return nil, errTxDone
 	}
@@ -98,7 +98,7 @@ func (tx *Tx) Exec(query interface{}, params ...interface{}) (types.Result, erro
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (types.Result, error) {
+func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (*types.Result, error) {
 	res, err := tx.Exec(query, params...)
 	if err != nil {
 		return nil, err
@@ -107,7 +107,7 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (types.Result, e
 }
 
 // Query executes a query with the given parameters in a transaction.
-func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (types.Result, error) {
+func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (*types.Result, error) {
 	if tx.done {
 		return nil, errTxDone
 	}
@@ -124,7 +124,7 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (types.Result, error) {
+func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (*types.Result, error) {
 	mod, err := newSingleModel(model)
 	if err != nil {
 		return nil, err
@@ -203,7 +203,7 @@ func (tx *Tx) close() error {
 }
 
 // CopyFrom copies data from reader to a table.
-func (tx *Tx) CopyFrom(r io.Reader, query string, params ...interface{}) (types.Result, error) {
+func (tx *Tx) CopyFrom(r io.Reader, query string, params ...interface{}) (*types.Result, error) {
 	cn := tx.conn()
 	res, err := copyFrom(cn, r, query, params...)
 	if err != nil {

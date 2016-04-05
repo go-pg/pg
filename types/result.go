@@ -5,33 +5,29 @@ import (
 	"strconv"
 )
 
-type Result interface {
-	Affected() int
-}
-
 // A Result summarizes an executed SQL command.
-type result struct {
+type Result struct {
 	affected int
 }
 
-func ParseResult(b []byte) result {
-	res := result{
+func ParseResult(b []byte) *Result {
+	res := Result{
 		affected: -1,
 	}
 	ind := bytes.LastIndexByte(b, ' ')
 	if ind == -1 {
-		return res
+		return &res
 	}
 	affected, err := strconv.Atoi(string(b[ind+1 : len(b)-1]))
 	if err == nil {
 		res.affected = affected
 	}
-	return res
+	return &res
 }
 
 // Affected returns the number of rows affected by SELECT, INSERT, UPDATE, or
 // DELETE queries. It returns -1 when query can't possibly affect any rows,
 // e.g. in case of CREATE or SHOW queries.
-func (r result) Affected() int {
+func (r Result) Affected() int {
 	return r.affected
 }

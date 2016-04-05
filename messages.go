@@ -396,7 +396,7 @@ func readBindMsg(cn *pool.Conn) (e error) {
 	}
 }
 
-func readSimpleQuery(cn *pool.Conn) (res types.Result, e error) {
+func readSimpleQuery(cn *pool.Conn) (res *types.Result, e error) {
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -443,7 +443,7 @@ func readSimpleQuery(cn *pool.Conn) (res types.Result, e error) {
 	}
 }
 
-func readExtQuery(cn *pool.Conn) (res types.Result, e error) {
+func readExtQuery(cn *pool.Conn) (res *types.Result, e error) {
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -539,7 +539,7 @@ func readDataRow(cn *pool.Conn, scanner orm.ColumnScanner, columns []string) (sc
 	return scanErr
 }
 
-func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res types.Result, e error) {
+func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res *types.Result, e error) {
 	coll, ok := mod.(orm.Collection)
 	if !ok {
 		coll, e = orm.NewModel(mod)
@@ -604,7 +604,7 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res types.Result, e er
 	}
 }
 
-func readExtQueryData(cn *pool.Conn, mod interface{}, columns []string) (res types.Result, e error) {
+func readExtQueryData(cn *pool.Conn, mod interface{}, columns []string) (res *types.Result, e error) {
 	coll, ok := mod.(orm.Collection)
 	if !ok {
 		coll, e = orm.NewModel(mod)
@@ -734,7 +734,7 @@ func readCopyOutResponse(cn *pool.Conn) error {
 	}
 }
 
-func readCopyData(cn *pool.Conn, w io.WriteCloser) (types.Result, error) {
+func readCopyData(cn *pool.Conn, w io.WriteCloser) (*types.Result, error) {
 	defer w.Close()
 	for {
 		c, msgLen, err := readMessageType(cn)
@@ -795,7 +795,7 @@ func writeCopyDone(buf *pool.Buffer) {
 	buf.FinishMessage()
 }
 
-func readReadyForQueryOrError(cn *pool.Conn) (res types.Result, e error) {
+func readReadyForQueryOrError(cn *pool.Conn) (res *types.Result, e error) {
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
