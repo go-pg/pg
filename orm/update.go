@@ -8,7 +8,10 @@ import (
 
 func Update(db dber, v interface{}) error {
 	q := NewQuery(db, v)
-	_, err := db.Query(q.model, updateModel{Query: q}, q.model)
+	if q.err != nil {
+		return q.err
+	}
+	_, err := db.ExecOne(updateModel{q}, q.model)
 	return err
 }
 

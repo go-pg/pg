@@ -133,7 +133,7 @@ func (db *DB) ExecOne(query interface{}, params ...interface{}) (types.Result, e
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res, nil)
+	return assertOneAffected(res)
 }
 
 // Query executes a query that returns rows, typically a SELECT.
@@ -174,7 +174,7 @@ func (db *DB) QueryOne(model, query interface{}, params ...interface{}) (types.R
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res, mod)
+	return assertOneAffected(res)
 }
 
 // Listen listens for notifications sent by NOTIFY statement.
@@ -316,7 +316,6 @@ func simpleQueryData(cn *pool.Conn, model, query interface{}, params ...interfac
 
 type singleModel struct {
 	orm.Model
-	len int
 }
 
 var _ orm.Collection = (*singleModel)(nil)
@@ -336,12 +335,7 @@ func newSingleModel(mod interface{}) (*singleModel, error) {
 }
 
 func (m *singleModel) AddModel(_ orm.ColumnScanner) error {
-	m.len++
 	return nil
-}
-
-func (m *singleModel) Len() int {
-	return m.len
 }
 
 func assertOne(l int) error {
@@ -355,14 +349,9 @@ func assertOne(l int) error {
 	}
 }
 
-func assertOneAffected(res types.Result, model *singleModel) (types.Result, error) {
+func assertOneAffected(res types.Result) (types.Result, error) {
 	if err := assertOne(res.Affected()); err != nil {
 		return nil, err
-	}
-	if model != nil {
-		if err := assertOne(model.Len()); err != nil {
-			return nil, err
-		}
 	}
 	return res, nil
 }

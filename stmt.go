@@ -104,7 +104,7 @@ func (stmt *Stmt) ExecOne(params ...interface{}) (types.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res, nil)
+	return assertOneAffected(res)
 }
 
 func (stmt *Stmt) query(model interface{}, params ...interface{}) (types.Result, error) {
@@ -150,7 +150,7 @@ func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (types.Resu
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res, mod)
+	return assertOneAffected(res)
 }
 
 func (stmt *Stmt) setErr(e error) {

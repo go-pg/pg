@@ -103,7 +103,7 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (types.Result, e
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res, nil)
+	return assertOneAffected(res)
 }
 
 // Query executes a query with the given parameters in a transaction.
@@ -133,7 +133,7 @@ func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res, mod)
+	return assertOneAffected(res)
 }
 
 // Model returns new query for the model.

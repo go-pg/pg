@@ -3,23 +3,23 @@ package orm
 import "gopkg.in/pg.v4/types"
 
 func Create(db dber, v interface{}) error {
-	model, err := NewTableModel(v)
-	if err != nil {
-		return err
+	q := NewQuery(db, v)
+	if q.err != nil {
+		return q.err
 	}
-	_, err = db.Query(model, insert{TableModel: model})
+	_, err := db.QueryOne(q.model, insertQuery{q}, q.model)
 	return err
 }
 
-type insert struct {
-	TableModel
+type insertQuery struct {
+	*Query
 }
 
-var _ QueryAppender = (*insert)(nil)
+var _ QueryAppender = (*insertQuery)(nil)
 
-func (ins insert) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
-	table := ins.Table()
-	strct := ins.Value()
+func (ins insertQuery) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
+	table := ins.model.Table()
+	strct := ins.model.Value()
 
 	b = append(b, "INSERT INTO "...)
 	b = types.AppendField(b, table.Name, 1)
@@ -51,7 +51,12 @@ func (ins insert) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
 		b = b[:len(b)-2]
 	}
 
-	b = append(b, ")"...)
+	b = append(b, ')')
+
+	if len(ins.onConflict) > 0 {
+		b = append(b, " ON CONFLICT "...)
+		b = append(b, ins.onConflict...)
+	}
 
 	b = appendReturning(b, strct, table.PKs)
 
