@@ -176,14 +176,14 @@ var _ = Describe("scanning unknown column", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("does not return an error", func() {
+	It("returns an error", func() {
 		type Test struct {
 			Col1 int
 		}
 
 		var test Test
 		_, err := db.QueryOne(&test, "SELECT 1 AS col1, 2 AS col2")
-		Expect(err).NotTo(HaveOccurred())
+		Expect(err).To(MatchError(`pg: can't find column "col2" in model test`))
 		Expect(test.Col1).To(Equal(1))
 	})
 })
