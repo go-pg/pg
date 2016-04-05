@@ -11,7 +11,7 @@ func Delete(db dber, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	_, err = db.Exec(deleteModel{TableModel: model}, model)
+	_, err = db.ExecOne(deleteModel{TableModel: model}, model)
 	return err
 }
 

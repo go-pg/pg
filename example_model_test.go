@@ -94,6 +94,35 @@ func ExampleDB_Create() {
 	}
 }
 
+func ExampleDB_Create_onConflict() {
+	db := connectDB()
+
+	book := Book{
+		Id:    100,
+		Title: "book 100",
+	}
+
+	for i := 0; i < 2; i++ {
+		res, err := db.Model(&book).OnConflict("DO NOTHING").Create()
+		if err != nil {
+			panic(err)
+		}
+		if res.Affected() > 0 {
+			fmt.Println("created")
+		} else {
+			fmt.Println("did nothing")
+		}
+	}
+
+	err := db.Delete(&book)
+	if err != nil {
+		panic(err)
+	}
+
+	// created
+	// did nothing
+}
+
 func ExampleDB_Model_firstRow() {
 	db := connectDB()
 
@@ -236,7 +265,7 @@ func ExampleDB_Update_someColumns() {
 		Title:    "updated book 1",
 		AuthorID: 2, // this column will not be updated
 	}
-	err := db.Model(&book).Column("title").Returning("*").Update()
+	_, err := db.Model(&book).Column("title").Returning("*").Update()
 	if err != nil {
 		panic(err)
 	}
@@ -253,7 +282,7 @@ func ExampleDB_Update_usingSqlFunction() {
 		"title": pg.Q("concat(?, title, ?)", "prefix ", " suffix"),
 	}
 	var book Book
-	err := db.Model(&book).
+	_, err := db.Model(&book).
 		Where("id = ?", id).
 		Returning("*").
 		UpdateValues(data)
@@ -274,7 +303,7 @@ func ExampleDB_Update_multipleRows() {
 	}
 
 	var books []Book
-	err := db.Model(&books).
+	_, err := db.Model(&books).
 		Where("id IN (?)", ids).
 		Returning("*").
 		UpdateValues(data)
@@ -303,7 +332,7 @@ func ExampleDB_Delete() {
 		panic(err)
 	}
 
-	err = db.Model(&Book{}).Where("id = ?", book.Id).First()
+	err = db.Delete(book)
 	fmt.Println(err)
 	// Output: pg: no rows in result set
 }
@@ -312,18 +341,20 @@ func ExampleDB_Delete_multipleRows() {
 	db := connectDB()
 
 	ids := pg.Ints{1, 2, 3}
-	err := db.Model(Book{}).Where("id IN (?)", ids).Delete()
+	res, err := db.Model(Book{}).Where("id IN (?)", ids).Delete()
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("deleted", res.Affected())
 
 	count, err := db.Model(Book{}).Count()
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println("left", count)
 
-	fmt.Println(count)
-	// Output: 0
+	// Output: deleted 3
+	// left 0
 }
 
 func ExampleQ() {

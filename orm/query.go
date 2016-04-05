@@ -12,15 +12,16 @@ type Query struct {
 	model TableModel
 	err   error
 
-	tables    []byte
-	fields    []string
-	columns   []byte
-	returning []byte
-	where     []byte
-	join      []byte
-	order     []byte
-	limit     int
-	offset    int
+	tables     []byte
+	fields     []string
+	columns    []byte
+	where      []byte
+	join       []byte
+	order      []byte
+	onConflict []byte
+	returning  []byte
+	limit      int
+	offset     int
 }
 
 func NewQuery(db dber, v interface{}) *Query {
@@ -77,26 +78,6 @@ loop:
 	return q
 }
 
-func (q *Query) Returning(columns ...interface{}) *Query {
-	for _, column := range columns {
-		q.returning = appendSep(q.returning, ", ")
-
-		switch column := column.(type) {
-		case string:
-			q.returning = types.AppendField(q.returning, column, 1)
-		case types.ValueAppender:
-			var err error
-			q.returning, err = column.AppendValue(q.returning, 1)
-			if err != nil {
-				q.setErr(err)
-			}
-		default:
-			q.setErr(fmt.Errorf("unsupported column type: %T", column))
-		}
-	}
-	return q
-}
-
 func (q *Query) Where(where string, params ...interface{}) *Query {
 	q.where = appendSep(q.where, " AND ")
 	q.where = append(q.where, '(')
@@ -124,6 +105,31 @@ func (q *Query) Limit(n int) *Query {
 
 func (q *Query) Offset(n int) *Query {
 	q.offset = n
+	return q
+}
+
+func (q *Query) OnConflict(s string, params ...interface{}) *Query {
+	q.onConflict = Formatter{}.Append(nil, s, params, true)
+	return q
+}
+
+func (q *Query) Returning(columns ...interface{}) *Query {
+	for _, column := range columns {
+		q.returning = appendSep(q.returning, ", ")
+
+		switch column := column.(type) {
+		case string:
+			q.returning = types.AppendField(q.returning, column, 1)
+		case types.ValueAppender:
+			var err error
+			q.returning, err = column.AppendValue(q.returning, 1)
+			if err != nil {
+				q.setErr(err)
+			}
+		default:
+			q.setErr(fmt.Errorf("unsupported column type: %T", column))
+		}
+	}
 	return q
 }
 
@@ -214,36 +220,43 @@ func selectJoins(db dber, joins []Join) error {
 	return nil
 }
 
-func (q *Query) Update() error {
+func (q *Query) Create() (*types.Result, error) {
 	if q.err != nil {
-		return q.err
+		return nil, q.err
+	}
+	ins := &insertQuery{
+		Query: q,
+	}
+	return q.db.Query(q.model, ins, q.model)
+}
+
+func (q *Query) Update() (*types.Result, error) {
+	if q.err != nil {
+		return nil, q.err
 	}
 	upd := &updateModel{
 		Query: q,
 	}
-	_, err := q.db.Query(q.model, upd, upd.model)
-	return err
+	return q.db.Query(q.model, upd, q.model)
 }
 
-func (q *Query) UpdateValues(data map[string]interface{}) error {
+func (q *Query) UpdateValues(data map[string]interface{}) (*types.Result, error) {
 	if q.err != nil {
-		return q.err
+		return nil, q.err
 	}
 	upd := &updateQuery{
 		Query: q,
 		data:  data,
 	}
-	_, err := q.db.Query(upd.model, upd, upd.model)
-	return err
+	return q.db.Query(q.model, upd, q.model)
 }
 
-func (q *Query) Delete() error {
+func (q *Query) Delete() (*types.Result, error) {
 	if q.err != nil {
-		return q.err
+		return nil, q.err
 	}
 	del := deleteQuery{
 		Query: q,
 	}
-	_, err := q.db.Exec(del, del.model)
-	return err
+	return q.db.Exec(del, del.model)
 }
