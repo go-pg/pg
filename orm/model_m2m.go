@@ -40,7 +40,7 @@ func (m *m2mModel) AddModel(_ ColumnScanner) error {
 	id := modelIdMap(nil, m.columns, m.baseTable.ModelName+"_", m.baseTable.PKs)
 	dstValues, ok := m.dstValues[string(id)]
 	if !ok {
-		return fmt.Errorf("pg: can't find dst value for model with id=%q", string(id))
+		return fmt.Errorf("pg: can't find dst value for model id=%q", string(id))
 	}
 	for _, v := range dstValues {
 		v.Set(reflect.Append(v, m.strct))

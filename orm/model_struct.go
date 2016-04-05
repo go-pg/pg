@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"gopkg.in/pg.v4/internal"
 	"gopkg.in/pg.v4/internal/parser"
 )
 
@@ -117,7 +118,8 @@ func (m *StructModel) ScanColumn(colIdx int, colName string, b []byte) error {
 	if ok {
 		return err
 	}
-	return fmt.Errorf("pg: can't find field %q in model %s", colName, m.table.ModelName)
+	internal.Debugf("pg: can't find field %q in model %s", colName, m.table.ModelName)
+	return nil
 }
 
 func (m *StructModel) scanColumn(colIdx int, colName string, b []byte) (bool, error) {
