@@ -164,6 +164,30 @@ var _ = Describe("DB.Create", func() {
 	})
 })
 
+var _ = Describe("scanning unknown column", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+	})
+
+	AfterEach(func() {
+		err := db.Close()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("does not return an error", func() {
+		type Test struct {
+			Col1 int
+		}
+
+		var test Test
+		_, err := db.QueryOne(&test, "SELECT 1 AS col1, 2 AS col2")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(test.Col1).To(Equal(1))
+	})
+})
+
 type Genre struct {
 	TableName struct{} `sql:"genres"` // specifies custom table name
 

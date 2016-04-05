@@ -5,7 +5,7 @@ import (
 	"os"
 	"strconv"
 
-	"gopkg.in/pg.v4/internal/pool"
+	"gopkg.in/pg.v4/internal"
 	"gopkg.in/pg.v4/orm"
 	"gopkg.in/pg.v4/types"
 )
@@ -40,7 +40,7 @@ func init() {
 }
 
 func SetLogger(logger *log.Logger) {
-	pool.Logger = logger
+	internal.Logger = logger
 }
 
 //------------------------------------------------------------------------------
