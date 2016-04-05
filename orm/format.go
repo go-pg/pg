@@ -10,9 +10,9 @@ import (
 func AppendQuery(dst []byte, src interface{}, params ...interface{}) (b []byte, retErr error) {
 	switch src := src.(type) {
 	case QueryAppender:
-		return src.AppendQuery(dst, params...)
+		return src.AppendQuery(dst, params)
 	case string:
-		return Formatter{}.Append(dst, src, params...), nil
+		return Formatter{}.Append(dst, src, params, true), nil
 	default:
 		return nil, fmt.Errorf("pg: can't append %T", src)
 	}
@@ -22,14 +22,14 @@ func Q(query string, params ...interface{}) types.Q {
 	if len(params) == 0 {
 		return types.Q(query)
 	}
-	return Formatter{}.Append(nil, query, params...)
+	return Formatter{}.Append(nil, query, params, true)
 }
 
 func F(field string, params ...interface{}) types.F {
 	if len(params) == 0 {
 		return types.F(field)
 	}
-	return types.F(Formatter{}.Append(nil, field, params...))
+	return types.F(Formatter{}.Append(nil, field, params, true))
 }
 
 type Formatter struct {
@@ -43,12 +43,12 @@ func (f *Formatter) SetParam(key string, value interface{}) {
 	f.paramsMap[key] = value
 }
 
-func (f Formatter) Append(dst []byte, src string, params ...interface{}) []byte {
-	return f.append(dst, parser.NewString(src), params, true)
+func (f Formatter) Append(dst []byte, src string, params []interface{}, escape bool) []byte {
+	return f.append(dst, parser.NewString(src), params, escape)
 }
 
-func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
-	return f.append(dst, parser.New(src), params, true)
+func (f Formatter) AppendBytes(dst, src []byte, params []interface{}, escape bool) []byte {
+	return f.append(dst, parser.New(src), params, escape)
 }
 
 // TODO: add formatContext and split this method

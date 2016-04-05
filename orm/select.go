@@ -17,7 +17,9 @@ type selectQuery struct {
 	*Query
 }
 
-func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+var _ QueryAppender = (*selectQuery)(nil)
+
+func (sel selectQuery) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
 	b = append(b, "SELECT "...)
 	if sel.columns == nil {
 		b = types.AppendField(b, sel.model.Table().ModelName, 1)

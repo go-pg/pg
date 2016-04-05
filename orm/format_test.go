@@ -81,8 +81,9 @@ var formatTests = []formatTest{
 	{q: "?", params: params{structv}, wanted: `'{"String":"field_value","NullEmpty":""}'`},
 
 	{q: `\? ?`, params: params{1}, wanted: "? 1"},
-	{q: `?`, params: params{`\?`}, wanted: `'\?'`},
-	{q: `?`, params: params{`\?param`}, wanted: `'\?param'`},
+	{q: `?`, params: params{types.Q(`\?`)}, wanted: `\?`},
+	{q: `?`, params: params{types.Q(`\\?`)}, wanted: `\\?`},
+	{q: `?`, params: params{types.Q(`\?param`)}, wanted: `\?param`},
 
 	{q: "?null_empty", params: params{structv}, wanted: `NULL`},
 	{q: "? ?string ?", params: params{"one", "two", structv}, wanted: "'one' 'field_value' 'two'"},
@@ -103,7 +104,7 @@ func TestFormatQuery(t *testing.T) {
 			f.SetParam(k, v)
 		}
 
-		got := f.Append(nil, test.q, test.params...)
+		got := f.Append(nil, test.q, test.params, true)
 		if string(got) != test.wanted {
 			t.Fatalf(
 				"got %q, wanted %q (q=%q params=%v paramsMap=%v)",

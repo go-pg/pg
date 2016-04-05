@@ -19,7 +19,9 @@ type deleteModel struct {
 	TableModel
 }
 
-func (del deleteModel) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+var _ QueryAppender = (*deleteModel)(nil)
+
+func (del deleteModel) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
 	table := del.Table()
 	strct := del.Value()
 
@@ -42,7 +44,9 @@ type deleteQuery struct {
 	*Query
 }
 
-func (del deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+var _ QueryAppender = (*deleteQuery)(nil)
+
+func (del deleteQuery) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
 	b = append(b, "DELETE FROM "...)
 	b = types.AppendField(b, del.model.Table().Name, 1)
 

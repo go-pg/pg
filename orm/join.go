@@ -45,10 +45,13 @@ func (j *Join) JoinOne(q *Query) {
 		cond = Formatter{}.Append(
 			cond,
 			`?.? = ?.?`,
-			types.F(j.Rel.Field.SQLName),
-			types.F(pk.SQLName),
-			types.F(j.BaseModel.Table().ModelName),
-			types.F(j.Rel.Field.SQLName+"_"+pk.SQLName),
+			[]interface{}{
+				types.F(j.Rel.Field.SQLName),
+				types.F(pk.SQLName),
+				types.F(j.BaseModel.Table().ModelName),
+				types.F(j.Rel.Field.SQLName + "_" + pk.SQLName),
+			},
+			false,
 		)
 		if i != len(j.Rel.Join.PKs)-1 {
 			cond = append(cond, " AND "...)

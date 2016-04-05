@@ -100,20 +100,20 @@ func (q *Query) Returning(columns ...interface{}) *Query {
 func (q *Query) Where(where string, params ...interface{}) *Query {
 	q.where = appendSep(q.where, " AND ")
 	q.where = append(q.where, '(')
-	q.where = Formatter{}.Append(q.where, where, params...)
+	q.where = Formatter{}.Append(q.where, where, params, true)
 	q.where = append(q.where, ')')
 	return q
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
 	q.join = appendSep(q.join, " ")
-	q.join = Formatter{}.Append(q.join, join, params...)
+	q.join = Formatter{}.Append(q.join, join, params, true)
 	return q
 }
 
 func (q *Query) Order(order string, params ...interface{}) *Query {
 	q.order = appendSep(q.join, ", ")
-	q.order = Formatter{}.Append(q.order, order, params...)
+	q.order = Formatter{}.Append(q.order, order, params, true)
 	return q
 }
 

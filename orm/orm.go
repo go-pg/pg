@@ -20,5 +20,5 @@ type Collection interface {
 }
 
 type QueryAppender interface {
-	AppendQuery([]byte, ...interface{}) ([]byte, error)
+	AppendQuery([]byte, []interface{}) ([]byte, error)
 }
