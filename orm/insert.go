@@ -58,7 +58,12 @@ func (ins insertQuery) AppendQuery(b []byte, params []interface{}) ([]byte, erro
 		b = append(b, ins.onConflict...)
 	}
 
-	b = appendReturning(b, strct, table.PKs)
+	if len(ins.returning) > 0 {
+		b = append(b, " RETURNING "...)
+		b = append(b, ins.returning...)
+	} else {
+		b = appendReturning(b, strct, table.PKs)
+	}
 
 	return b, nil
 }

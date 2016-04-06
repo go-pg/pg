@@ -12,7 +12,7 @@ import (
 	"gopkg.in/pg.v4"
 )
 
-func TestPG(t *testing.T) {
+func TestGinkgo(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "pg")
 }
@@ -266,6 +266,7 @@ func createTestSchema(db *pg.DB) error {
 		`CREATE TABLE book_genres (book_id int, genre_id int, genre__rating int)`,
 		`CREATE TABLE translations (id serial, book_id int, lang varchar(2))`,
 		`CREATE TABLE comments (trackable_id int, trackable_type varchar(100), text text)`,
+		`CREATE UNIQUE INDEX authors_name ON authors (name)`,
 	}
 	for _, q := range sql {
 		_, err := db.Exec(q)

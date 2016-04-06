@@ -240,17 +240,17 @@ func (db *DB) Model(model interface{}) *orm.Query {
 	return orm.NewQuery(db, model)
 }
 
-// Create inserts model into database.
+// Create inserts the model into database.
 func (db *DB) Create(model interface{}) error {
 	return orm.Create(db, model)
 }
 
-// Update updates model in database.
+// Update updates the model in database.
 func (db *DB) Update(model interface{}) error {
 	return orm.Update(db, model)
 }
 
-// Delete deletes model in database.
+// Delete deletes the model from database.
 func (db *DB) Delete(model interface{}) error {
 	return orm.Delete(db, model)
 }
