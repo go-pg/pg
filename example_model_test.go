@@ -380,7 +380,7 @@ func ExampleQ() {
 	db := modelDB()
 
 	var maxId int
-	err := db.Model(Book{}).Column(pg.Q("max(id)")).Scan(&maxId)
+	err := db.Model(Book{}).Column(pg.Q("max(id)")).Select(&maxId)
 	if err != nil {
 		panic(err)
 	}

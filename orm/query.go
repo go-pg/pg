@@ -140,19 +140,6 @@ func (q *Query) Returning(columns ...interface{}) *Query {
 	return q
 }
 
-func (q *Query) Scan(values ...interface{}) error {
-	if q.err != nil {
-		return q.err
-	}
-
-	q.joinHasOne()
-	sel := &selectQuery{
-		Query: q,
-	}
-	_, err := q.db.QueryOne(Scan(values...), sel, q.model)
-	return err
-}
-
 func (q *Query) Count() (int, error) {
 	if q.err != nil {
 		return 0, q.err
@@ -184,13 +171,15 @@ func (q *Query) Last() error {
 }
 
 // Select selects the model from database.
-func (q *Query) Select() error {
+func (q *Query) Select(values ...interface{}) error {
 	q.joinHasOne()
 	sel := &selectQuery{
 		Query: q,
 	}
 	var err error
-	if q.model.Kind() == reflect.Slice {
+	if len(values) > 0 {
+		_, err = q.db.QueryOne(Scan(values...), sel, q.model)
+	} else if q.model.Kind() == reflect.Slice {
 		_, err = q.db.Query(q.model, sel, q.model)
 	} else {
 		_, err = q.db.QueryOne(q.model, sel, q.model)
@@ -229,24 +218,32 @@ func selectJoins(db dber, joins []Join) error {
 }
 
 // Create inserts the model into database.
-func (q *Query) Create() (*types.Result, error) {
+func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
+
+	var model Model
+	if len(values) > 0 {
+		model = Scan(values...)
+	} else {
+		model = q.model
+	}
+
 	ins := &insertQuery{
 		Query: q,
 	}
-	return q.db.Query(q.model, ins, q.model)
+	return q.db.Query(model, ins, q.model)
 }
 
 // SelectOrCreate selects the model from database creating one if necessary.
-func (q *Query) SelectOrCreate() (created bool, err error) {
+func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) {
 	if q.err != nil {
 		return false, q.err
 	}
 
 	for i := 0; i < 10; i++ {
-		err := q.Select()
+		err := q.Select(values...)
 		if err == nil {
 			return false, nil
 		}
@@ -254,7 +251,7 @@ func (q *Query) SelectOrCreate() (created bool, err error) {
 			return false, err
 		}
 
-		res, err := q.Create()
+		res, err := q.Create(values...)
 		if err != nil {
 			return false, err
 		}
