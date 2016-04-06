@@ -8,7 +8,7 @@ import (
 	"gopkg.in/pg.v4"
 )
 
-func connectDB() *pg.DB {
+func modelDB() *pg.DB {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
 	})
@@ -74,7 +74,7 @@ func connectDB() *pg.DB {
 }
 
 func ExampleDB_Create() {
-	db := connectDB()
+	db := modelDB()
 
 	book := Book{
 		Title:    "new book",
@@ -95,7 +95,7 @@ func ExampleDB_Create() {
 }
 
 func ExampleDB_Create_onConflict() {
-	db := connectDB()
+	db := modelDB()
 
 	book := Book{
 		Id:    100,
@@ -123,8 +123,27 @@ func ExampleDB_Create_onConflict() {
 	// did nothing
 }
 
+func ExampleDB_Create_getOrCreate() {
+	db := modelDB()
+
+	author := Author{
+		Name: "R. Scott Bakker",
+	}
+	created, err := db.Model(&author).
+		Column("id").
+		Where("name = ?name").
+		OnConflict("DO NOTHING").
+		Returning("id").
+		SelectOrCreate()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(created, author)
+	// true Author<ID=2 Name="R. Scott Bakker">
+}
+
 func ExampleDB_Model_firstRow() {
-	db := connectDB()
+	db := modelDB()
 
 	var firstBook Book
 	err := db.Model(&firstBook).First()
@@ -136,7 +155,7 @@ func ExampleDB_Model_firstRow() {
 }
 
 func ExampleDB_Model_lastRow() {
-	db := connectDB()
+	db := modelDB()
 
 	var lastBook Book
 	err := db.Model(&lastBook).Last()
@@ -148,7 +167,7 @@ func ExampleDB_Model_lastRow() {
 }
 
 func ExampleDB_Model_selectAllColumns() {
-	db := connectDB()
+	db := modelDB()
 
 	var book Book
 	err := db.Model(&book).Column("book.*").First()
@@ -160,7 +179,7 @@ func ExampleDB_Model_selectAllColumns() {
 }
 
 func ExampleDB_Model_selectSomeColumns() {
-	db := connectDB()
+	db := modelDB()
 
 	var book Book
 	err := db.Model(&book).
@@ -175,7 +194,7 @@ func ExampleDB_Model_selectSomeColumns() {
 }
 
 func ExampleDB_Model_countRows() {
-	db := connectDB()
+	db := modelDB()
 
 	count, err := db.Model(Book{}).Count()
 	if err != nil {
@@ -201,7 +220,7 @@ func ExampleDB_Model_nullEmptyValue() {
 }
 
 func ExampleDB_Model_hasOne() {
-	db := connectDB()
+	db := modelDB()
 
 	var book Book
 	err := db.Model(&book).Column("book.*", "Author").First()
@@ -213,7 +232,7 @@ func ExampleDB_Model_hasOne() {
 }
 
 func ExampleDB_Model_hasMany() {
-	db := connectDB()
+	db := modelDB()
 
 	var author Author
 	err := db.Model(&author).Column("author.*", "Books").First()
@@ -225,7 +244,7 @@ func ExampleDB_Model_hasMany() {
 }
 
 func ExampleDB_Model_hasManyToMany() {
-	db := connectDB()
+	db := modelDB()
 
 	var book Book
 	err := db.Model(&book).Column("book.*", "Genres").First()
@@ -237,7 +256,7 @@ func ExampleDB_Model_hasManyToMany() {
 }
 
 func ExampleDB_Update() {
-	db := connectDB()
+	db := modelDB()
 
 	err := db.Update(&Book{
 		Id:    1,
@@ -258,7 +277,7 @@ func ExampleDB_Update() {
 }
 
 func ExampleDB_Update_someColumns() {
-	db := connectDB()
+	db := modelDB()
 
 	book := Book{
 		Id:       1,
@@ -275,7 +294,7 @@ func ExampleDB_Update_someColumns() {
 }
 
 func ExampleDB_Update_usingSqlFunction() {
-	db := connectDB()
+	db := modelDB()
 
 	id := 1
 	data := map[string]interface{}{
@@ -295,7 +314,7 @@ func ExampleDB_Update_usingSqlFunction() {
 }
 
 func ExampleDB_Update_multipleRows() {
-	db := connectDB()
+	db := modelDB()
 
 	ids := pg.Ints{1, 2}
 	data := map[string]interface{}{
@@ -316,7 +335,7 @@ func ExampleDB_Update_multipleRows() {
 }
 
 func ExampleDB_Delete() {
-	db := connectDB()
+	db := modelDB()
 
 	book := Book{
 		Title:    "title 1",
@@ -338,7 +357,7 @@ func ExampleDB_Delete() {
 }
 
 func ExampleDB_Delete_multipleRows() {
-	db := connectDB()
+	db := modelDB()
 
 	ids := pg.Ints{1, 2, 3}
 	res, err := db.Model(Book{}).Where("id IN (?)", ids).Delete()
@@ -358,7 +377,7 @@ func ExampleDB_Delete_multipleRows() {
 }
 
 func ExampleQ() {
-	db := connectDB()
+	db := modelDB()
 
 	var maxId int
 	err := db.Model(Book{}).Column(pg.Q("max(id)")).Scan(&maxId)
@@ -370,7 +389,7 @@ func ExampleQ() {
 }
 
 func ExampleF() {
-	db := connectDB()
+	db := modelDB()
 
 	var book Book
 	err := db.Model(&book).Where("? = ?", pg.F("id"), 1).Select()

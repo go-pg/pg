@@ -6,11 +6,13 @@ import (
 	"io"
 	"net"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	_ "github.com/lib/pq"
+	. "github.com/onsi/ginkgo"
 	. "gopkg.in/check.v1"
 
 	"gopkg.in/pg.v4"
@@ -269,4 +271,20 @@ func (cn *badConn) Write([]byte) (int, error) {
 		return 0, cn.writeErr
 	}
 	return 0, badConnError("bad connection")
+}
+
+func perform(n int, cbs ...func(int)) {
+	var wg sync.WaitGroup
+	for _, cb := range cbs {
+		for i := 0; i < n; i++ {
+			wg.Add(1)
+			go func(cb func(int), i int) {
+				defer GinkgoRecover()
+				defer wg.Done()
+
+				cb(i)
+			}(cb, i)
+		}
+	}
+	wg.Wait()
 }

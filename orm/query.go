@@ -1,9 +1,11 @@
 package orm
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
+	"gopkg.in/pg.v4/internal"
 	"gopkg.in/pg.v4/types"
 )
 
@@ -78,23 +80,28 @@ loop:
 	return q
 }
 
+func (q *Query) format(dst []byte, s string, params []interface{}) []byte {
+	params = append(params, q.model)
+	return Formatter{}.Append(dst, s, params, true)
+}
+
 func (q *Query) Where(where string, params ...interface{}) *Query {
 	q.where = appendSep(q.where, " AND ")
 	q.where = append(q.where, '(')
-	q.where = Formatter{}.Append(q.where, where, params, true)
+	q.where = q.format(q.where, where, params)
 	q.where = append(q.where, ')')
 	return q
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
 	q.join = appendSep(q.join, " ")
-	q.join = Formatter{}.Append(q.join, join, params, true)
+	q.join = q.format(q.join, join, params)
 	return q
 }
 
 func (q *Query) Order(order string, params ...interface{}) *Query {
 	q.order = appendSep(q.join, ", ")
-	q.order = Formatter{}.Append(q.order, order, params, true)
+	q.order = q.format(q.order, order, params)
 	return q
 }
 
@@ -109,7 +116,7 @@ func (q *Query) Offset(n int) *Query {
 }
 
 func (q *Query) OnConflict(s string, params ...interface{}) *Query {
-	q.onConflict = Formatter{}.Append(nil, s, params, true)
+	q.onConflict = q.format(nil, s, params)
 	return q
 }
 
@@ -176,6 +183,7 @@ func (q *Query) Last() error {
 	return q.Order(string(b)).Limit(1).Select()
 }
 
+// Select selects the model from database.
 func (q *Query) Select() error {
 	q.joinHasOne()
 	sel := &selectQuery{
@@ -220,6 +228,7 @@ func selectJoins(db dber, joins []Join) error {
 	return nil
 }
 
+// Create inserts the model into database.
 func (q *Query) Create() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
@@ -230,6 +239,34 @@ func (q *Query) Create() (*types.Result, error) {
 	return q.db.Query(q.model, ins, q.model)
 }
 
+// SelectOrCreate selects the model from database creating one if necessary.
+func (q *Query) SelectOrCreate() (created bool, err error) {
+	if q.err != nil {
+		return false, q.err
+	}
+
+	for i := 0; i < 10; i++ {
+		err := q.Select()
+		if err == nil {
+			return false, nil
+		}
+		if err != internal.ErrNoRows {
+			return false, err
+		}
+
+		res, err := q.Create()
+		if err != nil {
+			return false, err
+		}
+		if res.Affected() == 1 {
+			return true, nil
+		}
+	}
+
+	return false, errors.New("pg: GetOrCreate does not make progress after 10 iterations")
+}
+
+// Update updates the model in database.
 func (q *Query) Update() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
@@ -240,17 +277,19 @@ func (q *Query) Update() (*types.Result, error) {
 	return q.db.Query(q.model, upd, q.model)
 }
 
-func (q *Query) UpdateValues(data map[string]interface{}) (*types.Result, error) {
+// Update updates the model using provided values.
+func (q *Query) UpdateValues(values map[string]interface{}) (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
 	upd := &updateQuery{
 		Query: q,
-		data:  data,
+		data:  values,
 	}
 	return q.db.Query(q.model, upd, q.model)
 }
 
+// Delete deletes the model from database.
 func (q *Query) Delete() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err

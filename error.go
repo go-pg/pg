@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	ErrNoRows    = internal.Errorf("pg: no rows in result set")
-	ErrMultiRows = internal.Errorf("pg: multiple rows in result set")
+	ErrNoRows    = internal.ErrNoRows
+	ErrMultiRows = internal.ErrMultiRows
 
 	errSSLNotSupported = internal.Errorf("pg: SSL is not enabled on the server")
 
