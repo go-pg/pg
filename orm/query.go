@@ -14,6 +14,7 @@ type Query struct {
 	model TableModel
 	err   error
 
+	tableName  []byte
 	tables     []byte
 	fields     []string
 	columns    []byte
@@ -34,7 +35,10 @@ func NewQuery(db dber, v interface{}) *Query {
 		err:   err,
 	}
 	if err == nil {
-		q.tables = types.AppendField(q.tables, q.model.Table().Name, 1)
+		q.tableName = q.formatBytes(nil, q.model.Table().Name, nil)
+
+		q.tables = appendSep(q.tables, ", ")
+		q.tables = append(q.tables, q.tableName...)
 		q.tables = append(q.tables, " AS "...)
 		q.tables = types.AppendField(q.tables, q.model.Table().ModelName, 1)
 	}
@@ -78,11 +82,6 @@ loop:
 		}
 	}
 	return q
-}
-
-func (q *Query) format(dst []byte, s string, params []interface{}) []byte {
-	params = append(params, q.model)
-	return Formatter{}.Append(dst, s, params, true)
 }
 
 func (q *Query) Where(where string, params ...interface{}) *Query {
@@ -291,8 +290,15 @@ func (q *Query) Delete() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
-	del := deleteQuery{
-		Query: q,
-	}
-	return q.db.Exec(del, del.model)
+	return q.db.Exec(deleteModel{Query: q}, q.model)
+}
+
+func (q *Query) format(dst []byte, s string, params []interface{}) []byte {
+	params = append(params, q.model)
+	return Formatter{}.Append(dst, s, params, true)
+}
+
+func (q *Query) formatBytes(dst []byte, b []byte, params []interface{}) []byte {
+	params = append(params, q.model)
+	return Formatter{}.AppendBytes(dst, b, params, true)
 }

@@ -43,16 +43,16 @@ func (f *Formatter) SetParam(key string, value interface{}) {
 	f.paramsMap[key] = value
 }
 
-func (f Formatter) Append(dst []byte, src string, params []interface{}, escape bool) []byte {
-	return f.append(dst, parser.NewString(src), params, escape)
+func (f Formatter) Append(dst []byte, src string, params []interface{}, unnamed bool) []byte {
+	return f.append(dst, parser.NewString(src), params, unnamed)
 }
 
-func (f Formatter) AppendBytes(dst, src []byte, params []interface{}, escape bool) []byte {
-	return f.append(dst, parser.New(src), params, escape)
+func (f Formatter) AppendBytes(dst, src []byte, params []interface{}, unnamed bool) []byte {
+	return f.append(dst, parser.New(src), params, unnamed)
 }
 
 // TODO: add formatContext and split this method
-func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}, escape bool) []byte {
+func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}, unnamed bool) []byte {
 	var paramsIndex int
 	var model *StructModel
 	var modelErr error
@@ -65,7 +65,7 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}, es
 			continue
 		}
 		if len(b) > 0 && b[len(b)-1] == '\\' {
-			if escape {
+			if unnamed {
 				dst = append(dst, b[:len(b)-1]...)
 			} else {
 				dst = append(dst, b...)
@@ -110,7 +110,7 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}, es
 			continue
 		}
 
-		if paramsIndex >= len(params) {
+		if !unnamed || paramsIndex >= len(params) {
 			dst = append(dst, '?')
 			continue
 		}

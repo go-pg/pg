@@ -22,7 +22,7 @@ func (ins insertQuery) AppendQuery(b []byte, params []interface{}) ([]byte, erro
 	strct := ins.model.Value()
 
 	b = append(b, "INSERT INTO "...)
-	b = types.AppendField(b, table.Name, 1)
+	b = append(b, ins.tableName...)
 	b = append(b, " ("...)
 
 	start := len(b)

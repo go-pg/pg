@@ -32,7 +32,7 @@ func (upd updateModel) AppendQuery(b []byte, params []interface{}) ([]byte, erro
 	}
 
 	b = append(b, "UPDATE "...)
-	b = types.AppendField(b, table.Name, 1)
+	b = append(b, upd.tableName...)
 	b = append(b, " SET "...)
 
 	if len(upd.fields) > 0 {
@@ -86,7 +86,7 @@ var _ QueryAppender = (*updateQuery)(nil)
 
 func (upd updateQuery) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
 	b = append(b, "UPDATE "...)
-	b = types.AppendField(b, upd.model.Table().Name, 1)
+	b = append(b, upd.tableName...)
 	b = append(b, " SET "...)
 
 	for fieldName, value := range upd.data {

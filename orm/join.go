@@ -51,7 +51,7 @@ func (j *Join) JoinOne(q *Query) {
 				types.F(j.BaseModel.Table().ModelName),
 				types.F(j.Rel.Field.SQLName + "_" + pk.SQLName),
 			},
-			false,
+			true,
 		)
 		if i != len(j.Rel.Join.PKs)-1 {
 			cond = append(cond, " AND "...)
@@ -60,7 +60,7 @@ func (j *Join) JoinOne(q *Query) {
 
 	q.Join(
 		"LEFT JOIN ? AS ? ON ?",
-		types.F(j.JoinModel.Table().Name), types.F(j.Rel.Field.SQLName), cond,
+		j.JoinModel.Table().Name, types.F(j.Rel.Field.SQLName), cond,
 	)
 	q.columns = j.AppendColumns(q.columns)
 }

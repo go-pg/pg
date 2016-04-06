@@ -11,7 +11,7 @@ import (
 )
 
 type Table struct {
-	Name      string
+	Name      types.Q // escaped table name
 	ModelName string
 	Type      reflect.Type
 
@@ -56,7 +56,7 @@ func newTable(typ reflect.Type) *Table {
 
 	tableName := Underscore(typ.Name())
 	table = &Table{
-		Name:      inflection.Plural(tableName),
+		Name:      types.AppendField(nil, inflection.Plural(tableName), 1),
 		ModelName: tableName,
 		Type:      typ,
 		Fields:    make([]*Field, 0, typ.NumField()),
@@ -128,7 +128,7 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 	sqlName, sqlOpt := parseTag(f.Tag.Get("sql"))
 
 	if f.Name == "TableName" {
-		t.Name = sqlName
+		t.Name = types.AppendField(nil, sqlName, 1)
 		return nil
 	}
 
