@@ -119,7 +119,7 @@ func ExampleDB_Create_onConflict() {
 		panic(err)
 	}
 
-	// created
+	// Output: created
 	// did nothing
 }
 
@@ -139,7 +139,7 @@ func ExampleDB_Create_getOrCreate() {
 		panic(err)
 	}
 	fmt.Println(created, author)
-	// true Author<ID=2 Name="R. Scott Bakker">
+	// Output: true Author<ID=2 Name="R. Scott Bakker">
 }
 
 func ExampleDB_Model_firstRow() {
