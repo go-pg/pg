@@ -169,7 +169,6 @@ func ExampleDB_Query() {
     ```
     BenchmarkModelHasOneGopg-4                 	    5000	    313091 ns/op	   78481 B/op	    1290 allocs/op
     BenchmarkModelHasOneGORM-4                 	     500	   3849634 ns/op	 1529982 B/op	   71636 allocs/op
-
     ```
 
     go-pg:
