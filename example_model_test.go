@@ -123,7 +123,7 @@ func ExampleDB_Create_onConflict() {
 	// did nothing
 }
 
-func ExampleDB_Create_getOrCreate() {
+func ExampleDB_Create_selectOrCreate() {
 	db := modelDB()
 
 	author := Author{
@@ -243,7 +243,7 @@ func ExampleDB_Model_hasMany() {
 	// Output: Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">
 }
 
-func ExampleDB_Model_hasManyToMany() {
+func ExampleDB_Model_manyToMany() {
 	db := modelDB()
 
 	var book Book
