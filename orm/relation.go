@@ -1,5 +1,7 @@
 package orm
 
+import "gopkg.in/pg.v4/types"
+
 type Relation struct {
 	One         bool
 	Polymorphic string
@@ -9,5 +11,5 @@ type Relation struct {
 
 	FKs []*Field
 
-	M2MTableName string
+	M2MTableName types.Q
 }

@@ -42,7 +42,7 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 				return nil, err
 			}
 
-			b = types.AppendField(b, field.SQLName, 1)
+			b = append(b, field.ColName...)
 			b = append(b, " = "...)
 			b = field.AppendValue(b, strct, 1)
 			if i != len(upd.fields)-1 {
@@ -56,7 +56,7 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 				continue
 			}
 
-			b = types.AppendField(b, field.SQLName, 1)
+			b = append(b, field.ColName...)
 			b = append(b, " = "...)
 			b = field.AppendValue(b, strct, 1)
 			b = append(b, ", "...)

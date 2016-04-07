@@ -36,9 +36,13 @@ func sliceNextElem(v reflect.Value) reflect.Value {
 	return elem
 }
 
-func columns(prefix string, fields []*Field) []byte {
+func columns(table types.Q, prefix string, fields []*Field) []byte {
 	var b []byte
 	for i, f := range fields {
+		if table != nil {
+			b, _ = table.AppendValue(b, 1)
+			b = append(b, '.')
+		}
 		b = types.AppendField(b, prefix+f.SQLName, 1)
 		if i != len(fields)-1 {
 			b = append(b, ", "...)
@@ -91,7 +95,7 @@ func visitStruct(strct reflect.Value, path []string, fn func(reflect.Value)) {
 
 func appendFieldValue(b []byte, v reflect.Value, fields []*Field) []byte {
 	for i, f := range fields {
-		b = types.AppendField(b, f.SQLName, 1)
+		b = append(b, f.ColName...)
 		b = append(b, " = "...)
 		b = f.AppendValue(b, v, 1)
 		if i != len(fields)-1 {
@@ -111,7 +115,7 @@ func appendReturning(b []byte, v reflect.Value, fields []*Field) []byte {
 			b = append(b, " RETURNING "...)
 			hasReturning = true
 		}
-		b = types.AppendField(b, f.SQLName, 1)
+		b = append(b, f.ColName...)
 		b = append(b, ", "...)
 	}
 	if hasReturning {
@@ -156,4 +160,8 @@ func appendSep(b []byte, sep string) []byte {
 		b = append(b, sep...)
 	}
 	return b
+}
+
+func col(s string) types.Q {
+	return types.Q(types.AppendField(nil, s, 1))
 }

@@ -157,6 +157,7 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 	field := Field{
 		GoName:  f.Name,
 		SQLName: sqlName,
+		ColName: types.AppendField(nil, sqlName, 1),
 
 		Index: f.Index,
 
@@ -202,7 +203,7 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 				t.addRelation(&Relation{
 					Field:        &field,
 					Join:         joinTable,
-					M2MTableName: m2mTable,
+					M2MTableName: types.AppendField(nil, m2mTable, 1),
 				})
 				return nil
 			}
@@ -242,6 +243,7 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 		for _, ff := range joinTable.Fields {
 			ff = ff.Copy()
 			ff.SQLName = field.SQLName + "__" + ff.SQLName
+			ff.ColName = types.AppendField(nil, ff.SQLName, 1)
 			ff.Index = append(field.Index, ff.Index...)
 			t.FieldsMap[ff.SQLName] = ff
 		}

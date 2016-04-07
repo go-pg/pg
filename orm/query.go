@@ -14,7 +14,7 @@ type Query struct {
 	model TableModel
 	err   error
 
-	tableName  []byte
+	tableName  types.Q
 	tables     []byte
 	fields     []string
 	columns    []byte
@@ -99,7 +99,7 @@ func (q *Query) Join(join string, params ...interface{}) *Query {
 }
 
 func (q *Query) Order(order string, params ...interface{}) *Query {
-	q.order = appendSep(q.join, ", ")
+	q.order = appendSep(q.order, ", ")
 	q.order = q.format(q.order, order, params...)
 	return q
 }
@@ -159,12 +159,12 @@ func (q *Query) Count() (int, error) {
 }
 
 func (q *Query) First() error {
-	b := columns("", q.model.Table().PKs)
+	b := columns(col(q.model.Table().ModelName), "", q.model.Table().PKs)
 	return q.Order(string(b)).Limit(1).Select()
 }
 
 func (q *Query) Last() error {
-	b := columns("", q.model.Table().PKs)
+	b := columns(col(q.model.Table().ModelName), "", q.model.Table().PKs)
 	b = append(b, " DESC"...)
 	return q.Order(string(b)).Limit(1).Select()
 }
