@@ -239,7 +239,7 @@ func writeCancelRequestMsg(buf *pool.Buffer, processId, secretKey int32) {
 
 func writeQueryMsg(buf *pool.Buffer, query interface{}, params ...interface{}) error {
 	buf.StartMessage(queryMsg)
-	bytes, err := orm.AppendQuery(buf.Bytes, query, params...)
+	bytes, err := appendQuery(buf.Bytes, query, params...)
 	if err != nil {
 		buf.Reset()
 		return err
@@ -248,6 +248,17 @@ func writeQueryMsg(buf *pool.Buffer, query interface{}, params ...interface{}) e
 	buf.WriteByte(0x0)
 	buf.FinishMessage()
 	return nil
+}
+
+func appendQuery(dst []byte, query interface{}, params ...interface{}) ([]byte, error) {
+	switch query := query.(type) {
+	case orm.QueryAppender:
+		return query.AppendQuery(dst, params...)
+	case string:
+		return orm.Formatter{}.Append(dst, query, params...), nil
+	default:
+		return nil, fmt.Errorf("pg: can't append %T", query)
+	}
 }
 
 func writeParseDescribeSyncMsg(buf *pool.Buffer, name, q string) {

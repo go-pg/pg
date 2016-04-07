@@ -42,16 +42,13 @@ func appendColumn(b []byte, table, column, columnAlias string) []byte {
 func (j *Join) JoinOne(q *Query) {
 	var cond types.Q
 	for i, pk := range j.Rel.Join.PKs {
-		cond = Formatter{}.Append(
+		cond = q.format(
 			cond,
 			`?.? = ?.?`,
-			[]interface{}{
-				types.F(j.Rel.Field.SQLName),
-				types.F(pk.SQLName),
-				types.F(j.BaseModel.Table().ModelName),
-				types.F(j.Rel.Field.SQLName + "_" + pk.SQLName),
-			},
-			true,
+			types.F(j.Rel.Field.SQLName),
+			types.F(pk.SQLName),
+			types.F(j.BaseModel.Table().ModelName),
+			types.F(j.Rel.Field.SQLName+"_"+pk.SQLName),
 		)
 		if i != len(j.Rel.Join.PKs)-1 {
 			cond = append(cond, " AND "...)

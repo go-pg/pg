@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-
-	"gopkg.in/pg.v4/internal/parser"
 )
 
 // TODO: extract AppendParam to separate struct and use it in Formatter
@@ -54,24 +52,14 @@ func (m *StructModel) Table() *Table {
 	return m.table
 }
 
-func (m *StructModel) FormatParam(f Formatter, dst, buf []byte, name string) ([]byte, bool) {
+func (m *StructModel) AppendParam(dst []byte, name string) ([]byte, bool) {
 	if field, ok := m.table.FieldsMap[name]; ok {
-		if field.Has(FormatFlag) {
-			buf := field.AppendValue(buf, m.strct, 1)
-			dst = f.append(dst, parser.New(buf), nil, false)
-		} else {
-			dst = field.AppendValue(dst, m.strct, 1)
-		}
+		dst = field.AppendValue(dst, m.strct, 1)
 		return dst, true
 	}
 
 	if method, ok := m.table.Methods[name]; ok {
-		if method.Has(FormatFlag) {
-			buf := method.AppendValue(buf, m.strct.Addr(), 1)
-			dst = f.append(dst, parser.New(buf), nil, false)
-		} else {
-			dst = method.AppendValue(dst, m.strct.Addr(), 1)
-		}
+		dst = method.AppendValue(dst, m.strct.Addr(), 1)
 		return dst, true
 	}
 

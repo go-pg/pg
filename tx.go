@@ -190,6 +190,10 @@ func (tx *Tx) Rollback() (err error) {
 	return err
 }
 
+func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
+	return tx.db.FormatQuery(dst, query, params...)
+}
+
 func (tx *Tx) setErr(e error) {
 	tx.err = e
 }
