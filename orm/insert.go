@@ -1,7 +1,5 @@
 package orm
 
-import "gopkg.in/pg.v4/types"
-
 func Create(db dber, v interface{}) error {
 	q := NewQuery(db, v)
 	if q.err != nil {
@@ -30,7 +28,7 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 		if field.Has(PrimaryKeyFlag) && field.IsEmpty(strct) {
 			continue
 		}
-		b = types.AppendField(b, field.SQLName, 1)
+		b = append(b, field.ColName...)
 		b = append(b, ", "...)
 	}
 	if len(b) > start {

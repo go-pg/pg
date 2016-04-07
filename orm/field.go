@@ -21,6 +21,7 @@ const (
 type Field struct {
 	GoName  string
 	SQLName string
+	ColName types.Q
 	Index   []int
 
 	flags int8
