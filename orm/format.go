@@ -60,7 +60,7 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 		if name := string(p.ReadIdentifier()); name != "" {
 			if f.paramsMap != nil {
 				if param, ok := f.paramsMap[name]; ok {
-					dst = types.Append(dst, param, 1)
+					dst = types.Append(dst, param, 0)
 					continue
 				}
 			}
