@@ -35,7 +35,7 @@ func NewQuery(db dber, v interface{}) *Query {
 		err:   err,
 	}
 	if err == nil {
-		q.tableName = q.formatBytes(nil, q.model.Table().Name, nil)
+		q.tableName = q.format(nil, string(q.model.Table().Name))
 
 		q.tables = appendSep(q.tables, ", ")
 		q.tables = append(q.tables, q.tableName...)
@@ -87,20 +87,20 @@ loop:
 func (q *Query) Where(where string, params ...interface{}) *Query {
 	q.where = appendSep(q.where, " AND ")
 	q.where = append(q.where, '(')
-	q.where = q.format(q.where, where, params)
+	q.where = q.format(q.where, where, params...)
 	q.where = append(q.where, ')')
 	return q
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
 	q.join = appendSep(q.join, " ")
-	q.join = q.format(q.join, join, params)
+	q.join = q.format(q.join, join, params...)
 	return q
 }
 
 func (q *Query) Order(order string, params ...interface{}) *Query {
 	q.order = appendSep(q.join, ", ")
-	q.order = q.format(q.order, order, params)
+	q.order = q.format(q.order, order, params...)
 	return q
 }
 
@@ -115,7 +115,7 @@ func (q *Query) Offset(n int) *Query {
 }
 
 func (q *Query) OnConflict(s string, params ...interface{}) *Query {
-	q.onConflict = q.format(nil, s, params)
+	q.onConflict = q.format(nil, s, params...)
 	return q
 }
 
@@ -172,9 +172,8 @@ func (q *Query) Last() error {
 // Select selects the model from database.
 func (q *Query) Select(values ...interface{}) error {
 	q.joinHasOne()
-	sel := &selectQuery{
-		Query: q,
-	}
+	sel := selectQuery{q}
+
 	var err error
 	if len(values) > 0 {
 		_, err = q.db.QueryOne(Scan(values...), sel, q.model)
@@ -229,10 +228,7 @@ func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 		model = q.model
 	}
 
-	ins := &insertQuery{
-		Query: q,
-	}
-	return q.db.Query(model, ins, q.model)
+	return q.db.Query(model, insertQuery{Query: q}, q.model)
 }
 
 // SelectOrCreate selects the model from database creating one if necessary.
@@ -267,10 +263,7 @@ func (q *Query) Update() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
-	upd := &updateModel{
-		Query: q,
-	}
-	return q.db.Query(q.model, upd, q.model)
+	return q.db.Query(q.model, updateModel{q}, q.model)
 }
 
 // Update updates the model using provided values.
@@ -278,7 +271,7 @@ func (q *Query) UpdateValues(values map[string]interface{}) (*types.Result, erro
 	if q.err != nil {
 		return nil, q.err
 	}
-	upd := &updateQuery{
+	upd := updateQuery{
 		Query: q,
 		data:  values,
 	}
@@ -290,15 +283,10 @@ func (q *Query) Delete() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
-	return q.db.Exec(deleteModel{Query: q}, q.model)
+	return q.db.Exec(deleteModel{q}, q.model)
 }
 
-func (q *Query) format(dst []byte, s string, params []interface{}) []byte {
+func (q *Query) format(dst []byte, query string, params ...interface{}) []byte {
 	params = append(params, q.model)
-	return Formatter{}.Append(dst, s, params, true)
-}
-
-func (q *Query) formatBytes(dst []byte, b []byte, params []interface{}) []byte {
-	params = append(params, q.model)
-	return Formatter{}.AppendBytes(dst, b, params, true)
+	return q.db.FormatQuery(dst, query, params...)
 }

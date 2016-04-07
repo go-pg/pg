@@ -17,7 +17,7 @@ type insertQuery struct {
 
 var _ QueryAppender = (*insertQuery)(nil)
 
-func (ins insertQuery) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
+func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	table := ins.model.Table()
 	strct := ins.model.Value()
 

@@ -255,6 +255,10 @@ func (db *DB) Delete(model interface{}) error {
 	return orm.Delete(db, model)
 }
 
+func (db *DB) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
+	return orm.Formatter{}.Append(dst, query, params...)
+}
+
 func setParams(cn *pool.Conn, params map[string]interface{}) error {
 	for key, value := range params {
 		_, err := simpleQuery(cn, "SET ? = ?", F(key), value)

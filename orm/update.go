@@ -21,7 +21,7 @@ type updateModel struct {
 
 var _ QueryAppender = (*updateModel)(nil)
 
-func (upd updateModel) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
+func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	table := upd.model.Table()
 	strct := upd.model.Value()
 
@@ -84,7 +84,7 @@ type updateQuery struct {
 
 var _ QueryAppender = (*updateQuery)(nil)
 
-func (upd updateQuery) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
+func (upd updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "UPDATE "...)
 	b = append(b, upd.tableName...)
 	b = append(b, " SET "...)

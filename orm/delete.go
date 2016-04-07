@@ -17,7 +17,7 @@ type deleteModel struct {
 
 var _ QueryAppender = (*deleteModel)(nil)
 
-func (del deleteModel) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
+func (del deleteModel) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "DELETE FROM "...)
 	b = append(b, del.tableName...)
 

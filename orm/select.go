@@ -6,20 +6,13 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
-type dber interface {
-	Exec(q interface{}, params ...interface{}) (*types.Result, error)
-	ExecOne(q interface{}, params ...interface{}) (*types.Result, error)
-	Query(coll, query interface{}, params ...interface{}) (*types.Result, error)
-	QueryOne(model, query interface{}, params ...interface{}) (*types.Result, error)
-}
-
 type selectQuery struct {
 	*Query
 }
 
 var _ QueryAppender = (*selectQuery)(nil)
 
-func (sel selectQuery) AppendQuery(b []byte, params []interface{}) ([]byte, error) {
+func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "SELECT "...)
 	if sel.columns == nil {
 		b = types.AppendField(b, sel.model.Table().ModelName, 1)
