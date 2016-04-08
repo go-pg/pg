@@ -120,7 +120,7 @@ func (t *DBTest) TestLargeWriteRead(c *C) {
 
 func (t *DBTest) TestIntegrityError(c *C) {
 	_, err := t.db.Exec("DO $$BEGIN RAISE unique_violation USING MESSAGE='foo'; END$$;")
-	c.Assert(err, FitsTypeOf, &pg.IntegrityError{})
+	c.Assert(err.(pg.Error).IntegrityViolation(), Equals, true)
 }
 
 type customStrSlice []string
