@@ -164,7 +164,7 @@ func ExampleDB_Query() {
 
 - go-pg generates much more effecient queries for joins.
 
-    Has one relation:
+    ##### Has one relation
 
     ```
     BenchmarkModelHasOneGopg-4                 	    5000	    313091 ns/op	   78481 B/op	    1290 allocs/op
@@ -195,7 +195,7 @@ func ExampleDB_Query() {
     SELECT  * FROM "authors"  WHERE ("id" IN ('1','2'...'100'))
     ```
 
-    Has many relation:
+    ##### Has many relation
 
     ```
     BenchmarkModelHasManyGopg-4                	     500	   3034576 ns/op	  409288 B/op	    8700 allocs/op
@@ -227,7 +227,7 @@ func ExampleDB_Query() {
     SELECT * FROM "authors" WHERE ("book_id" IN (1, 2, ..., 100));
     ```
 
-    Has many to many relation:
+   ##### Many to many relation
 
     ```
     BenchmarkModelHasMany2ManyGopg-4           	     500	   3329123 ns/op	  394738 B/op	    9739 allocs/op
