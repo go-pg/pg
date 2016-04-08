@@ -1,7 +1,6 @@
 package pg
 
 import (
-	"fmt"
 	"io"
 	"net"
 
@@ -22,28 +21,10 @@ var (
 
 type Error interface {
 	Field(byte) string
+	IntegrityViolation() bool
 }
 
-type pgError struct {
-	c map[byte]string
-}
-
-var _ Error = (*pgError)(nil)
-
-func (err *pgError) Field(k byte) string {
-	return err.c[k]
-}
-
-func (err *pgError) Error() string {
-	return fmt.Sprintf(
-		"%s #%s %s: %s",
-		err.Field('S'), err.Field('C'), err.Field('M'), err.Field('D'),
-	)
-}
-
-type IntegrityError struct {
-	pgError
-}
+var _ Error = (*internal.PGError)(nil)
 
 func isBadConn(err error, allowTimeout bool) bool {
 	if err == nil {

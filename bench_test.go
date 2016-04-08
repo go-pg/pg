@@ -528,18 +528,22 @@ func BenchmarkExec(b *testing.B) {
 	db := benchmarkDB()
 	defer db.Close()
 
-	_, err := db.Exec(
-		`CREATE TABLE exec_test(id bigint, name varchar(500))`)
-	if err != nil {
-		b.Fatal(err)
+	qs := []string{
+		`DROP TABLE IF EXISTS exec_test`,
+		`CREATE TABLE exec_test(id bigint, name varchar(500))`,
 	}
-	defer db.Exec(`DROP TABLE exec_test`)
+	for _, q := range qs {
+		_, err := db.Exec(q)
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := db.Exec(`INSERT INTO exec_test(id, name) VALUES(?, ?)`, 1, "hello world")
+			_, err := db.Exec(`INSERT INTO exec_test (id, name) VALUES (?, ?)`, 1, "hello world")
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -551,19 +555,23 @@ func BenchmarkExecWithError(b *testing.B) {
 	db := benchmarkDB()
 	defer db.Close()
 
-	_, err := db.Exec(
-		`CREATE TABLE exec_with_error_test(id bigint PRIMARY KEY, name varchar(500))`)
-	if err != nil {
-		b.Fatal(err)
+	qs := []string{
+		`DROP TABLE IF EXISTS exec_with_error_test`,
+		`CREATE TABLE exec_with_error_test(id bigint PRIMARY KEY, name varchar(500))`,
+	}
+	for _, q := range qs {
+		_, err := db.Exec(q)
+		if err != nil {
+			b.Fatal(err)
+		}
 	}
 
-	_, err = db.Exec(`
+	_, err := db.Exec(`
 		INSERT INTO exec_with_error_test(id, name) VALUES(?, ?)
 	`, 1, "hello world")
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer db.Exec(`DROP TABLE exec_with_error_test`)
 
 	b.ResetTimer()
 
@@ -571,9 +579,9 @@ func BenchmarkExecWithError(b *testing.B) {
 		for pb.Next() {
 			_, err := db.Exec(`INSERT INTO exec_with_error_test(id) VALUES(?)`, 1)
 			if err == nil {
-				b.Fatalf("got nil error, expected IntegrityError")
-			} else if _, ok := err.(*pg.IntegrityError); !ok {
-				b.Fatalf("got " + err.Error() + ", expected IntegrityError")
+				b.Fatalf("got nil error, expected integrity violation")
+			} else if pgErr, ok := err.(pg.Error); !ok || !pgErr.IntegrityViolation() {
+				b.Fatalf("got %s, expected integrity violation", err)
 			}
 		}
 	})
@@ -588,7 +596,7 @@ func BenchmarkExecStmt(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	stmt, err := db.Prepare(`INSERT INTO statement_exec(id, name) VALUES($1, $2)`)
+	stmt, err := db.Prepare(`INSERT INTO statement_exec (id, name) VALUES ($1, $2)`)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -616,7 +624,7 @@ func BenchmarkExecStmtStdlibPq(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	stmt, err := db.Prepare(`INSERT INTO statement_exec(id, name) VALUES($1, $2)`)
+	stmt, err := db.Prepare(`INSERT INTO statement_exec (id, name) VALUES ($1, $2)`)
 	if err != nil {
 		b.Fatal(err)
 	}

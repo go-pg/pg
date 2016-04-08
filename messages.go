@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 
+	"gopkg.in/pg.v4/internal"
 	"gopkg.in/pg.v4/internal/pool"
 	"gopkg.in/pg.v4/orm"
 	"gopkg.in/pg.v4/types"
@@ -931,7 +932,7 @@ func readString(cn *pool.Conn) (string, error) {
 }
 
 func readError(cn *pool.Conn) (error, error) {
-	e := pgError{make(map[byte]string)}
+	m := make(map[byte]string)
 	for {
 		c, err := cn.Rd.ReadByte()
 		if err != nil {
@@ -944,14 +945,10 @@ func readError(cn *pool.Conn) (error, error) {
 		if err != nil {
 			return nil, err
 		}
-		e.c[c] = s
+		m[c] = s
 	}
 
-	switch e.Field('C') {
-	case "23000", "23001", "23502", "23503", "23505", "23514", "23P01":
-		return &IntegrityError{pgError: e}, nil
-	}
-	return &e, nil
+	return internal.NewPGError(m), nil
 }
 
 func readMessageType(cn *pool.Conn) (byte, int, error) {
