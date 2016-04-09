@@ -193,6 +193,24 @@ func ExampleDB_Model_selectSomeColumns() {
 	// Output: Book<Id=1 Title="">
 }
 
+func ExampleDB_Model_selectSomeVars() {
+	db := modelDB()
+
+	var id int
+	var title string
+	err := db.Model(Book{}).
+		Column("book.id", "book.title").
+		Order("book.id ASC").
+		Limit(1).
+		Select(&id, &title)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(id, title)
+	// Output: 1 book 1
+}
+
 func ExampleDB_Model_countRows() {
 	db := modelDB()
 

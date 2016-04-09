@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"fmt"
 	"io/ioutil"
 	"log"
 )
@@ -13,9 +14,9 @@ func Debugf(s string, args ...interface{}) {
 	if !Debug {
 		return
 	}
-	Logger.Printf(s, args...)
+	Logger.Output(2, fmt.Sprintf(s, args...))
 }
 
 func Logf(s string, args ...interface{}) {
-	Logger.Printf(s, args...)
+	Logger.Output(2, fmt.Sprintf(s, args...))
 }
