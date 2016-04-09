@@ -2,7 +2,6 @@ package pg
 
 import (
 	"log"
-	"os"
 	"strconv"
 
 	"gopkg.in/pg.v4/internal"
@@ -33,10 +32,6 @@ func F(field string, params ...interface{}) types.F {
 // Array returns an Array type that represents PostgreSQL array of any type.
 func Array(v interface{}) *types.Array {
 	return types.NewArray(v)
-}
-
-func init() {
-	SetLogger(log.New(os.Stderr, "pg: ", log.LstdFlags))
 }
 
 func SetLogger(logger *log.Logger) {
