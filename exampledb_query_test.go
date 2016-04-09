@@ -6,39 +6,50 @@ import (
 	"gopkg.in/pg.v4"
 )
 
-type User struct {
-	Id     int64
-	Name   string
-	Emails []string
+func CreateUser(db *pg.DB, user *User) error {
+	_, err := db.QueryOne(user, `
+		INSERT INTO users (name, emails) VALUES (?name, ?emails)
+		RETURNING id
+	`, user)
+	return err
 }
 
-func (u User) String() string {
-	return fmt.Sprintf("User<%d %s %v>", u.Id, u.Name, u.Emails)
+func GetUser(db *pg.DB, id int64) (*User, error) {
+	var user User
+	_, err := db.QueryOne(&user, `SELECT * FROM users WHERE id = ?`, id)
+	return &user, err
 }
 
-type Story struct {
-	Id     int64
-	Title  string
-	UserId int64
-	User   *User
+func GetUsers(db *pg.DB) ([]User, error) {
+	var users []User
+	_, err := db.Query(&users, `SELECT * FROM users`)
+	return users, err
 }
 
-func (s Story) String() string {
-	return fmt.Sprintf("Story<%d %s %s>", s.Id, s.Title, s.User)
+func GetUsersByIds(db *pg.DB, ids []int64) ([]User, error) {
+	var users []User
+	_, err := db.Query(&users, `SELECT * FROM users WHERE id IN (?)`, pg.Ints(ids))
+	return users, err
 }
 
-func createSchema(db *pg.DB) error {
-	queries := []string{
-		`CREATE TEMP TABLE users (id serial, name text, emails jsonb)`,
-		`CREATE TEMP TABLE stories (id serial, title text, user_id bigint)`,
-	}
-	for _, q := range queries {
-		_, err := db.Exec(q)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+func CreateStory(db *pg.DB, story *Story) error {
+	_, err := db.QueryOne(story, `
+		INSERT INTO stories (title, user_id) VALUES (?title, ?user_id)
+		RETURNING id
+	`, story)
+	return err
+}
+
+// GetStory returns story with associated user (author of the story).
+func GetStory(db *pg.DB, id int64) (*Story, error) {
+	var story Story
+	_, err := db.QueryOne(&story, `
+		SELECT s.*,
+			u.id AS user__id, u.name AS user__name, u.emails AS user__emails
+		FROM stories AS s, users AS u
+		WHERE s.id = ? AND u.id = s.user_id
+	`, id)
+	return &story, err
 }
 
 func ExampleDB_Query() {
@@ -55,12 +66,12 @@ func ExampleDB_Query() {
 		Name:   "admin",
 		Emails: []string{"admin1@admin", "admin2@admin"},
 	}
-	err = db.Create(user1)
+	err = CreateUser(db, user1)
 	if err != nil {
 		panic(err)
 	}
 
-	err = db.Create(&User{
+	err = CreateUser(db, &User{
 		Name:   "root",
 		Emails: []string{"root1@root", "root2@root"},
 	})
@@ -72,28 +83,19 @@ func ExampleDB_Query() {
 		Title:  "Cool story",
 		UserId: user1.Id,
 	}
-	err = db.Create(story1)
+	err = CreateStory(db, story1)
+
+	user, err := GetUser(db, user1.Id)
 	if err != nil {
 		panic(err)
 	}
 
-	var user User
-	err = db.Model(&user).Where("id = ?", user1.Id).Select()
+	users, err := GetUsers(db)
 	if err != nil {
 		panic(err)
 	}
 
-	var users []User
-	err = db.Model(&users).Select()
-	if err != nil {
-		panic(err)
-	}
-
-	var story Story
-	err = db.Model(&story).
-		Column("story.*", "User").
-		Where("story.id = ?", story1.Id).
-		Select()
+	story, err := GetStory(db, story1.Id)
 	if err != nil {
 		panic(err)
 	}
