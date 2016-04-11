@@ -19,7 +19,7 @@ type Table struct {
 	Fields    []*Field
 	FieldsMap map[string]*Field
 
-	Methods   map[string]*method
+	Methods   map[string]*Method
 	Relations map[string]*Relation
 }
 
@@ -68,15 +68,17 @@ func newTable(typ reflect.Type) *Table {
 		f := typ.Field(i)
 
 		if f.Anonymous {
-			typ := f.Type
-			if typ.Kind() == reflect.Ptr {
-				typ = typ.Elem()
+			embeddedTable := newTable(indirectType(f.Type))
+
+			for _, field := range embeddedTable.Fields {
+				field = field.Copy()
+				field.Index = append(f.Index, field.Index...)
+				if field.Has(PrimaryKeyFlag) {
+					table.PKs = append(table.PKs, field)
+				}
+				table.AddField(field)
 			}
-			for _, ff := range newTable(typ).Fields {
-				ff = ff.Copy()
-				ff.Index = append(f.Index, ff.Index...)
-				table.AddField(ff)
-			}
+
 			continue
 		}
 
@@ -91,7 +93,9 @@ func newTable(typ reflect.Type) *Table {
 	}
 
 	typ = reflect.PtrTo(typ)
-	table.Methods = make(map[string]*method)
+	if table.Methods == nil {
+		table.Methods = make(map[string]*Method)
+	}
 	for i := 0; i < typ.NumMethod(); i++ {
 		m := typ.Method(i)
 		if m.PkgPath != "" {
@@ -105,7 +109,7 @@ func newTable(typ reflect.Type) *Table {
 		}
 
 		retType := m.Type.Out(0)
-		method := method{
+		method := Method{
 			Index: m.Index,
 
 			appender: types.Appender(retType),

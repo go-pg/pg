@@ -19,9 +19,9 @@ const (
 )
 
 type Field struct {
-	GoName  string
-	SQLName string
-	ColName types.Q
+	GoName  string  // struct field name, e.g. Id
+	SQLName string  // SQL name, .e.g. id
+	ColName types.Q // escaped column name, e.g. "id"
 	Index   []int
 
 	flags int8
@@ -80,7 +80,7 @@ func fieldByIndex(v reflect.Value, index []int) reflect.Value {
 	return v
 }
 
-type method struct {
+type Method struct {
 	Index int
 
 	flags int8
@@ -88,15 +88,15 @@ type method struct {
 	appender func([]byte, reflect.Value, int) []byte
 }
 
-func (m *method) Has(flag int8) bool {
+func (m *Method) Has(flag int8) bool {
 	return m.flags&flag != 0
 }
 
-func (m *method) Value(strct reflect.Value) reflect.Value {
+func (m *Method) Value(strct reflect.Value) reflect.Value {
 	return strct.Method(m.Index).Call(nil)[0]
 }
 
-func (m *method) AppendValue(dst []byte, strct reflect.Value, quote int) []byte {
+func (m *Method) AppendValue(dst []byte, strct reflect.Value, quote int) []byte {
 	mv := m.Value(strct)
 	return m.appender(dst, mv, quote)
 }
