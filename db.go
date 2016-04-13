@@ -232,6 +232,7 @@ func (db *DB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (*ty
 		return nil, err
 	}
 
+	db.pool.Put(cn)
 	return res, nil
 }
 
