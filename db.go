@@ -205,7 +205,7 @@ func (db *DB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (*
 }
 
 // CopyTo copies data from a table to writer.
-func (db *DB) CopyTo(w io.WriteCloser, query interface{}, params ...interface{}) (*types.Result, error) {
+func (db *DB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (*types.Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err

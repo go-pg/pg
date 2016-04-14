@@ -746,8 +746,7 @@ func readCopyOutResponse(cn *pool.Conn) error {
 	}
 }
 
-func readCopyData(cn *pool.Conn, w io.WriteCloser) (*types.Result, error) {
-	defer w.Close()
+func readCopyData(cn *pool.Conn, w io.Writer) (*types.Result, error) {
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
