@@ -132,7 +132,7 @@ func ExampleDB_Create_selectOrCreate() {
 	created, err := db.Model(&author).
 		Column("id").
 		Where("name = ?name").
-		OnConflict("DO NOTHING").
+		OnConflict("DO NOTHING"). // OnConflict is optional
 		Returning("id").
 		SelectOrCreate()
 	if err != nil {

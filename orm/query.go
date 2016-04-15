@@ -248,9 +248,14 @@ func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) 
 
 		res, err := q.Create(values...)
 		if err != nil {
-			if pgErr, ok := err.(internal.PGError); ok && pgErr.Field('C') == "55000" {
-				// Retry on "#55000 attempted to delete invisible tuple".
-				continue
+			if pgErr, ok := err.(internal.PGError); ok {
+				if pgErr.IntegrityViolation() {
+					continue
+				}
+				if pgErr.Field('C') == "55000" {
+					// Retry on "#55000 attempted to delete invisible tuple".
+					continue
+				}
 			}
 			return false, err
 		}
