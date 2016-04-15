@@ -196,6 +196,9 @@ type Genre struct {
 	Rating int `sql:"-"` // - is used to ignore field
 
 	Books []Book `pg:",many2many:book_genres"` // many to many relation
+
+	ParentId  int     `sql:",null"`
+	Subgenres []Genre `pg:",fk:Parent"` // fk specifies prefix for foreign key (ParentId)
 }
 
 func (g Genre) String() string {
@@ -262,7 +265,7 @@ func createTestSchema(db *pg.DB) error {
 		`DROP TABLE IF EXISTS book_genres`,
 		`CREATE TABLE authors (id serial, name text)`,
 		`CREATE TABLE books (id serial PRIMARY KEY, title text, author_id int, editor_id int, created_at timestamptz)`,
-		`CREATE TABLE genres (id serial, name text)`,
+		`CREATE TABLE genres (id serial, name text, parent_id int)`,
 		`CREATE TABLE book_genres (book_id int, genre_id int, genre__rating int)`,
 		`CREATE TABLE translations (id serial, book_id int, lang varchar(2))`,
 		`CREATE TABLE comments (trackable_id int, trackable_type varchar(100), text text)`,
@@ -295,6 +298,20 @@ var _ = Describe("ORM", func() {
 		err = db.Create(&Genre{
 			Id:   2,
 			Name: "genre 2",
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Genre{
+			Id:       3,
+			Name:     "subgenre 1",
+			ParentId: 1,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Create(&Genre{
+			Id:       4,
+			Name:     "subgenre 2",
+			ParentId: 1,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -570,7 +587,8 @@ var _ = Describe("ORM", func() {
 		It("supports HasMany2Many, HasMany2Many -> HasMany", func() {
 			var genres []Genre
 			err := db.Model(&genres).
-				Column("genre.*", "Books", "Books.Translations").
+				Column("genre.*", "Subgenres", "Books", "Books.Translations").
+				Where("genre.parent_id IS NULL").
 				Order("genre.id").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
@@ -578,41 +596,37 @@ var _ = Describe("ORM", func() {
 
 			genre := &genres[0]
 			Expect(genre.Id).To(Equal(1))
-			Expect(genre.Books).To(HaveLen(2))
+			Expect(genre.Subgenres).To(ConsistOf(
+				Genre{Id: 3, Name: "subgenre 1", ParentId: 1},
+				Genre{Id: 4, Name: "subgenre 2", ParentId: 1},
+			))
 
 			book := genre.Books[0]
 			Expect(book.Id).To(Equal(100))
 
 			Expect(book.Translations).To(HaveLen(2))
-			translation := book.Translations[0]
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("ru"))
-			translation = book.Translations[1]
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("md"))
+			Expect(book.Translations).To(ConsistOf(
+				Translation{Id: 1000, BookId: 100, Lang: "ru"},
+				Translation{Id: 1001, BookId: 100, Lang: "md"},
+			))
 
 			book = genre.Books[1]
 			Expect(book.Id).To(Equal(101))
-
-			Expect(book.Translations).To(HaveLen(1))
-			translation = book.Translations[0]
-			Expect(translation.BookId).To(Equal(101))
-			Expect(translation.Lang).To(Equal("ua"))
+			Expect(book.Translations).To(ConsistOf(
+				Translation{Id: 1002, BookId: 101, Lang: "ua"},
+			))
 
 			genre = &genres[1]
 			Expect(genre.Id).To(Equal(2))
+			Expect(genre.Subgenres).To(BeEmpty())
 
 			Expect(genre.Books).To(HaveLen(1))
 			book = genre.Books[0]
 			Expect(book.Id).To(Equal(100))
-
-			Expect(book.Translations).To(HaveLen(2))
-			translation = book.Translations[0]
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("ru"))
-			translation = book.Translations[1]
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("md"))
+			Expect(book.Translations).To(ConsistOf(
+				Translation{Id: 1000, BookId: 100, Lang: "ru"},
+				Translation{Id: 1001, BookId: 100, Lang: "md"},
+			))
 		})
 	})
 
