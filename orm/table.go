@@ -198,32 +198,35 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 		if fieldType.Elem().Kind() == reflect.Struct {
 			joinTable := newTable(fieldType.Elem())
 
+			basePrefix := t.ModelName + "_"
+			if s, _ := pgOpt.Get("fk:"); s != "" {
+				basePrefix = Underscore(s) + "_"
+			}
+			joinPrefix := joinTable.ModelName + "_"
+			if s, _ := pgOpt.Get("joinFK:"); s != "" {
+				joinPrefix = Underscore(s) + "_"
+			}
+
 			if m2mTable, _ := pgOpt.Get("many2many:"); m2mTable != "" {
 				t.addRelation(&Relation{
 					Field:        &field,
 					Join:         joinTable,
 					M2MTableName: types.AppendField(nil, m2mTable, 1),
+					BasePrefix:   basePrefix,
+					JoinPrefix:   joinPrefix,
 				})
 				return nil
 			}
 
-			var polymorphic string
+			var polymorphic bool
 			if s, _ := pgOpt.Get("polymorphic:"); s != "" {
-				polymorphic = Underscore(s) + "_"
+				polymorphic = true
+				basePrefix = Underscore(s) + "_"
 			}
 
 			var fks []*Field
-			var prefix string
-			if polymorphic != "" {
-				prefix = polymorphic
-			} else if fk, _ := pgOpt.Get("fk:"); fk != "" {
-				prefix = Underscore(fk) + "_"
-			} else {
-				prefix = t.ModelName + "_"
-			}
-
 			for _, pk := range t.PKs {
-				fkName := prefix + pk.SQLName
+				fkName := basePrefix + pk.SQLName
 				fk, ok := joinTable.FieldsMap[fkName]
 				if ok {
 					fks = append(fks, fk)
@@ -236,6 +239,7 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 					Field:       &field,
 					FKs:         fks,
 					Join:        joinTable,
+					BasePrefix:  basePrefix,
 				})
 				return nil
 			}

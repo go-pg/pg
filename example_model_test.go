@@ -262,15 +262,36 @@ func ExampleDB_Model_hasMany() {
 }
 
 func ExampleDB_Model_manyToMany() {
-	db := modelDB()
+	type Item struct {
+		Id    int
+		Items []Item `pg:",many2many:item_to_items,joinFK:Sub"`
+	}
 
-	var book Book
-	err := db.Model(&book).Column("book.*", "Genres").First()
+	db := connect()
+	defer db.Close()
+
+	qs := []string{
+		"CREATE TEMP TABLE items (id int)",
+		"CREATE TEMP TABLE item_to_items (item_id int, sub_id int)",
+		"INSERT INTO items VALUES (1), (2), (3)",
+		"INSERT INTO item_to_items VALUES (1, 2), (1, 3)",
+	}
+	for _, q := range qs {
+		_, err := db.Exec(q)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	var item Item
+	err := db.Model(&item).Column("item.*", "Items").First()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(book.Genres[0], book.Genres[1])
-	// Output: Genre<Id=1 Name="genre 1"> Genre<Id=2 Name="genre 2">
+	fmt.Println("Item", item.Id)
+	fmt.Println("Subitems", item.Items[0].Id, item.Items[1].Id)
+	// Output: Item 1
+	// Subitems 2 3
 }
 
 func ExampleDB_Update() {
