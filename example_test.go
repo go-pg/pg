@@ -12,7 +12,11 @@ import (
 var db *pg.DB
 
 func init() {
-	db = pg.Connect(&pg.Options{
+	db = connect()
+}
+
+func connect() *pg.DB {
+	return pg.Connect(&pg.Options{
 		User: "postgres",
 	})
 }

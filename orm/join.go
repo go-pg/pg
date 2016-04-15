@@ -88,8 +88,8 @@ func (j *Join) selectMany(db dber) error {
 	vals := values(root, path, j.BaseModel.Table().PKs)
 	q.Where(`(?) IN (?)`, types.Q(cols), types.Q(vals))
 
-	if j.Rel.Polymorphic != "" {
-		q.Where(`? = ?`, types.F(j.Rel.Polymorphic+"type"), j.BaseModel.Table().ModelName)
+	if j.Rel.Polymorphic {
+		q.Where(`? = ?`, types.F(j.Rel.BasePrefix+"type"), j.BaseModel.Table().ModelName)
 	}
 
 	err := q.Select()
@@ -105,7 +105,7 @@ func (j *Join) selectM2M(db dber) error {
 	path = path[:len(path)-1]
 
 	baseTable := j.BaseModel.Table()
-	m2mCols := columns(j.Rel.M2MTableName, baseTable.ModelName+"_", baseTable.PKs)
+	m2mCols := columns(j.Rel.M2MTableName, j.Rel.BasePrefix, baseTable.PKs)
 	m2mVals := values(j.BaseModel.Root(), path, baseTable.PKs)
 
 	m2mModel := newM2MModel(j)
@@ -121,7 +121,7 @@ func (j *Join) selectM2M(db dber) error {
 		q.Where(
 			"?.? = ?.?",
 			types.F(joinTable.ModelName), pk.ColName,
-			j.Rel.M2MTableName, types.F(joinTable.ModelName+"_"+pk.SQLName),
+			j.Rel.M2MTableName, types.F(j.Rel.JoinPrefix+pk.SQLName),
 		)
 	}
 
