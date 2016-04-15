@@ -277,6 +277,9 @@ type Genre struct {
 	Rating int `sql:"-"` // - is used to ignore field
 
 	Books []Book `pg:",many2many:book_genres"` // many to many relation
+
+	ParentId  int     `sql:",null"`
+	Subgenres []Genre `pg:",fk:Parent"` // fk specifies prefix for foreign key (ParentId)
 }
 
 func (g Genre) String() string {

@@ -193,11 +193,6 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 		field.flags |= FormatFlag
 	}
 
-	var polymorphic string
-	if s, _ := pgOpt.Get("polymorphic:"); s != "" {
-		polymorphic = Underscore(s) + "_"
-	}
-
 	switch fieldType.Kind() {
 	case reflect.Slice:
 		if fieldType.Elem().Kind() == reflect.Struct {
@@ -212,10 +207,17 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 				return nil
 			}
 
+			var polymorphic string
+			if s, _ := pgOpt.Get("polymorphic:"); s != "" {
+				polymorphic = Underscore(s) + "_"
+			}
+
 			var fks []*Field
 			var prefix string
 			if polymorphic != "" {
 				prefix = polymorphic
+			} else if fk, _ := pgOpt.Get("fk:"); fk != "" {
+				prefix = Underscore(fk) + "_"
 			} else {
 				prefix = t.ModelName + "_"
 			}
