@@ -30,7 +30,7 @@ var _ = Describe("DB race", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("SelectOrCreate is race free", func() {
+	It("SelectOrCreate with OnConflict is race free", func() {
 		perform(C, func(id int) {
 			a := &Author{
 				Name: "R. Scott Bakker",
@@ -41,6 +41,35 @@ var _ = Describe("DB race", func() {
 					Column("id").
 					Where("name = ?name").
 					OnConflict("DO NOTHING").
+					Returning("id").
+					SelectOrCreate()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(a.ID).NotTo(BeZero())
+
+				if i%2 == 0 {
+					err := db.Delete(a)
+					if err != pg.ErrNoRows {
+						Expect(err).NotTo(HaveOccurred())
+					}
+				}
+			}
+		})
+
+		count, err := db.Model(Author{}).Count()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(count).To(Equal(1))
+	})
+
+	It("SelectOrCreate without OnConflict is race free", func() {
+		perform(C, func(id int) {
+			a := &Author{
+				Name: "R. Scott Bakker",
+			}
+			for i := 0; i < N; i++ {
+				a.ID = 0
+				_, err := db.Model(a).
+					Column("id").
+					Where("name = ?name").
 					Returning("id").
 					SelectOrCreate()
 				Expect(err).NotTo(HaveOccurred())
