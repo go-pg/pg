@@ -1,5 +1,7 @@
 package orm
 
+import "reflect"
+
 func Create(db dber, v interface{}) error {
 	q := NewQuery(db, v)
 	if q.err != nil {
@@ -23,12 +25,17 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	b = append(b, ins.tableName...)
 	b = append(b, " ("...)
 
+	var returning []*Field
+	var fields []*Field
+
 	start := len(b)
-	for _, field := range table.Fields {
-		if field.Has(PrimaryKeyFlag) && field.IsEmpty(strct) {
+	for _, f := range table.Fields {
+		if (f.Has(PrimaryKeyFlag) || f.OmitEmpty(strct)) && f.IsEmpty(strct) {
+			returning = append(returning, f)
 			continue
 		}
-		b = append(b, field.ColName...)
+		fields = append(fields, f)
+		b = append(b, f.ColName...)
 		b = append(b, ", "...)
 	}
 	if len(b) > start {
@@ -37,16 +44,11 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 
 	b = append(b, ") VALUES ("...)
 
-	start = len(b)
-	for _, field := range table.Fields {
-		if field.Has(PrimaryKeyFlag) && field.IsEmpty(strct) {
-			continue
+	for i, f := range fields {
+		b = f.AppendValue(b, strct, 1)
+		if i != len(fields)-1 {
+			b = append(b, ", "...)
 		}
-		b = field.AppendValue(b, strct, 1)
-		b = append(b, ", "...)
-	}
-	if len(b) > start {
-		b = b[:len(b)-2]
 	}
 
 	b = append(b, ')')
@@ -59,9 +61,20 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	if len(ins.returning) > 0 {
 		b = append(b, " RETURNING "...)
 		b = append(b, ins.returning...)
-	} else {
-		b = appendReturning(b, strct, table.PKs)
+	} else if len(returning) > 0 {
+		b = appendReturning(b, strct, returning)
 	}
 
 	return b, nil
+}
+
+func appendReturning(b []byte, v reflect.Value, fields []*Field) []byte {
+	b = append(b, " RETURNING "...)
+	for i, f := range fields {
+		b = append(b, f.ColName...)
+		if i != len(fields)-1 {
+			b = append(b, ", "...)
+		}
+	}
+	return b
 }

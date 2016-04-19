@@ -51,6 +51,10 @@ func (f *Field) IsEmpty(strct reflect.Value) bool {
 	return f.isEmpty(fv)
 }
 
+func (f *Field) OmitEmpty(strct reflect.Value) bool {
+	return f.Has(NullFlag) && f.isEmpty(f.Value(strct))
+}
+
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 	fv := f.Value(strct)
 	if f.Has(NullFlag) && f.isEmpty(fv) {

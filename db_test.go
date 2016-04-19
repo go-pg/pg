@@ -228,8 +228,8 @@ type Book struct {
 	AuthorID  int
 	Author    *Author // has one relation
 	EditorID  int
-	Editor    *Author // has one relation
-	CreatedAt time.Time
+	Editor    *Author   // has one relation
+	CreatedAt time.Time `sql:",null"`
 
 	Genres       []Genre       `pg:",many2many:book_genres" gorm:"many2many:book_genres;"` // many to many relation
 	Translations []Translation // has many relation
@@ -264,7 +264,7 @@ func createTestSchema(db *pg.DB) error {
 		`DROP TABLE IF EXISTS genres`,
 		`DROP TABLE IF EXISTS book_genres`,
 		`CREATE TABLE authors (id serial, name text)`,
-		`CREATE TABLE books (id serial PRIMARY KEY, title text, author_id int, editor_id int, created_at timestamptz)`,
+		`CREATE TABLE books (id serial PRIMARY KEY, title text, author_id int, editor_id int, created_at timestamptz DEFAULT now())`,
 		`CREATE TABLE genres (id serial, name text, parent_id int)`,
 		`CREATE TABLE book_genres (book_id int, genre_id int, genre__rating int)`,
 		`CREATE TABLE translations (id serial, book_id int, lang varchar(2))`,
@@ -333,30 +333,29 @@ var _ = Describe("ORM", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
+		book := Book{
+			Id:       100,
+			Title:    "book 1",
+			AuthorID: 10,
+			EditorID: 11,
+		}
+		err = db.Create(&book)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(book.CreatedAt).To(BeTemporally("~", time.Now(), time.Second))
+
 		err = db.Create(&Book{
-			Id:        100,
-			Title:     "book 1",
-			AuthorID:  10,
-			EditorID:  11,
-			CreatedAt: time.Now(),
+			Id:       101,
+			Title:    "book 2",
+			AuthorID: 10,
+			EditorID: 12,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
 		err = db.Create(&Book{
-			Id:        101,
-			Title:     "book 2",
-			AuthorID:  10,
-			EditorID:  12,
-			CreatedAt: time.Now(),
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&Book{
-			Id:        102,
-			Title:     "book 3",
-			AuthorID:  11,
-			EditorID:  11,
-			CreatedAt: time.Now(),
+			Id:       102,
+			Title:    "book 3",
+			AuthorID: 11,
+			EditorID: 11,
 		})
 		Expect(err).NotTo(HaveOccurred())
 

@@ -1,11 +1,17 @@
 package orm
 
-import "reflect"
+import (
+	"reflect"
+	"time"
+)
 
 type isEmptyFunc func(reflect.Value) bool
 
-func isEmptier(kind reflect.Kind) isEmptyFunc {
-	switch kind {
+func isEmptier(typ reflect.Type) isEmptyFunc {
+	if typ == timeType {
+		return isEmptyTime
+	}
+	switch typ.Kind() {
 	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
 		return isEmptyLen
 	case reflect.Bool:
@@ -44,6 +50,10 @@ func isEmptyUint(v reflect.Value) bool {
 
 func isEmptyFloat(v reflect.Value) bool {
 	return v.Float() == 0
+}
+
+func isEmptyTime(v reflect.Value) bool {
+	return v.Interface().(time.Time).IsZero()
 }
 
 func isEmptyFalse(v reflect.Value) bool {
