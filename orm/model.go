@@ -8,10 +8,7 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
-var (
-	timePtrType = reflect.TypeOf((*time.Time)(nil))
-	timeType    = timePtrType.Elem()
-)
+var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 
 type Model interface {
 	Collection

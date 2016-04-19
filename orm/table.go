@@ -168,7 +168,7 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 		append: appender,
 		scan:   scanner,
 
-		isEmpty: isEmptier(fieldType.Kind()),
+		isEmpty: isEmptier(fieldType),
 	}
 
 	if skip {

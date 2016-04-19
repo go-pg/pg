@@ -17,8 +17,7 @@ var (
 )
 
 var (
-	timePtrType = reflect.TypeOf((*time.Time)(nil))
-	timeType    = timePtrType.Elem()
+	timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 )
 
 type ScannerFunc func(reflect.Value, []byte) error

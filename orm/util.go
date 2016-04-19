@@ -105,25 +105,6 @@ func appendFieldValue(b []byte, v reflect.Value, fields []*Field) []byte {
 	return b
 }
 
-func appendReturning(b []byte, v reflect.Value, fields []*Field) []byte {
-	var hasReturning bool
-	for _, f := range fields {
-		if !f.IsEmpty(v) {
-			continue
-		}
-		if !hasReturning {
-			b = append(b, " RETURNING "...)
-			hasReturning = true
-		}
-		b = append(b, f.ColName...)
-		b = append(b, ", "...)
-	}
-	if hasReturning {
-		b = b[:len(b)-2]
-	}
-	return b
-}
-
 func modelId(b []byte, v reflect.Value, fields []*Field) []byte {
 	for i, f := range fields {
 		b = f.AppendValue(b, v, 0)
