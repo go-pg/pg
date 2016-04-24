@@ -86,7 +86,7 @@ func newTable(typ reflect.Type) *Table {
 			continue
 		}
 
-		field := table.newField(typ, f)
+		field := table.newField(f)
 		if field != nil {
 			table.AddField(field)
 		}
@@ -128,7 +128,21 @@ func newTable(typ reflect.Type) *Table {
 	return table
 }
 
-func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
+func (t *Table) getField(name string) *Field {
+	for _, f := range t.Fields {
+		if f.GoName == name {
+			return f
+		}
+	}
+
+	f, ok := t.Type.FieldByName(name)
+	if !ok {
+		return nil
+	}
+	return t.newField(f)
+}
+
+func (t *Table) newField(f reflect.StructField) *Field {
 	sqlName, sqlOpt := parseTag(f.Tag.Get("sql"))
 
 	if f.Name == "TableName" {
@@ -260,9 +274,8 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 
 		var fks []*Field
 		for _, pk := range joinTable.PKs {
-			fkName := field.SQLName + "_" + pk.SQLName
-			fk, ok := t.FieldsMap[fkName]
-			if ok {
+			fkName := field.GoName + pk.GoName
+			if fk := t.getField(fkName); fk != nil {
 				fks = append(fks, fk)
 			}
 		}

@@ -238,15 +238,50 @@ func ExampleDB_Model_nullEmptyValue() {
 }
 
 func ExampleDB_Model_hasOne() {
-	db := modelDB()
+	type Subitem struct {
+		Id int
+	}
 
-	var book Book
-	err := db.Model(&book).Column("book.*", "Author").First()
+	type Item struct {
+		Id int
+
+		Sub   *Subitem
+		SubId int
+	}
+
+	db := connect()
+	defer db.Close()
+
+	qs := []string{
+		"CREATE TEMP TABLE subitems (id int)",
+		"CREATE TEMP TABLE items (id int, sub_id int)",
+		"INSERT INTO subitems VALUES (1), (2)",
+		"INSERT INTO items VALUES (10, 1), (11, 2)",
+	}
+	for _, q := range qs {
+		_, err := db.Exec(q)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// Select all Items and join Subitem using following query:
+	//
+	// SELECT "item".*, "sub"."id" AS "sub__id"
+	// FROM "items" AS "item"
+	// LEFT JOIN "subitems" AS "sub" ON "sub"."id" = item."sub_id"
+
+	var items []Item
+	err := db.Model(&items).Column("item.*", "Sub").Select()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(book, book.Author)
-	// Output: Book<Id=1 Title="book 1"> Author<ID=1 Name="author 1">
+	fmt.Printf("found %d items\n", len(items))
+	fmt.Printf("item %d, subitem %d\n", items[0].Id, items[0].Sub.Id)
+	fmt.Printf("item %d, subitem %d\n", items[1].Id, items[1].Sub.Id)
+	// Output: found 2 items
+	// item 10, subitem 1
+	// item 11, subitem 2
 }
 
 func ExampleDB_Model_hasMany() {
