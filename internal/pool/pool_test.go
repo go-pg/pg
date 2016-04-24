@@ -98,7 +98,7 @@ var _ = Describe("conns reaper", func() {
 
 	BeforeEach(func() {
 		connPool = pool.NewConnPool(
-			dummyDialer, 10, time.Second, time.Millisecond, time.Hour)
+			dummyDialer, 10, time.Second, time.Minute, time.Hour)
 
 		var cns []*pool.Conn
 

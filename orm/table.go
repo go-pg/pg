@@ -86,7 +86,7 @@ func newTable(typ reflect.Type) *Table {
 			continue
 		}
 
-		field := table.newField(typ, f)
+		field := table.newField(f)
 		if field != nil {
 			table.AddField(field)
 		}
@@ -128,7 +128,21 @@ func newTable(typ reflect.Type) *Table {
 	return table
 }
 
-func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
+func (t *Table) getField(name string) *Field {
+	for _, f := range t.Fields {
+		if f.GoName == name {
+			return f
+		}
+	}
+
+	f, ok := t.Type.FieldByName(name)
+	if !ok {
+		return nil
+	}
+	return t.newField(f)
+}
+
+func (t *Table) newField(f reflect.StructField) *Field {
 	sqlName, sqlOpt := parseTag(f.Tag.Get("sql"))
 
 	if f.Name == "TableName" {
@@ -198,37 +212,37 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 		if fieldType.Elem().Kind() == reflect.Struct {
 			joinTable := newTable(fieldType.Elem())
 
-			basePrefix := t.ModelName + "_"
+			basePrefix := t.Type.Name()
 			if s, _ := pgOpt.Get("fk:"); s != "" {
-				basePrefix = Underscore(s) + "_"
-			}
-			joinPrefix := joinTable.ModelName + "_"
-			if s, _ := pgOpt.Get("joinFK:"); s != "" {
-				joinPrefix = Underscore(s) + "_"
+				basePrefix = s
 			}
 
 			if m2mTable, _ := pgOpt.Get("many2many:"); m2mTable != "" {
+				joinPrefix := joinTable.Type.Name()
+				if s, _ := pgOpt.Get("joinFK:"); s != "" {
+					joinPrefix = s
+				}
+
 				t.addRelation(&Relation{
 					Field:        &field,
 					Join:         joinTable,
 					M2MTableName: types.AppendField(nil, m2mTable, 1),
-					BasePrefix:   basePrefix,
-					JoinPrefix:   joinPrefix,
+					BasePrefix:   Underscore(basePrefix + "_"),
+					JoinPrefix:   Underscore(joinPrefix + "_"),
 				})
 				return nil
 			}
 
 			var polymorphic bool
 			if s, _ := pgOpt.Get("polymorphic:"); s != "" {
+				basePrefix = s
 				polymorphic = true
-				basePrefix = Underscore(s) + "_"
 			}
 
 			var fks []*Field
 			for _, pk := range t.PKs {
-				fkName := basePrefix + pk.SQLName
-				fk, ok := joinTable.FieldsMap[fkName]
-				if ok {
+				fkName := basePrefix + pk.GoName
+				if fk := joinTable.getField(fkName); fk != nil {
 					fks = append(fks, fk)
 				}
 			}
@@ -239,7 +253,7 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 					Field:       &field,
 					FKs:         fks,
 					Join:        joinTable,
-					BasePrefix:  basePrefix,
+					BasePrefix:  Underscore(basePrefix + "_"),
 				})
 				return nil
 			}
@@ -250,7 +264,7 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 			break
 		}
 
-		for _, ff := range joinTable.Fields {
+		for _, ff := range joinTable.FieldsMap {
 			ff = ff.Copy()
 			ff.SQLName = field.SQLName + "__" + ff.SQLName
 			ff.ColName = types.AppendField(nil, ff.SQLName, 1)
@@ -260,9 +274,8 @@ func (t *Table) newField(typ reflect.Type, f reflect.StructField) *Field {
 
 		var fks []*Field
 		for _, pk := range joinTable.PKs {
-			fkName := field.SQLName + "_" + pk.SQLName
-			fk, ok := t.FieldsMap[fkName]
-			if ok {
+			fkName := field.GoName + pk.GoName
+			if fk := t.getField(fkName); fk != nil {
 				fks = append(fks, fk)
 			}
 		}

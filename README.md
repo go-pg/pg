@@ -7,7 +7,7 @@ Supports:
 - `sql:",null"` struct tag which marshalls zero struct fields as SQL `NULL` and completely omits them from `INSERT` queries.
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
 - Structs, maps and arrays are marshalled as JSON by default.
-- PostgreSQL Arrays using [array tag](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-PostgresqlArrayStructTag) and [Array wrapper](https://godoc.org/gopkg.in/pg.v4#example-Array).
+- PostgreSQL Arrays using [array tag](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-PostgresArrayStructTag) and [Array wrapper](https://godoc.org/gopkg.in/pg.v4#example-Array).
 - [Transactions](http://godoc.org/gopkg.in/pg.v4#example-DB-Begin).
 - [Prepared statements](http://godoc.org/gopkg.in/pg.v4#example-DB-Prepare).
 - [Notifications](http://godoc.org/gopkg.in/pg.v4#example-Listener) using `LISTEN` and `NOTIFY`.
@@ -268,6 +268,8 @@ func ExampleDB_Query() {
 Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to get the idea how to use this package.
 
 ## Model definition
+
+Models are defined using Go structs. Order of the struct fields usually does not matter with the only exception being primary key(s) that must defined before any other fields. Otherwise table relationshipts can be recognized incorrectly.
 
 ```go
 type Genre struct {

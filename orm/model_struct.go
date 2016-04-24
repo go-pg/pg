@@ -109,19 +109,17 @@ func (m *StructModel) ScanColumn(colIdx int, colName string, b []byte) error {
 }
 
 func (m *StructModel) scanColumn(colIdx int, colName string, b []byte) (bool, error) {
-	field, ok := m.table.FieldsMap[colName]
-	if ok {
-		return true, field.ScanValue(m.strct, b)
-	}
-
 	joinName, fieldName := splitColumn(colName)
 	if joinName != "" {
 		if join := m.GetJoin(joinName); join != nil {
 			return join.JoinModel.scanColumn(colIdx, fieldName, b)
 		}
+		if m.table.ModelName == joinName {
+			return m.scanColumn(colIdx, fieldName, b)
+		}
 	}
 
-	field, ok = m.table.FieldsMap[fieldName]
+	field, ok := m.table.FieldsMap[colName]
 	if ok {
 		if m.strct.Kind() == reflect.Ptr {
 			if m.strct.IsNil() {

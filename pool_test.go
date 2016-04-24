@@ -1,7 +1,6 @@
 package pg_test
 
 import (
-	"fmt"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -31,27 +30,6 @@ func TestStatementTimeout(t *testing.T) {
 	if db.Pool().Len() != 1 || db.Pool().FreeLen() != 1 {
 		t.Fatalf("pool is empty")
 	}
-
-	err = eventually(func() error {
-		return verifyNoActivity(db)
-	}, 10*time.Second)
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-func verifyNoActivity(db *pg.DB) error {
-	var queries pg.Strings
-	_, err := db.Query(&queries, `
-		SELECT query FROM pg_stat_activity WHERE datname = 'test'
-	`)
-	if err != nil {
-		return err
-	}
-	if len(queries) > 1 {
-		return fmt.Errorf("there are %d active queries running: %#v", len(queries), queries)
-	}
-	return nil
 }
 
 var _ = Suite(&PoolTest{})
