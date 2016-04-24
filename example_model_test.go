@@ -238,14 +238,10 @@ func ExampleDB_Model_nullEmptyValue() {
 }
 
 func ExampleDB_Model_hasOne() {
-	type Subitem struct {
-		Id int
-	}
-
 	type Item struct {
 		Id int
 
-		Sub   *Subitem
+		Sub   *Item
 		SubId int
 	}
 
@@ -253,10 +249,8 @@ func ExampleDB_Model_hasOne() {
 	defer db.Close()
 
 	qs := []string{
-		"CREATE TEMP TABLE subitems (id int)",
 		"CREATE TEMP TABLE items (id int, sub_id int)",
-		"INSERT INTO subitems VALUES (1), (2)",
-		"INSERT INTO items VALUES (10, 1), (11, 2)",
+		"INSERT INTO items VALUES (1, NULL), (2, 1), (3, NULL), (4, 2)",
 	}
 	for _, q := range qs {
 		_, err := db.Exec(q)
@@ -265,35 +259,66 @@ func ExampleDB_Model_hasOne() {
 		}
 	}
 
-	// Select all Items and join Subitem using following query:
+	// Select items and join subitem using following query:
 	//
-	// SELECT "item".*, "sub"."id" AS "sub__id"
+	// SELECT "item".*, "sub"."id" AS "sub__id", "sub"."sub_id" AS "sub__sub_id"
 	// FROM "items" AS "item"
-	// LEFT JOIN "subitems" AS "sub" ON "sub"."id" = item."sub_id"
+	// LEFT JOIN "items" AS "sub" ON "sub"."id" = item."sub_id"
+	// WHERE (item.sub_id IS NOT NULL)
 
 	var items []Item
-	err := db.Model(&items).Column("item.*", "Sub").Select()
+	err := db.Model(&items).
+		Column("item.*", "Sub").
+		Where("item.sub_id IS NOT NULL").
+		Select()
 	if err != nil {
 		panic(err)
 	}
+
 	fmt.Printf("found %d items\n", len(items))
 	fmt.Printf("item %d, subitem %d\n", items[0].Id, items[0].Sub.Id)
 	fmt.Printf("item %d, subitem %d\n", items[1].Id, items[1].Sub.Id)
 	// Output: found 2 items
-	// item 10, subitem 1
-	// item 11, subitem 2
+	// item 2, subitem 1
+	// item 4, subitem 2
 }
 
 func ExampleDB_Model_hasMany() {
-	db := modelDB()
+	type Item struct {
+		Id       int
+		Items    []Item `pg:",fk:Parent"`
+		ParentId int
+	}
 
-	var author Author
-	err := db.Model(&author).Column("author.*", "Books").First()
+	db := connect()
+	defer db.Close()
+
+	qs := []string{
+		"CREATE TEMP TABLE items (id int, parent_id int)",
+		"INSERT INTO items VALUES (1, NULL), (2, 1), (3, 1)",
+	}
+	for _, q := range qs {
+		_, err := db.Exec(q)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// Select item and all subitems using following queries:
+	//
+	// SELECT "item".* FROM "items" AS "item" ORDER BY "item"."id" LIMIT 1
+	//
+	// SELECT "item".* FROM "items" AS "item" WHERE (("item"."parent_id") IN ((1)))
+
+	var item Item
+	err := db.Model(&item).Column("item.*", "Items").First()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(author.Books[0], author.Books[1])
-	// Output: Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">
+	fmt.Println("Item", item.Id)
+	fmt.Println("Subitems", item.Items[0].Id, item.Items[1].Id)
+	// Output: Item 1
+	// Subitems 2 3
 }
 
 func ExampleDB_Model_manyToMany() {
@@ -317,6 +342,14 @@ func ExampleDB_Model_manyToMany() {
 			panic(err)
 		}
 	}
+
+	// Select item and all subitems using following queries:
+	//
+	// SELECT "item".* FROM "items" AS "item" ORDER BY "item"."id" LIMIT 1
+	//
+	// SELECT * FROM "items" AS "item"
+	// JOIN "item_to_items" ON ("item_to_items"."item_id") IN ((1))
+	// WHERE ("item"."id" = "item_to_items"."sub_id")
 
 	var item Item
 	err := db.Model(&item).Column("item.*", "Items").First()
