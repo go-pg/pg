@@ -26,7 +26,7 @@ func pgOptions() *pg.Options {
 		WriteTimeout:       10 * time.Second,
 		PoolSize:           10,
 		PoolTimeout:        30 * time.Second,
-		IdleTimeout:        time.Second,
+		IdleTimeout:        3 * time.Second,
 		IdleCheckFrequency: time.Second,
 	}
 }
