@@ -400,7 +400,41 @@ func ExampleDB_Update_someColumns() {
 	// Output: Book<Id=1 Title="updated book 1"> 1
 }
 
-func ExampleDB_Update_usingSqlFunction() {
+func ExampleDB_Update_someColumns2() {
+	db := modelDB()
+
+	book := Book{
+		Id:       1,
+		Title:    "updated book 1",
+		AuthorID: 2, // this column will not be updated
+	}
+	_, err := db.Model(&book).Set("title = ?title").Returning("*").Update()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(book, book.AuthorID)
+	// Output: Book<Id=1 Title="updated book 1"> 1
+}
+
+func ExampleDB_Update_setValues() {
+	db := modelDB()
+
+	var book Book
+	_, err := db.Model(&book).
+		Set("title = concat(?, title, ?)", "prefix ", " suffix").
+		Where("id = ?", 1).
+		Returning("*").
+		Update()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(book)
+	// Output: Book<Id=1 Title="prefix book 1 suffix">
+}
+
+func ExampleDB_Update_updateValues() {
 	db := modelDB()
 
 	id := 1
