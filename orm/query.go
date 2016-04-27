@@ -18,6 +18,7 @@ type Query struct {
 	tables     []byte
 	fields     []string
 	columns    []byte
+	set        []byte
 	where      []byte
 	join       []byte
 	order      []byte
@@ -81,6 +82,12 @@ loop:
 			q.setErr(fmt.Errorf("unsupported column type: %T", column))
 		}
 	}
+	return q
+}
+
+func (q *Query) Set(set string, params ...interface{}) *Query {
+	q.set = appendSep(q.set, ", ")
+	q.set = q.format(q.set, set, params...)
 	return q
 }
 

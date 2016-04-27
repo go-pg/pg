@@ -1,10 +1,6 @@
 package orm
 
-import (
-	"errors"
-
-	"gopkg.in/pg.v4/types"
-)
+import "gopkg.in/pg.v4/types"
 
 func Update(db dber, v interface{}) error {
 	q := NewQuery(db, v)
@@ -25,17 +21,13 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	table := upd.model.Table()
 	strct := upd.model.Value()
 
-	for _, pk := range table.PKs {
-		if pk.IsEmpty(strct) {
-			return nil, errors.New("pg: primary key is empty")
-		}
-	}
-
 	b = append(b, "UPDATE "...)
 	b = append(b, upd.tableName...)
 	b = append(b, " SET "...)
 
-	if len(upd.fields) > 0 {
+	if len(upd.set) > 0 {
+		b = append(b, upd.set...)
+	} else if len(upd.fields) > 0 {
 		for i, fieldName := range upd.fields {
 			field, err := table.GetField(fieldName)
 			if err != nil {
@@ -67,7 +59,11 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	}
 
 	b = append(b, " WHERE "...)
-	b = appendFieldValue(b, strct, table.PKs)
+	if len(upd.where) > 0 {
+		b = append(b, upd.where...)
+	} else {
+		b = appendFieldValue(b, strct, table.PKs)
+	}
 
 	if len(upd.returning) > 0 {
 		b = append(b, " RETURNING "...)

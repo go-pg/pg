@@ -1,7 +1,5 @@
 package orm
 
-import "errors"
-
 func Delete(db dber, v interface{}) error {
 	q := NewQuery(db, v)
 	if q.err != nil {
@@ -25,16 +23,7 @@ func (del deleteModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	if len(del.where) > 0 {
 		b = append(b, del.where...)
 	} else {
-		table := del.model.Table()
-		strct := del.model.Value()
-
-		for _, pk := range table.PKs {
-			if pk.IsEmpty(strct) {
-				return nil, errors.New("pg: primary key is empty")
-			}
-		}
-
-		b = appendFieldValue(b, strct, table.PKs)
+		b = appendFieldValue(b, del.model.Value(), del.model.Table().PKs)
 	}
 
 	return b, nil
