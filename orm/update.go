@@ -1,6 +1,10 @@
 package orm
 
-import "gopkg.in/pg.v4/types"
+import (
+	"fmt"
+
+	"gopkg.in/pg.v4/types"
+)
 
 func Update(db dber, v interface{}) error {
 	q := NewQuery(db, v)
@@ -62,6 +66,13 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	if len(upd.where) > 0 {
 		b = append(b, upd.where...)
 	} else {
+		if len(table.PKs) == 0 {
+			err := fmt.Errorf(
+				"can't update model %q without primary keys",
+				table.ModelName,
+			)
+			return nil, err
+		}
 		b = appendFieldValue(b, strct, table.PKs)
 	}
 
