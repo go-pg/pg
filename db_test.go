@@ -164,6 +164,56 @@ var _ = Describe("DB.Create", func() {
 	})
 })
 
+var _ = Describe("DB.Update", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+	})
+
+	AfterEach(func() {
+		err := db.Close()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("returns an error on nil", func() {
+		err := db.Update(nil)
+		Expect(err).To(MatchError("pg: NewModel(nil)"))
+	})
+
+	It("returns an error if there are no pks", func() {
+		type Test struct{}
+		var test Test
+		err := db.Update(&test)
+		Expect(err).To(MatchError(`can't update model "test" without primary keys`))
+	})
+})
+
+var _ = Describe("DB.Delete", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+	})
+
+	AfterEach(func() {
+		err := db.Close()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("returns an error on nil", func() {
+		err := db.Delete(nil)
+		Expect(err).To(MatchError("pg: NewModel(nil)"))
+	})
+
+	It("returns an error if there are no pks", func() {
+		type Test struct{}
+		var test Test
+		err := db.Delete(&test)
+		Expect(err).To(MatchError(`can't delete model "test" without primary keys`))
+	})
+})
+
 var _ = Describe("scanning unknown column", func() {
 	var db *pg.DB
 
