@@ -180,7 +180,7 @@ func ExampleDB_Select_lastRow() {
 	// Output: Book<Id=3 Title="book 3">
 }
 
-func ExampleDB_Model_selectAllColumns() {
+func ExampleDB_Select_allColumns() {
 	db := modelDB()
 
 	var book Book
@@ -192,7 +192,7 @@ func ExampleDB_Model_selectAllColumns() {
 	// Output: Book<Id=1 Title="book 1"> 1
 }
 
-func ExampleDB_Model_selectSomeColumns() {
+func ExampleDB_Select_someColumns() {
 	db := modelDB()
 
 	var book Book
@@ -207,7 +207,7 @@ func ExampleDB_Model_selectSomeColumns() {
 	// Output: Book<Id=1 Title="">
 }
 
-func ExampleDB_Model_selectSomeColumnsIntoVars() {
+func ExampleDB_Select_someColumnsIntoVars() {
 	db := modelDB()
 
 	var id int
