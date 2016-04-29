@@ -16,7 +16,6 @@ type TableModel interface {
 	GetJoins() []Join
 	AddJoin(Join) *Join
 
-	Kind() reflect.Kind
 	Root() reflect.Value
 	Path() []string
 	Bind(reflect.Value)

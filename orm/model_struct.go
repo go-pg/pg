@@ -66,10 +66,6 @@ func (m *StructModel) AppendParam(dst []byte, name string) ([]byte, bool) {
 	return dst, false
 }
 
-func (m *StructModel) Kind() reflect.Kind {
-	return reflect.Struct
-}
-
 func (m *StructModel) Root() reflect.Value {
 	return m.root
 }

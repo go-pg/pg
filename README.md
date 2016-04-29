@@ -16,7 +16,7 @@ Supports:
 - Automatic connection pooling.
 - Queries retries on network errors.
 - Working with models using [ORM](https://godoc.org/gopkg.in/pg.v4#example-DB-Model) and [SQL](https://godoc.org/gopkg.in/pg.v4#example-DB-Query).
-- Scanning variables using [ORM](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-SelectSomeVars) and [SQL](https://godoc.org/gopkg.in/pg.v4#example-Scan).
+- Scanning variables using [ORM](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-SelectSomeColumnsIntoVars) and [SQL](https://godoc.org/gopkg.in/pg.v4#example-Scan).
 - [SelectOrCreate](https://godoc.org/gopkg.in/pg.v4#example-DB-Create-SelectOrCreate) using upserts.
 - [HasOne](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-HasOne), [HasMany](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-HasMany) and [ManyToMany](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-ManyToMany).
 - [Migrations](https://github.com/go-pg/migrations).
@@ -29,8 +29,8 @@ Examples: http://godoc.org/gopkg.in/pg.v4#pkg-examples.
 
 * [Installation](#installation)
 * [Quickstart](#quickstart)
-* [Why go-pg](#why-go-pg)
 * [Howto](#howto)
+* [Writing queries](#writing-queries)
 * [Model definition](#model-definition)
 * [FAQ](#faq)
 
@@ -152,7 +152,151 @@ func ExampleDB_Query() {
 }
 ```
 
-## Why go-pg
+## Howto
+
+Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to get the idea how to use this package.
+
+## Writing queries
+
+```go
+type Book struct {
+    Id int
+    Title string
+    Text string
+}
+
+// Insert new book returning primary keys.
+err := db.Create(&book)
+// INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING "id"
+
+// Insert new book returning all columns.
+err := db.Model(&book).Returning("*").Create()
+// INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING *
+
+// Select existing book by name or create new book.
+err := db.Model(&book).
+    Where("title = ?title").
+    OnConflict("DO NOTHING"). // optional
+    SelectOrCreate()
+// 1. SELECT * FROM "books" WHERE title = 'my title'
+// 2. INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING "id"
+// 3. go to step 1 on error
+
+// Update all columns except primary keys.
+err := db.Update(&book)
+// UPDATE "books" SET title = 'my title', text = 'my text' WHERE id = 1
+
+// Update only column "title".
+res, err := db.Model(&book).Set("title = ?title").Where("id = ?id").Update()
+// UPDATE "books" SET title = 'my title' WHERE id = 1
+
+// Update only column "title".
+res, err := db.Model(&book).Column("title").Update()
+// UPDATE "books" SET title = 'my title' WHERE id = 1
+
+// Update only column "title".
+res, err := db.Model(&book).UpdateValues(map[string]interface{}{
+    "title": book.Title,
+})
+// UPDATE "books" SET title = 'my title' WHERE id = 1
+
+// Delete book by primary key.
+err := db.Delete(&book)
+// DELETE FROM "books" WHERE id = 1
+
+// Delete book by title.
+res, err := db.Model(&book).Where("title = ?title").Delete()
+
+// Select book by primary key.
+err := db.Select(&book)
+// SELECT * FROM "books" WHERE id = 1
+
+// Select book by title.
+err := db.Model(&book).Where("title = ?title").Select()
+
+// Select first 20 books.
+err := db.Model(&books).Order("id ASC").Offset(0).Limit(20).Select()
+
+// Count books.
+count, err := db.Model(Book{}).Count()
+```
+
+## Model definition
+
+Models are defined using Go structs. Order of the struct fields usually does not matter with the only exception being primary key(s) that must defined before any other fields. Otherwise table relationshipts can be recognized incorrectly.
+
+```go
+type Genre struct {
+	TableName struct{} `sql:"genres"` // specifies custom table name
+
+	Id     int // Id is automatically detected as primary key
+	Name   string
+	Rating int `sql:"-"` // - is used to ignore field
+
+	Books []Book `pg:",many2many:book_genres"` // many to many relation
+
+	ParentId  int     `sql:",null"`
+	Subgenres []Genre `pg:",fk:Parent"` // fk specifies prefix for foreign key (ParentId)
+}
+
+func (g Genre) String() string {
+	return fmt.Sprintf("Genre<Id=%d Name=%q>", g.Id, g.Name)
+}
+
+type Author struct {
+	ID    int // both "Id" and "ID" are detected as primary key
+	Name  string
+	Books []Book // has many relation
+}
+
+func (a Author) String() string {
+	return fmt.Sprintf("Author<ID=%d Name=%q>", a.ID, a.Name)
+}
+
+type BookGenre struct {
+	BookId  int `sql:",pk"` // pk tag is used to mark field as primary key
+	GenreId int `sql:",pk"`
+
+	Genre_Rating int // belongs to and is copied to Genre model
+}
+
+type Book struct {
+	Id        int
+	Title     string
+	AuthorID  int
+	Author    *Author // has one relation
+	EditorID  int
+	Editor    *Author // has one relation
+	CreatedAt time.Time
+
+	Genres       []Genre       `pg:",many2many:book_genres" gorm:"many2many:book_genres;"` // many to many relation
+	Translations []Translation // has many relation
+	Comments     []Comment     `pg:",polymorphic:Trackable"` // has many polymorphic relation
+}
+
+func (b Book) String() string {
+	return fmt.Sprintf("Book<Id=%d Title=%q>", b.Id, b.Title)
+}
+
+type Translation struct {
+	Id     int
+	BookId int
+	Book   *Book // belongs to relation
+	Lang   string
+
+	Comments []Comment `pg:",polymorphic:Trackable"` // has many polymorphic relation
+}
+
+type Comment struct {
+	TrackableId   int    `sql:",pk"` // Book.Id or Translation.Id
+	TrackableType string `sql:",pk"` // "book" or "translation"
+	Text          string
+}
+```
+
+## FAQ
+
+### Why go-pg
 
 - No `rows.Close` to manually manage connections.
 - go-pg automatically maps rows on Go structs and slice.
@@ -263,85 +407,6 @@ func ExampleDB_Query() {
     INNER JOIN "book_genres" ON "book_genres"."genre_id" = "genres"."id"
     WHERE ("book_genres"."book_id" IN ((1), (2), ..., (100)));
     ```
-
-## Howto
-
-Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to get the idea how to use this package.
-
-## Model definition
-
-Models are defined using Go structs. Order of the struct fields usually does not matter with the only exception being primary key(s) that must defined before any other fields. Otherwise table relationshipts can be recognized incorrectly.
-
-```go
-type Genre struct {
-	TableName struct{} `sql:"genres"` // specifies custom table name
-
-	Id     int // Id is automatically detected as primary key
-	Name   string
-	Rating int `sql:"-"` // - is used to ignore field
-
-	Books []Book `pg:",many2many:book_genres"` // many to many relation
-
-	ParentId  int     `sql:",null"`
-	Subgenres []Genre `pg:",fk:Parent"` // fk specifies prefix for foreign key (ParentId)
-}
-
-func (g Genre) String() string {
-	return fmt.Sprintf("Genre<Id=%d Name=%q>", g.Id, g.Name)
-}
-
-type Author struct {
-	ID    int // both "Id" and "ID" are detected as primary key
-	Name  string
-	Books []Book // has many relation
-}
-
-func (a Author) String() string {
-	return fmt.Sprintf("Author<ID=%d Name=%q>", a.ID, a.Name)
-}
-
-type BookGenre struct {
-	BookId  int `sql:",pk"` // pk tag is used to mark field as primary key
-	GenreId int `sql:",pk"`
-
-	Genre_Rating int // belongs to and is copied to Genre model
-}
-
-type Book struct {
-	Id        int
-	Title     string
-	AuthorID  int
-	Author    *Author // has one relation
-	EditorID  int
-	Editor    *Author // has one relation
-	CreatedAt time.Time
-
-	Genres       []Genre       `pg:",many2many:book_genres" gorm:"many2many:book_genres;"` // many to many relation
-	Translations []Translation // has many relation
-	Comments     []Comment     `pg:",polymorphic:Trackable"` // has many polymorphic relation
-}
-
-func (b Book) String() string {
-	return fmt.Sprintf("Book<Id=%d Title=%q>", b.Id, b.Title)
-}
-
-type Translation struct {
-	Id     int
-	BookId int
-	Book   *Book // belongs to relation
-	Lang   string
-
-	Comments []Comment `pg:",polymorphic:Trackable"` // has many polymorphic relation
-}
-
-type Comment struct {
-	TrackableId   int    `sql:",pk"` // Book.Id or Translation.Id
-	TrackableType string `sql:",pk"` // "book" or "translation"
-	Text          string
-}
-```
-
-## FAQ
 
 ### How can I view queries this library generates?
 

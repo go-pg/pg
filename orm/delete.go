@@ -1,7 +1,5 @@
 package orm
 
-import "fmt"
-
 func Delete(db dber, v interface{}) error {
 	q := NewQuery(db, v)
 	if q.err != nil {
@@ -26,14 +24,10 @@ func (del deleteModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 		b = append(b, del.where...)
 	} else {
 		table := del.model.Table()
-		if len(table.PKs) == 0 {
-			err := fmt.Errorf(
-				"can't delete model %q without primary keys",
-				table.ModelName,
-			)
+		if err := table.checkPKs(); err != nil {
 			return nil, err
 		}
-		b = appendFieldValue(b, del.model.Value(), table.PKs)
+		b = appendColumnAndValue(b, del.model.Value(), table.PKs)
 	}
 
 	return b, nil

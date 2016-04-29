@@ -240,17 +240,22 @@ func (db *DB) Model(model interface{}) *orm.Query {
 	return orm.NewQuery(db, model)
 }
 
-// Create inserts the model into database.
+// Select selects the model by primary key.
+func (db *DB) Select(model interface{}) error {
+	return orm.Select(db, model)
+}
+
+// Create inserts the model updating primary keys if they are empty.
 func (db *DB) Create(model interface{}) error {
 	return orm.Create(db, model)
 }
 
-// Update updates the model in database.
+// Update updates the model by primary key.
 func (db *DB) Update(model interface{}) error {
 	return orm.Update(db, model)
 }
 
-// Delete deletes the model from database.
+// Delete deletes the model by primary key.
 func (db *DB) Delete(model interface{}) error {
 	return orm.Delete(db, model)
 }

@@ -3,7 +3,6 @@ package orm
 import (
 	"errors"
 	"fmt"
-	"reflect"
 
 	"gopkg.in/pg.v4/internal"
 	"gopkg.in/pg.v4/types"
@@ -176,7 +175,7 @@ func (q *Query) Last() error {
 	return q.Order(string(b)).Limit(1).Select()
 }
 
-// Select selects the model from database.
+// Select selects the model.
 func (q *Query) Select(values ...interface{}) error {
 	q.joinHasOne()
 	sel := selectQuery{q}
@@ -184,10 +183,10 @@ func (q *Query) Select(values ...interface{}) error {
 	var err error
 	if len(values) > 0 {
 		_, err = q.db.QueryOne(Scan(values...), sel, q.model)
-	} else if q.model.Kind() == reflect.Slice {
-		_, err = q.db.Query(q.model, sel, q.model)
-	} else {
+	} else if _, ok := q.model.(*StructModel); ok {
 		_, err = q.db.QueryOne(q.model, sel, q.model)
+	} else {
+		_, err = q.db.Query(q.model, sel, q.model)
 	}
 	if err != nil {
 		return err
@@ -222,7 +221,7 @@ func selectJoins(db dber, joins []Join) error {
 	return nil
 }
 
-// Create inserts the model into database.
+// Create inserts the model.
 func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
@@ -238,7 +237,7 @@ func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 	return q.db.Query(model, insertQuery{Query: q}, q.model)
 }
 
-// SelectOrCreate selects the model from database creating one if necessary.
+// SelectOrCreate selects the model creating one if it does not exist.
 func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) {
 	if q.err != nil {
 		return false, q.err
@@ -274,7 +273,7 @@ func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) 
 	return false, errors.New("pg: GetOrCreate does not make progress after 10 iterations")
 }
 
-// Update updates the model in database.
+// Update updates the model.
 func (q *Query) Update() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
@@ -294,7 +293,7 @@ func (q *Query) UpdateValues(values map[string]interface{}) (*types.Result, erro
 	return q.db.Query(q.model, upd, q.model)
 }
 
-// Delete deletes the model from database.
+// Delete deletes the model.
 func (q *Query) Delete() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err

@@ -142,7 +142,21 @@ func ExampleDB_Create_selectOrCreate() {
 	// Output: true Author<ID=2 Name="R. Scott Bakker">
 }
 
-func ExampleDB_Model_firstRow() {
+func ExampleDB_Select() {
+	db := modelDB()
+
+	book := Book{
+		Id: 1,
+	}
+	err := db.Select(&book)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(book)
+	// Output: Book<Id=1 Title="book 1">
+}
+
+func ExampleDB_Select_firstRow() {
 	db := modelDB()
 
 	var firstBook Book
@@ -154,7 +168,7 @@ func ExampleDB_Model_firstRow() {
 	// Output: Book<Id=1 Title="book 1">
 }
 
-func ExampleDB_Model_lastRow() {
+func ExampleDB_Select_lastRow() {
 	db := modelDB()
 
 	var lastBook Book
@@ -193,7 +207,7 @@ func ExampleDB_Model_selectSomeColumns() {
 	// Output: Book<Id=1 Title="">
 }
 
-func ExampleDB_Model_selectSomeVars() {
+func ExampleDB_Model_selectSomeColumnsIntoVars() {
 	db := modelDB()
 
 	var id int

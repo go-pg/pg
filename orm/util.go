@@ -93,7 +93,7 @@ func visitStruct(strct reflect.Value, path []string, fn func(reflect.Value)) {
 	}
 }
 
-func appendFieldValue(b []byte, v reflect.Value, fields []*Field) []byte {
+func appendColumnAndValue(b []byte, v reflect.Value, fields []*Field) []byte {
 	for i, f := range fields {
 		b = append(b, f.ColName...)
 		b = append(b, " = "...)
