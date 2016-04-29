@@ -212,7 +212,7 @@ func ExampleDB_Select_someColumnsIntoVars() {
 
 	var id int
 	var title string
-	err := db.Model(Book{}).
+	err := db.Model(&Book{}).
 		Column("book.id", "book.title").
 		Order("book.id ASC").
 		Limit(1).
@@ -225,10 +225,24 @@ func ExampleDB_Select_someColumnsIntoVars() {
 	// Output: 1 book 1
 }
 
+func ExampleDB_Select_sqlExpression() {
+	db := modelDB()
+
+	var ids []int
+	err := db.Model(&Book{}).
+		ColumnExpr("array_agg(id)").
+		Select(pg.Array(&ids))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(ids)
+	// Output: [1 2 3]
+}
+
 func ExampleDB_Model_countRows() {
 	db := modelDB()
 
-	count, err := db.Model(Book{}).Count()
+	count, err := db.Model(&Book{}).Count()
 	if err != nil {
 		panic(err)
 	}
@@ -515,13 +529,13 @@ func ExampleDB_Delete_multipleRows() {
 	db := modelDB()
 
 	ids := pg.Ints{1, 2, 3}
-	res, err := db.Model(Book{}).Where("id IN (?)", ids).Delete()
+	res, err := db.Model(&Book{}).Where("id IN (?)", ids).Delete()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("deleted", res.Affected())
 
-	count, err := db.Model(Book{}).Count()
+	count, err := db.Model(&Book{}).Count()
 	if err != nil {
 		panic(err)
 	}
@@ -535,7 +549,7 @@ func ExampleQ() {
 	db := modelDB()
 
 	var maxId int
-	err := db.Model(Book{}).Column(pg.Q("max(id)")).Select(&maxId)
+	err := db.Model(&Book{}).ColumnExpr("max(id)").Select(&maxId)
 	if err != nil {
 		panic(err)
 	}

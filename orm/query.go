@@ -58,29 +58,23 @@ func (q *Query) Table(names ...string) *Query {
 	return q
 }
 
-func (q *Query) Column(columns ...interface{}) *Query {
+func (q *Query) Column(columns ...string) *Query {
 loop:
 	for _, column := range columns {
-		switch column := column.(type) {
-		case string:
-			if j := q.model.Join(column); j != nil {
-				continue loop
-			}
-
-			q.fields = append(q.fields, column)
-			q.columns = appendSep(q.columns, ", ")
-			q.columns = types.AppendField(q.columns, column, 1)
-		case types.ValueAppender:
-			var err error
-			q.columns = appendSep(q.columns, ", ")
-			q.columns, err = column.AppendValue(q.columns, 1)
-			if err != nil {
-				q.setErr(err)
-			}
-		default:
-			q.setErr(fmt.Errorf("unsupported column type: %T", column))
+		if j := q.model.Join(column); j != nil {
+			continue loop
 		}
+
+		q.fields = append(q.fields, column)
+		q.columns = appendSep(q.columns, ", ")
+		q.columns = types.AppendField(q.columns, column, 1)
 	}
+	return q
+}
+
+func (q *Query) ColumnExpr(expr string, params ...interface{}) *Query {
+	q.columns = appendSep(q.columns, ", ")
+	q.columns = q.format(q.columns, expr, params...)
 	return q
 }
 
