@@ -32,6 +32,7 @@ Examples: http://godoc.org/gopkg.in/pg.v4#pkg-examples.
 * [Why go-pg](#why-go-pg)
 * [Howto](#howto)
 * [Model definition](#model-definition)
+* [FAQ](#faq)
 
 ## Installation
 
@@ -338,4 +339,21 @@ type Comment struct {
 	TrackableType string `sql:",pk"` // "book" or "translation"
 	Text          string
 }
+```
+
+## FAQ
+
+### How can I view queries this library generates?
+
+You can configure PostgreSQL to log every query by adding following lines to your postgresql.conf (usually /etc/postgresql/9.5/main/postgresql.conf):
+
+```
+log_statement = 'all'
+log_min_duration_statement = 0
+```
+
+Then just tail the log file:
+
+```shell
+tail -f /var/log/postgresql/postgresql-9.5-main.log
 ```
