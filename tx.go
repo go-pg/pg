@@ -141,17 +141,22 @@ func (tx *Tx) Model(model interface{}) *orm.Query {
 	return orm.NewQuery(tx, model)
 }
 
-// Create inserts model into database.
+// Select selects the model by primary key.
+func (tx *Tx) Select(model interface{}) error {
+	return orm.Select(tx, model)
+}
+
+// Create inserts the model updating primary keys if they are empty.
 func (tx *Tx) Create(model interface{}) error {
 	return orm.Create(tx, model)
 }
 
-// Update updates model in database.
+// Update updates the model by primary key.
 func (tx *Tx) Update(model interface{}) error {
 	return orm.Update(tx, model)
 }
 
-// Delete deletes model in database.
+// Delete deletes the model by primary key.
 func (tx *Tx) Delete(model interface{}) error {
 	return orm.Delete(tx, model)
 }

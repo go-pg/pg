@@ -13,10 +13,6 @@ func (m *SliceModel) Join(name string) *Join {
 	return join(&m.StructModel, m.Value(), name)
 }
 
-func (m *SliceModel) Kind() reflect.Kind {
-	return reflect.Slice
-}
-
 func (m *SliceModel) Bind(bind reflect.Value) {
 	m.slice = bind.FieldByName(m.path[len(m.path)-1])
 }

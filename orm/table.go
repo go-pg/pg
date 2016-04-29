@@ -23,6 +23,13 @@ type Table struct {
 	Relations map[string]*Relation
 }
 
+func (t *Table) checkPKs() error {
+	if len(t.PKs) == 0 {
+		return fmt.Errorf("model %q does not have primary keys", t.ModelName)
+	}
+	return nil
+}
+
 func (t *Table) AddField(field *Field) {
 	t.Fields = append(t.Fields, field)
 	t.FieldsMap[field.SQLName] = field

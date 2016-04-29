@@ -185,7 +185,7 @@ var _ = Describe("DB.Update", func() {
 		type Test struct{}
 		var test Test
 		err := db.Update(&test)
-		Expect(err).To(MatchError(`can't update model "test" without primary keys`))
+		Expect(err).To(MatchError(`model "test" does not have primary keys`))
 	})
 })
 
@@ -210,7 +210,7 @@ var _ = Describe("DB.Delete", func() {
 		type Test struct{}
 		var test Test
 		err := db.Delete(&test)
-		Expect(err).To(MatchError(`can't delete model "test" without primary keys`))
+		Expect(err).To(MatchError(`model "test" does not have primary keys`))
 	})
 })
 
