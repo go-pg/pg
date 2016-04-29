@@ -199,7 +199,7 @@ count, err := db.Model(&Book{}).Count()
 
 // Select book ids as PostgreSQL array.
 var ids []int
-err := db.Model(&Book{}).ColumnExpr("array_agg(id)").Select(pg.Array(&sum))
+err := db.Model(&Book{}).ColumnExpr("array_agg(id)").Select(pg.Array(&ids))
 // SELECT array_agg(id) FROM "books"
 
 // Insert new book returning primary keys.
