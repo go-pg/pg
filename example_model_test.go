@@ -548,20 +548,22 @@ func ExampleDB_Delete_multipleRows() {
 func ExampleQ() {
 	db := modelDB()
 
-	var maxId int
-	err := db.Model(&Book{}).ColumnExpr("max(id)").Select(&maxId)
+	cond := fmt.Sprintf("id = %d", 1)
+
+	var book Book
+	err := db.Model(&book).Where("?", pg.Q(cond)).Select()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(maxId)
-	// Output: 3
+	fmt.Println(book)
+	// Output: Book<Id=1 Title="book 1">
 }
 
 func ExampleF() {
 	db := modelDB()
 
 	var book Book
-	err := db.Model(&book).Where("? = ?", pg.F("id"), 1).Select()
+	err := db.Model(&book).Where("? = 1", pg.F("id")).Select()
 	if err != nil {
 		panic(err)
 	}
