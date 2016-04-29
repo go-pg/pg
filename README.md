@@ -165,6 +165,43 @@ type Book struct {
     Text string
 }
 
+book := Book{
+    Id: 1,
+    Title: "my title",
+    Text: "my text",
+}
+var books []Book
+
+// Select book by primary key.
+err := db.Select(&book)
+// SELECT * FROM "books" WHERE id = 1
+
+// Select book title and text.
+var title, text string
+err := db.Model(&Book{}).Column("title", "text").Where("id = ?", 1).Select(&title, &text)
+// SELECT "title", "text" FROM "books" WHERE id = 1
+
+// Select book using WHERE.
+err := db.Model(&book).
+    Where("id > ?", 100)
+    Where("title LIKE ?", "my%").
+    Limit(1).
+    Select()
+// SELECT * FROM "books" WHERE (id > 100) AND (title LIKE 'my%') LIMIT 1
+
+// Select first 20 books.
+err := db.Model(&books).Order("id ASC").Limit(20).Select()
+// SELECT * FROM "books" ORDER BY id ASC LIMIT 20
+
+// Count books.
+count, err := db.Model(&Book{}).Count()
+// SELECT COUNT(*) FROM "books"
+
+// Select book ids as PostgreSQL array.
+var ids []int
+err := db.Model(&Book{}).ColumnExpr("array_agg(id)").Select(pg.Array(&sum))
+// SELECT array_agg(id) FROM "books"
+
 // Insert new book returning primary keys.
 err := db.Create(&book)
 // INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING "id"
@@ -206,19 +243,7 @@ err := db.Delete(&book)
 
 // Delete book by title.
 res, err := db.Model(&book).Where("title = ?title").Delete()
-
-// Select book by primary key.
-err := db.Select(&book)
-// SELECT * FROM "books" WHERE id = 1
-
-// Select book by title.
-err := db.Model(&book).Where("title = ?title").Select()
-
-// Select first 20 books.
-err := db.Model(&books).Order("id ASC").Offset(0).Limit(20).Select()
-
-// Count books.
-count, err := db.Model(Book{}).Count()
+// DELETE FROM "books" WHERE title = 'my title'
 ```
 
 ## Model definition
