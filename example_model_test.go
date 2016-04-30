@@ -251,6 +251,21 @@ func ExampleDB_Model_countRows() {
 	// Output: 3
 }
 
+func ExampleDB_Model_selectAndCount() {
+	db := modelDB()
+
+	var books []Book
+	count, err := db.Model(&books).Order("id ASC").Limit(2).SelectAndCount()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(count)
+	fmt.Println(books)
+	// Output: 3
+	// [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
+}
+
 func ExampleDB_Model_nullEmptyValue() {
 	type Example struct {
 		Hello string `sql:",null"`
@@ -499,8 +514,8 @@ func ExampleDB_Update_multipleRows() {
 		panic(err)
 	}
 
-	fmt.Println(books[0], books[1])
-	// Output: Book<Id=1 Title="prefix book 1 suffix"> Book<Id=2 Title="prefix book 2 suffix">
+	fmt.Println(books)
+	// Output: [Book<Id=1 Title="prefix book 1 suffix"> Book<Id=2 Title="prefix book 2 suffix">]
 }
 
 func ExampleDB_Delete() {

@@ -3,6 +3,7 @@ package orm
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"gopkg.in/pg.v4/internal"
 	"gopkg.in/pg.v4/types"
@@ -43,6 +44,11 @@ func NewQuery(db dber, v interface{}) *Query {
 		q.tables = types.AppendField(q.tables, q.model.Table().ModelName, 1)
 	}
 	return &q
+}
+
+func (q *Query) copy() *Query {
+	cp := *q
+	return &cp
 }
 
 func (q *Query) setErr(err error) {
@@ -139,12 +145,13 @@ func (q *Query) Returning(columns ...interface{}) *Query {
 	return q
 }
 
+// Count returns number of rows in the table using count(*) aggregate function.
 func (q *Query) Count() (int, error) {
 	if q.err != nil {
 		return 0, q.err
 	}
 
-	q.joinHasOne()
+	q = q.copy()
 	q.columns = types.Q("COUNT(*)")
 	q.order = nil
 	q.limit = 0
@@ -158,11 +165,13 @@ func (q *Query) Count() (int, error) {
 	return count, err
 }
 
+// First selects the first row.
 func (q *Query) First() error {
 	b := columns(col(q.model.Table().ModelName), "", q.model.Table().PKs)
 	return q.Order(string(b)).Limit(1).Select()
 }
 
+// Last selects the last row.
 func (q *Query) Last() error {
 	b := columns(col(q.model.Table().ModelName), "", q.model.Table().PKs)
 	b = append(b, " DESC"...)
@@ -187,6 +196,32 @@ func (q *Query) Select(values ...interface{}) error {
 	}
 
 	return selectJoins(q.db, q.model.GetJoins())
+}
+
+// SelectAndCount runs Select and Count in two separate goroutines and
+// waits for the result.
+func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		if e := q.Select(values...); e != nil {
+			err = e
+		}
+		wg.Done()
+	}()
+
+	go func() {
+		var e error
+		count, e = q.Count()
+		if e != nil {
+			err = e
+		}
+		wg.Done()
+	}()
+
+	wg.Wait()
+	return count, err
 }
 
 func (q *Query) joinHasOne() {

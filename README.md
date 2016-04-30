@@ -197,6 +197,11 @@ err := db.Model(&books).Order("id ASC").Limit(20).Select()
 count, err := db.Model(&Book{}).Count()
 // SELECT COUNT(*) FROM "books"
 
+// Select 20 books and count all books.
+count, err := db.Model(&books).Limit(20).SelectAndCount()
+// SELECT * FROM "books" LIMIT 20
+// SELECT COUNT(*) FROM "books"
+
 // Select book ids as PostgreSQL array.
 var ids []int
 err := db.Model(&Book{}).ColumnExpr("array_agg(id)").Select(pg.Array(&ids))
