@@ -70,6 +70,12 @@ func modelDB() *pg.DB {
 		}
 	}
 
+	// For CountEstimate.
+	_, err = db.Exec("VACUUM")
+	if err != nil {
+		panic(err)
+	}
+
 	return db
 }
 
@@ -239,10 +245,22 @@ func ExampleDB_Select_sqlExpression() {
 	// Output: [1 2 3]
 }
 
-func ExampleDB_Model_countRows() {
+func ExampleDB_Model_count() {
 	db := modelDB()
 
 	count, err := db.Model(&Book{}).Count()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(count)
+	// Output: 3
+}
+
+func ExampleDB_Model_countEstimate() {
+	db := modelDB()
+
+	count, err := db.Model(&Book{}).CountEstimate(0)
 	if err != nil {
 		panic(err)
 	}

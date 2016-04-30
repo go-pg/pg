@@ -145,7 +145,7 @@ func (q *Query) Returning(columns ...interface{}) *Query {
 	return q
 }
 
-// Count returns number of rows in the table using count(*) aggregate function.
+// Count returns number of rows matching the query using count aggregate function.
 func (q *Query) Count() (int, error) {
 	if q.err != nil {
 		return 0, q.err
@@ -198,26 +198,26 @@ func (q *Query) Select(values ...interface{}) error {
 	return selectJoins(q.db, q.model.GetJoins())
 }
 
-// SelectAndCount runs Select and Count in two separate goroutines and
-// waits for the result.
+// SelectAndCount runs Select and Count in two separate goroutines,
+// waits for them to finish and returns the result.
 func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 	var wg sync.WaitGroup
 	wg.Add(2)
 
 	go func() {
+		defer wg.Done()
 		if e := q.Select(values...); e != nil {
 			err = e
 		}
-		wg.Done()
 	}()
 
 	go func() {
+		defer wg.Done()
 		var e error
 		count, e = q.Count()
 		if e != nil {
 			err = e
 		}
-		wg.Done()
 	}()
 
 	wg.Wait()
