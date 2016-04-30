@@ -62,20 +62,20 @@ func (u User) String() string {
 }
 
 type Story struct {
-	Id     int64
-	Title  string
-	UserId int64
-	User   *User
+	Id       int64
+	Title    string
+	AuthorId int64
+	Author   *User
 }
 
 func (s Story) String() string {
-	return fmt.Sprintf("Story<%d %s %s>", s.Id, s.Title, s.User)
+	return fmt.Sprintf("Story<%d %s %s>", s.Id, s.Title, s.Author)
 }
 
 func createSchema(db *pg.DB) error {
 	queries := []string{
 		`CREATE TEMP TABLE users (id serial, name text, emails jsonb)`,
-		`CREATE TEMP TABLE stories (id serial, title text, user_id bigint)`,
+		`CREATE TEMP TABLE stories (id serial, title text, author_id bigint)`,
 	}
 	for _, q := range queries {
 		_, err := db.Exec(q)
@@ -86,7 +86,7 @@ func createSchema(db *pg.DB) error {
 	return nil
 }
 
-func ExampleDB_Query() {
+func ExampleDB_Model() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
 	})
@@ -114,29 +114,32 @@ func ExampleDB_Query() {
 	}
 
 	story1 := &Story{
-		Title:  "Cool story",
-		UserId: user1.Id,
+		Title:    "Cool story",
+		AuthorId: user1.Id,
 	}
 	err = db.Create(story1)
 	if err != nil {
 		panic(err)
 	}
 
-	var user User
-	err = db.Model(&user).Where("id = ?", user1.Id).Select()
+	// Select user by primary key.
+	user := User{Id: user1.Id}
+	err = db.Select(&user)
 	if err != nil {
 		panic(err)
 	}
 
+	// Select all users.
 	var users []User
 	err = db.Model(&users).Select()
 	if err != nil {
 		panic(err)
 	}
 
+	// Select story and associated author in one query.
 	var story Story
 	err = db.Model(&story).
-		Column("story.*", "User").
+		Column("story.*", "Author").
 		Where("story.id = ?", story1.Id).
 		Select()
 	if err != nil {
@@ -144,10 +147,10 @@ func ExampleDB_Query() {
 	}
 
 	fmt.Println(user)
-	fmt.Println(users[0], users[1])
+	fmt.Println(users)
 	fmt.Println(story)
 	// Output: User<1 admin [admin1@admin admin2@admin]>
-	// User<1 admin [admin1@admin admin2@admin]> User<2 root [root1@root root2@root]>
+	// [User<1 admin [admin1@admin admin2@admin]> User<2 root [root1@root root2@root]>]
 	// Story<1 Cool story User<1 admin [admin1@admin admin2@admin]>>
 }
 ```
@@ -200,6 +203,12 @@ count, err := db.Model(&Book{}).Count()
 // Select 20 books and count all books.
 count, err := db.Model(&books).Limit(20).SelectAndCount()
 // SELECT * FROM "books" LIMIT 20
+// SELECT COUNT(*) FROM "books"
+
+// Select 20 books and count estimated number of books.
+count, err := db.Model(&books).Limit(20).SelectAndCountEstimate(100000)
+// SELECT * FROM "books" LIMIT 20
+// EXPLAIN SELECT 2147483647 FROM "books"
 // SELECT COUNT(*) FROM "books"
 
 // Select book ids as PostgreSQL array.

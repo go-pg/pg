@@ -34,20 +34,20 @@ func GetUsersByIds(db *pg.DB, ids []int64) ([]User, error) {
 
 func CreateStory(db *pg.DB, story *Story) error {
 	_, err := db.QueryOne(story, `
-		INSERT INTO stories (title, user_id) VALUES (?title, ?user_id)
+		INSERT INTO stories (title, author_id) VALUES (?title, ?author_id)
 		RETURNING id
 	`, story)
 	return err
 }
 
-// GetStory returns story with associated user (author of the story).
+// GetStory returns story with associated author.
 func GetStory(db *pg.DB, id int64) (*Story, error) {
 	var story Story
 	_, err := db.QueryOne(&story, `
 		SELECT s.*,
-			u.id AS user__id, u.name AS user__name, u.emails AS user__emails
+			u.id AS author__id, u.name AS author__name, u.emails AS author__emails
 		FROM stories AS s, users AS u
-		WHERE s.id = ? AND u.id = s.user_id
+		WHERE s.id = ? AND u.id = s.author_id
 	`, id)
 	return &story, err
 }
@@ -80,8 +80,8 @@ func ExampleDB_Query() {
 	}
 
 	story1 := &Story{
-		Title:  "Cool story",
-		UserId: user1.Id,
+		Title:    "Cool story",
+		AuthorId: user1.Id,
 	}
 	err = CreateStory(db, story1)
 
@@ -101,9 +101,9 @@ func ExampleDB_Query() {
 	}
 
 	fmt.Println(user)
-	fmt.Println(users[0], users[1])
+	fmt.Println(users)
 	fmt.Println(story)
 	// Output: User<1 admin [admin1@admin admin2@admin]>
-	// User<1 admin [admin1@admin admin2@admin]> User<2 root [root1@root root2@root]>
+	// [User<1 admin [admin1@admin admin2@admin]> User<2 root [root1@root root2@root]>]
 	// Story<1 Cool story User<1 admin [admin1@admin admin2@admin]>>
 }
