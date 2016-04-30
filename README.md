@@ -183,7 +183,7 @@ err := db.Model(&Book{}).Column("title", "text").Where("id = ?", 1).Select(&titl
 
 // Select book using WHERE.
 err := db.Model(&book).
-    Where("id > ?", 100)
+    Where("id > ?", 100).
     Where("title LIKE ?", "my%").
     Limit(1).
     Select()
