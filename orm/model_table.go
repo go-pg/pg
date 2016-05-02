@@ -6,7 +6,7 @@ import (
 	"reflect"
 )
 
-type TableModel interface {
+type tableModel interface {
 	Table() *Table
 
 	Model
@@ -24,9 +24,9 @@ type TableModel interface {
 	scanColumn(int, string, []byte) (bool, error)
 }
 
-func NewTableModel(v interface{}) (TableModel, error) {
+func newTableModel(v interface{}) (tableModel, error) {
 	switch v := v.(type) {
-	case TableModel:
+	case tableModel:
 		return v, nil
 	case reflect.Value:
 		return newTableModelValue(v)
@@ -35,25 +35,21 @@ func NewTableModel(v interface{}) (TableModel, error) {
 	}
 }
 
-func newTableModelValue(v reflect.Value) (TableModel, error) {
+func newTableModelValue(v reflect.Value) (tableModel, error) {
 	if !v.IsValid() {
 		return nil, errors.New("pg: NewModel(nil)")
 	}
 	v = reflect.Indirect(v)
 
 	if v.Kind() == reflect.Struct {
-		return &StructModel{
-			table: Tables.Get(v.Type()),
-			root:  v,
-			strct: v,
-		}, nil
+		return newStructTableModel(v)
 	}
 
 	if v.Kind() == reflect.Slice {
 		elType := indirectType(v.Type().Elem())
 		if elType.Kind() == reflect.Struct {
-			return &SliceModel{
-				StructModel: StructModel{
+			return &sliceTableModel{
+				structTableModel: structTableModel{
 					table: Tables.Get(elType),
 					root:  v,
 				},
@@ -65,12 +61,12 @@ func newTableModelValue(v reflect.Value) (TableModel, error) {
 	return nil, fmt.Errorf("pg: NewModel(unsupported %s)", v.Type())
 }
 
-func NewTableModelPath(root reflect.Value, path []string, table *Table) (TableModel, error) {
+func newTableModelPath(root reflect.Value, path []string, table *Table) (tableModel, error) {
 	v := fieldByPath(root, path)
 	v = reflect.Indirect(v)
 
 	if v.Kind() == reflect.Struct {
-		return &StructModel{
+		return &structTableModel{
 			table: Tables.Get(v.Type()),
 			root:  root,
 			path:  path,
@@ -80,8 +76,8 @@ func NewTableModelPath(root reflect.Value, path []string, table *Table) (TableMo
 	if v.Kind() == reflect.Slice {
 		elType := indirectType(v.Type().Elem())
 		if elType.Kind() == reflect.Struct {
-			return &SliceModel{
-				StructModel: StructModel{
+			return &sliceTableModel{
+				structTableModel: structTableModel{
 					table: Tables.Get(elType),
 					root:  root,
 					path:  path,
@@ -90,7 +86,7 @@ func NewTableModelPath(root reflect.Value, path []string, table *Table) (TableMo
 		}
 	}
 
-	return nil, fmt.Errorf("pg: NewTableModelPath(path %s on %s)", path, root.Type())
+	return nil, fmt.Errorf("pg: newTableModelPath(path %s on %s)", path, root.Type())
 }
 
 func fieldByPath(v reflect.Value, path []string) reflect.Value {

@@ -160,107 +160,6 @@ func ExampleDB_Model() {
 
 Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to get the idea how to use this package.
 
-## Writing queries
-
-```go
-type Book struct {
-    Id int
-    Title string
-    Text string
-}
-
-book := Book{
-    Id: 1,
-    Title: "my title",
-    Text: "my text",
-}
-var books []Book
-
-// Select book by primary key.
-err := db.Select(&book)
-// SELECT * FROM "books" WHERE id = 1
-
-// Select book title and text.
-var title, text string
-err := db.Model(&Book{}).Column("title", "text").Where("id = ?", 1).Select(&title, &text)
-// SELECT "title", "text" FROM "books" WHERE id = 1
-
-// Select book using WHERE.
-err := db.Model(&book).
-    Where("id > ?", 100).
-    Where("title LIKE ?", "my%").
-    Limit(1).
-    Select()
-// SELECT * FROM "books" WHERE (id > 100) AND (title LIKE 'my%') LIMIT 1
-
-// Select first 20 books.
-err := db.Model(&books).Order("id ASC").Limit(20).Select()
-// SELECT * FROM "books" ORDER BY id ASC LIMIT 20
-
-// Count books.
-count, err := db.Model(&Book{}).Count()
-// SELECT COUNT(*) FROM "books"
-
-// Select 20 books and count all books.
-count, err := db.Model(&books).Limit(20).SelectAndCount()
-// SELECT * FROM "books" LIMIT 20
-// SELECT COUNT(*) FROM "books"
-
-// Select 20 books and count estimated number of books.
-count, err := db.Model(&books).Limit(20).SelectAndCountEstimate(100000)
-// SELECT * FROM "books" LIMIT 20
-// EXPLAIN SELECT 2147483647 FROM "books"
-// SELECT COUNT(*) FROM "books"
-
-// Select book ids as PostgreSQL array.
-var ids []int
-err := db.Model(&Book{}).ColumnExpr("array_agg(id)").Select(pg.Array(&ids))
-// SELECT array_agg(id) FROM "books"
-
-// Insert new book returning primary keys.
-err := db.Create(&book)
-// INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING "id"
-
-// Insert new book returning all columns.
-err := db.Model(&book).Returning("*").Create()
-// INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING *
-
-// Select existing book by name or create new book.
-err := db.Model(&book).
-    Where("title = ?title").
-    OnConflict("DO NOTHING"). // optional
-    SelectOrCreate()
-// 1. SELECT * FROM "books" WHERE title = 'my title'
-// 2. INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING "id"
-// 3. go to step 1 on error
-
-// Update all columns except primary keys.
-err := db.Update(&book)
-// UPDATE "books" SET title = 'my title', text = 'my text' WHERE id = 1
-
-// Update only column "title".
-res, err := db.Model(&book).Set("title = ?title").Where("id = ?id").Update()
-// UPDATE "books" SET title = 'my title' WHERE id = 1
-
-// Update only column "title".
-res, err := db.Model(&book).Column("title").Update()
-// UPDATE "books" SET title = 'my title' WHERE id = 1
-
-// Update only column "title".
-res, err := db.Model(&book).UpdateValues(map[string]interface{}{
-    "title": book.Title,
-})
-// UPDATE "books" SET title = 'my title' WHERE id = 1
-
-// Delete book by primary key.
-err := db.Delete(&book)
-// DELETE FROM "books" WHERE id = 1
-
-// Delete book by title.
-res, err := db.Model(&book).Where("title = ?title").Delete()
-// DELETE FROM "books" WHERE title = 'my title'
-```
-
 ## Model definition
 
 Models are defined using Go structs. Order of the struct fields usually does not matter with the only exception being primary key(s) that must defined before any other fields. Otherwise table relationshipts can be recognized incorrectly.
@@ -332,6 +231,132 @@ type Comment struct {
 	TrackableType string `sql:",pk"` // "book" or "translation"
 	Text          string
 }
+```
+
+## Writing queries
+
+### Select
+
+```go
+// Select book by primary key.
+err := db.Select(&book)
+// SELECT * FROM "books" WHERE id = 1
+
+// Select book title and text.
+var title, text string
+err := db.Model(&Book{}).Column("title", "text").Where("id = ?", 1).Select(&title, &text)
+// SELECT "title", "text" FROM "books" WHERE id = 1
+
+// Select book using WHERE.
+err := db.Model(&book).
+    Where("id > ?", 100).
+    Where("title LIKE ?", "my%").
+    Limit(1).
+    Select()
+// SELECT * FROM "books" WHERE (id > 100) AND (title LIKE 'my%') LIMIT 1
+
+// Select first 20 books.
+err := db.Model(&books).Order("id ASC").Limit(20).Select()
+// SELECT * FROM "books" ORDER BY id ASC LIMIT 20
+
+// Count books.
+count, err := db.Model(&Book{}).Count()
+// SELECT COUNT(*) FROM "books"
+
+// Select 20 books and count all books.
+count, err := db.Model(&books).Limit(20).SelectAndCount()
+// SELECT * FROM "books" LIMIT 20
+// SELECT COUNT(*) FROM "books"
+
+// Select 20 books and count estimated number of books.
+count, err := db.Model(&books).Limit(20).SelectAndCountEstimate(100000)
+// SELECT * FROM "books" LIMIT 20
+// EXPLAIN SELECT 2147483647 FROM "books"
+// SELECT COUNT(*) FROM "books"
+
+// Select author id and number of books.
+var res []struct {
+    AuthorId  int
+    BookCount int
+}
+err := db.Model(&Book{}).
+    Column("author_id").
+    ColumnExpr("count(*) AS book_count").
+    Group("author_id").
+    Order("book_count DESC").
+    Select(&res)
+// SELECT "author_id", count(*) AS book_count
+// FROM "books" AS "book"
+// GROUP BY author_id
+// ORDER BY book_count DESC
+
+// Select book ids as PostgreSQL array.
+var ids []int
+err := db.Model(&Book{}).ColumnExpr("array_agg(id)").Select(pg.Array(&ids))
+// SELECT array_agg(id) FROM "books"
+```
+
+### Insert
+
+```go
+// Insert new book returning primary keys.
+err := db.Create(&book)
+// INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING "id"
+
+// Insert new book returning all columns.
+err := db.Model(&book).Returning("*").Create()
+// INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING *
+
+// Select existing book by name or create new book.
+err := db.Model(&book).
+    Where("title = ?title").
+    OnConflict("DO NOTHING"). // optional
+    SelectOrCreate()
+// 1. SELECT * FROM "books" WHERE title = 'my title'
+// 2. INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING "id"
+// 3. go to step 1 on error
+
+// Create new book or update existing one.
+_, err := db.Model(book).
+    OnConflict("(id) DO UPDATE").
+    Set("title = ?title").
+    Create()
+// INSERT INTO "books" ("id", "title") VALUES (100, 'my title')
+// ON CONFLICT (id) DO UPDATE SET title = 'title version #1'
+```
+
+### Update
+
+```go
+// Update all columns except primary keys.
+err := db.Update(&book)
+// UPDATE "books" SET title = 'my title', text = 'my text' WHERE id = 1
+
+// Update only column "title".
+res, err := db.Model(&book).Set("title = ?title").Where("id = ?id").Update()
+// UPDATE "books" SET title = 'my title' WHERE id = 1
+
+// Update only column "title".
+res, err := db.Model(&book).Column("title").Update()
+// UPDATE "books" SET title = 'my title' WHERE id = 1
+
+// Update only column "title".
+res, err := db.Model(&book).UpdateValues(map[string]interface{}{
+    "title": book.Title,
+})
+// UPDATE "books" SET title = 'my title' WHERE id = 1
+```
+
+### Delete
+
+```go
+// Delete book by primary key.
+err := db.Delete(&book)
+// DELETE FROM "books" WHERE id = 1
+
+// Delete book by title.
+res, err := db.Model(&book).Where("title = ?title").Delete()
+// DELETE FROM "books" WHERE title = 'my title'
 ```
 
 ## FAQ

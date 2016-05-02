@@ -100,7 +100,7 @@ func ExampleDB_Create() {
 	}
 }
 
-func ExampleDB_Create_onConflict() {
+func ExampleDB_Create_onConflictDoNothing() {
 	db := modelDB()
 
 	book := Book{
@@ -127,6 +127,39 @@ func ExampleDB_Create_onConflict() {
 
 	// Output: created
 	// did nothing
+}
+
+func ExampleDB_Create_onConflictDoUpdate() {
+	db := modelDB()
+
+	var book *Book
+	for i := 0; i < 2; i++ {
+		book = &Book{
+			Id:    100,
+			Title: fmt.Sprintf("title version #%d", i),
+		}
+		_, err := db.Model(book).
+			OnConflict("(id) DO UPDATE").
+			Set("title = ?title").
+			Create()
+		if err != nil {
+			panic(err)
+		}
+
+		err = db.Select(book)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(book)
+	}
+
+	err := db.Delete(book)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output: Book<Id=100 Title="title version #0">
+	// Book<Id=100 Title="title version #1">
 }
 
 func ExampleDB_Create_selectOrCreate() {
@@ -243,6 +276,31 @@ func ExampleDB_Select_sqlExpression() {
 	}
 	fmt.Println(ids)
 	// Output: [1 2 3]
+}
+
+func ExampleDB_Select_groupBy() {
+	db := modelDB()
+
+	var res []struct {
+		AuthorId  int
+		BookCount int
+	}
+
+	err := db.Model(&Book{}).
+		Column("author_id").
+		ColumnExpr("count(*) AS book_count").
+		Group("author_id").
+		Order("book_count DESC").
+		Select(&res)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("len", len(res))
+	fmt.Printf("author %d has %d books\n", res[0].AuthorId, res[0].BookCount)
+	fmt.Printf("author %d has %d books\n", res[1].AuthorId, res[1].BookCount)
+	// Output: len 2
+	// author 1 has 2 books
+	// author 11 has 1 books
 }
 
 func ExampleDB_Model_count() {

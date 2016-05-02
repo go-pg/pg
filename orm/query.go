@@ -11,7 +11,7 @@ import (
 
 type Query struct {
 	db    dber
-	model TableModel
+	model tableModel
 	err   error
 
 	tableName  types.Q
@@ -21,6 +21,7 @@ type Query struct {
 	set        []byte
 	where      []byte
 	join       []byte
+	group      []byte
 	order      []byte
 	onConflict []byte
 	returning  []byte
@@ -29,7 +30,7 @@ type Query struct {
 }
 
 func NewQuery(db dber, v interface{}) *Query {
-	model, err := NewTableModel(v)
+	model, err := newTableModel(v)
 	q := Query{
 		db:    db,
 		model: model,
@@ -101,6 +102,12 @@ func (q *Query) Where(where string, params ...interface{}) *Query {
 func (q *Query) Join(join string, params ...interface{}) *Query {
 	q.join = appendSep(q.join, " ")
 	q.join = q.format(q.join, join, params...)
+	return q
+}
+
+func (q *Query) Group(group string, params ...interface{}) *Query {
+	q.group = appendSep(q.group, ", ")
+	q.group = q.format(q.group, group, params...)
 	return q
 }
 
@@ -183,13 +190,21 @@ func (q *Query) Select(values ...interface{}) error {
 	q.joinHasOne()
 	sel := selectQuery{q}
 
+	var model Model
 	var err error
 	if len(values) > 0 {
-		_, err = q.db.QueryOne(Scan(values...), sel, q.model)
-	} else if _, ok := q.model.(*StructModel); ok {
-		_, err = q.db.QueryOne(q.model, sel, q.model)
+		model, err = NewModel(values...)
+		if err != nil {
+			return err
+		}
 	} else {
-		_, err = q.db.Query(q.model, sel, q.model)
+		model = q.model
+	}
+
+	if _, ok := model.(*structTableModel); ok {
+		_, err = q.db.QueryOne(model, sel, q.model)
+	} else {
+		_, err = q.db.Query(model, sel, q.model)
 	}
 	if err != nil {
 		return err
@@ -333,4 +348,46 @@ func (q *Query) Delete() (*types.Result, error) {
 func (q *Query) format(dst []byte, query string, params ...interface{}) []byte {
 	params = append(params, q.model)
 	return q.db.FormatQuery(dst, query, params...)
+}
+
+func (q *Query) appendSet(b []byte) ([]byte, error) {
+	b = append(b, " SET "...)
+	if len(q.set) > 0 {
+		b = append(b, q.set...)
+	} else if len(q.fields) > 0 {
+		table := q.model.Table()
+		strct := q.model.Value()
+		for i, fieldName := range q.fields {
+			field, err := table.GetField(fieldName)
+			if err != nil {
+				return nil, err
+			}
+
+			b = append(b, field.ColName...)
+			b = append(b, " = "...)
+			b = field.AppendValue(b, strct, 1)
+			if i != len(q.fields)-1 {
+				b = append(b, ", "...)
+			}
+		}
+	} else {
+		table := q.model.Table()
+		strct := q.model.Value()
+
+		start := len(b)
+		for _, field := range table.Fields {
+			if field.Has(PrimaryKeyFlag) {
+				continue
+			}
+
+			b = append(b, field.ColName...)
+			b = append(b, " = "...)
+			b = field.AppendValue(b, strct, 1)
+			b = append(b, ", "...)
+		}
+		if len(b) > start {
+			b = b[:len(b)-2]
+		}
+	}
+	return b, nil
 }

@@ -3,8 +3,8 @@ package orm
 import "gopkg.in/pg.v4/types"
 
 type Join struct {
-	BaseModel TableModel
-	JoinModel TableModel
+	BaseModel tableModel
+	JoinModel tableModel
 	Rel       *Relation
 
 	SelectAll bool

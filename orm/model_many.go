@@ -6,20 +6,20 @@ import (
 )
 
 type manyModel struct {
-	*SliceModel
+	*sliceTableModel
 	rel *Relation
 
 	dstValues map[string][]reflect.Value
 }
 
-var _ TableModel = (*manyModel)(nil)
+var _ tableModel = (*manyModel)(nil)
 
 func newManyModel(join *Join) *manyModel {
-	joinModel := join.JoinModel.(*SliceModel)
+	joinModel := join.JoinModel.(*sliceTableModel)
 	dstValues := dstValues(joinModel.Root(), joinModel.Path(), join.BaseModel.Table().PKs)
 	return &manyModel{
-		SliceModel: joinModel,
-		rel:        join.Rel,
+		sliceTableModel: joinModel,
+		rel:             join.Rel,
 
 		dstValues: dstValues,
 	}
@@ -27,7 +27,7 @@ func newManyModel(join *Join) *manyModel {
 
 func (m *manyModel) NewModel() ColumnScanner {
 	m.strct = reflect.New(m.table.Type).Elem()
-	m.StructModel.NewModel()
+	m.structTableModel.NewModel()
 	return m
 }
 
