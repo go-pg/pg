@@ -159,7 +159,7 @@ func ExampleDB_Model() {
 
 ## Model definition
 
-Models are defined using Go structs. Order of the struct fields usually does not matter with the only exception being primary key(s) that must defined before any other fields. Otherwise table relationshipts can be recognized incorrectly.
+Models are defined using Go structs. Order of the struct fields usually does not matter with the only exception being primary key(s) that must be defined before any other fields. Otherwise table relationships can be recognized incorrectly.
 
 ```go
 type Genre struct {
