@@ -31,9 +31,9 @@ Examples: http://godoc.org/gopkg.in/pg.v4#pkg-examples.
 
 * [Installation](#installation)
 * [Quickstart](#quickstart)
-* [Howto](#howto)
-* [Writing queries](#writing-queries)
 * [Model definition](#model-definition)
+* [Writing queries](#writing-queries)
+* [Howto](#howto)
 * [FAQ](#faq)
 
 ## Installation
@@ -156,10 +156,6 @@ func ExampleDB_Model() {
 	// Story<1 Cool story User<1 admin [admin1@admin admin2@admin]>>
 }
 ```
-
-## Howto
-
-Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to get the idea how to use this package.
 
 ## Model definition
 
@@ -359,6 +355,10 @@ err := db.Delete(&book)
 res, err := db.Model(&book).Where("title = ?title").Delete()
 // DELETE FROM "books" WHERE title = 'my title'
 ```
+
+## Howto
+
+Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to get the idea how to use this package.
 
 ## FAQ
 
