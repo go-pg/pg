@@ -349,3 +349,45 @@ func (q *Query) format(dst []byte, query string, params ...interface{}) []byte {
 	params = append(params, q.model)
 	return q.db.FormatQuery(dst, query, params...)
 }
+
+func (q *Query) appendSet(b []byte) ([]byte, error) {
+	b = append(b, " SET "...)
+	if len(q.set) > 0 {
+		b = append(b, q.set...)
+	} else if len(q.fields) > 0 {
+		table := q.model.Table()
+		strct := q.model.Value()
+		for i, fieldName := range q.fields {
+			field, err := table.GetField(fieldName)
+			if err != nil {
+				return nil, err
+			}
+
+			b = append(b, field.ColName...)
+			b = append(b, " = "...)
+			b = field.AppendValue(b, strct, 1)
+			if i != len(q.fields)-1 {
+				b = append(b, ", "...)
+			}
+		}
+	} else {
+		table := q.model.Table()
+		strct := q.model.Value()
+
+		start := len(b)
+		for _, field := range table.Fields {
+			if field.Has(PrimaryKeyFlag) {
+				continue
+			}
+
+			b = append(b, field.ColName...)
+			b = append(b, " = "...)
+			b = field.AppendValue(b, strct, 1)
+			b = append(b, ", "...)
+		}
+		if len(b) > start {
+			b = b[:len(b)-2]
+		}
+	}
+	return b, nil
+}

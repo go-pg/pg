@@ -315,6 +315,14 @@ err := db.Model(&book).
 // 1. SELECT * FROM "books" WHERE title = 'my title'
 // 2. INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING "id"
 // 3. go to step 1 on error
+
+// Create new book or update existing one.
+_, err := db.Model(book).
+    OnConflict("(id) DO UPDATE").
+    Set("title = ?title").
+    Create()
+// INSERT INTO "books" ("id", "title") VALUES (100, 'my title')
+// ON CONFLICT (id) DO UPDATE SET title = 'title version #1'
 ```
 
 ### Update

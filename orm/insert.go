@@ -1,6 +1,9 @@
 package orm
 
-import "reflect"
+import (
+	"bytes"
+	"reflect"
+)
 
 func Create(db dber, v interface{}) error {
 	q := NewQuery(db, v)
@@ -56,6 +59,13 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	if len(ins.onConflict) > 0 {
 		b = append(b, " ON CONFLICT "...)
 		b = append(b, ins.onConflict...)
+		if bytes.HasSuffix(ins.onConflict, []byte("DO UPDATE")) {
+			var err error
+			b, err = ins.appendSet(b)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	if len(ins.returning) > 0 {

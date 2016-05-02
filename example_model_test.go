@@ -100,7 +100,7 @@ func ExampleDB_Create() {
 	}
 }
 
-func ExampleDB_Create_onConflict() {
+func ExampleDB_Create_onConflictDoNothing() {
 	db := modelDB()
 
 	book := Book{
@@ -127,6 +127,39 @@ func ExampleDB_Create_onConflict() {
 
 	// Output: created
 	// did nothing
+}
+
+func ExampleDB_Create_onConflictDoUpdate() {
+	db := modelDB()
+
+	var book *Book
+	for i := 0; i < 2; i++ {
+		book = &Book{
+			Id:    100,
+			Title: fmt.Sprintf("title version #%d", i),
+		}
+		_, err := db.Model(book).
+			OnConflict("(id) DO UPDATE").
+			Set("title = ?title").
+			Create()
+		if err != nil {
+			panic(err)
+		}
+
+		err = db.Select(book)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(book)
+	}
+
+	err := db.Delete(book)
+	if err != nil {
+		panic(err)
+	}
+
+	// Output: Book<Id=100 Title="title version #0">
+	// Book<Id=100 Title="title version #1">
 }
 
 func ExampleDB_Create_selectOrCreate() {

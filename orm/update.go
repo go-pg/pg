@@ -18,44 +18,15 @@ type updateModel struct {
 var _ QueryAppender = (*updateModel)(nil)
 
 func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	var err error
 	table := upd.model.Table()
-	strct := upd.model.Value()
 
 	b = append(b, "UPDATE "...)
 	b = append(b, upd.tableName...)
-	b = append(b, " SET "...)
 
-	if len(upd.set) > 0 {
-		b = append(b, upd.set...)
-	} else if len(upd.fields) > 0 {
-		for i, fieldName := range upd.fields {
-			field, err := table.GetField(fieldName)
-			if err != nil {
-				return nil, err
-			}
-
-			b = append(b, field.ColName...)
-			b = append(b, " = "...)
-			b = field.AppendValue(b, strct, 1)
-			if i != len(upd.fields)-1 {
-				b = append(b, ", "...)
-			}
-		}
-	} else {
-		start := len(b)
-		for _, field := range table.Fields {
-			if field.Has(PrimaryKeyFlag) {
-				continue
-			}
-
-			b = append(b, field.ColName...)
-			b = append(b, " = "...)
-			b = field.AppendValue(b, strct, 1)
-			b = append(b, ", "...)
-		}
-		if len(b) > start {
-			b = b[:len(b)-2]
-		}
+	b, err = upd.appendSet(b)
+	if err != nil {
+		return nil, err
 	}
 
 	b = append(b, " WHERE "...)
@@ -65,7 +36,7 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 		if err := table.checkPKs(); err != nil {
 			return nil, err
 		}
-		b = appendColumnAndValue(b, strct, table.PKs)
+		b = appendColumnAndValue(b, upd.model.Value(), table.PKs)
 	}
 
 	if len(upd.returning) > 0 {
