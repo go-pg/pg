@@ -9,7 +9,7 @@ import (
 
 func Select(db dber, model interface{}) error {
 	q := NewQuery(db, model)
-	m, ok := q.model.(*StructModel)
+	m, ok := q.model.(*structTableModel)
 	if !ok {
 		return fmt.Errorf("Select expects struct, got %T", model)
 	}
@@ -48,6 +48,11 @@ func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	if len(sel.where) > 0 {
 		b = append(b, " WHERE "...)
 		b = append(b, sel.where...)
+	}
+
+	if len(sel.group) > 0 {
+		b = append(b, " GROUP BY "...)
+		b = append(b, sel.group...)
 	}
 
 	if len(sel.order) > 0 {

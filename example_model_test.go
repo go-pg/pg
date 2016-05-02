@@ -245,6 +245,31 @@ func ExampleDB_Select_sqlExpression() {
 	// Output: [1 2 3]
 }
 
+func ExampleDB_Select_groupBy() {
+	db := modelDB()
+
+	var res []struct {
+		AuthorId  int
+		BookCount int
+	}
+
+	err := db.Model(&Book{}).
+		Column("author_id").
+		ColumnExpr("count(*) AS book_count").
+		Group("author_id").
+		Order("book_count DESC").
+		Select(&res)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("len", len(res))
+	fmt.Printf("author %d has %d books\n", res[0].AuthorId, res[0].BookCount)
+	fmt.Printf("author %d has %d books\n", res[1].AuthorId, res[1].BookCount)
+	// Output: len 2
+	// author 1 has 2 books
+	// author 11 has 1 books
+}
+
 func ExampleDB_Model_count() {
 	db := modelDB()
 

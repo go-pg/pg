@@ -11,7 +11,7 @@ import (
 
 type Query struct {
 	db    dber
-	model TableModel
+	model tableModel
 	err   error
 
 	tableName  types.Q
@@ -21,6 +21,7 @@ type Query struct {
 	set        []byte
 	where      []byte
 	join       []byte
+	group      []byte
 	order      []byte
 	onConflict []byte
 	returning  []byte
@@ -29,7 +30,7 @@ type Query struct {
 }
 
 func NewQuery(db dber, v interface{}) *Query {
-	model, err := NewTableModel(v)
+	model, err := newTableModel(v)
 	q := Query{
 		db:    db,
 		model: model,
@@ -101,6 +102,12 @@ func (q *Query) Where(where string, params ...interface{}) *Query {
 func (q *Query) Join(join string, params ...interface{}) *Query {
 	q.join = appendSep(q.join, " ")
 	q.join = q.format(q.join, join, params...)
+	return q
+}
+
+func (q *Query) Group(group string, params ...interface{}) *Query {
+	q.group = appendSep(q.group, ", ")
+	q.group = q.format(q.group, group, params...)
 	return q
 }
 
@@ -183,13 +190,21 @@ func (q *Query) Select(values ...interface{}) error {
 	q.joinHasOne()
 	sel := selectQuery{q}
 
+	var model Model
 	var err error
 	if len(values) > 0 {
-		_, err = q.db.QueryOne(Scan(values...), sel, q.model)
-	} else if _, ok := q.model.(*StructModel); ok {
-		_, err = q.db.QueryOne(q.model, sel, q.model)
+		model, err = NewModel(values...)
+		if err != nil {
+			return err
+		}
 	} else {
-		_, err = q.db.Query(q.model, sel, q.model)
+		model = q.model
+	}
+
+	if _, ok := model.(*structTableModel); ok {
+		_, err = q.db.QueryOne(model, sel, q.model)
+	} else {
+		_, err = q.db.Query(model, sel, q.model)
 	}
 	if err != nil {
 		return err

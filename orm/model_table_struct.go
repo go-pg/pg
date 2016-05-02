@@ -8,7 +8,7 @@ import (
 )
 
 // TODO: extract AppendParam to separate struct and use it in Formatter
-type StructModel struct {
+type structTableModel struct {
 	table *Table
 	joins []Join
 
@@ -18,41 +18,41 @@ type StructModel struct {
 	strct reflect.Value
 }
 
-var _ TableModel = (*StructModel)(nil)
+var _ tableModel = (*structTableModel)(nil)
 
-func NewStructModel(v interface{}) (*StructModel, error) {
+func newStructTableModel(v interface{}) (*structTableModel, error) {
 	switch v := v.(type) {
-	case *StructModel:
+	case *structTableModel:
 		return v, nil
 	case reflect.Value:
-		return newStructModelValue(v)
+		return newStructTableModelValue(v)
 	default:
-		return newStructModelValue(reflect.ValueOf(v))
+		return newStructTableModelValue(reflect.ValueOf(v))
 	}
 }
 
-func newStructModelValue(v reflect.Value) (*StructModel, error) {
+func newStructTableModelValue(v reflect.Value) (*structTableModel, error) {
 	if !v.IsValid() {
-		return nil, errors.New("pg: NewStructModel(nil)")
+		return nil, errors.New("pg: newStructTableModel(nil)")
 	}
 	v = reflect.Indirect(v)
 
 	if v.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("pg: NewStructModel(unsupported %s)", v.Type())
+		return nil, fmt.Errorf("pg: newStructTableModel(unsupported %s)", v.Type())
 	}
 
-	return &StructModel{
+	return &structTableModel{
 		table: Tables.Get(v.Type()),
 		root:  v,
 		strct: v,
 	}, nil
 }
 
-func (m *StructModel) Table() *Table {
+func (m *structTableModel) Table() *Table {
 	return m.table
 }
 
-func (m *StructModel) AppendParam(dst []byte, name string) ([]byte, bool) {
+func (m *structTableModel) AppendParam(dst []byte, name string) ([]byte, bool) {
 	if field, ok := m.table.FieldsMap[name]; ok {
 		dst = field.AppendValue(dst, m.strct, 1)
 		return dst, true
@@ -66,23 +66,23 @@ func (m *StructModel) AppendParam(dst []byte, name string) ([]byte, bool) {
 	return dst, false
 }
 
-func (m *StructModel) Root() reflect.Value {
+func (m *structTableModel) Root() reflect.Value {
 	return m.root
 }
 
-func (m *StructModel) Path() []string {
+func (m *structTableModel) Path() []string {
 	return m.path
 }
 
-func (m *StructModel) Bind(bind reflect.Value) {
+func (m *structTableModel) Bind(bind reflect.Value) {
 	m.strct = bind.FieldByName(m.path[len(m.path)-1])
 }
 
-func (m *StructModel) Value() reflect.Value {
+func (m *structTableModel) Value() reflect.Value {
 	return m.strct
 }
 
-func (m *StructModel) NewModel() ColumnScanner {
+func (m *structTableModel) NewModel() ColumnScanner {
 	for i := range m.joins {
 		j := &m.joins[i]
 		if j.Rel.One {
@@ -92,11 +92,11 @@ func (m *StructModel) NewModel() ColumnScanner {
 	return m
 }
 
-func (StructModel) AddModel(_ ColumnScanner) error {
+func (structTableModel) AddModel(_ ColumnScanner) error {
 	return nil
 }
 
-func (m *StructModel) ScanColumn(colIdx int, colName string, b []byte) error {
+func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) error {
 	ok, err := m.scanColumn(colIdx, colName, b)
 	if ok {
 		return err
@@ -104,7 +104,7 @@ func (m *StructModel) ScanColumn(colIdx int, colName string, b []byte) error {
 	return fmt.Errorf("pg: can't find column %q in model %s", colName, m.table.ModelName)
 }
 
-func (m *StructModel) scanColumn(colIdx int, colName string, b []byte) (bool, error) {
+func (m *structTableModel) scanColumn(colIdx int, colName string, b []byte) (bool, error) {
 	joinName, fieldName := splitColumn(colName)
 	if joinName != "" {
 		if join := m.GetJoin(joinName); join != nil {
@@ -129,7 +129,7 @@ func (m *StructModel) scanColumn(colIdx int, colName string, b []byte) (bool, er
 	return false, nil
 }
 
-func (m *StructModel) GetJoin(name string) *Join {
+func (m *structTableModel) GetJoin(name string) *Join {
 	for i := range m.joins {
 		j := &m.joins[i]
 		if j.Rel.Field.GoName == name || j.Rel.Field.SQLName == name {
@@ -139,20 +139,20 @@ func (m *StructModel) GetJoin(name string) *Join {
 	return nil
 }
 
-func (m *StructModel) GetJoins() []Join {
+func (m *structTableModel) GetJoins() []Join {
 	return m.joins
 }
 
-func (m *StructModel) AddJoin(j Join) *Join {
+func (m *structTableModel) AddJoin(j Join) *Join {
 	m.joins = append(m.joins, j)
 	return &m.joins[len(m.joins)-1]
 }
 
-func (m *StructModel) Join(name string) *Join {
+func (m *structTableModel) Join(name string) *Join {
 	return join(m, m.Value(), name)
 }
 
-func join(m *StructModel, bind reflect.Value, name string) *Join {
+func join(m *structTableModel, bind reflect.Value, name string) *Join {
 	path := strings.Split(name, ".")
 
 	join := Join{
@@ -175,7 +175,7 @@ func join(m *StructModel, bind reflect.Value, name string) *Join {
 			join.JoinModel = j.JoinModel
 			lastJoin = j
 		} else {
-			model, err := NewTableModelPath(bind, path[:i+1], rel.Join)
+			model, err := newTableModelPath(bind, path[:i+1], rel.Join)
 			if err != nil {
 				return nil
 			}

@@ -6,7 +6,7 @@ import (
 )
 
 type m2mModel struct {
-	*SliceModel
+	*sliceTableModel
 	baseTable *Table
 	rel       *Relation
 
@@ -14,16 +14,16 @@ type m2mModel struct {
 	columns   map[string]string
 }
 
-var _ TableModel = (*m2mModel)(nil)
+var _ tableModel = (*m2mModel)(nil)
 
 func newM2MModel(join *Join) *m2mModel {
 	baseTable := join.BaseModel.Table()
-	joinModel := join.JoinModel.(*SliceModel)
+	joinModel := join.JoinModel.(*sliceTableModel)
 	dstValues := dstValues(joinModel.Root(), joinModel.Path(), baseTable.PKs)
 	return &m2mModel{
-		SliceModel: joinModel,
-		baseTable:  baseTable,
-		rel:        join.Rel,
+		sliceTableModel: joinModel,
+		baseTable:       baseTable,
+		rel:             join.Rel,
 
 		dstValues: dstValues,
 		columns:   make(map[string]string),
@@ -32,7 +32,7 @@ func newM2MModel(join *Join) *m2mModel {
 
 func (m *m2mModel) NewModel() ColumnScanner {
 	m.strct = reflect.New(m.table.Type).Elem()
-	m.StructModel.NewModel()
+	m.structTableModel.NewModel()
 	return m
 }
 
@@ -49,7 +49,7 @@ func (m *m2mModel) AddModel(_ ColumnScanner) error {
 }
 
 func (m *m2mModel) ScanColumn(colIdx int, colName string, b []byte) error {
-	ok, err := m.SliceModel.scanColumn(colIdx, colName, b)
+	ok, err := m.sliceTableModel.scanColumn(colIdx, colName, b)
 	if ok {
 		return err
 	}
