@@ -18,6 +18,7 @@ Supports:
 - Working with models using [ORM](https://godoc.org/gopkg.in/pg.v4#example-DB-Model) and [SQL](https://godoc.org/gopkg.in/pg.v4#example-DB-Query).
 - Scanning variables using [ORM](https://godoc.org/gopkg.in/pg.v4#example-DB-Select-SomeColumnsIntoVars) and [SQL](https://godoc.org/gopkg.in/pg.v4#example-Scan).
 - [SelectOrCreate](https://godoc.org/gopkg.in/pg.v4#example-DB-Create-SelectOrCreate) using upserts.
+- [INSERT ... ON CONFLICT DO UPDATE](https://godoc.org/gopkg.in/pg.v4#example-DB-Create-OnConflictDoUpdate) using ORM.
 - [CountEstimate](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-CountEstimate) using `EXPLAIN` to get [estimated number of matching rows](https://wiki.postgresql.org/wiki/Count_estimate).
 - [HasOne](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-HasOne), [HasMany](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-HasMany) and [ManyToMany](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-ManyToMany).
 - [Migrations](https://github.com/go-pg/migrations).
