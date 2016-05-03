@@ -3,6 +3,11 @@ package internal
 import "reflect"
 
 func SliceNextElem(v reflect.Value) reflect.Value {
+	if v.Len() < v.Cap() {
+		v.Set(v.Slice(0, v.Len()+1))
+		return v.Index(v.Len() - 1)
+	}
+
 	elemType := v.Type().Elem()
 
 	if elemType.Kind() == reflect.Ptr {
