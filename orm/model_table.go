@@ -17,7 +17,7 @@ type tableModel interface {
 	AddJoin(Join) *Join
 
 	Root() reflect.Value
-	Path() []string
+	Path() []int
 	Bind(reflect.Value)
 	Value() reflect.Value
 
@@ -60,7 +60,7 @@ func newTableModelValue(v reflect.Value) (tableModel, error) {
 	return nil, fmt.Errorf("pg: NewModel(unsupported %s)", v.Type())
 }
 
-func newTableModelPath(root reflect.Value, path []string, table *Table) (tableModel, error) {
+func newTableModelPath(root reflect.Value, path []int, table *Table) (tableModel, error) {
 	v := fieldByPath(root, path)
 	v = reflect.Indirect(v)
 
@@ -88,13 +88,13 @@ func newTableModelPath(root reflect.Value, path []string, table *Table) (tableMo
 	return nil, fmt.Errorf("pg: newTableModelPath(path %s on %s)", path, root.Type())
 }
 
-func fieldByPath(v reflect.Value, path []string) reflect.Value {
-	for _, name := range path {
+func fieldByPath(v reflect.Value, path []int) reflect.Value {
+	for _, index := range path {
 		if v.Kind() == reflect.Slice {
 			v = reflect.Zero(v.Type().Elem())
 		}
 
-		v = v.FieldByName(name)
+		v = v.Field(index)
 		if v.Kind() == reflect.Ptr {
 			if v.IsNil() {
 				v = reflect.New(v.Type().Elem())

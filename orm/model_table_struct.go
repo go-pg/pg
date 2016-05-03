@@ -13,7 +13,7 @@ type structTableModel struct {
 	joins []Join
 
 	root reflect.Value
-	path []string
+	path []int
 
 	strct reflect.Value
 }
@@ -74,12 +74,12 @@ func (m *structTableModel) Root() reflect.Value {
 	return m.root
 }
 
-func (m *structTableModel) Path() []string {
+func (m *structTableModel) Path() []int {
 	return m.path
 }
 
 func (m *structTableModel) Bind(bind reflect.Value) {
-	m.strct = bind.FieldByName(m.path[len(m.path)-1])
+	m.strct = bind.Field(m.path[len(m.path)-1])
 }
 
 func (m *structTableModel) Value() reflect.Value {
@@ -158,6 +158,7 @@ func (m *structTableModel) Join(name string) *Join {
 
 func join(m *structTableModel, bind reflect.Value, name string) *Join {
 	path := strings.Split(name, ".")
+	index := make([]int, 0, len(path))
 
 	join := Join{
 		BaseModel: m,
@@ -166,20 +167,21 @@ func join(m *structTableModel, bind reflect.Value, name string) *Join {
 	var lastJoin *Join
 	var hasColumnName bool
 
-	for i, name := range path {
+	for _, name := range path {
 		rel, ok := join.JoinModel.Table().Relations[name]
 		if !ok {
 			hasColumnName = true
 			break
 		}
 		join.Rel = rel
+		index = append(index, rel.Field.Index...)
 
 		if j := join.JoinModel.GetJoin(name); j != nil {
 			join.BaseModel = j.BaseModel
 			join.JoinModel = j.JoinModel
 			lastJoin = j
 		} else {
-			model, err := newTableModelPath(bind, path[:i+1], rel.Join)
+			model, err := newTableModelPath(bind, index, rel.Join)
 			if err != nil {
 				return nil
 			}

@@ -51,7 +51,7 @@ func columns(table types.Q, prefix string, fields []*Field) []byte {
 	return b
 }
 
-func values(v reflect.Value, path []string, fields []*Field) []byte {
+func values(v reflect.Value, path []int, fields []*Field) []byte {
 	var b []byte
 	walk(v, path, func(v reflect.Value) {
 		b = append(b, '(')
@@ -69,7 +69,7 @@ func values(v reflect.Value, path []string, fields []*Field) []byte {
 	return b
 }
 
-func walk(v reflect.Value, path []string, fn func(reflect.Value)) {
+func walk(v reflect.Value, path []int, fn func(reflect.Value)) {
 	v = reflect.Indirect(v)
 	if v.Kind() == reflect.Slice {
 		walkSlice(v, path, fn)
@@ -78,15 +78,15 @@ func walk(v reflect.Value, path []string, fn func(reflect.Value)) {
 	}
 }
 
-func walkSlice(slice reflect.Value, path []string, fn func(reflect.Value)) {
+func walkSlice(slice reflect.Value, path []int, fn func(reflect.Value)) {
 	for i := 0; i < slice.Len(); i++ {
 		visitStruct(slice.Index(i), path, fn)
 	}
 }
 
-func visitStruct(strct reflect.Value, path []string, fn func(reflect.Value)) {
+func visitStruct(strct reflect.Value, path []int, fn func(reflect.Value)) {
 	if len(path) > 0 {
-		strct = strct.FieldByName(path[0])
+		strct = strct.Field(path[0])
 		walk(strct, path[1:], fn)
 	} else {
 		fn(strct)
@@ -125,13 +125,13 @@ func modelIdMap(b []byte, m map[string]string, prefix string, fields []*Field) [
 	return b
 }
 
-func dstValues(root reflect.Value, path []string, fields []*Field) map[string][]reflect.Value {
+func dstValues(root reflect.Value, path []int, fields []*Field) map[string][]reflect.Value {
 	mp := make(map[string][]reflect.Value)
 	b := make([]byte, 16)
 	walk(root, path[:len(path)-1], func(v reflect.Value) {
 		b = b[:0]
 		id := string(modelId(b, v, fields))
-		mp[id] = append(mp[id], v.FieldByName(path[len(path)-1]))
+		mp[id] = append(mp[id], v.Field(path[len(path)-1]))
 	})
 	return mp
 }
