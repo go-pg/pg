@@ -9,6 +9,10 @@ type sliceTableModel struct {
 
 var _ tableModel = (*sliceTableModel)(nil)
 
+func (sliceTableModel) useQueryOne() bool {
+	return false
+}
+
 func (m *sliceTableModel) Join(name string) *Join {
 	return join(&m.structTableModel, m.Value(), name)
 }

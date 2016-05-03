@@ -41,11 +41,10 @@ func newTableModelValue(v reflect.Value) (tableModel, error) {
 	}
 	v = reflect.Indirect(v)
 
-	if v.Kind() == reflect.Struct {
+	switch v.Kind() {
+	case reflect.Struct:
 		return newStructTableModel(v)
-	}
-
-	if v.Kind() == reflect.Slice {
+	case reflect.Slice:
 		elType := indirectType(v.Type().Elem())
 		if elType.Kind() == reflect.Struct {
 			return &sliceTableModel{

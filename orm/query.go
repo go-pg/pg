@@ -201,7 +201,7 @@ func (q *Query) Select(values ...interface{}) error {
 		model = q.model
 	}
 
-	if _, ok := model.(*structTableModel); ok {
+	if m, ok := model.(useQueryOne); ok && m.useQueryOne() {
 		_, err = q.db.QueryOne(model, sel, q.model)
 	} else {
 		_, err = q.db.Query(model, sel, q.model)
