@@ -336,12 +336,6 @@ res, err := db.Model(&book).Set("title = ?title").Where("id = ?id").Update()
 // Update only column "title".
 res, err := db.Model(&book).Column("title").Update()
 // UPDATE "books" SET title = 'my title' WHERE id = 1
-
-// Update only column "title".
-res, err := db.Model(&book).UpdateValues(map[string]interface{}{
-    "title": book.Title,
-})
-// UPDATE "books" SET title = 'my title' WHERE id = 1
 ```
 
 ### Delete

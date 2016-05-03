@@ -325,18 +325,6 @@ func (q *Query) Update() (*types.Result, error) {
 	return q.db.Query(q.model, updateModel{q}, q.model)
 }
 
-// Update updates the model using provided values.
-func (q *Query) UpdateValues(values map[string]interface{}) (*types.Result, error) {
-	if q.err != nil {
-		return nil, q.err
-	}
-	upd := updateQuery{
-		Query: q,
-		data:  values,
-	}
-	return q.db.Query(q.model, upd, q.model)
-}
-
 // Delete deletes the model.
 func (q *Query) Delete() (*types.Result, error) {
 	if q.err != nil {
