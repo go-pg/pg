@@ -106,32 +106,27 @@ func appendColumnAndValue(b []byte, v reflect.Value, fields []*Field) []byte {
 }
 
 func modelId(b []byte, v reflect.Value, fields []*Field) []byte {
-	for i, f := range fields {
+	for _, f := range fields {
 		b = f.AppendValue(b, v, 0)
-		if i != len(fields)-1 {
-			b = append(b, ',')
-		}
+		b = append(b, ',')
 	}
 	return b
 }
 
 func modelIdMap(b []byte, m map[string]string, prefix string, fields []*Field) []byte {
-	for i, f := range fields {
+	for _, f := range fields {
 		b = append(b, m[prefix+f.SQLName]...)
-		if i != len(fields)-1 {
-			b = append(b, ',')
-		}
+		b = append(b, ',')
 	}
 	return b
 }
 
 func dstValues(root reflect.Value, path []int, fields []*Field) map[string][]reflect.Value {
 	mp := make(map[string][]reflect.Value)
-	b := make([]byte, 16)
+	var id []byte
 	walk(root, path[:len(path)-1], func(v reflect.Value) {
-		b = b[:0]
-		id := string(modelId(b, v, fields))
-		mp[id] = append(mp[id], v.Field(path[len(path)-1]))
+		id = modelId(id[:0], v, fields)
+		mp[string(id)] = append(mp[string(id)], v.Field(path[len(path)-1]))
 	})
 	return mp
 }
