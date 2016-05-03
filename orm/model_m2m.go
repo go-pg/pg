@@ -10,6 +10,7 @@ type m2mModel struct {
 	baseTable *Table
 	rel       *Relation
 
+	buf       []byte
 	dstValues map[string][]reflect.Value
 	columns   map[string]string
 }
@@ -37,10 +38,10 @@ func (m *m2mModel) NewModel() ColumnScanner {
 }
 
 func (m *m2mModel) AddModel(_ ColumnScanner) error {
-	id := modelIdMap(nil, m.columns, m.baseTable.ModelName+"_", m.baseTable.PKs)
-	dstValues, ok := m.dstValues[string(id)]
+	m.buf = modelIdMap(m.buf[:0], m.columns, m.baseTable.ModelName+"_", m.baseTable.PKs)
+	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
-		return fmt.Errorf("pg: can't find dst value for model id=%q", string(id))
+		return fmt.Errorf("pg: can't find dst value for model id=%q", m.buf)
 	}
 	for _, v := range dstValues {
 		v.Set(reflect.Append(v, m.strct))

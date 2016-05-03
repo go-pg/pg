@@ -9,6 +9,7 @@ type manyModel struct {
 	*sliceTableModel
 	rel *Relation
 
+	buf       []byte
 	dstValues map[string][]reflect.Value
 }
 
@@ -32,10 +33,10 @@ func (m *manyModel) NewModel() ColumnScanner {
 }
 
 func (m *manyModel) AddModel(_ ColumnScanner) error {
-	id := string(modelId(nil, m.strct, m.rel.FKs))
-	dstValues, ok := m.dstValues[id]
+	m.buf = modelId(m.buf[:0], m.strct, m.rel.FKs)
+	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
-		return fmt.Errorf("pg: can't find dst value for model id=%q", id)
+		return fmt.Errorf("pg: can't find dst value for model id=%q", m.buf)
 	}
 	for _, v := range dstValues {
 		v.Set(reflect.Append(v, m.strct))
