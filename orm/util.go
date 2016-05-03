@@ -80,8 +80,10 @@ func visitStruct(strct reflect.Value, path []int, fn func(reflect.Value)) {
 	}
 }
 
-func appendColumnAndValue(b []byte, v reflect.Value, fields []*Field) []byte {
+func appendColumnAndValue(b []byte, v reflect.Value, table *Table, fields []*Field) []byte {
 	for i, f := range fields {
+		b = types.AppendField(b, table.ModelName, 1)
+		b = append(b, '.')
 		b = append(b, f.ColName...)
 		b = append(b, " = "...)
 		b = f.AppendValue(b, v, 1)

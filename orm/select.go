@@ -16,7 +16,7 @@ func Select(db dber, model interface{}) error {
 	if err := m.table.checkPKs(); err != nil {
 		return err
 	}
-	q.where = appendColumnAndValue(q.where, m.strct, m.table.PKs)
+	q.where = appendColumnAndValue(q.where, m.strct, m.table, m.table.PKs)
 	return q.Select()
 }
 

@@ -18,17 +18,5 @@ var _ QueryAppender = (*deleteModel)(nil)
 func (del deleteModel) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "DELETE FROM "...)
 	b = append(b, del.tableName...)
-
-	b = append(b, " WHERE "...)
-	if len(del.where) > 0 {
-		b = append(b, del.where...)
-	} else {
-		table := del.model.Table()
-		if err := table.checkPKs(); err != nil {
-			return nil, err
-		}
-		b = appendColumnAndValue(b, del.model.Value(), table.PKs)
-	}
-
-	return b, nil
+	return del.appendWhere(b)
 }

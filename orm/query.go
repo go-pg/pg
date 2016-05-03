@@ -37,12 +37,14 @@ func NewQuery(db dber, v interface{}) *Query {
 		err:   err,
 	}
 	if err == nil {
-		q.tableName = q.format(nil, string(q.model.Table().Name))
+		table := q.model.Table()
+
+		q.tableName = q.format(nil, string(table.Name))
+		q.tableName = append(q.tableName, " AS "...)
+		q.tableName = types.AppendField(q.tableName, table.ModelName, 1)
 
 		q.tables = appendSep(q.tables, ", ")
 		q.tables = append(q.tables, q.tableName...)
-		q.tables = append(q.tables, " AS "...)
-		q.tables = types.AppendField(q.tables, q.model.Table().ModelName, 1)
 	}
 	return &q
 }
@@ -376,6 +378,20 @@ func (q *Query) appendSet(b []byte) ([]byte, error) {
 		if len(b) > start {
 			b = b[:len(b)-2]
 		}
+	}
+	return b, nil
+}
+
+func (q *Query) appendWhere(b []byte) ([]byte, error) {
+	b = append(b, " WHERE "...)
+	if len(q.where) > 0 {
+		b = append(b, q.where...)
+	} else {
+		table := q.model.Table()
+		if err := table.checkPKs(); err != nil {
+			return nil, err
+		}
+		b = appendColumnAndValue(b, q.model.Value(), table, table.PKs)
 	}
 	return b, nil
 }

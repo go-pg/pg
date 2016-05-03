@@ -65,6 +65,11 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 			if err != nil {
 				return nil, err
 			}
+
+			if len(ins.where) > 0 {
+				b = append(b, " WHERE "...)
+				b = append(b, ins.where...)
+			}
 		}
 	}
 
