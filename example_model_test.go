@@ -553,47 +553,6 @@ func ExampleDB_Update_setValues() {
 	// Output: Book<Id=1 Title="prefix book 1 suffix">
 }
 
-func ExampleDB_Update_updateValues() {
-	db := modelDB()
-
-	id := 1
-	data := map[string]interface{}{
-		"title": pg.Q("concat(?, title, ?)", "prefix ", " suffix"),
-	}
-	var book Book
-	_, err := db.Model(&book).
-		Where("id = ?", id).
-		Returning("*").
-		UpdateValues(data)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(book)
-	// Output: Book<Id=1 Title="prefix book 1 suffix">
-}
-
-func ExampleDB_Update_multipleRows() {
-	db := modelDB()
-
-	ids := pg.Ints{1, 2}
-	data := map[string]interface{}{
-		"title": pg.Q("concat(?, title, ?)", "prefix ", " suffix"),
-	}
-
-	var books []Book
-	_, err := db.Model(&books).
-		Where("id IN (?)", ids).
-		Returning("*").
-		UpdateValues(data)
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(books)
-	// Output: [Book<Id=1 Title="prefix book 1 suffix"> Book<Id=2 Title="prefix book 2 suffix">]
-}
-
 func ExampleDB_Delete() {
 	db := modelDB()
 

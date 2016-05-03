@@ -10,10 +10,10 @@ import (
 // TODO: extract AppendParam to separate struct and use it in Formatter
 type structTableModel struct {
 	table *Table
-	joins []Join
+	joins []join
 
 	root reflect.Value
-	path []string
+	path []int
 
 	strct reflect.Value
 }
@@ -74,12 +74,12 @@ func (m *structTableModel) Root() reflect.Value {
 	return m.root
 }
 
-func (m *structTableModel) Path() []string {
+func (m *structTableModel) Path() []int {
 	return m.path
 }
 
 func (m *structTableModel) Bind(bind reflect.Value) {
-	m.strct = bind.FieldByName(m.path[len(m.path)-1])
+	m.strct = bind.Field(m.path[len(m.path)-1])
 }
 
 func (m *structTableModel) Value() reflect.Value {
@@ -133,7 +133,7 @@ func (m *structTableModel) scanColumn(colIdx int, colName string, b []byte) (boo
 	return false, nil
 }
 
-func (m *structTableModel) GetJoin(name string) *Join {
+func (m *structTableModel) GetJoin(name string) *join {
 	for i := range m.joins {
 		j := &m.joins[i]
 		if j.Rel.Field.GoName == name || j.Rel.Field.SQLName == name {
@@ -143,50 +143,52 @@ func (m *structTableModel) GetJoin(name string) *Join {
 	return nil
 }
 
-func (m *structTableModel) GetJoins() []Join {
+func (m *structTableModel) GetJoins() []join {
 	return m.joins
 }
 
-func (m *structTableModel) AddJoin(j Join) *Join {
+func (m *structTableModel) AddJoin(j join) *join {
 	m.joins = append(m.joins, j)
 	return &m.joins[len(m.joins)-1]
 }
 
-func (m *structTableModel) Join(name string) *Join {
-	return join(m, m.Value(), name)
+func (m *structTableModel) Join(name string) *join {
+	return addJoin(m, m.Value(), name)
 }
 
-func join(m *structTableModel, bind reflect.Value, name string) *Join {
+func addJoin(m *structTableModel, bind reflect.Value, name string) *join {
 	path := strings.Split(name, ".")
+	index := make([]int, 0, len(path))
 
-	join := Join{
+	thejoin := join{
 		BaseModel: m,
 		JoinModel: m,
 	}
-	var lastJoin *Join
+	var lastJoin *join
 	var hasColumnName bool
 
-	for i, name := range path {
-		rel, ok := join.JoinModel.Table().Relations[name]
+	for _, name := range path {
+		rel, ok := thejoin.JoinModel.Table().Relations[name]
 		if !ok {
 			hasColumnName = true
 			break
 		}
-		join.Rel = rel
+		thejoin.Rel = rel
+		index = append(index, rel.Field.Index...)
 
-		if j := join.JoinModel.GetJoin(name); j != nil {
-			join.BaseModel = j.BaseModel
-			join.JoinModel = j.JoinModel
+		if j := thejoin.JoinModel.GetJoin(name); j != nil {
+			thejoin.BaseModel = j.BaseModel
+			thejoin.JoinModel = j.JoinModel
 			lastJoin = j
 		} else {
-			model, err := newTableModelPath(bind, path[:i+1], rel.Join)
+			model, err := newTableModelPath(bind, index, rel.Join)
 			if err != nil {
 				return nil
 			}
 
-			join.BaseModel = join.JoinModel
-			join.JoinModel = model
-			lastJoin = join.BaseModel.AddJoin(join)
+			thejoin.BaseModel = thejoin.JoinModel
+			thejoin.JoinModel = model
+			lastJoin = thejoin.BaseModel.AddJoin(thejoin)
 		}
 	}
 
