@@ -1,6 +1,10 @@
 package orm
 
-import "reflect"
+import (
+	"reflect"
+
+	"gopkg.in/pg.v4/internal"
+)
 
 type sliceTableModel struct {
 	structTableModel
@@ -26,7 +30,7 @@ func (m *sliceTableModel) Value() reflect.Value {
 }
 
 func (m *sliceTableModel) NewModel() ColumnScanner {
-	m.strct = sliceNextElem(m.slice)
+	m.strct = internal.SliceNextElem(m.slice)
 	m.structTableModel.NewModel()
 	return m
 }

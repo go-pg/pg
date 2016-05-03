@@ -23,19 +23,6 @@ func indirectNew(v reflect.Value) reflect.Value {
 	return v
 }
 
-func sliceNextElem(v reflect.Value) reflect.Value {
-	if v.Type().Elem().Kind() == reflect.Ptr {
-		elem := reflect.New(v.Type().Elem().Elem())
-		v.Set(reflect.Append(v, elem))
-		return elem.Elem()
-	}
-
-	elem := reflect.New(v.Type().Elem()).Elem()
-	v.Set(reflect.Append(v, elem))
-	elem = v.Index(v.Len() - 1)
-	return elem
-}
-
 func columns(table types.Q, prefix string, fields []*Field) []byte {
 	var b []byte
 	for i, f := range fields {
