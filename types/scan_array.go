@@ -66,26 +66,13 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 			if elem == nil {
 				return internal.Errorf("pg: unexpected NULL: %q", b)
 			}
-			elemValue := sliceNextElem(v)
+			elemValue := internal.SliceNextElem(v)
 			if err := scanElem(elemValue, elem); err != nil {
 				return err
 			}
 		}
 		return nil
 	}
-}
-
-func sliceNextElem(v reflect.Value) reflect.Value {
-	if v.Type().Elem().Kind() == reflect.Ptr {
-		elem := reflect.New(v.Type().Elem().Elem())
-		v.Set(reflect.Append(v, elem))
-		return elem.Elem()
-	}
-
-	elem := reflect.New(v.Type().Elem()).Elem()
-	v.Set(reflect.Append(v, elem))
-	elem = v.Index(v.Len() - 1)
-	return elem
 }
 
 func scanStringSliceValue(v reflect.Value, b []byte) error {

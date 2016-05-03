@@ -1,6 +1,10 @@
 package orm
 
-import "reflect"
+import (
+	"reflect"
+
+	"gopkg.in/pg.v4/internal"
+)
 
 type sliceModel struct {
 	slice reflect.Value
@@ -18,6 +22,6 @@ func (sliceModel) AddModel(_ ColumnScanner) error {
 }
 
 func (m *sliceModel) ScanColumn(colIdx int, _ string, b []byte) error {
-	v := sliceNextElem(m.slice)
+	v := internal.SliceNextElem(m.slice)
 	return m.scan(v, b)
 }
