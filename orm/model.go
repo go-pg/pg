@@ -11,6 +11,10 @@ import (
 
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 
+type useQueryOne interface {
+	useQueryOne() bool
+}
+
 type Model interface {
 	Collection
 	ColumnScanner

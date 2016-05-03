@@ -33,12 +33,12 @@ func newStructTableModel(v interface{}) (*structTableModel, error) {
 
 func newStructTableModelValue(v reflect.Value) (*structTableModel, error) {
 	if !v.IsValid() {
-		return nil, errors.New("pg: newStructTableModel(nil)")
+		return nil, errors.New("pg: NewModel(nil)")
 	}
 	v = reflect.Indirect(v)
 
 	if v.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("pg: newStructTableModel(unsupported %s)", v.Type())
+		return nil, fmt.Errorf("pg: NewModel(unsupported %s)", v.Type())
 	}
 
 	return &structTableModel{
@@ -46,6 +46,10 @@ func newStructTableModelValue(v reflect.Value) (*structTableModel, error) {
 		root:  v,
 		strct: v,
 	}, nil
+}
+
+func (structTableModel) useQueryOne() bool {
+	return true
 }
 
 func (m *structTableModel) Table() *Table {

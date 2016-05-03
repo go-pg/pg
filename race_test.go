@@ -42,7 +42,7 @@ var _ = Describe("DB race", func() {
 					Where("name = ?name").
 					OnConflict("DO NOTHING").
 					Returning("id").
-					SelectOrCreate()
+					SelectOrCreate(&a.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(a.ID).NotTo(BeZero())
 
@@ -71,7 +71,7 @@ var _ = Describe("DB race", func() {
 					Column("id").
 					Where("name = ?name").
 					Returning("id").
-					SelectOrCreate()
+					SelectOrCreate(&a.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(a.ID).NotTo(BeZero())
 

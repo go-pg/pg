@@ -15,6 +15,10 @@ func Scan(values ...interface{}) valuesModel {
 	}
 }
 
+func (valuesModel) useQueryOne() bool {
+	return true
+}
+
 func (m valuesModel) NewModel() ColumnScanner {
 	return m
 }
