@@ -249,7 +249,7 @@ func (q *Query) joinHasOne() {
 	}
 }
 
-func selectJoins(db dber, joins []Join) error {
+func selectJoins(db dber, joins []join) error {
 	var err error
 	for i := range joins {
 		j := &joins[i]

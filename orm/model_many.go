@@ -14,12 +14,12 @@ type manyModel struct {
 
 var _ tableModel = (*manyModel)(nil)
 
-func newManyModel(join *Join) *manyModel {
-	joinModel := join.JoinModel.(*sliceTableModel)
-	dstValues := dstValues(joinModel.Root(), joinModel.Path(), join.BaseModel.Table().PKs)
+func newManyModel(j *join) *manyModel {
+	joinModel := j.JoinModel.(*sliceTableModel)
+	dstValues := dstValues(joinModel.Root(), joinModel.Path(), j.BaseModel.Table().PKs)
 	return &manyModel{
 		sliceTableModel: joinModel,
-		rel:             join.Rel,
+		rel:             j.Rel,
 
 		dstValues: dstValues,
 	}

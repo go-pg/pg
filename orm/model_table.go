@@ -11,10 +11,10 @@ type tableModel interface {
 
 	Model
 
-	Join(string) *Join
-	GetJoin(string) *Join
-	GetJoins() []Join
-	AddJoin(Join) *Join
+	Join(string) *join
+	GetJoin(string) *join
+	GetJoins() []join
+	AddJoin(join) *join
 
 	Root() reflect.Value
 	Path() []int

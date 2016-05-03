@@ -2,7 +2,7 @@ package orm
 
 import "gopkg.in/pg.v4/types"
 
-type Join struct {
+type join struct {
 	BaseModel tableModel
 	JoinModel tableModel
 	Rel       *Relation
@@ -11,7 +11,7 @@ type Join struct {
 	Columns   []string
 }
 
-func (j *Join) AppendColumns(dst []byte) []byte {
+func (j *join) AppendColumns(dst []byte) []byte {
 	alias := make([]byte, 0, 3*len(j.Rel.Field.SQLName))
 	alias = append(alias, j.Rel.Field.SQLName...)
 	alias = append(alias, "__"...)
@@ -39,7 +39,7 @@ func (j *Join) AppendColumns(dst []byte) []byte {
 	return dst
 }
 
-func (j *Join) JoinOne(q *Query) {
+func (j *join) JoinOne(q *Query) {
 	var cond types.Q
 	for i, pk := range j.Rel.Join.PKs {
 		cond = q.format(
@@ -62,7 +62,7 @@ func (j *Join) JoinOne(q *Query) {
 	q.columns = j.AppendColumns(q.columns)
 }
 
-func (j *Join) Select(db dber) error {
+func (j *join) Select(db dber) error {
 	if j.Rel.One {
 		panic("not reached")
 	} else if len(j.Rel.M2MTableName) > 0 {
@@ -72,7 +72,7 @@ func (j *Join) Select(db dber) error {
 	}
 }
 
-func (j *Join) selectMany(db dber) error {
+func (j *join) selectMany(db dber) error {
 	root := j.JoinModel.Root()
 	path := j.JoinModel.Path()
 	path = path[:len(path)-1]
@@ -100,7 +100,7 @@ func (j *Join) selectMany(db dber) error {
 	return nil
 }
 
-func (j *Join) selectM2M(db dber) error {
+func (j *join) selectM2M(db dber) error {
 	path := j.JoinModel.Path()
 	path = path[:len(path)-1]
 

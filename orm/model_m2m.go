@@ -16,7 +16,7 @@ type m2mModel struct {
 
 var _ tableModel = (*m2mModel)(nil)
 
-func newM2MModel(join *Join) *m2mModel {
+func newM2MModel(join *join) *m2mModel {
 	baseTable := join.BaseModel.Table()
 	joinModel := join.JoinModel.(*sliceTableModel)
 	dstValues := dstValues(joinModel.Root(), joinModel.Path(), baseTable.PKs)
