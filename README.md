@@ -363,11 +363,11 @@ Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to ge
 - go-pg is 2x-10x faster than GORM on querying 100 rows from table.
 
     ```
-    BenchmarkQueryRowsGopgOptimized-4	   10000	    158443 ns/op	   83432 B/op	     625 allocs/op
-    BenchmarkQueryRowsGopgReflect-4  	   10000	    189014 ns/op	   94759 B/op	     826 allocs/op
-    BenchmarkQueryRowsGopgORM-4      	   10000	    199685 ns/op	   95024 B/op	     830 allocs/op
-    BenchmarkQueryRowsStdlibPq-4     	    5000	    242135 ns/op	  161646 B/op	    1324 allocs/op
-    BenchmarkQueryRowsGORM-4         	    2000	    704366 ns/op	  396184 B/op	    6767 allocs/op
+    BenchmarkQueryRowsGopgOptimized-4          	   10000	    135249 ns/op	   83504 B/op	     626 allocs/op
+    BenchmarkQueryRowsGopgReflect-4            	   10000	    147126 ns/op	   87488 B/op	     736 allocs/op
+    BenchmarkQueryRowsGopgORM-4                	   10000	    153166 ns/op	   87904 B/op	     741 allocs/op
+    BenchmarkQueryRowsStdlibPq-4               	   10000	    180401 ns/op	  161637 B/op	    1324 allocs/op
+    BenchmarkQueryRowsGORM-4                   	    2000	    604891 ns/op	  415316 B/op	    6966 allocs/op
     ```
 
 - go-pg generates much more effecient queries for joins.
@@ -375,8 +375,8 @@ Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to ge
     ##### Has one relation
 
     ```
-    BenchmarkModelHasOneGopg-4                 	    5000	    313091 ns/op	   78481 B/op	    1290 allocs/op
-    BenchmarkModelHasOneGORM-4                 	     500	   3849634 ns/op	 1529982 B/op	   71636 allocs/op
+    BenchmarkModelHasOneGopg-4                 	    5000	    273479 ns/op	   62836 B/op	    1081 allocs/op
+    BenchmarkModelHasOneGORM-4                 	     500	   3364891 ns/op	 1530381 B/op	   71640 allocs/op
     ```
 
     go-pg:
@@ -406,8 +406,8 @@ Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to ge
     ##### Has many relation
 
     ```
-    BenchmarkModelHasManyGopg-4                	     500	   3034576 ns/op	  409288 B/op	    8700 allocs/op
-    BenchmarkModelHasManyGORM-4                	      50	  24677309 ns/op	10121839 B/op	  519411 allocs/op
+    BenchmarkModelHasManyGopg-4                	     500	   3062511 ns/op	  375637 B/op	    6503 allocs/op
+    BenchmarkModelHasManyGORM-4                	     100	  21160231 ns/op	10120491 B/op	  519390 allocs/op
     ```
 
     go-pg:
@@ -438,8 +438,8 @@ Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to ge
    ##### Many to many relation
 
     ```
-    BenchmarkModelHasMany2ManyGopg-4           	     500	   3329123 ns/op	  394738 B/op	    9739 allocs/op
-    BenchmarkModelHasMany2ManyGORM-4           	     200	   7847630 ns/op	 3350304 B/op	   66239 allocs/op
+    BenchmarkModelHasMany2ManyGopg-4           	     500	   3384274 ns/op	  493825 B/op	    8527 allocs/op
+    BenchmarkModelHasMany2ManyGORM-4           	     200	   8556052 ns/op	 3686661 B/op	   77239 allocs/op
     ```
 
     go-pg:
