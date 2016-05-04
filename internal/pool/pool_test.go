@@ -17,7 +17,7 @@ var _ = Describe("ConnPool", func() {
 
 	BeforeEach(func() {
 		connPool = pool.NewConnPool(
-			dummyDialer, 10, time.Hour, time.Millisecond, time.Millisecond)
+			dummyDialer, 10, time.Hour, time.Millisecond, time.Millisecond, false)
 	})
 
 	AfterEach(func() {
@@ -98,7 +98,7 @@ var _ = Describe("conns reaper", func() {
 
 	BeforeEach(func() {
 		connPool = pool.NewConnPool(
-			dummyDialer, 10, time.Second, time.Minute, time.Hour)
+			dummyDialer, 10, time.Second, time.Minute, time.Hour, false)
 
 		var cns []*pool.Conn
 
@@ -194,8 +194,7 @@ var _ = Describe("race", func() {
 
 	It("does not happen on Get, Put, and Remove", func() {
 		connPool = pool.NewConnPool(
-			dummyDialer, 10, time.Minute, time.Millisecond, time.Millisecond)
-		connPool.DialLimiter = nil
+			dummyDialer, 10, time.Minute, time.Millisecond, time.Millisecond, true)
 
 		perform(C, func(id int) {
 			for i := 0; i < N; i++ {
@@ -218,8 +217,7 @@ var _ = Describe("race", func() {
 
 	It("does not happen on Get and PopFree", func() {
 		connPool = pool.NewConnPool(
-			dummyDialer, 10, time.Minute, time.Second, time.Millisecond)
-		connPool.DialLimiter = nil
+			dummyDialer, 10, time.Minute, time.Second, time.Millisecond, true)
 
 		perform(C, func(id int) {
 			for i := 0; i < N; i++ {

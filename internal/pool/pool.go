@@ -72,10 +72,16 @@ type ConnPool struct {
 
 var _ Pooler = (*ConnPool)(nil)
 
-func NewConnPool(dial dialer, poolSize int, poolTimeout, idleTimeout, idleCheckFrequency time.Duration) *ConnPool {
+func NewConnPool(dial dialer, poolSize int, poolTimeout, idleTimeout, idleCheckFrequency time.Duration, disableRateLimiting bool) *ConnPool {
+	var dialRateLimiter *ratelimit.RateLimiter
+
+	if !disableRateLimiting {
+		dialRateLimiter = ratelimit.New(3*poolSize, time.Second)
+	}
+
 	p := &ConnPool{
 		_dial:       dial,
-		DialLimiter: ratelimit.New(3*poolSize, time.Second),
+		DialLimiter: dialRateLimiter,
 
 		poolTimeout: poolTimeout,
 		idleTimeout: idleTimeout,

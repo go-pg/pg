@@ -53,6 +53,9 @@ type Options struct {
 	// The frequency of idle checks.
 	// Default is 1 minute.
 	IdleCheckFrequency time.Duration
+
+	// Disable connection pool rate limiting
+	DisableRateLimiting bool
 }
 
 func (opt *Options) getNetwork() string {
@@ -135,6 +138,10 @@ func (opt *Options) getDialer() func() (net.Conn, error) {
 	}
 }
 
+func (opt *Options) getDisableRateLimiting() bool {
+	return opt.DisableRateLimiting
+}
+
 func newConnPool(opt *Options) *pool.ConnPool {
 	p := pool.NewConnPool(
 		opt.getDialer(),
@@ -142,6 +149,7 @@ func newConnPool(opt *Options) *pool.ConnPool {
 		opt.getPoolTimeout(),
 		opt.getIdleTimeout(),
 		opt.getIdleCheckFrequency(),
+		opt.getDisableRateLimiting(),
 	)
 	p.OnClose = func(cn *pool.Conn) error {
 		return terminateConn(cn)
