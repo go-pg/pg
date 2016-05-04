@@ -1,6 +1,7 @@
 package pg_test
 
 import (
+	"database/sql"
 	"fmt"
 	"net"
 	"testing"
@@ -131,6 +132,104 @@ var _ = Describe("read/write timeout", func() {
 		It("slow query passes", func() {
 			_, err := db.WithTimeout(time.Minute).Exec(`SELECT pg_sleep(1)`)
 			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+})
+
+var _ = Describe("DB nulls", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+
+		_, err := db.Exec("CREATE TEMP TABLE tests (id int, value int)")
+		Expect(err).To(BeNil())
+	})
+
+	AfterEach(func() {
+		err := db.Close()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Describe("Create struct with sql.NullInt64", func() {
+		type Test struct {
+			Id    int
+			Value sql.NullInt64
+		}
+
+		It("inserts null value", func() {
+			ins := Test{
+				Id: 1,
+			}
+			err := db.Create(&ins)
+			Expect(err).NotTo(HaveOccurred())
+
+			sel := Test{
+				Id: 1,
+			}
+			err = db.Select(&sel)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sel.Value.Valid).To(BeFalse())
+		})
+
+		It("inserts non-null value", func() {
+			ins := Test{
+				Id: 1,
+				Value: sql.NullInt64{
+					Int64: 2,
+					Valid: true,
+				},
+			}
+			err := db.Create(&ins)
+			Expect(err).NotTo(HaveOccurred())
+
+			sel := Test{
+				Id: 1,
+			}
+			err = db.Select(&sel)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sel.Value.Valid).To(BeTrue())
+			Expect(sel.Value.Int64).To(Equal(int64(2)))
+		})
+	})
+
+	Context("nil ptr", func() {
+		type Test struct {
+			Id    int
+			Value *int
+		}
+
+		It("inserts null value", func() {
+			ins := Test{
+				Id: 1,
+			}
+			err := db.Create(&ins)
+			Expect(err).NotTo(HaveOccurred())
+
+			sel := Test{
+				Id: 1,
+			}
+			err = db.Select(&sel)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sel.Value).To(BeNil())
+		})
+
+		It("inserts non-null value", func() {
+			value := 2
+			ins := Test{
+				Id:    1,
+				Value: &value,
+			}
+			err := db.Create(&ins)
+			Expect(err).NotTo(HaveOccurred())
+
+			sel := Test{
+				Id: 1,
+			}
+			err = db.Select(&sel)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sel.Value).NotTo(BeNil())
+			Expect(*sel.Value).To(Equal(2))
 		})
 	})
 })

@@ -83,7 +83,7 @@ func (test *conversionTest) String() string {
 func (test *conversionTest) Assert(t *testing.T, err error) {
 	if test.wanterr != "" {
 		if err == nil || err.Error() != test.wanterr {
-			t.Fatalf("got error %v, wanted %q (%s)", err, test.wanterr, test)
+			t.Fatalf("got error %q, wanted %q (%s)", err, test.wanterr, test)
 		}
 		return
 	}
@@ -102,7 +102,7 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 		if dstValue.IsNil() {
 			return
 		}
-		t.Fatalf("got %#v, wanted nil", dst)
+		t.Fatalf("got %#v, wanted nil (%s)", dst, test)
 		return
 	}
 
@@ -361,13 +361,14 @@ func TestConversion(t *testing.T) {
 	for i, test := range conversionTests() {
 		test.i = i
 
-		var err error
-		if _, ok := test.dst.(orm.ColumnScanner); ok {
-			_, err = db.QueryOne(test.dst, "SELECT (?) AS dst", test.src)
+		var scanner orm.ColumnScanner
+		if v, ok := test.dst.(orm.ColumnScanner); ok {
+			scanner = v
 		} else {
-			dst := struct{ Dst interface{} }{Dst: test.dst}
-			_, err = db.QueryOne(&dst, "SELECT (?) AS dst", test.src)
+			scanner = pg.Scan(test.dst)
 		}
+
+		_, err := db.QueryOne(scanner, "SELECT (?) AS dst", test.src)
 		test.Assert(t, err)
 	}
 
@@ -383,46 +384,14 @@ func TestConversion(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if _, ok := test.dst.(orm.ColumnScanner); ok {
-			_, err = stmt.QueryOne(test.dst, test.src)
+		var scanner orm.ColumnScanner
+		if v, ok := test.dst.(orm.ColumnScanner); ok {
+			scanner = v
 		} else {
-			dst := struct{ Dst interface{} }{Dst: test.dst}
-			_, err = stmt.QueryOne(&dst, test.src)
-		}
-		test.Assert(t, err)
-
-		if err := stmt.Close(); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	for i, test := range conversionTests() {
-		test.i = i
-
-		if _, ok := test.dst.(orm.ColumnScanner); ok {
-			continue
+			scanner = pg.Scan(test.dst)
 		}
 
-		_, err := db.QueryOne(pg.Scan(test.dst), "SELECT (?) AS dst", test.src)
-		test.Assert(t, err)
-	}
-
-	for i, test := range conversionTests() {
-		test.i = i
-
-		if _, ok := test.dst.(orm.ColumnScanner); ok {
-			continue
-		}
-		if test.pgtype == "" {
-			continue
-		}
-
-		stmt, err := db.Prepare(fmt.Sprintf("SELECT ($1::%s) AS dst", test.pgtype))
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		_, err = stmt.QueryOne(pg.Scan(test.dst), test.src)
+		_, err = stmt.QueryOne(scanner, test.src)
 		test.Assert(t, err)
 
 		if err := stmt.Close(); err != nil {
