@@ -17,7 +17,6 @@ var _ QueryAppender = (*updateModel)(nil)
 
 func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	var err error
-	table := upd.model.Table()
 
 	b = append(b, "UPDATE "...)
 	b = append(b, upd.tableName...)
@@ -27,14 +26,9 @@ func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 		return nil, err
 	}
 
-	b = append(b, " WHERE "...)
-	if len(upd.where) > 0 {
-		b = append(b, upd.where...)
-	} else {
-		if err := table.checkPKs(); err != nil {
-			return nil, err
-		}
-		b = appendColumnAndValue(b, upd.model.Value(), table.PKs)
+	b, err = upd.appendWhere(b)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(upd.returning) > 0 {
