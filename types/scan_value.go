@@ -45,9 +45,9 @@ func init() {
 		reflect.Array:         nil,
 		reflect.Chan:          nil,
 		reflect.Func:          nil,
-		reflect.Interface:     scanInterfaceValue,
+		reflect.Interface:     nil,
 		reflect.Map:           scanJSONValue,
-		reflect.Ptr:           scanPtrValue,
+		reflect.Ptr:           nil,
 		reflect.Slice:         scanJSONValue,
 		reflect.String:        scanStringValue,
 		reflect.Struct:        scanJSONValue,
@@ -60,21 +60,59 @@ func Scanner(typ reflect.Type) ScannerFunc {
 		return scanTimeValue
 	}
 
+	if typ.Implements(scannerType) {
+		return scanSQLScannerValue
+	}
 	if reflect.PtrTo(typ).Implements(scannerType) {
 		return scanSQLScannerAddrValue
 	}
 
-	if typ.Implements(scannerType) {
-		return scanSQLScannerValue
-	}
-
 	kind := typ.Kind()
-
-	if kind == reflect.Slice && typ.Elem().Kind() == reflect.Uint8 {
-		return scanBytesValue
+	switch kind {
+	case reflect.Ptr, reflect.Interface:
+		return ptrScannerFunc(typ)
+	case reflect.Slice:
+		if typ.Elem().Kind() == reflect.Uint8 {
+			return scanBytesValue
+		}
 	}
-
 	return valueScanners[kind]
+}
+
+func ptrScannerFunc(typ reflect.Type) ScannerFunc {
+	scanner := Scanner(typ.Elem())
+	return func(v reflect.Value, b []byte) error {
+		if scanner == nil {
+			return internal.Errorf("pg: Scan(unsupported %s)", v.Type())
+		}
+		if b == nil {
+			if v.IsNil() {
+				return nil
+			}
+			if !v.CanSet() {
+				return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
+			}
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		if v.IsNil() {
+			if !v.CanSet() {
+				return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
+			}
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		return scanner(v.Elem(), b)
+	}
+}
+
+func IsSQLScanner(typ reflect.Type) bool {
+	if typ.Implements(scannerType) {
+		return true
+	}
+	if reflect.PtrTo(typ).Implements(scannerType) {
+		return true
+	}
+	return false
 }
 
 func ScanValue(v reflect.Value, b []byte) error {
@@ -190,20 +228,6 @@ func scanTimeValue(v reflect.Value, b []byte) error {
 	return nil
 }
 
-func scanPtrValue(v reflect.Value, b []byte) error {
-	if v.IsNil() {
-		if !v.CanSet() {
-			return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
-		}
-		if b == nil {
-			return nil
-		}
-		vv := reflect.New(v.Type().Elem())
-		v.Set(vv)
-	}
-	return ScanValue(v.Elem(), b)
-}
-
 func scanBytesValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
 		return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
@@ -218,13 +242,6 @@ func scanBytesValue(v reflect.Value, b []byte) error {
 	}
 	v.SetBytes(bs)
 	return nil
-}
-
-func scanInterfaceValue(v reflect.Value, b []byte) error {
-	if v.IsNil() {
-		return internal.Errorf("pg: Scan(nil)")
-	}
-	return ScanValue(v.Elem(), b)
 }
 
 func scanMapValue(v reflect.Value, b []byte) error {

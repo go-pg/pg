@@ -15,7 +15,6 @@ const (
 	PrimaryKeyFlag = 1 << iota
 	ForeignKeyFlag = 1 << iota
 	NullFlag       = 1 << iota
-	FormatFlag     = 1 << iota
 )
 
 type Field struct {

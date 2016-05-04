@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"strings"
 
-	"gopkg.in/pg.v4/types"
-
 	"github.com/jinzhu/inflection"
+
+	"gopkg.in/pg.v4/types"
 )
 
 type Table struct {
@@ -122,10 +122,6 @@ func newTable(typ reflect.Type) *Table {
 			appender: types.Appender(retType),
 		}
 
-		if retType == queryType || retType == fieldType {
-			method.flags |= FormatFlag
-		}
-
 		table.Methods[m.Name] = &method
 	}
 
@@ -170,13 +166,12 @@ func (t *Table) newField(f reflect.StructField) *Field {
 
 	var appender types.AppenderFunc
 	var scanner types.ScannerFunc
-	fieldType := indirectType(f.Type)
 	if _, ok := pgOpt.Get("array"); ok {
-		appender = types.ArrayAppender(fieldType)
-		scanner = types.ArrayScanner(fieldType)
+		appender = types.ArrayAppender(f.Type)
+		scanner = types.ArrayScanner(f.Type)
 	} else {
-		appender = types.Appender(fieldType)
-		scanner = types.Scanner(fieldType)
+		appender = types.Appender(f.Type)
+		scanner = types.Scanner(f.Type)
 	}
 
 	field := Field{
@@ -189,7 +184,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		append: appender,
 		scan:   scanner,
 
-		isEmpty: isEmptier(fieldType),
+		isEmpty: isEmptier(f.Type),
 	}
 
 	if skip {
@@ -210,10 +205,11 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		field.flags |= ForeignKeyFlag
 	}
 
-	if fieldType == queryType || fieldType == fieldType {
-		field.flags |= FormatFlag
+	if types.IsSQLScanner(f.Type) {
+		return &field
 	}
 
+	fieldType := indirectType(f.Type)
 	switch fieldType.Kind() {
 	case reflect.Slice:
 		if fieldType.Elem().Kind() == reflect.Struct {
