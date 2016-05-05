@@ -344,7 +344,7 @@ func (p *ConnPool) reaper(frequency time.Duration) {
 			continue
 		}
 		s := p.Stats()
-		internal.Logf(
+		internal.Debugf(
 			"reaper: removed %d stale conns (TotalConns=%d FreeConns=%d Requests=%d Hits=%d Timeouts=%d)",
 			n, s.TotalConns, s.FreeConns, s.Requests, s.Hits, s.Timeouts,
 		)

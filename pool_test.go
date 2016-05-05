@@ -1,8 +1,6 @@
 package pg_test
 
 import (
-	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -61,28 +59,10 @@ func (t *PoolTest) TestPoolReusesConnection(c *C) {
 func (t *PoolTest) TestPoolMaxSize(c *C) {
 	N := 1000
 
-	wg := &sync.WaitGroup{}
-	wg.Add(N)
-	for i := 0; i < 1000; i++ {
-		go func() {
-			_, err := t.db.Exec("SELECT 'test_pool_max_size'")
-			c.Assert(err, IsNil)
-			wg.Done()
-		}()
-	}
-
-	wait := make(chan struct{}, 2)
-	go func() {
-		wg.Wait()
-		wait <- struct{}{}
-	}()
-
-	select {
-	case <-wait:
-		// ok
-	case <-time.After(3 * time.Second):
-		c.Fatal("timeout")
-	}
+	perform(N, func(int) {
+		_, err := t.db.Exec("SELECT 'test_pool_max_size'")
+		c.Assert(err, IsNil)
+	})
 
 	c.Assert(t.db.Pool().Len(), Equals, 10)
 	c.Assert(t.db.Pool().FreeLen(), Equals, 10)
@@ -195,27 +175,4 @@ func (t *PoolTest) TestClosedStmt(c *C) {
 
 	_, err = stmt.Exec(1)
 	c.Assert(err.Error(), Equals, "pg: statement is closed")
-}
-
-func eventually(fn func() error, timeout time.Duration) (err error) {
-	done := make(chan struct{})
-	var exit int32
-	go func() {
-		for atomic.LoadInt32(&exit) == 0 {
-			err = fn()
-			if err == nil {
-				close(done)
-				return
-			}
-			time.Sleep(timeout / 100)
-		}
-	}()
-
-	select {
-	case <-done:
-		return nil
-	case <-time.After(timeout):
-		atomic.StoreInt32(&exit, 1)
-		return err
-	}
 }

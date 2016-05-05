@@ -3,10 +3,10 @@ package pg_test
 import (
 	"bytes"
 	"database/sql/driver"
-	"io"
 	"net"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -187,55 +187,6 @@ func (t *DBTest) TestTime(c *C) {
 	}
 }
 
-func (t *DBTest) TestCopyFrom(c *C) {
-	data := "hello\t5\nworld\t5\nfoo\t3\nbar\t3\n"
-
-	_, err := t.db.Exec("CREATE TEMP TABLE test(word text, len int)")
-	c.Assert(err, IsNil)
-
-	r := strings.NewReader(data)
-	res, err := t.db.CopyFrom(r, "COPY test FROM STDIN")
-	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, 4)
-
-	buf := &bytes.Buffer{}
-	res, err = t.db.CopyTo(&NopWriteCloser{buf}, "COPY test TO STDOUT")
-	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, 4)
-	c.Assert(buf.String(), Equals, data)
-}
-
-func (t *DBTest) TestCopyTo(c *C) {
-	_, err := t.db.Exec("CREATE TEMP TABLE test(n int)")
-	c.Assert(err, IsNil)
-
-	_, err = t.db.Exec("INSERT INTO test SELECT generate_series(1, 1000000)")
-	c.Assert(err, IsNil)
-
-	buf := &bytes.Buffer{}
-	res, err := t.db.CopyTo(&NopWriteCloser{buf}, "COPY test TO STDOUT")
-	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, 1000000)
-
-	_, err = t.db.Exec("CREATE TEMP TABLE test2(n int)")
-	c.Assert(err, IsNil)
-
-	res, err = t.db.CopyFrom(buf, "COPY test2 FROM STDIN")
-	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, 1000000)
-}
-
-//------------------------------------------------------------------------------
-
-// NopWriteCloser is a WriteCloser which does nothing in Close.
-type NopWriteCloser struct {
-	io.Writer
-}
-
-func (NopWriteCloser) Close() error {
-	return nil
-}
-
 //------------------------------------------------------------------------------
 
 type badConnError string
@@ -287,4 +238,27 @@ func perform(n int, cbs ...func(int)) {
 		}
 	}
 	wg.Wait()
+}
+
+func eventually(fn func() error, timeout time.Duration) (err error) {
+	done := make(chan struct{})
+	var exit int32
+	go func() {
+		for atomic.LoadInt32(&exit) == 0 {
+			err = fn()
+			if err == nil {
+				close(done)
+				return
+			}
+			time.Sleep(timeout / 100)
+		}
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-time.After(timeout):
+		atomic.StoreInt32(&exit, 1)
+		return err
+	}
 }

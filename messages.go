@@ -85,10 +85,7 @@ func startup(cn *pool.Conn, user, password, database string) error {
 			}
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
-			if err != nil {
-				return err
-			}
-			return nil
+			return err
 		case errorResponseMsg:
 			e, err := readError(cn)
 			if err != nil {
@@ -278,7 +275,8 @@ func writeParseDescribeSyncMsg(buf *pool.Buffer, name, q string) {
 	buf.FinishMessage()
 }
 
-func readParseDescribeSync(cn *pool.Conn) (columns []string, e error) {
+func readParseDescribeSync(cn *pool.Conn) ([]string, error) {
+	var columns []string
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -307,16 +305,13 @@ func readParseDescribeSync(cn *pool.Conn) (columns []string, e error) {
 			}
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
-			if err != nil {
-				return nil, err
-			}
-			return
+			return columns, err
 		case errorResponseMsg:
-			var err error
-			e, err = readError(cn)
+			e, err := readError(cn)
 			if err != nil {
 				return nil, err
 			}
+			return nil, e
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
@@ -326,9 +321,6 @@ func readParseDescribeSync(cn *pool.Conn) (columns []string, e error) {
 				return nil, err
 			}
 		default:
-			if e != nil {
-				return nil, e
-			}
 			return nil, fmt.Errorf("pg: readParseDescribeSync: unexpected message %#x", c)
 		}
 	}
@@ -747,6 +739,7 @@ func readCopyOutResponse(cn *pool.Conn) error {
 }
 
 func readCopyData(cn *pool.Conn, w io.Writer) (*types.Result, error) {
+	var res *types.Result
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -773,7 +766,10 @@ func readCopyData(cn *pool.Conn, w io.Writer) (*types.Result, error) {
 			if err != nil {
 				return nil, err
 			}
-			return types.ParseResult(b), nil
+			res = types.ParseResult(b)
+		case readyForQueryMsg:
+			_, err := cn.ReadN(msgLen)
+			return res, err
 		case errorResponseMsg:
 			e, err := readError(cn)
 			if err != nil {
@@ -806,7 +802,9 @@ func writeCopyDone(buf *pool.Buffer) {
 	buf.FinishMessage()
 }
 
-func readReadyForQueryOrError(cn *pool.Conn) (res *types.Result, e error) {
+func readReadyForQueryOrError(cn *pool.Conn) (*types.Result, error) {
+	var res *types.Result
+	var e error
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -824,7 +822,7 @@ func readReadyForQueryOrError(cn *pool.Conn) (res *types.Result, e error) {
 			if err != nil {
 				return nil, err
 			}
-			return
+			return res, e
 		case errorResponseMsg:
 			var err error
 			e, err = readError(cn)
@@ -840,9 +838,6 @@ func readReadyForQueryOrError(cn *pool.Conn) (res *types.Result, e error) {
 				return nil, err
 			}
 		default:
-			if e != nil {
-				return nil, e
-			}
 			return nil, fmt.Errorf("pg: readReadyForQueryOrError: unexpected message %#x", c)
 		}
 	}
