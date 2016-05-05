@@ -4,6 +4,7 @@ import (
 	"io"
 	"time"
 
+	"gopkg.in/pg.v4/internal"
 	"gopkg.in/pg.v4/internal/pool"
 	"gopkg.in/pg.v4/orm"
 	"gopkg.in/pg.v4/types"
@@ -96,6 +97,13 @@ func (db *DB) freeConn(cn *pool.Conn, err error) error {
 // It is rare to Close a DB, as the DB handle is meant to be
 // long-lived and shared between many goroutines.
 func (db *DB) Close() error {
+	st := db.pool.Stats()
+	if st.TotalConns != st.FreeConns {
+		internal.Logf(
+			"connection leaking detected: total_conns=%d free_conns=%d",
+			st.TotalConns, st.FreeConns,
+		)
+	}
 	return db.pool.Close()
 }
 

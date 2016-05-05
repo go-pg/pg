@@ -27,6 +27,8 @@ var _ = Context("Listener", func() {
 	})
 
 	var _ = AfterEach(func() {
+		_ = ln.Close()
+
 		err := db.Close()
 		Expect(err).NotTo(HaveOccurred())
 	})
