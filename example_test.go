@@ -201,8 +201,9 @@ func ExampleInts_in() {
 
 func ExampleStrings() {
 	var strs pg.Strings
-	_, err := db.Query(
-		&strs, `WITH users AS (VALUES ('foo'), ('bar')) SELECT * FROM users`)
+	_, err := db.Query(&strs, `
+		WITH users AS (VALUES ('foo'), ('bar')) SELECT * FROM users
+	`)
 	fmt.Println(strs, err)
 	// Output: [foo bar] <nil>
 }
@@ -219,8 +220,8 @@ func ExampleDB_CopyFrom() {
 		panic(err)
 	}
 
-	buf := &bytes.Buffer{}
-	_, err = db.CopyTo(&NopWriteCloser{buf}, `COPY words TO STDOUT WITH CSV`)
+	var buf bytes.Buffer
+	_, err = db.CopyTo(&buf, `COPY words TO STDOUT WITH CSV`)
 	if err != nil {
 		panic(err)
 	}

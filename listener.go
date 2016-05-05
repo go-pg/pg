@@ -1,10 +1,10 @@
 package pg
 
 import (
-	"log"
 	"sync"
 	"time"
 
+	"gopkg.in/pg.v4/internal"
 	"gopkg.in/pg.v4/internal/pool"
 )
 
@@ -94,7 +94,7 @@ func (l *Listener) freeConn(err error) (retErr error) {
 	if !isBadConn(err, true) {
 		return nil
 	}
-	log.Printf("pg: discarding bad listener connection: %s", err)
+	internal.Logf("pg: discarding bad listener connection: %s", err)
 	return l.closeConn(err)
 }
 
