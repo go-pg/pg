@@ -82,7 +82,7 @@ func visitStruct(strct reflect.Value, path []int, fn func(reflect.Value)) {
 
 func appendColumnAndValue(b []byte, v reflect.Value, table *Table, fields []*Field) []byte {
 	for i, f := range fields {
-		b = types.AppendField(b, table.ModelName, 1)
+		b = append(b, table.Alias...)
 		b = append(b, '.')
 		b = append(b, f.ColName...)
 		b = append(b, " = "...)
@@ -125,8 +125,4 @@ func appendSep(b []byte, sep string) []byte {
 		b = append(b, sep...)
 	}
 	return b
-}
-
-func col(s string) types.Q {
-	return types.Q(types.AppendField(nil, s, 1))
 }

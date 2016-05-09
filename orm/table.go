@@ -11,7 +11,8 @@ import (
 )
 
 type Table struct {
-	Name      types.Q // escaped table name
+	Name      types.Q
+	Alias     types.Q
 	ModelName string
 	Type      reflect.Type
 
@@ -61,10 +62,11 @@ func newTable(typ reflect.Type) *Table {
 		return table
 	}
 
-	tableName := Underscore(typ.Name())
+	modelName := Underscore(typ.Name())
 	table = &Table{
-		Name:      types.AppendField(nil, inflection.Plural(tableName), 1),
-		ModelName: tableName,
+		Name:      types.AppendField(nil, inflection.Plural(modelName), 1),
+		Alias:     types.AppendField(nil, modelName, 1),
+		ModelName: modelName,
 		Type:      typ,
 		Fields:    make([]*Field, 0, typ.NumField()),
 		FieldsMap: make(map[string]*Field, typ.NumField()),
@@ -149,7 +151,12 @@ func (t *Table) newField(f reflect.StructField) *Field {
 	sqlName, sqlOpt := parseTag(f.Tag.Get("sql"))
 
 	if f.Name == "TableName" {
-		t.Name = types.AppendField(nil, sqlName, 1)
+		if sqlName != "" {
+			t.Name = types.AppendField(nil, sqlName, 1)
+		}
+		if v, ok := sqlOpt.Get("alias:"); ok {
+			t.Alias = types.AppendField(nil, v, 1)
+		}
 		return nil
 	}
 

@@ -15,6 +15,8 @@ type Query struct {
 	err   error
 
 	tableName  types.Q
+	tableAlias string
+
 	tables     []byte
 	fields     []string
 	columns    []byte
@@ -37,12 +39,7 @@ func NewQuery(db dber, v interface{}) *Query {
 		err:   err,
 	}
 	if err == nil {
-		table := q.model.Table()
-
-		q.tableName = q.format(nil, string(table.Name))
-
-		q.tables = appendSep(q.tables, ", ")
-		q.tables = q.appendTableNameWithAlias(q.tables)
+		q.tableName = q.format(nil, string(q.model.Table().Name))
 	}
 	return &q
 }
@@ -56,6 +53,11 @@ func (q *Query) setErr(err error) {
 	if q.err == nil {
 		q.err = err
 	}
+}
+
+func (q *Query) Alias(alias string) *Query {
+	q.tableAlias = alias
+	return q
 }
 
 func (q *Query) Table(names ...string) *Query {
@@ -174,13 +176,13 @@ func (q *Query) Count() (int, error) {
 
 // First selects the first row.
 func (q *Query) First() error {
-	b := columns(col(q.model.Table().ModelName), "", q.model.Table().PKs)
+	b := columns(q.model.Table().Alias, "", q.model.Table().PKs)
 	return q.Order(string(b)).Limit(1).Select()
 }
 
 // Last selects the last row.
 func (q *Query) Last() error {
-	b := columns(col(q.model.Table().ModelName), "", q.model.Table().PKs)
+	b := columns(q.model.Table().Alias, "", q.model.Table().PKs)
 	b = append(b, " DESC"...)
 	return q.Order(string(b)).Limit(1).Select()
 }
@@ -341,7 +343,11 @@ func (q *Query) format(dst []byte, query string, params ...interface{}) []byte {
 func (q *Query) appendTableNameWithAlias(b []byte) []byte {
 	b = append(b, q.tableName...)
 	b = append(b, " AS "...)
-	b = types.AppendField(b, q.model.Table().ModelName, 1)
+	if q.tableAlias != "" {
+		b = types.AppendField(b, q.tableAlias, 1)
+	} else {
+		b = append(b, q.model.Table().Alias...)
+	}
 	return b
 }
 

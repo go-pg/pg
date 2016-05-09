@@ -163,7 +163,9 @@ Models are defined using Go structs. Order of the struct fields usually does not
 
 ```go
 type Genre struct {
-	TableName struct{} `sql:"genres"` // specifies custom table name
+	// TableName is an optional field that specifies custom table name and alias.
+	// By default go-pg generates table name and alias from struct name.
+	TableName struct{} `sql:"genres,alias:genre"` // default values are the same
 
 	Id     int // Id is automatically detected as primary key
 	Name   string
@@ -175,21 +177,15 @@ type Genre struct {
 	Subgenres []Genre `pg:",fk:Parent"` // fk specifies prefix for foreign key (ParentId)
 }
 
-func (g Genre) String() string {
-	return fmt.Sprintf("Genre<Id=%d Name=%q>", g.Id, g.Name)
-}
-
 type Author struct {
 	ID    int // both "Id" and "ID" are detected as primary key
 	Name  string
 	Books []Book // has many relation
 }
 
-func (a Author) String() string {
-	return fmt.Sprintf("Author<ID=%d Name=%q>", a.ID, a.Name)
-}
-
 type BookGenre struct {
+	TableName struct{} `sql:",alias:bg"` // custom table alias
+
 	BookId  int `sql:",pk"` // pk tag is used to mark field as primary key
 	GenreId int `sql:",pk"`
 
@@ -202,19 +198,17 @@ type Book struct {
 	AuthorID  int
 	Author    *Author // has one relation
 	EditorID  int
-	Editor    *Author // has one relation
-	CreatedAt time.Time
+	Editor    *Author   // has one relation
+	CreatedAt time.Time `sql:",null"`
 
 	Genres       []Genre       `pg:",many2many:book_genres" gorm:"many2many:book_genres;"` // many to many relation
 	Translations []Translation // has many relation
 	Comments     []Comment     `pg:",polymorphic:Trackable"` // has many polymorphic relation
 }
 
-func (b Book) String() string {
-	return fmt.Sprintf("Book<Id=%d Title=%q>", b.Id, b.Title)
-}
-
 type Translation struct {
+	TableName struct{} `sql:",alias:tr"` // custom table alias
+
 	Id     int
 	BookId int
 	Book   *Book // belongs to relation
@@ -239,7 +233,11 @@ type Comment struct {
 err := db.Select(&book)
 // SELECT * FROM "books" WHERE id = 1
 
-// Select book title and text.
+// Select only book title and text.
+err := db.Model(&book).Column("title", "text").Where("id = ?", 1).Select()
+// SELECT "title", "text" FROM "books" WHERE id = 1
+
+// Select only book title and text into variables.
 var title, text string
 err := db.Model(&Book{}).Column("title", "text").Where("id = ?", 1).Select(&title, &text)
 // SELECT "title", "text" FROM "books" WHERE id = 1
