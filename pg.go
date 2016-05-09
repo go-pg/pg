@@ -38,6 +38,10 @@ func SetLogger(logger *log.Logger) {
 	internal.Logger = logger
 }
 
+func SetQueryLogger(logger *log.Logger) {
+	internal.QueryLogger = logger
+}
+
 //------------------------------------------------------------------------------
 
 type Strings []string
