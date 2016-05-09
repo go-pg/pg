@@ -5,18 +5,18 @@ func Delete(db dber, v interface{}) error {
 	if q.err != nil {
 		return q.err
 	}
-	_, err := db.ExecOne(deleteModel{q}, q.model)
+	_, err := db.ExecOne(deleteQuery{q}, q.model)
 	return err
 }
 
-type deleteModel struct {
+type deleteQuery struct {
 	*Query
 }
 
-var _ QueryAppender = (*deleteModel)(nil)
+var _ QueryAppender = (*deleteQuery)(nil)
 
-func (del deleteModel) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+func (del deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "DELETE FROM "...)
-	b = append(b, del.tableName...)
+	b = del.appendTableNameWithAlias(b)
 	return del.appendWhere(b)
 }

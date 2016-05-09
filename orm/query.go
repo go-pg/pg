@@ -40,11 +40,9 @@ func NewQuery(db dber, v interface{}) *Query {
 		table := q.model.Table()
 
 		q.tableName = q.format(nil, string(table.Name))
-		q.tableName = append(q.tableName, " AS "...)
-		q.tableName = types.AppendField(q.tableName, table.ModelName, 1)
 
 		q.tables = appendSep(q.tables, ", ")
-		q.tables = append(q.tables, q.tableName...)
+		q.tables = q.appendTableNameWithAlias(q.tables)
 	}
 	return &q
 }
@@ -324,7 +322,7 @@ func (q *Query) Update() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
-	return q.db.Query(q.model, updateModel{q}, q.model)
+	return q.db.Query(q.model, updateQuery{q}, q.model)
 }
 
 // Delete deletes the model.
@@ -332,12 +330,19 @@ func (q *Query) Delete() (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
-	return q.db.Exec(deleteModel{q}, q.model)
+	return q.db.Exec(deleteQuery{q}, q.model)
 }
 
 func (q *Query) format(dst []byte, query string, params ...interface{}) []byte {
 	params = append(params, q.model)
 	return q.db.FormatQuery(dst, query, params...)
+}
+
+func (q *Query) appendTableNameWithAlias(b []byte) []byte {
+	b = append(b, q.tableName...)
+	b = append(b, " AS "...)
+	b = types.AppendField(b, q.model.Table().ModelName, 1)
+	return b
 }
 
 func (q *Query) appendSet(b []byte) ([]byte, error) {
