@@ -25,7 +25,11 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	strct := ins.model.Value()
 
 	b = append(b, "INSERT INTO "...)
-	b = append(b, ins.tableName...)
+	if len(ins.onConflict) > 0 {
+		b = ins.appendTableNameWithAlias(b)
+	} else {
+		b = append(b, ins.tableName...)
+	}
 	b = append(b, " ("...)
 
 	var returning []*Field

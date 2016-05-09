@@ -5,21 +5,21 @@ func Update(db dber, v interface{}) error {
 	if q.err != nil {
 		return q.err
 	}
-	_, err := db.ExecOne(updateModel{q}, q.model)
+	_, err := db.ExecOne(updateQuery{q}, q.model)
 	return err
 }
 
-type updateModel struct {
+type updateQuery struct {
 	*Query
 }
 
-var _ QueryAppender = (*updateModel)(nil)
+var _ QueryAppender = (*updateQuery)(nil)
 
-func (upd updateModel) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+func (upd updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	var err error
 
 	b = append(b, "UPDATE "...)
-	b = append(b, upd.tableName...)
+	b = upd.appendTableNameWithAlias(b)
 
 	b, err = upd.appendSet(b)
 	if err != nil {
