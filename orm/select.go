@@ -3,8 +3,6 @@ package orm
 import (
 	"fmt"
 	"strconv"
-
-	"gopkg.in/pg.v4/types"
 )
 
 func Select(db dber, model interface{}) error {
@@ -31,14 +29,18 @@ func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 
 	b = append(b, "SELECT "...)
 	if sel.columns == nil {
-		b = types.AppendField(b, table.ModelName, 1)
+		b = append(b, table.Alias...)
 		b = append(b, ".*"...)
 	} else {
 		b = append(b, sel.columns...)
 	}
 
 	b = append(b, " FROM "...)
-	b = append(b, sel.tables...)
+	b = sel.appendTableNameWithAlias(b)
+	if len(sel.tables) > 0 {
+		b = append(b, ", "...)
+		b = append(b, sel.tables...)
+	}
 
 	if len(sel.join) > 0 {
 		b = append(b, ' ')

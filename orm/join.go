@@ -47,7 +47,7 @@ func (j *join) JoinOne(q *Query) {
 			`?.? = ?.?`,
 			j.Rel.Field.ColName,
 			pk.ColName,
-			types.Q(j.BaseModel.Table().ModelName),
+			j.BaseModel.Table().Alias,
 			types.F(j.Rel.Field.SQLName+"_"+pk.SQLName),
 		)
 		if i != len(j.Rel.Join.PKs)-1 {
@@ -81,10 +81,10 @@ func (j *join) selectMany(db dber) error {
 	q := NewQuery(db, manyModel)
 
 	q.columns = appendSep(q.columns, ", ")
-	q.columns = types.AppendField(q.columns, j.JoinModel.Table().ModelName, 1)
+	q.columns = append(q.columns, j.JoinModel.Table().Alias...)
 	q.columns = append(q.columns, ".*"...)
 
-	cols := columns(col(j.JoinModel.Table().ModelName), "", j.Rel.FKs)
+	cols := columns(j.JoinModel.Table().Alias, "", j.Rel.FKs)
 	vals := values(root, path, j.BaseModel.Table().PKs)
 	q.Where(`(?) IN (?)`, types.Q(cols), types.Q(vals))
 
@@ -120,7 +120,7 @@ func (j *join) selectM2M(db dber) error {
 	for _, pk := range joinTable.PKs {
 		q.Where(
 			"?.? = ?.?",
-			types.F(joinTable.ModelName), pk.ColName,
+			joinTable.Alias, pk.ColName,
 			j.Rel.M2MTableName, types.F(j.Rel.JoinPrefix+pk.SQLName),
 		)
 	}

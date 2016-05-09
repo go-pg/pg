@@ -236,14 +236,34 @@ func ExampleDB_Select_someColumns() {
 
 	var book Book
 	err := db.Model(&book).
-		Column("book.id").
-		First()
+		Column("book.id", "book.title").
+		Order("book.id ASC").
+		Limit(1).
+		Select()
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println(book)
-	// Output: Book<Id=1 Title="">
+	// Output: Book<Id=1 Title="book 1">
+}
+
+func ExampleDB_Select_tableAlias() {
+	db := modelDB()
+
+	var book Book
+	err := db.Model(&book).
+		Alias("b").
+		Column("b.id", "b.title").
+		Order("b.id ASC").
+		Limit(1).
+		Select()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(book)
+	// Output: Book<Id=1 Title="book 1">
 }
 
 func ExampleDB_Select_someColumnsIntoVars() {
@@ -269,7 +289,7 @@ func ExampleDB_Select_sqlExpression() {
 
 	var ids []int
 	err := db.Model(&Book{}).
-		ColumnExpr("array_agg(id)").
+		ColumnExpr("array_agg(book.id)").
 		Select(pg.Array(&ids))
 	if err != nil {
 		panic(err)
