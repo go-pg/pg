@@ -37,7 +37,7 @@ func init() {
 		reflect.Array:         nil,
 		reflect.Chan:          nil,
 		reflect.Func:          nil,
-		reflect.Interface:     nil,
+		reflect.Interface:     appendIfaceValue,
 		reflect.Map:           appendJSONValue,
 		reflect.Ptr:           nil,
 		reflect.Slice:         appendJSONValue,
@@ -62,7 +62,7 @@ func Appender(typ reflect.Type) AppenderFunc {
 
 	kind := typ.Kind()
 	switch kind {
-	case reflect.Ptr, reflect.Interface:
+	case reflect.Ptr:
 		return ptrAppenderFunc(typ)
 	case reflect.Slice:
 		if typ.Elem().Kind() == reflect.Uint8 {
@@ -92,6 +92,10 @@ func appendValue(b []byte, v reflect.Value, quote int) []byte {
 
 	appender := Appender(v.Type())
 	return appender(b, v, quote)
+}
+
+func appendIfaceValue(b []byte, v reflect.Value, quote int) []byte {
+	return Append(b, v.Interface(), quote)
 }
 
 func appendBoolValue(b []byte, v reflect.Value, _ int) []byte {

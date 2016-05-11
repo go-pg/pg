@@ -45,7 +45,7 @@ func init() {
 		reflect.Array:         nil,
 		reflect.Chan:          nil,
 		reflect.Func:          nil,
-		reflect.Interface:     nil,
+		reflect.Interface:     scanIfaceValue,
 		reflect.Map:           scanJSONValue,
 		reflect.Ptr:           nil,
 		reflect.Slice:         scanJSONValue,
@@ -69,7 +69,7 @@ func Scanner(typ reflect.Type) ScannerFunc {
 
 	kind := typ.Kind()
 	switch kind {
-	case reflect.Ptr, reflect.Interface:
+	case reflect.Ptr:
 		return ptrScannerFunc(typ)
 	case reflect.Slice:
 		if typ.Elem().Kind() == reflect.Uint8 {
@@ -103,6 +103,13 @@ func ptrScannerFunc(typ reflect.Type) ScannerFunc {
 		}
 		return scanner(v.Elem(), b)
 	}
+}
+
+func scanIfaceValue(v reflect.Value, b []byte) error {
+	if v.IsNil() {
+		return internal.Errorf("pg: Scan(nil)")
+	}
+	return ScanValue(v.Elem(), b)
 }
 
 func IsSQLScanner(typ reflect.Type) bool {
