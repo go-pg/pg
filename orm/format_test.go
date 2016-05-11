@@ -20,6 +20,7 @@ func (e ValuerError) Value() (driver.Value, error) {
 type StructFormatter struct {
 	String    string
 	NullEmpty string `sql:",null"`
+	Iface     interface{}
 }
 
 func (StructFormatter) Method() string {
@@ -60,7 +61,10 @@ type formatTest struct {
 }
 
 var (
-	structv         = &StructFormatter{String: "field_value"}
+	structv = &StructFormatter{
+		String: "string_value",
+		Iface:  "iface_value",
+	}
 	embeddedStructv = &EmbeddedStructFormatter{structv}
 )
 
@@ -78,17 +82,19 @@ var formatTests = []formatTest{
 	{q: "?", params: params{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
 	{q: "?", params: params{orm.Q("query")}, wanted: "query"},
 	{q: "?", params: params{orm.F("field")}, wanted: `"field"`},
-	{q: "?", params: params{structv}, wanted: `'{"String":"field_value","NullEmpty":""}'`},
+	{q: "?", params: params{structv}, wanted: `'{"String":"string_value","NullEmpty":"","Iface":"iface_value"}'`},
 
 	{q: `\? ?`, params: params{1}, wanted: "? 1"},
 	{q: `?`, params: params{types.Q(`\?`)}, wanted: `\?`},
 	{q: `?`, params: params{types.Q(`\\?`)}, wanted: `\\?`},
 	{q: `?`, params: params{types.Q(`\?param`)}, wanted: `\?param`},
 
+	{q: "?string", params: params{structv}, wanted: `'string_value'`},
+	{q: "?iface", params: params{structv}, wanted: `'iface_value'`},
 	{q: "?null_empty", params: params{structv}, wanted: `NULL`},
-	{q: "? ?string ?", params: params{"one", "two", structv}, wanted: "'one' 'field_value' 'two'"},
-	{q: "?string ?Method", params: params{structv}, wanted: "'field_value' 'method_value'"},
-	{q: "?string ?Method ?Method2", params: params{embeddedStructv}, wanted: "'field_value' 'method_value' 'method_value2'"},
+	{q: "? ?string ?", params: params{"one", "two", structv}, wanted: "'one' 'string_value' 'two'"},
+	{q: "?string ?Method", params: params{structv}, wanted: "'string_value' 'method_value'"},
+	{q: "?string ?Method ?Method2", params: params{embeddedStructv}, wanted: "'string_value' 'method_value' 'method_value2'"},
 
 	{q: "?string", params: params{structv}, paramsMap: paramsMap{"string": "my_value"}, wanted: "'my_value'"},
 
