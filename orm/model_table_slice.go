@@ -30,6 +30,9 @@ func (m *sliceTableModel) Value() reflect.Value {
 }
 
 func (m *sliceTableModel) NewModel() ColumnScanner {
+	if !m.strct.IsValid() {
+		m.slice.Set(m.slice.Slice(0, 0))
+	}
 	m.strct = internal.SliceNextElem(m.slice)
 	m.structTableModel.NewModel()
 	return m

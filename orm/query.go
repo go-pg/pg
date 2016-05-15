@@ -31,8 +31,14 @@ type Query struct {
 	offset     int
 }
 
-func NewQuery(db dber, v interface{}) *Query {
-	model, err := newTableModel(v)
+func NewQuery(db dber, v ...interface{}) *Query {
+	var model tableModel
+	var err error
+	if len(v) == 1 {
+		model, err = newTableModel(v[0])
+	} else {
+		model, err = newTableModel(&v)
+	}
 	q := Query{
 		db:    db,
 		model: model,
@@ -280,7 +286,8 @@ func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 		model = q.model
 	}
 
-	return q.db.Query(model, insertQuery{Query: q}, q.model)
+	ins := insertQuery{Query: q}
+	return q.db.Query(model, ins, q.model)
 }
 
 // SelectOrCreate selects the model creating one if it does not exist.

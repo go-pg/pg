@@ -255,8 +255,8 @@ func (db *DB) Select(model interface{}) error {
 }
 
 // Create inserts the model updating primary keys if they are empty.
-func (db *DB) Create(model interface{}) error {
-	return orm.Create(db, model)
+func (db *DB) Create(model ...interface{}) error {
+	return orm.Create(db, model...)
 }
 
 // Update updates the model by primary key.
