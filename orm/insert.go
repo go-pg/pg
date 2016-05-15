@@ -5,24 +5,21 @@ import (
 	"reflect"
 )
 
-func Create(db dber, v interface{}) error {
-	q := NewQuery(db, v)
-	if q.err != nil {
-		return q.err
-	}
-	_, err := db.QueryOne(q.model, insertQuery{q}, q.model)
+func Create(db dber, v ...interface{}) error {
+	_, err := NewQuery(db, v...).Create()
 	return err
 }
 
 type insertQuery struct {
 	*Query
+	returningFields []*Field
 }
 
 var _ QueryAppender = (*insertQuery)(nil)
 
 func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	table := ins.model.Table()
-	strct := ins.model.Value()
+	value := ins.model.Value()
 
 	b = append(b, "INSERT INTO "...)
 	if len(ins.onConflict) > 0 {
@@ -32,16 +29,8 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	}
 	b = append(b, " ("...)
 
-	var returning []*Field
-	var fields []*Field
-
 	start := len(b)
 	for _, f := range table.Fields {
-		if (f.Has(PrimaryKeyFlag) || f.OmitEmpty(strct)) && f.IsEmpty(strct) {
-			returning = append(returning, f)
-			continue
-		}
-		fields = append(fields, f)
 		b = append(b, f.ColName...)
 		b = append(b, ", "...)
 	}
@@ -50,14 +39,20 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	}
 
 	b = append(b, ") VALUES ("...)
-
-	for i, f := range fields {
-		b = f.AppendValue(b, strct, 1)
-		if i != len(fields)-1 {
-			b = append(b, ", "...)
+	if value.Kind() == reflect.Struct {
+		b = ins.appendValues(b, table.Fields, value)
+	} else {
+		for i := 0; i < value.Len(); i++ {
+			el := value.Index(i)
+			if el.Kind() == reflect.Interface {
+				el = el.Elem()
+			}
+			b = ins.appendValues(b, table.Fields, reflect.Indirect(el))
+			if i != value.Len()-1 {
+				b = append(b, "), ("...)
+			}
 		}
 	}
-
 	b = append(b, ')')
 
 	if len(ins.onConflict) > 0 {
@@ -80,14 +75,49 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	if len(ins.returning) > 0 {
 		b = append(b, " RETURNING "...)
 		b = append(b, ins.returning...)
-	} else if len(returning) > 0 {
-		b = appendReturning(b, strct, returning)
+	} else if len(ins.returningFields) > 0 {
+		b = ins.appendReturning(b, ins.returningFields)
 	}
 
 	return b, nil
 }
 
-func appendReturning(b []byte, v reflect.Value, fields []*Field) []byte {
+func (ins *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
+	for i, f := range fields {
+		if ins.omitEmpty(f, v) {
+			b = append(b, "DEFAULT"...)
+			ins.addReturningField(f)
+		} else {
+			b = f.AppendValue(b, v, 1)
+		}
+		if i != len(fields)-1 {
+			b = append(b, ", "...)
+		}
+	}
+	return b
+}
+
+func (insertQuery) omitEmpty(f *Field, v reflect.Value) bool {
+	omit := f.Has(PrimaryKeyFlag)
+	if !omit && v.Kind() == reflect.Struct {
+		omit = f.OmitEmpty(v)
+	}
+	if !omit {
+		return false
+	}
+	return f.IsEmpty(v)
+}
+
+func (ins *insertQuery) addReturningField(field *Field) {
+	for _, f := range ins.returningFields {
+		if f == field {
+			return
+		}
+	}
+	ins.returningFields = append(ins.returningFields, field)
+}
+
+func (insertQuery) appendReturning(b []byte, fields []*Field) []byte {
 	b = append(b, " RETURNING "...)
 	for i, f := range fields {
 		b = append(b, f.ColName...)

@@ -55,7 +55,7 @@ var _ = Describe("DB race", func() {
 			}
 		})
 
-		count, err := db.Model(Author{}).Count()
+		count, err := db.Model(&Author{}).Count()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(count).To(Equal(1))
 	})
@@ -84,7 +84,7 @@ var _ = Describe("DB race", func() {
 			}
 		})
 
-		count, err := db.Model(Author{}).Count()
+		count, err := db.Model(&Author{}).Count()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(count).To(Equal(1))
 	})

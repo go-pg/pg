@@ -22,32 +22,21 @@ func modelDB() *pg.DB {
 		Name: "author 1",
 	})
 
-	err = db.Create(&Book{
-		Title:     "book 1",
-		AuthorID:  1,
-		EditorID:  11,
-		CreatedAt: time.Now(),
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.Create(&Book{
-		Title:     "book 2",
-		AuthorID:  1,
-		EditorID:  12,
-		CreatedAt: time.Now(),
-	})
-	if err != nil {
-		panic(err)
-	}
-
-	err = db.Create(&Book{
+	books := []Book{{
+		Title:    "book 1",
+		AuthorID: 1,
+		EditorID: 11,
+	}, {
+		Title:    "book 2",
+		AuthorID: 1,
+		EditorID: 12,
+	}, {
 		Title:     "book 3",
 		AuthorID:  11,
 		EditorID:  11,
 		CreatedAt: time.Now(),
-	})
+	}}
+	err = db.Create(&books)
 	if err != nil {
 		panic(err)
 	}
@@ -97,6 +86,53 @@ func ExampleDB_Create() {
 	err = db.Delete(&book)
 	if err != nil {
 		panic(err)
+	}
+}
+
+func ExampleDB_Create_bulkInsert() {
+	db := modelDB()
+
+	book1 := Book{
+		Title: "new book 1",
+	}
+	book2 := Book{
+		Title: "new book 2",
+	}
+	err := db.Create(&book1, &book2)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(book1, book2)
+	// Output: Book<Id=4 Title="new book 1"> Book<Id=5 Title="new book 2">
+
+	for _, book := range []*Book{&book1, &book2} {
+		err := db.Delete(book)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func ExampleDB_Create_bulkInsert2() {
+	db := modelDB()
+
+	books := []Book{{
+		Title: "new book 1",
+	}, {
+		Title: "new book 2",
+	}}
+	err := db.Create(&books)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(books)
+	// Output: [Book<Id=4 Title="new book 1"> Book<Id=5 Title="new book 2">]
+
+	for i := range books {
+		err := db.Delete(&books[i])
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
@@ -585,12 +621,12 @@ func ExampleDB_Delete() {
 		panic(err)
 	}
 
-	err = db.Delete(book)
+	err = db.Delete(&book)
 	if err != nil {
 		panic(err)
 	}
 
-	err = db.Delete(book)
+	err = db.Delete(&book)
 	fmt.Println(err)
 	// Output: pg: no rows in result set
 }

@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"log"
 	"net"
-	"os"
 	"testing"
 	"time"
 
@@ -17,7 +15,7 @@ import (
 )
 
 func init() {
-	pg.SetLogger(log.New(os.Stderr, "pg: ", log.LstdFlags))
+	//pg.SetLogger(log.New(os.Stderr, "pg: ", log.LstdFlags))
 }
 
 func TestGinkgo(t *testing.T) {
@@ -321,7 +319,7 @@ var _ = Describe("DB.Create", func() {
 
 	It("returns an errors if value is not settable", func() {
 		err := db.Create(1)
-		Expect(err).To(MatchError("pg: NewModel(unsupported int)"))
+		Expect(err).To(MatchError("pg: NewModel(nonsettable int)"))
 	})
 
 	It("returns an errors if value is not supported", func() {
@@ -512,138 +510,113 @@ var _ = Describe("ORM", func() {
 		err := createTestSchema(db)
 		Expect(err).NotTo(HaveOccurred())
 
-		err = db.Create(&Genre{
+		genres := []Genre{{
 			Id:   1,
 			Name: "genre 1",
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&Genre{
+		}, {
 			Id:   2,
 			Name: "genre 2",
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&Genre{
+		}, {
 			Id:       3,
 			Name:     "subgenre 1",
 			ParentId: 1,
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&Genre{
+		}, {
 			Id:       4,
 			Name:     "subgenre 2",
 			ParentId: 1,
-		})
-		Expect(err).NotTo(HaveOccurred())
+		}}
 
-		err = db.Create(&Author{
+		err = db.Create(&genres)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(genres).To(HaveLen(4))
+
+		authors := []Author{{
 			ID:   10,
 			Name: "author 1",
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&Author{
+		}, {
 			ID:   11,
 			Name: "author 2",
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&Author{
+		}, Author{
 			ID:   12,
 			Name: "author 3",
-		})
+		}}
+		err = db.Create(&authors)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(authors).To(HaveLen(3))
 
-		book := Book{
+		books := []Book{{
 			Id:       100,
 			Title:    "book 1",
 			AuthorID: 10,
 			EditorID: 11,
-		}
-		err = db.Create(&book)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(book.CreatedAt).To(BeTemporally("~", time.Now(), time.Second))
-
-		err = db.Create(&Book{
+		}, {
 			Id:       101,
 			Title:    "book 2",
 			AuthorID: 10,
 			EditorID: 12,
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&Book{
+		}, Book{
 			Id:       102,
 			Title:    "book 3",
 			AuthorID: 11,
 			EditorID: 11,
-		})
+		}}
+		err = db.Create(&books)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(books).To(HaveLen(3))
+		for _, book := range books {
+			Expect(book.CreatedAt).To(BeTemporally("~", time.Now(), time.Second))
+		}
 
-		err = db.Create(&BookGenre{
+		bookGenres := []BookGenre{{
 			BookId:       100,
 			GenreId:      1,
 			Genre_Rating: 999,
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&BookGenre{
+		}, {
 			BookId:       100,
 			GenreId:      2,
 			Genre_Rating: 9999,
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&BookGenre{
+		}, {
 			BookId:       101,
 			GenreId:      1,
 			Genre_Rating: 99999,
-		})
+		}}
+		err = db.Create(&bookGenres)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(bookGenres).To(HaveLen(3))
 
-		err = db.Create(&Translation{
+		translations := []Translation{{
 			Id:     1000,
 			BookId: 100,
 			Lang:   "ru",
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&Translation{
+		}, {
 			Id:     1001,
 			BookId: 100,
 			Lang:   "md",
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&Translation{
+		}, {
 			Id:     1002,
 			BookId: 101,
 			Lang:   "ua",
-		})
+		}}
+		err = db.Create(&translations)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(translations).To(HaveLen(3))
 
-		err = db.Create(&Comment{
+		comments := []Comment{{
 			TrackableId:   100,
 			TrackableType: "book",
 			Text:          "comment1",
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&Comment{
+		}, {
 			TrackableId:   100,
 			TrackableType: "book",
 			Text:          "comment2",
-		})
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Create(&Comment{
+		}, {
 			TrackableId:   1000,
 			TrackableType: "translation",
 			Text:          "comment3",
-		})
+		}}
+		err = db.Create(&comments)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(comments).To(HaveLen(3))
 	})
 
 	Describe("struct model", func() {

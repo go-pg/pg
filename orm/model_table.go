@@ -31,7 +31,14 @@ func newTableModel(v interface{}) (tableModel, error) {
 	case reflect.Value:
 		return newTableModelValue(v)
 	default:
-		return newTableModelValue(reflect.ValueOf(v))
+		vv := reflect.ValueOf(v)
+		if !vv.IsValid() {
+			return nil, errors.New("pg: NewModel(nil)")
+		}
+		if vv.Kind() != reflect.Ptr {
+			return nil, fmt.Errorf("pg: NewModel(nonsettable %T)", v)
+		}
+		return newTableModelValue(vv.Elem())
 	}
 }
 
@@ -46,6 +53,9 @@ func newTableModelValue(v reflect.Value) (tableModel, error) {
 		return newStructTableModel(v)
 	case reflect.Slice:
 		elType := indirectType(v.Type().Elem())
+		if elType.Kind() == reflect.Interface && v.Len() > 0 {
+			elType = reflect.Indirect(v.Index(0).Elem()).Type()
+		}
 		if elType.Kind() == reflect.Struct {
 			return &sliceTableModel{
 				structTableModel: structTableModel{

@@ -121,6 +121,9 @@ func (m *structTableModel) scanColumn(colIdx int, colName string, b []byte) (boo
 
 	field, ok := m.table.FieldsMap[colName]
 	if ok {
+		if m.strct.Kind() == reflect.Interface {
+			m.strct = m.strct.Elem()
+		}
 		if m.strct.Kind() == reflect.Ptr {
 			if m.strct.IsNil() {
 				m.strct.Set(reflect.New(m.strct.Type().Elem()))
