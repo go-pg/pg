@@ -33,10 +33,10 @@ func newTableModel(v interface{}) (tableModel, error) {
 	default:
 		vv := reflect.ValueOf(v)
 		if !vv.IsValid() {
-			return nil, errors.New("pg: NewModel(nil)")
+			return nil, errors.New("pg: Model(nil)")
 		}
 		if vv.Kind() != reflect.Ptr {
-			return nil, fmt.Errorf("pg: NewModel(nonsettable %T)", v)
+			return nil, fmt.Errorf("pg: Model(nonsettable %T)", v)
 		}
 		return newTableModelValue(vv.Elem())
 	}
@@ -44,7 +44,7 @@ func newTableModel(v interface{}) (tableModel, error) {
 
 func newTableModelValue(v reflect.Value) (tableModel, error) {
 	if !v.IsValid() {
-		return nil, errors.New("pg: NewModel(nil)")
+		return nil, errors.New("pg: Model(nil)")
 	}
 	v = reflect.Indirect(v)
 
@@ -67,7 +67,7 @@ func newTableModelValue(v reflect.Value) (tableModel, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("pg: NewModel(unsupported %s)", v.Type())
+	return nil, fmt.Errorf("pg: Model(unsupported %s)", v.Type())
 }
 
 func newTableModelPath(root reflect.Value, path []int, table *Table) (tableModel, error) {

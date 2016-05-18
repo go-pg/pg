@@ -3,6 +3,7 @@ package orm
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -26,15 +27,21 @@ func NewModel(values ...interface{}) (Model, error) {
 	}
 
 	v0 := values[0]
-	if v0, ok := v0.(sql.Scanner); ok {
+	switch v0 := v0.(type) {
+	case Model:
+		return v0, nil
+	case sql.Scanner:
 		return Scan(v0), nil
 	}
 
 	v := reflect.ValueOf(v0)
 	if !v.IsValid() {
-		return nil, errors.New("pg: NewModel(nil)")
+		return nil, errors.New("pg: Model(nil)")
 	}
-	v = reflect.Indirect(v)
+	if v.Kind() != reflect.Ptr {
+		return nil, fmt.Errorf("pg: Model(nonsettable %T)", v0)
+	}
+	v = v.Elem()
 
 	switch v.Kind() {
 	case reflect.Struct:

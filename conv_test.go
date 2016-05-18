@@ -176,7 +176,6 @@ func conversionTests() []conversionTest {
 		{src: "'\"\000", dst: new(string), wanted: `'"`, pgtype: "text"},
 
 		{src: nil, dst: []byte(nil), pgtype: "bytea", wanterr: "pg: Scan(nonsettable []uint8)"},
-		{src: nil, dst: (*[]byte)(nil), pgtype: "bytea", wanterr: "pg: Scan(nonsettable *[]uint8)"},
 		{src: nil, dst: new([]byte), pgtype: "bytea", wantnil: true},
 		{src: []byte("hello world\000"), dst: new([]byte), pgtype: "bytea"},
 		{src: []byte{}, dst: new([]byte), pgtype: "bytea", wantzero: true},
@@ -371,6 +370,21 @@ func TestConversion(t *testing.T) {
 		_, err := db.QueryOne(scanner, "SELECT (?) AS dst", test.src)
 		test.Assert(t, err)
 	}
+
+	for i, test := range conversionTests() {
+		test.i = i
+
+		var scanner orm.ColumnScanner
+		if v, ok := test.dst.(orm.ColumnScanner); ok {
+			scanner = v
+		} else {
+			scanner = pg.Scan(test.dst)
+		}
+
+		err := db.Model(nil).ColumnExpr("(?) AS dst", test.src).Select(scanner)
+		test.Assert(t, err)
+	}
+	return
 
 	for i, test := range conversionTests() {
 		test.i = i

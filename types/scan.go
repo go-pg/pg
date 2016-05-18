@@ -10,11 +10,19 @@ import (
 	"gopkg.in/pg.v4/internal"
 )
 
-func Scan(dst interface{}, b []byte) error {
-	switch v := dst.(type) {
+func Scan(v interface{}, b []byte) error {
+	switch v := v.(type) {
 	case *string:
 		*v = string(b)
 		return nil
+	case *[]byte:
+		if b == nil {
+			*v = nil
+			return nil
+		}
+		var err error
+		*v, err = scanBytes(b)
+		return err
 	case *int:
 		if b == nil {
 			*v = 0
@@ -49,18 +57,18 @@ func Scan(dst interface{}, b []byte) error {
 		return err
 	}
 
-	v := reflect.ValueOf(dst)
-	if !v.IsValid() {
+	vv := reflect.ValueOf(v)
+	if !vv.IsValid() {
 		return internal.Errorf("pg: Scan(nil)")
 	}
-	if v.Kind() != reflect.Ptr {
-		return internal.Errorf("pg: Scan(nonsettable %T)", dst)
+	if vv.Kind() != reflect.Ptr {
+		return internal.Errorf("pg: Scan(nonsettable %T)", v)
 	}
-	v = v.Elem()
-	if !v.IsValid() {
-		return internal.Errorf("pg: Scan(nonsettable %T)", dst)
+	vv = vv.Elem()
+	if !vv.IsValid() {
+		return internal.Errorf("pg: Scan(nonsettable %T)", v)
 	}
-	return ScanValue(v, b)
+	return ScanValue(vv, b)
 }
 
 func scanSQLScanner(scanner sql.Scanner, b []byte) error {

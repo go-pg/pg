@@ -17,6 +17,6 @@ var _ QueryAppender = (*deleteQuery)(nil)
 
 func (del deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "DELETE FROM "...)
-	b = del.appendTableNameWithAlias(b)
+	b = del.appendTables(b)
 	return del.appendWhere(b)
 }
