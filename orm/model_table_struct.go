@@ -33,12 +33,12 @@ func newStructTableModel(v interface{}) (*structTableModel, error) {
 
 func newStructTableModelValue(v reflect.Value) (*structTableModel, error) {
 	if !v.IsValid() {
-		return nil, errors.New("pg: NewModel(nil)")
+		return nil, errors.New("pg: Model(nil)")
 	}
 	v = reflect.Indirect(v)
 
 	if v.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("pg: NewModel(unsupported %s)", v.Type())
+		return nil, fmt.Errorf("pg: Model(unsupported %s)", v.Type())
 	}
 
 	return &structTableModel{

@@ -34,9 +34,14 @@ type Query struct {
 func NewQuery(db dber, v ...interface{}) *Query {
 	var model tableModel
 	var err error
-	if len(v) == 1 {
-		model, err = newTableModel(v[0])
-	} else {
+	switch len(v) {
+	case 0:
+	case 1:
+		v0 := v[0]
+		if v0 != nil {
+			model, err = newTableModel(v0)
+		}
+	default:
 		model, err = newTableModel(&v)
 	}
 	q := Query{
@@ -44,7 +49,7 @@ func NewQuery(db dber, v ...interface{}) *Query {
 		model: model,
 		err:   err,
 	}
-	if err == nil {
+	if q.model != nil {
 		q.tableName = q.format(nil, string(q.model.Table().Name))
 	}
 	return &q
@@ -68,6 +73,7 @@ func (q *Query) Alias(alias string) *Query {
 
 func (q *Query) Table(names ...string) *Query {
 	for _, name := range names {
+		q.tables = appendSep(q.tables, ", ")
 		q.tables = types.AppendField(q.tables, name, 1)
 	}
 	return q
@@ -76,8 +82,10 @@ func (q *Query) Table(names ...string) *Query {
 func (q *Query) Column(columns ...string) *Query {
 loop:
 	for _, column := range columns {
-		if j := q.model.Join(column); j != nil {
-			continue loop
+		if q.model != nil {
+			if j := q.model.Join(column); j != nil {
+				continue loop
+			}
 		}
 
 		q.fields = append(q.fields, column)
@@ -195,6 +203,10 @@ func (q *Query) Last() error {
 
 // Select selects the model.
 func (q *Query) Select(values ...interface{}) error {
+	if q.err != nil {
+		return q.err
+	}
+
 	q.joinHasOne()
 	sel := selectQuery{q}
 
@@ -218,7 +230,10 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
-	return selectJoins(q.db, q.model.GetJoins())
+	if q.model != nil {
+		return selectJoins(q.db, q.model.GetJoins())
+	}
+	return nil
 }
 
 // SelectAndCount runs Select and Count in two separate goroutines,
@@ -248,6 +263,9 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 }
 
 func (q *Query) joinHasOne() {
+	if q.model == nil {
+		return
+	}
 	joins := q.model.GetJoins()
 	for i := range joins {
 		j := &joins[i]
@@ -358,13 +376,36 @@ func (q *Query) appendTableNameWithAlias(b []byte) []byte {
 	return b
 }
 
+func (q *Query) haveTables() bool {
+	return q.model != nil || len(q.tables) > 0
+}
+
+func (q *Query) appendTables(b []byte) []byte {
+	if q.model != nil {
+		b = q.appendTableNameWithAlias(b)
+		if len(q.tables) > 0 {
+			b = append(b, ", "...)
+		}
+	}
+	b = append(b, q.tables...)
+	return b
+}
+
 func (q *Query) appendSet(b []byte) ([]byte, error) {
 	b = append(b, " SET "...)
 	if len(q.set) > 0 {
 		b = append(b, q.set...)
-	} else if len(q.fields) > 0 {
-		table := q.model.Table()
-		strct := q.model.Value()
+		return b, nil
+	}
+
+	if q.model == nil {
+		return nil, errors.New("pg: Model(nil)")
+	}
+
+	table := q.model.Table()
+	strct := q.model.Value()
+
+	if len(q.fields) > 0 {
 		for i, fieldName := range q.fields {
 			field, err := table.GetField(fieldName)
 			if err != nil {
@@ -378,24 +419,22 @@ func (q *Query) appendSet(b []byte) ([]byte, error) {
 				b = append(b, ", "...)
 			}
 		}
-	} else {
-		table := q.model.Table()
-		strct := q.model.Value()
+		return b, nil
+	}
 
-		start := len(b)
-		for _, field := range table.Fields {
-			if field.Has(PrimaryKeyFlag) {
-				continue
-			}
+	start := len(b)
+	for _, field := range table.Fields {
+		if field.Has(PrimaryKeyFlag) {
+			continue
+		}
 
-			b = append(b, field.ColName...)
-			b = append(b, " = "...)
-			b = field.AppendValue(b, strct, 1)
-			b = append(b, ", "...)
-		}
-		if len(b) > start {
-			b = b[:len(b)-2]
-		}
+		b = append(b, field.ColName...)
+		b = append(b, " = "...)
+		b = field.AppendValue(b, strct, 1)
+		b = append(b, ", "...)
+	}
+	if len(b) > start {
+		b = b[:len(b)-2]
 	}
 	return b, nil
 }
@@ -404,12 +443,17 @@ func (q *Query) appendWhere(b []byte) ([]byte, error) {
 	b = append(b, " WHERE "...)
 	if len(q.where) > 0 {
 		b = append(b, q.where...)
-	} else {
-		table := q.model.Table()
-		if err := table.checkPKs(); err != nil {
-			return nil, err
-		}
-		b = appendColumnAndValue(b, q.model.Value(), table, table.PKs)
+		return b, nil
 	}
+
+	if q.model == nil {
+		return nil, errors.New("pg: Model(nil)")
+	}
+
+	table := q.model.Table()
+	if err := table.checkPKs(); err != nil {
+		return nil, err
+	}
+	b = appendColumnAndValue(b, q.model.Value(), table, table.PKs)
 	return b, nil
 }

@@ -19,7 +19,7 @@ func (upd updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	var err error
 
 	b = append(b, "UPDATE "...)
-	b = upd.appendTableNameWithAlias(b)
+	b = upd.appendTables(b)
 
 	b, err = upd.appendSet(b)
 	if err != nil {

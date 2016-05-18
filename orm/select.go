@@ -25,21 +25,17 @@ type selectQuery struct {
 var _ QueryAppender = (*selectQuery)(nil)
 
 func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
-	table := sel.model.Table()
-
 	b = append(b, "SELECT "...)
 	if sel.columns == nil {
-		b = append(b, table.Alias...)
+		b = append(b, sel.model.Table().Alias...)
 		b = append(b, ".*"...)
 	} else {
 		b = append(b, sel.columns...)
 	}
 
-	b = append(b, " FROM "...)
-	b = sel.appendTableNameWithAlias(b)
-	if len(sel.tables) > 0 {
-		b = append(b, ", "...)
-		b = append(b, sel.tables...)
+	if sel.haveTables() {
+		b = append(b, " FROM "...)
+		b = sel.appendTables(b)
 	}
 
 	if len(sel.join) > 0 {

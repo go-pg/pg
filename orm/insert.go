@@ -2,6 +2,7 @@ package orm
 
 import (
 	"bytes"
+	"errors"
 	"reflect"
 )
 
@@ -18,6 +19,10 @@ type insertQuery struct {
 var _ QueryAppender = (*insertQuery)(nil)
 
 func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	if ins.model == nil {
+		return nil, errors.New("pg: Model(nil)")
+	}
+
 	table := ins.model.Table()
 	value := ins.model.Value()
 

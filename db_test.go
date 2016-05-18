@@ -300,6 +300,34 @@ var _ = Describe("DB nulls", func() {
 	})
 })
 
+var _ = Describe("DB.Select", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+
+		qs := []string{
+			`CREATE TEMP TABLE tests (col bytea)`,
+			fmt.Sprintf(`INSERT INTO tests VALUES ('\x%x')`, []byte("bytes")),
+		}
+		for _, q := range qs {
+			_, err := db.Exec(q)
+			Expect(err).NotTo(HaveOccurred())
+		}
+	})
+
+	AfterEach(func() {
+		err := db.Close()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("selects bytea", func() {
+		var col []byte
+		err := db.Model(nil).Table("tests").Column("col").Select(pg.Scan(&col))
+		Expect(err).NotTo(HaveOccurred())
+	})
+})
+
 var _ = Describe("DB.Create", func() {
 	var db *pg.DB
 
@@ -314,18 +342,18 @@ var _ = Describe("DB.Create", func() {
 
 	It("returns an error on nil", func() {
 		err := db.Create(nil)
-		Expect(err).To(MatchError("pg: NewModel(nil)"))
+		Expect(err).To(MatchError("pg: Model(nil)"))
 	})
 
 	It("returns an errors if value is not settable", func() {
 		err := db.Create(1)
-		Expect(err).To(MatchError("pg: NewModel(nonsettable int)"))
+		Expect(err).To(MatchError("pg: Model(nonsettable int)"))
 	})
 
 	It("returns an errors if value is not supported", func() {
 		var v int
 		err := db.Create(&v)
-		Expect(err).To(MatchError("pg: NewModel(unsupported int)"))
+		Expect(err).To(MatchError("pg: Model(unsupported int)"))
 	})
 })
 
@@ -343,7 +371,7 @@ var _ = Describe("DB.Update", func() {
 
 	It("returns an error on nil", func() {
 		err := db.Update(nil)
-		Expect(err).To(MatchError("pg: NewModel(nil)"))
+		Expect(err).To(MatchError("pg: Model(nil)"))
 	})
 
 	It("returns an error if there are no pks", func() {
@@ -368,7 +396,7 @@ var _ = Describe("DB.Delete", func() {
 
 	It("returns an error on nil", func() {
 		err := db.Delete(nil)
-		Expect(err).To(MatchError("pg: NewModel(nil)"))
+		Expect(err).To(MatchError("pg: Model(nil)"))
 	})
 
 	It("returns an error if there are no pks", func() {
