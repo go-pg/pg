@@ -161,11 +161,13 @@ func ExampleDB_Model() {
 
 Models are defined using Go structs. Order of the struct fields usually does not matter with the only exception being primary key(s) that must be defined before any other fields. Otherwise table relationships can be recognized incorrectly.
 
+Please *note* that most struct tags in following example are not needed and are included only for demonstration purposes.
+
 ```go
 type Genre struct {
 	// TableName is an optional field that specifies custom table name and alias.
-	// By default go-pg generates table name and alias from struct name.
-	TableName struct{} `sql:"genres,alias:genre"` // default values are the same
+	// By default go-pg generates table name and alias from the struct name.
+	TableName struct{} `sql:"genres,alias:genre"` // default name and alias are the same
 
 	Id     int // Id is automatically detected as primary key
 	Name   string
