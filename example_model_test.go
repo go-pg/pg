@@ -290,7 +290,6 @@ func ExampleDB_Select_tableAlias() {
 	var book Book
 	err := db.Model(&book).
 		Alias("b").
-		Column("b.id", "b.title").
 		Order("b.id ASC").
 		Limit(1).
 		Select()
