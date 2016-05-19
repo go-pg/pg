@@ -365,14 +365,17 @@ func (q *Query) format(dst []byte, query string, params ...interface{}) []byte {
 	return q.db.FormatQuery(dst, query, params...)
 }
 
+func (q *Query) appendTableAlias(b []byte) []byte {
+	if q.tableAlias != "" {
+		return types.AppendField(b, q.tableAlias, 1)
+	}
+	return append(b, q.model.Table().Alias...)
+}
+
 func (q *Query) appendTableNameWithAlias(b []byte) []byte {
 	b = append(b, q.tableName...)
 	b = append(b, " AS "...)
-	if q.tableAlias != "" {
-		b = types.AppendField(b, q.tableAlias, 1)
-	} else {
-		b = append(b, q.model.Table().Alias...)
-	}
+	b = q.appendTableAlias(b)
 	return b
 }
 

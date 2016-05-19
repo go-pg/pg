@@ -27,7 +27,7 @@ var _ QueryAppender = (*selectQuery)(nil)
 func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "SELECT "...)
 	if sel.columns == nil {
-		b = append(b, sel.model.Table().Alias...)
+		b = sel.appendTableAlias(b)
 		b = append(b, ".*"...)
 	} else {
 		b = append(b, sel.columns...)
