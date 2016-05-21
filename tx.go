@@ -18,13 +18,20 @@ func init() {
 	noTx = os.Getenv("GO_PG_NO_TX") != ""
 }
 
-// Not thread-safe.
+// Tx is an in-progress database transaction.
+//
+// A transaction must end with a call to Commit or Rollback.
+//
+// After a call to Commit or Rollback, all operations on the transaction fail
+// with ErrTxDone.
+//
+// The statements prepared for a transaction by calling the transaction's
+// Prepare or Stmt methods are closed by the call to Commit or Rollback.
 type Tx struct {
 	db  *DB
 	_cn *pool.Conn
 
-	err  error
-	done bool
+	stmts []*Stmt
 }
 
 // Begin starts a transaction. Most callers should use RunInTransaction instead.
@@ -40,7 +47,7 @@ func (db *DB) Begin() (*Tx, error) {
 	}
 	if !noTx {
 		if _, err := tx.Exec("BEGIN"); err != nil {
-			tx.close()
+			tx.close(err)
 			return nil, err
 		}
 	}
@@ -63,33 +70,53 @@ func (db *DB) RunInTransaction(fn func(*Tx) error) error {
 	return tx.Commit()
 }
 
-func (tx *Tx) conn() *pool.Conn {
-	tx._cn.SetReadTimeout(tx.db.opt.ReadTimeout)
-	tx._cn.SetWriteTimeout(tx.db.opt.WriteTimeout)
-	return tx._cn
-}
-
-// TODO(vmihailenco): track and close prepared statements
-func (tx *Tx) Prepare(q string) (*Stmt, error) {
-	if tx.done {
+func (tx *Tx) conn() (*pool.Conn, error) {
+	if tx._cn == nil {
 		return nil, errTxDone
 	}
+	tx._cn.SetReadTimeout(tx.db.opt.ReadTimeout)
+	tx._cn.SetWriteTimeout(tx.db.opt.WriteTimeout)
+	return tx._cn, nil
+}
 
-	cn := tx.conn()
-	return prepare(tx.db, cn, q)
+// Stmt returns a transaction-specific prepared statement from an existing statement.
+func (tx *Tx) Stmt(stmt *Stmt) *Stmt {
+	stmt, err := tx.Prepare(stmt.q)
+	if err != nil {
+		return &Stmt{stickyErr: err}
+	}
+	return stmt
+}
+
+// Prepare creates a prepared statement for use within a transaction.
+//
+// The returned statement operates within the transaction and can no longer
+// be used once the transaction has been committed or rolled back.
+//
+// To use an existing prepared statement on this transaction, see Tx.Stmt.
+func (tx *Tx) Prepare(q string) (*Stmt, error) {
+	cn, err := tx.conn()
+	if err != nil {
+		return nil, err
+	}
+	stmt, err := prepare(tx.db, cn, q)
+	if err != nil {
+		return nil, err
+	}
+	stmt.inTx = true
+	tx.stmts = append(tx.stmts, stmt)
+	return stmt, nil
 }
 
 // Exec executes a query with the given parameters in a transaction.
 func (tx *Tx) Exec(query interface{}, params ...interface{}) (*types.Result, error) {
-	if tx.done {
-		return nil, errTxDone
+	cn, err := tx.conn()
+	if err != nil {
+		return nil, err
 	}
-
-	cn := tx.conn()
 
 	res, err := simpleQuery(cn, query, params...)
 	if err != nil {
-		tx.setErr(err)
 		return nil, err
 	}
 	return res, nil
@@ -108,14 +135,13 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (*types.Result, 
 
 // Query executes a query with the given parameters in a transaction.
 func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (*types.Result, error) {
-	if tx.done {
-		return nil, errTxDone
+	cn, err := tx.conn()
+	if err != nil {
+		return nil, err
 	}
 
-	cn := tx.conn()
 	res, err := simpleQueryData(cn, model, query, params...)
 	if err != nil {
-		tx.setErr(err)
 		return nil, err
 	}
 	return res, nil
@@ -163,35 +189,21 @@ func (tx *Tx) Delete(model interface{}) error {
 
 // Commit commits the transaction.
 func (tx *Tx) Commit() (err error) {
-	if tx.done {
-		return errTxDone
-	}
-
 	if !noTx {
 		_, err = tx.Exec("COMMIT")
-		if err != nil {
-			tx.setErr(err)
-		}
 	}
 
-	tx.close()
+	tx.close(err)
 	return err
 }
 
 // Rollback aborts the transaction.
 func (tx *Tx) Rollback() (err error) {
-	if tx.done {
-		return errTxDone
-	}
-
 	if !noTx {
 		_, err = tx.Exec("ROLLBACK")
-		if err != nil {
-			tx.setErr(err)
-		}
 	}
 
-	tx.close()
+	tx.close(err)
 	return err
 }
 
@@ -199,24 +211,31 @@ func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byt
 	return tx.db.FormatQuery(dst, query, params...)
 }
 
-func (tx *Tx) setErr(e error) {
-	tx.err = e
-}
-
-func (tx *Tx) close() error {
-	if tx.done {
-		return nil
+func (tx *Tx) close(err error) error {
+	if tx._cn == nil {
+		return errTxDone
 	}
-	tx.done = true
-	return tx.db.freeConn(tx._cn, tx.err)
+
+	for _, stmt := range tx.stmts {
+		_ = stmt.Close()
+	}
+	tx.stmts = nil
+
+	err = tx.db.freeConn(tx._cn, err)
+	tx._cn = nil
+
+	return err
 }
 
 // CopyFrom copies data from reader to a table.
 func (tx *Tx) CopyFrom(r io.Reader, query string, params ...interface{}) (*types.Result, error) {
-	cn := tx.conn()
+	cn, err := tx.conn()
+	if err != nil {
+		return nil, err
+	}
+
 	res, err := copyFrom(cn, r, query, params...)
 	if err != nil {
-		tx.setErr(err)
 		return nil, err
 	}
 	return res, nil

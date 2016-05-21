@@ -5,12 +5,11 @@ import (
 	"io"
 )
 
-var nullParamLength = int32(-1)
-
 type Buffer struct {
 	w     io.Writer
 	Bytes []byte
-	start []int // Message start position.
+
+	msgStart, paramStart int
 }
 
 func NewBuffer(w io.Writer, b []byte) *Buffer {
@@ -22,37 +21,34 @@ func NewBuffer(w io.Writer, b []byte) *Buffer {
 
 func (buf *Buffer) StartMessage(c byte) {
 	if c == 0 {
-		buf.start = append(buf.start, len(buf.Bytes))
+		buf.msgStart = len(buf.Bytes)
 		buf.Bytes = append(buf.Bytes, 0, 0, 0, 0)
 	} else {
-		buf.start = append(buf.start, len(buf.Bytes)+1)
+		buf.msgStart = len(buf.Bytes) + 1
 		buf.Bytes = append(buf.Bytes, c, 0, 0, 0, 0)
 	}
 }
 
-func (buf *Buffer) popStart() int {
-	start := buf.start[len(buf.start)-1]
-	buf.start = buf.start[:len(buf.start)-1]
-	return start
-}
-
 func (buf *Buffer) FinishMessage() {
-	start := buf.popStart()
-	binary.BigEndian.PutUint32(buf.Bytes[start:], uint32(len(buf.Bytes)-start))
+	binary.BigEndian.PutUint32(
+		buf.Bytes[buf.msgStart:], uint32(len(buf.Bytes)-buf.msgStart))
 }
 
 func (buf *Buffer) StartParam() {
-	buf.StartMessage(0)
+	buf.paramStart = len(buf.Bytes)
+	buf.Bytes = append(buf.Bytes, 0, 0, 0, 0)
 }
 
 func (buf *Buffer) FinishParam() {
-	start := buf.popStart()
-	binary.BigEndian.PutUint32(buf.Bytes[start:], uint32(len(buf.Bytes)-start-4))
+	binary.BigEndian.PutUint32(
+		buf.Bytes[buf.paramStart:], uint32(len(buf.Bytes)-buf.paramStart-4))
 }
 
+var nullParamLength = int32(-1)
+
 func (buf *Buffer) FinishNullParam() {
-	start := buf.popStart()
-	binary.BigEndian.PutUint32(buf.Bytes[start:], uint32(nullParamLength))
+	binary.BigEndian.PutUint32(
+		buf.Bytes[buf.paramStart:], uint32(nullParamLength))
 }
 
 func (buf *Buffer) Write(b []byte) (int, error) {
@@ -85,17 +81,12 @@ func (buf *Buffer) WriteByte(c byte) {
 }
 
 func (buf *Buffer) Flush() error {
-	if len(buf.start) != 0 {
-		panic("message was not finished")
-	}
-
 	_, err := buf.w.Write(buf.Bytes)
 	buf.Bytes = buf.Bytes[:0]
 	return err
 }
 
 func (buf *Buffer) Reset() {
-	buf.start = buf.start[:0]
 	buf.Bytes = buf.Bytes[:0]
 }
 
