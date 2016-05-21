@@ -44,7 +44,11 @@ const (
 
 	executeMsg = 'E'
 
-	syncMsg = 'S'
+	syncMsg  = 'S'
+	flushMsg = 'H'
+
+	closeMsg         = 'C'
+	closeCompleteMsg = '3'
 
 	copyInResponseMsg  = 'G'
 	copyOutResponseMsg = 'H'
@@ -227,6 +231,11 @@ func writePasswordMsg(buf *pool.Buffer, password string) {
 	buf.FinishMessage()
 }
 
+func writeFlushMsg(buf *pool.Buffer) {
+	buf.StartMessage(flushMsg)
+	buf.FinishMessage()
+}
+
 func writeCancelRequestMsg(buf *pool.Buffer, processId, secretKey int32) {
 	buf.StartMessage(0)
 	buf.WriteInt32(80877102)
@@ -262,6 +271,11 @@ func appendQuery(dst []byte, query interface{}, params ...interface{}) ([]byte, 
 	}
 }
 
+func writeSyncMsg(buf *pool.Buffer) {
+	buf.StartMessage(syncMsg)
+	buf.FinishMessage()
+}
+
 func writeParseDescribeSyncMsg(buf *pool.Buffer, name, q string) {
 	buf.StartMessage(parseMsg)
 	buf.WriteString(name)
@@ -274,8 +288,7 @@ func writeParseDescribeSyncMsg(buf *pool.Buffer, name, q string) {
 	buf.WriteString(name)
 	buf.FinishMessage()
 
-	buf.StartMessage(syncMsg)
-	buf.FinishMessage()
+	writeSyncMsg(buf)
 }
 
 func readParseDescribeSync(cn *pool.Conn) ([]string, error) {
@@ -356,13 +369,13 @@ func writeBindExecuteMsg(buf *pool.Buffer, name string, params ...interface{}) e
 	buf.WriteInt32(0)
 	buf.FinishMessage()
 
-	buf.StartMessage(syncMsg)
-	buf.FinishMessage()
+	writeSyncMsg(buf)
 
 	return nil
 }
 
-func readBindMsg(cn *pool.Conn) (e error) {
+func readBindMsg(cn *pool.Conn) error {
+	var retErr error
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -379,10 +392,10 @@ func readBindMsg(cn *pool.Conn) (e error) {
 			if err != nil {
 				return err
 			}
-			return
+			return retErr
 		case errorResponseMsg:
 			var err error
-			e, err = readError(cn)
+			retErr, err = readError(cn)
 			if err != nil {
 				return err
 			}
@@ -395,10 +408,44 @@ func readBindMsg(cn *pool.Conn) (e error) {
 				return err
 			}
 		default:
-			if e != nil {
-				return e
-			}
 			return fmt.Errorf("pg: readBindMsg: unexpected message %#x", c)
+		}
+	}
+}
+
+func writeCloseMsg(buf *pool.Buffer, name string) {
+	buf.StartMessage(closeMsg)
+	buf.WriteByte('S')
+	buf.WriteString(name)
+	buf.FinishMessage()
+}
+
+func readCloseCompleteMsg(cn *pool.Conn) error {
+	for {
+		c, msgLen, err := readMessageType(cn)
+		if err != nil {
+			return err
+		}
+		switch c {
+		case closeCompleteMsg:
+			_, err := cn.ReadN(msgLen)
+			return err
+		case errorResponseMsg:
+			e, err := readError(cn)
+			if err != nil {
+				return err
+			}
+			return e
+		case noticeResponseMsg:
+			if err := logNotice(cn, msgLen); err != nil {
+				return err
+			}
+		case parameterStatusMsg:
+			if err := logParameterStatus(cn, msgLen); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("pg: readCloseCompleteMsg: unexpected message %#x", c)
 		}
 	}
 }
@@ -894,10 +941,10 @@ func readNotification(cn *pool.Conn) (channel, payload string, err error) {
 	}
 }
 
-var terminateMessage = []byte{terminateMsg, 0, 0, 0, 5}
+var terminateMessage = []byte{terminateMsg, 0, 0, 0, 4}
 
 func terminateConn(cn *pool.Conn) error {
-	// Don't use cn.Buf because it is racy.
+	// Don't use cn.Buf because it is racy with user code.
 	_, err := cn.Write(terminateMessage)
 	return err
 }
