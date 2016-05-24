@@ -48,6 +48,10 @@ func init() {
 }
 
 func Appender(typ reflect.Type) AppenderFunc {
+	return appender(typ, false)
+}
+
+func appender(typ reflect.Type, pgArray bool) AppenderFunc {
 	if typ == timeType {
 		return appendTimeValue
 	}
@@ -67,6 +71,9 @@ func Appender(typ reflect.Type) AppenderFunc {
 	case reflect.Slice:
 		if typ.Elem().Kind() == reflect.Uint8 {
 			return appendBytesValue
+		}
+		if pgArray {
+			return ArrayAppender(typ)
 		}
 	}
 	return valueAppenders[kind]

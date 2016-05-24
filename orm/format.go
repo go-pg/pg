@@ -45,7 +45,7 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 	var modelErr error
 
 	for p.Valid() {
-		b, ok := p.JumpTo('?')
+		b, ok := p.ReadSep('?')
 		if !ok {
 			dst = append(dst, b...)
 			continue

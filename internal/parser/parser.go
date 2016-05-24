@@ -38,22 +38,16 @@ func (p *Parser) Peek() byte {
 	return 0
 }
 
-func (p *Parser) Skip(_ byte) {
-	if p.Valid() {
-		p.b = p.b[1:]
-	}
+func (p *Parser) Advance() {
+	p.b = p.b[1:]
 }
 
-func (p *Parser) JumpTo(c byte) ([]byte, bool) {
-	ind := bytes.IndexByte(p.b, c)
-	if ind == -1 {
-		b := p.b
-		p.b = p.b[len(p.b):]
-		return b, false
+func (p *Parser) Skip(c byte) bool {
+	if p.Peek() == c {
+		p.Advance()
+		return true
 	}
-	b := p.b[:ind]
-	p.b = p.b[ind+1:]
-	return b, true
+	return false
 }
 
 func (p *Parser) Got(s string) bool {
@@ -67,16 +61,17 @@ func (p *Parser) Got(s string) bool {
 	return true
 }
 
-func (p *Parser) ReadSep(c byte) []byte {
+func (p *Parser) ReadSep(c byte) ([]byte, bool) {
 	ind := bytes.IndexByte(p.b, c)
 	if ind == -1 {
 		b := p.b
 		p.b = p.b[len(p.b):]
-		return b
+		return b, false
 	}
+
 	b := p.b[:ind]
 	p.b = p.b[ind+1:]
-	return b
+	return b, true
 }
 
 func (p *Parser) ReadIdentifier() []byte {

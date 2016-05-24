@@ -278,7 +278,14 @@ func conversionTests() []conversionTest {
 		{src: pg.Array([]string(nil)), dst: pg.Array(new([]string)), pgtype: "text[]", wantnil: true},
 		{src: pg.Array([]string{}), dst: pg.Array(new([]string)), pgtype: "text[]"},
 		{src: pg.Array([]string{"one", "two", "three"}), dst: pg.Array(new([]string)), pgtype: "text[]"},
-		{src: pg.Array([]string{`'"`}), dst: pg.Array(new([]string)), pgtype: "text[]"},
+		{src: pg.Array([]string{`'"{}`}), dst: pg.Array(new([]string)), pgtype: "text[]"},
+
+		{src: nil, dst: pg.Array([][]string(nil)), pgtype: "text[][]", wanterr: "pg: Scan(nonsettable [][]string)"},
+		{src: nil, dst: pg.Array(new([][]string)), pgtype: "text[][]", wantnil: true},
+		{src: pg.Array([][]string(nil)), dst: pg.Array(new([]string)), pgtype: "text[][]", wantnil: true},
+		{src: pg.Array([][]string{}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
+		{src: pg.Array([][]string{{"one", "two"}, {"three"}}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
+		{src: pg.Array([][]string{{`'"{}`}}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
 
 		{src: nil, dst: sql.NullBool{}, pgtype: "bool", wanterr: "pg: Scan(nonsettable sql.NullBool)"},
 		{src: nil, dst: new(*sql.NullBool), pgtype: "bool", wantnil: true},
