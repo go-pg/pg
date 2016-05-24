@@ -470,7 +470,13 @@ Please go through [examples](http://godoc.org/gopkg.in/pg.v4#pkg-examples) to ge
 
 ### How can I view queries this library generates?
 
-You can configure PostgreSQL to log every query by adding following lines to your postgresql.conf (usually /etc/postgresql/9.5/main/postgresql.conf):
+You can setup query logger like this:
+
+```go
+pg.SetQueryLogger(log.New(os.Stdout, "", log.LstdFlags))
+```
+
+Or you can configure PostgreSQL to log every query by adding following lines to your postgresql.conf (usually /etc/postgresql/9.5/main/postgresql.conf):
 
 ```
 log_statement = 'all'
