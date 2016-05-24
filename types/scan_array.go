@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"gopkg.in/pg.v4/internal"
+	"gopkg.in/pg.v4/internal/parser"
 )
 
 var sliceScanner = []ScannerFunc{
@@ -43,7 +44,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 		return scanner
 	}
 
-	scanElem := Scanner(elemType)
+	scanElem := scanner(elemType, true)
 	return func(v reflect.Value, b []byte) error {
 		if !v.CanSet() {
 			return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
@@ -57,14 +58,11 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 		if v.IsNil() {
 			v.Set(reflect.MakeSlice(v.Type(), 0, 0))
 		}
-		p := newArrayParser(b)
+		p := parser.NewArrayParser(b)
 		for p.Valid() {
 			elem, err := p.NextElem()
 			if err != nil {
 				return err
-			}
-			if elem == nil {
-				return internal.Errorf("pg: unexpected NULL: %q", b)
 			}
 			elemValue := internal.SliceNextElem(v)
 			if err := scanElem(elemValue, elem); err != nil {
@@ -91,15 +89,12 @@ func decodeStringSlice(b []byte) ([]string, error) {
 	if b == nil {
 		return nil, nil
 	}
-	p := newArrayParser(b)
+	p := parser.NewArrayParser(b)
 	s := make([]string, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
 		if err != nil {
 			return nil, err
-		}
-		if elem == nil {
-			return nil, internal.Errorf("pg: unexpected NULL: %q", b)
 		}
 		s = append(s, string(elem))
 	}
@@ -122,23 +117,24 @@ func decodeIntSlice(b []byte) ([]int, error) {
 	if b == nil {
 		return nil, nil
 	}
-	p := newArrayParser(b)
-	s := make([]int, 0)
+	p := parser.NewArrayParser(b)
+	slice := make([]int, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
 		if err != nil {
 			return nil, err
 		}
 		if elem == nil {
-			return nil, internal.Errorf("pg: unexpected NULL: %q", b)
+			slice = append(slice, 0)
+			continue
 		}
 		n, err := strconv.Atoi(string(elem))
 		if err != nil {
 			return nil, err
 		}
-		s = append(s, n)
+		slice = append(slice, n)
 	}
-	return s, nil
+	return slice, nil
 }
 
 func scanInt64SliceValue(v reflect.Value, b []byte) error {
@@ -157,23 +153,24 @@ func decodeInt64Slice(b []byte) ([]int64, error) {
 	if b == nil {
 		return nil, nil
 	}
-	p := newArrayParser(b)
-	s := make([]int64, 0)
+	p := parser.NewArrayParser(b)
+	slice := make([]int64, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
 		if err != nil {
 			return nil, err
 		}
 		if elem == nil {
-			return nil, internal.Errorf("pg: unexpected NULL: %q", b)
+			slice = append(slice, 0)
+			continue
 		}
 		n, err := strconv.ParseInt(string(elem), 10, 64)
 		if err != nil {
 			return nil, err
 		}
-		s = append(s, n)
+		slice = append(slice, n)
 	}
-	return s, nil
+	return slice, nil
 }
 
 func scanFloat64SliceValue(v reflect.Value, b []byte) error {
@@ -192,7 +189,7 @@ func decodeFloat64Slice(b []byte) ([]float64, error) {
 	if b == nil {
 		return nil, nil
 	}
-	p := newArrayParser(b)
+	p := parser.NewArrayParser(b)
 	slice := make([]float64, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
@@ -200,7 +197,8 @@ func decodeFloat64Slice(b []byte) ([]float64, error) {
 			return nil, err
 		}
 		if elem == nil {
-			return nil, internal.Errorf("pg: unexpected NULL: %q", b)
+			slice = append(slice, 0)
+			continue
 		}
 		n, err := strconv.ParseFloat(string(elem), 64)
 		if err != nil {

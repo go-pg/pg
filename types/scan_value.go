@@ -56,6 +56,10 @@ func init() {
 }
 
 func Scanner(typ reflect.Type) ScannerFunc {
+	return scanner(typ, false)
+}
+
+func scanner(typ reflect.Type, pgArray bool) ScannerFunc {
 	if typ == timeType {
 		return scanTimeValue
 	}
@@ -74,6 +78,9 @@ func Scanner(typ reflect.Type) ScannerFunc {
 	case reflect.Slice:
 		if typ.Elem().Kind() == reflect.Uint8 {
 			return scanBytesValue
+		}
+		if pgArray {
+			return ArrayScanner(typ)
 		}
 	}
 	return valueScanners[kind]

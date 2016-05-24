@@ -48,7 +48,7 @@ func ArrayAppender(typ reflect.Type) AppenderFunc {
 		return appender
 	}
 
-	appendElem := Appender(elemType)
+	appendElem := appender(elemType, true)
 	return func(b []byte, v reflect.Value, quote int) []byte {
 		if v.IsNil() {
 			return AppendNull(b, quote)
