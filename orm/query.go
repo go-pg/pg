@@ -32,25 +32,20 @@ type Query struct {
 }
 
 func NewQuery(db dber, v ...interface{}) *Query {
-	var model tableModel
-	var err error
-	switch len(v) {
-	case 0:
-	case 1:
+	q := Query{
+		db: db,
+	}
+	switch l := len(v); {
+	case l == 1:
 		v0 := v[0]
 		if v0 != nil {
-			model, err = newTableModel(v0)
+			q.model, q.err = newTableModel(v0)
 		}
-	default:
-		model, err = newTableModel(&v)
-	}
-	q := Query{
-		db:    db,
-		model: model,
-		err:   err,
+	case l > 1:
+		q.model, q.err = newTableModel(&v)
 	}
 	if q.model != nil {
-		q.tableName = q.FormatQuery(nil, string(q.model.Table().Name))
+		q.tableName = q.FormatQuery(q.tableName, string(q.model.Table().Name))
 	}
 	return &q
 }

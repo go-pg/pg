@@ -1,6 +1,9 @@
 package orm
 
 import (
+	"bytes"
+	"strings"
+
 	"gopkg.in/pg.v4/internal/parser"
 	"gopkg.in/pg.v4/types"
 )
@@ -62,14 +65,19 @@ func (f *Formatter) SetParam(key string, value interface{}) {
 }
 
 func (f Formatter) Append(dst []byte, src string, params ...interface{}) []byte {
+	if len(params) == 0 || strings.IndexByte(src, '?') == -1 {
+		return append(dst, src...)
+	}
 	return f.append(dst, parser.NewString(src), params)
 }
 
 func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
+	if len(params) == 0 || bytes.IndexByte(src, '?') == -1 {
+		return append(dst, src...)
+	}
 	return f.append(dst, parser.New(src), params)
 }
 
-// TODO: add formatContext and split this method
 func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []byte {
 	var paramsIndex int
 	var model *structTableModel
