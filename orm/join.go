@@ -21,7 +21,7 @@ func (j *join) AppendColumns(dst []byte) []byte {
 			dst = appendSep(dst, ", ")
 			dst = append(dst, j.Rel.Field.ColName...)
 			dst = append(dst, '.')
-			dst, _ = f.ColName.AppendValue(dst, 1)
+			dst = append(dst, f.ColName...)
 			dst = append(dst, " AS "...)
 			dst = types.AppendFieldBytes(dst, append(alias, f.SQLName...), 1)
 		}
@@ -42,7 +42,7 @@ func (j *join) AppendColumns(dst []byte) []byte {
 func (j *join) JoinOne(q *Query) {
 	var cond types.Q
 	for i, pk := range j.Rel.Join.PKs {
-		cond = q.format(
+		cond = q.FormatQuery(
 			cond,
 			`?.? = ?.?`,
 			j.Rel.Field.ColName,

@@ -50,7 +50,7 @@ func NewQuery(db dber, v ...interface{}) *Query {
 		err:   err,
 	}
 	if q.model != nil {
-		q.tableName = q.format(nil, string(q.model.Table().Name))
+		q.tableName = q.FormatQuery(nil, string(q.model.Table().Name))
 	}
 	return &q
 }
@@ -97,39 +97,53 @@ loop:
 
 func (q *Query) ColumnExpr(expr string, params ...interface{}) *Query {
 	q.columns = appendSep(q.columns, ", ")
-	q.columns = q.format(q.columns, expr, params...)
+	q.columns = q.FormatQuery(q.columns, expr, params...)
 	return q
 }
 
 func (q *Query) Set(set string, params ...interface{}) *Query {
 	q.set = appendSep(q.set, ", ")
-	q.set = q.format(q.set, set, params...)
+	q.set = q.FormatQuery(q.set, set, params...)
 	return q
 }
 
 func (q *Query) Where(where string, params ...interface{}) *Query {
 	q.where = appendSep(q.where, " AND ")
 	q.where = append(q.where, '(')
-	q.where = q.format(q.where, where, params...)
+	q.where = q.FormatQuery(q.where, where, params...)
+	q.where = append(q.where, ')')
+	return q
+}
+
+// WhereOr joins passed conditions using OR operation.
+func (q *Query) WhereOr(conditions ...SQL) *Query {
+	q.where = appendSep(q.where, " AND ")
+	q.where = append(q.where, '(')
+	for i, cond := range conditions {
+		q.where = cond.AppendFormat(q.where, q)
+		if i != len(conditions)-1 {
+			q.where = append(q.where, " OR "...)
+		}
+	}
 	q.where = append(q.where, ')')
 	return q
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
 	q.join = appendSep(q.join, " ")
-	q.join = q.format(q.join, join, params...)
+	q.join = q.FormatQuery(q.join, join, params...)
 	return q
 }
 
 func (q *Query) Group(group string, params ...interface{}) *Query {
 	q.group = appendSep(q.group, ", ")
-	q.group = q.format(q.group, group, params...)
+	q.group = q.FormatQuery(q.group, group, params...)
 	return q
 }
 
 func (q *Query) Order(order string, params ...interface{}) *Query {
 	q.order = appendSep(q.order, ", ")
-	q.order = q.format(q.order, order, params...)
+	q.order = q.FormatQuery(q.order, order, params...)
 	return q
 }
 
@@ -144,7 +158,7 @@ func (q *Query) Offset(n int) *Query {
 }
 
 func (q *Query) OnConflict(s string, params ...interface{}) *Query {
-	q.onConflict = q.format(nil, s, params...)
+	q.onConflict = q.FormatQuery(nil, s, params...)
 	return q
 }
 
@@ -175,7 +189,7 @@ func (q *Query) Count() (int, error) {
 	}
 
 	q = q.copy()
-	q.columns = types.Q("COUNT(*)")
+	q.columns = types.Q("count(*)")
 	q.order = nil
 	q.limit = 0
 	q.offset = 0
@@ -360,7 +374,7 @@ func (q *Query) Delete() (*types.Result, error) {
 	return q.db.Exec(deleteQuery{q}, q.model)
 }
 
-func (q *Query) format(dst []byte, query string, params ...interface{}) []byte {
+func (q *Query) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
 	params = append(params, q.model)
 	return q.db.FormatQuery(dst, query, params...)
 }

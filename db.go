@@ -107,8 +107,8 @@ func (db *DB) Close() error {
 	return db.pool.Close()
 }
 
-// Exec executes a query ignoring returned rows. The params are for
-// any placeholder parameters in the query.
+// Exec executes a query ignoring returned rows. The params are for any
+// placeholder parameters in the query.
 func (db *DB) Exec(query interface{}, params ...interface{}) (res *types.Result, err error) {
 	for i := 0; ; i++ {
 		var cn *pool.Conn

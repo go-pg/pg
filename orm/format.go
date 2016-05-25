@@ -5,6 +5,35 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
+type SQL struct {
+	query  string
+	params []interface{}
+}
+
+var _ types.ValueAppender = (*SQL)(nil)
+
+func NewSQL(query string, params ...interface{}) SQL {
+	return SQL{
+		query:  query,
+		params: params,
+	}
+}
+
+func (q SQL) String() string {
+	b, _ := q.AppendValue(nil, 1)
+	return string(b)
+}
+
+func (q SQL) AppendValue(dst []byte, quote int) ([]byte, error) {
+	return Formatter{}.Append(dst, q.query, q.params...), nil
+}
+
+func (q SQL) AppendFormat(dst []byte, f QueryFormatter) []byte {
+	return f.FormatQuery(dst, q.query, q.params...)
+}
+
+//------------------------------------------------------------------------------
+
 func Q(query string, params ...interface{}) types.Q {
 	if len(params) == 0 {
 		return types.Q(query)
@@ -18,6 +47,8 @@ func F(field string, params ...interface{}) types.F {
 	}
 	return types.F(Formatter{}.Append(nil, field, params...))
 }
+
+//------------------------------------------------------------------------------
 
 type Formatter struct {
 	paramsMap map[string]interface{}

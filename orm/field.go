@@ -6,11 +6,6 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
-var (
-	queryType = reflect.TypeOf(types.Q(nil))
-	fieldType = reflect.TypeOf(types.F(""))
-)
-
 const (
 	PrimaryKeyFlag = 1 << iota
 	ForeignKeyFlag = 1 << iota
@@ -18,9 +13,9 @@ const (
 )
 
 type Field struct {
-	GoName  string  // struct field name, e.g. Id
-	SQLName string  // SQL name, .e.g. id
-	ColName types.Q // escaped column name, e.g. "id"
+	GoName  string // struct field name, e.g. Id
+	SQLName string // SQL name, .e.g. id
+	ColName types.Q
 	Index   []int
 
 	flags int8

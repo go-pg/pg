@@ -6,7 +6,7 @@ type ValueAppender interface {
 
 //------------------------------------------------------------------------------
 
-// Q is a ValueAppender that represents safe SQL query.
+// Q represents safe SQL query.
 type Q []byte
 
 var _ ValueAppender = Q(nil)
@@ -17,7 +17,7 @@ func (q Q) AppendValue(dst []byte, quote int) ([]byte, error) {
 
 //------------------------------------------------------------------------------
 
-// F is a ValueAppender that represents SQL field, e.g. table or column name.
+// F represents a SQL field, e.g. table or column name.
 type F string
 
 var _ ValueAppender = F("")

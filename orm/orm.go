@@ -22,7 +22,11 @@ type Collection interface {
 }
 
 type QueryAppender interface {
-	AppendQuery([]byte, ...interface{}) ([]byte, error)
+	AppendQuery(dst []byte, params ...interface{}) ([]byte, error)
+}
+
+type QueryFormatter interface {
+	FormatQuery(dst []byte, query string, params ...interface{}) []byte
 }
 
 type dber interface {
@@ -30,5 +34,5 @@ type dber interface {
 	ExecOne(q interface{}, params ...interface{}) (*types.Result, error)
 	Query(coll, query interface{}, params ...interface{}) (*types.Result, error)
 	QueryOne(model, query interface{}, params ...interface{}) (*types.Result, error)
-	FormatQuery(dst []byte, query string, params ...interface{}) []byte
+	QueryFormatter
 }
