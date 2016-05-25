@@ -18,13 +18,18 @@ func Scan(values ...interface{}) orm.ColumnScanner {
 	return orm.Scan(values...)
 }
 
-// Q returns a ValueAppender that represents safe SQL query.
+// SQL returns a SQL query with params that are formatted on query execution.
+func SQL(query string, params ...interface{}) orm.SQL {
+	return orm.NewSQL(query, params...)
+}
+
+// Q replaces any placeholders found in the query.
 func Q(query string, params ...interface{}) types.Q {
 	return orm.Q(query, params...)
 }
 
-// F returns a ValueAppender that represents SQL identifier,
-// e.g. table or column name.
+// F quotes a SQL identifier such as a table or column name replacing any
+// placeholders found in the field.
 func F(field string, params ...interface{}) types.F {
 	return orm.F(field, params...)
 }

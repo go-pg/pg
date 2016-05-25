@@ -26,8 +26,8 @@ func indirectNew(v reflect.Value) reflect.Value {
 func columns(table types.Q, prefix string, fields []*Field) []byte {
 	var b []byte
 	for i, f := range fields {
-		if table != nil {
-			b, _ = table.AppendValue(b, 1)
+		if len(table) > 0 {
+			b = append(b, table...)
 			b = append(b, '.')
 		}
 		b = types.AppendField(b, prefix+f.SQLName, 1)

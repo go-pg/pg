@@ -358,6 +358,23 @@ func ExampleDB_Select_groupBy() {
 	// author 11 has 1 books
 }
 
+func ExampleDB_Select_whereOr() {
+	authorIdOrEditorId := 1
+
+	var books []Book
+	err := db.Model(&books).
+		WhereOr(
+			pg.SQL("author_id = ?", authorIdOrEditorId),
+			pg.SQL("editor_id = ?", authorIdOrEditorId),
+		).
+		Select()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(books)
+	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
+}
+
 func ExampleDB_Model_count() {
 	db := modelDB()
 
@@ -656,7 +673,7 @@ func ExampleQ() {
 	cond := fmt.Sprintf("id = %d", 1)
 
 	var book Book
-	err := db.Model(&book).Where("?", pg.Q(cond)).Select()
+	err := db.Model(&book).Where("?", pg.SQL(cond)).Select()
 	if err != nil {
 		panic(err)
 	}
