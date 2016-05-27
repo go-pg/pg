@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"gopkg.in/pg.v4"
+	"gopkg.in/pg.v4/orm"
 )
 
 func modelDB() *pg.DB {
@@ -428,6 +429,34 @@ func ExampleDB_Model_nullEmptyValue() {
 	// Output: false
 }
 
+func ExampleDB_Model_applyFunc() {
+	db := modelDB()
+
+	var authorId int
+	var editorId int
+
+	filter := func(q *orm.Query) *orm.Query {
+		if authorId != 0 {
+			q = q.Where("author_id = ?", authorId)
+		}
+		if editorId != 0 {
+			q = q.Where("editor_id = ?", editorId)
+		}
+		return q
+	}
+
+	var books []Book
+	authorId = 1
+	err := db.Model(&books).
+		Apply(filter).
+		Select()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(books)
+	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
+}
+
 func ExampleDB_Model_hasOne() {
 	type Item struct {
 		Id int
@@ -673,7 +702,7 @@ func ExampleQ() {
 	cond := fmt.Sprintf("id = %d", 1)
 
 	var book Book
-	err := db.Model(&book).Where("?", pg.SQL(cond)).Select()
+	err := db.Model(&book).Where("?", pg.Q(cond)).Select()
 	if err != nil {
 		panic(err)
 	}
