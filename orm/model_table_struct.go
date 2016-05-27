@@ -66,6 +66,12 @@ func (m *structTableModel) AppendParam(dst []byte, name string) ([]byte, bool) {
 		return dst, true
 	}
 
+	switch name {
+	case "TableAlias":
+		dst = append(dst, m.table.Alias...)
+		return dst, true
+	}
+
 	return dst, false
 }
 

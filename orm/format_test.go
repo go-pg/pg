@@ -18,6 +18,8 @@ func (e ValuerError) Value() (driver.Value, error) {
 }
 
 type StructFormatter struct {
+	TableName struct{} `sql:"my_name,alias:my_alias" json:"-"`
+
 	String    string
 	NullEmpty string `sql:",null"`
 	Iface     interface{}
@@ -78,6 +80,7 @@ var formatTests = []formatTest{
 	{q: "one ?foo two", params: params{structv}, wanted: "one ?foo two"},
 	{q: "one ?MethodWithArgs two", params: params{structv}, wanted: "one ?MethodWithArgs two"},
 	{q: "one ?MethodWithCompositeReturn two", params: params{structv}, wanted: "one ?MethodWithCompositeReturn two"},
+	{q: "?TableAlias", params: params{structv}, wanted: `"my_alias"`},
 
 	{q: "?", params: params{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
 	{q: "?", params: params{orm.Q("query")}, wanted: "query"},
