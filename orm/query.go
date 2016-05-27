@@ -110,8 +110,22 @@ func (q *Query) Where(where string, params ...interface{}) *Query {
 	return q
 }
 
+// WhereAnd joins passed conditions using AND operation.
+func (q *Query) WhereAnd(conditions ...*SQL) *Query {
+	q.where = appendSep(q.where, " AND ")
+	q.where = append(q.where, '(')
+	for i, cond := range conditions {
+		q.where = cond.AppendFormat(q.where, q)
+		if i != len(conditions)-1 {
+			q.where = append(q.where, " AND "...)
+		}
+	}
+	q.where = append(q.where, ')')
+	return q
+}
+
 // WhereOr joins passed conditions using OR operation.
-func (q *Query) WhereOr(conditions ...SQL) *Query {
+func (q *Query) WhereOr(conditions ...*SQL) *Query {
 	q.where = appendSep(q.where, " AND ")
 	q.where = append(q.where, '(')
 	for i, cond := range conditions {
