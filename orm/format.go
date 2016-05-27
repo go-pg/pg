@@ -65,14 +65,14 @@ func (f *Formatter) SetParam(key string, value interface{}) {
 }
 
 func (f Formatter) Append(dst []byte, src string, params ...interface{}) []byte {
-	if len(params) == 0 || strings.IndexByte(src, '?') == -1 {
+	if (params == nil && f.paramsMap == nil) || strings.IndexByte(src, '?') == -1 {
 		return append(dst, src...)
 	}
 	return f.append(dst, parser.NewString(src), params)
 }
 
 func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
-	if len(params) == 0 || bytes.IndexByte(src, '?') == -1 {
+	if (params == nil && f.paramsMap == nil) || bytes.IndexByte(src, '?') == -1 {
 		return append(dst, src...)
 	}
 	return f.append(dst, parser.New(src), params)
