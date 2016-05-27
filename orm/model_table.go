@@ -7,9 +7,10 @@ import (
 )
 
 type tableModel interface {
-	Table() *Table
-
 	Model
+
+	Table() *Table
+	AppendParam([]byte, string) ([]byte, bool)
 
 	Join(string) *join
 	GetJoin(string) *join

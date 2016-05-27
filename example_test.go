@@ -62,7 +62,7 @@ func ExampleDB_QueryOne_returning_id() {
 
 	_, err = db.QueryOne(&user, `
         INSERT INTO users (name) VALUES (?name) RETURNING id
-    `, user)
+    `, &user)
 	if err != nil {
 		panic(err)
 	}

@@ -80,7 +80,7 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
 
 func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []byte {
 	var paramsIndex int
-	var model *structTableModel
+	var model tableModel
 	var modelErr error
 
 	for p.Valid() {
@@ -113,7 +113,7 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 					goto restore_param
 				}
 
-				model, modelErr = newStructTableModel(params[len(params)-1])
+				model, modelErr = newTableModel(params[len(params)-1])
 				if modelErr != nil {
 					goto restore_param
 				}

@@ -420,7 +420,7 @@ func ExampleDB_Model_nullEmptyValue() {
 	}
 
 	var str sql.NullString
-	_, err := db.QueryOne(pg.Scan(&str), "SELECT ?hello", Example{Hello: ""})
+	_, err := db.QueryOne(pg.Scan(&str), "SELECT ?hello", &Example{Hello: ""})
 	if err != nil {
 		panic(err)
 	}
