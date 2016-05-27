@@ -593,11 +593,14 @@ func readDataRow(cn *pool.Conn, scanner orm.ColumnScanner, columns []string) (sc
 	return scanErr
 }
 
-func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res *types.Result, e error) {
+func readSimpleQueryData(cn *pool.Conn, mod interface{}) (*types.Result, error) {
+	var res *types.Result
+	var retErr error
+
 	coll, ok := mod.(orm.Collection)
 	if !ok {
-		coll, e = orm.NewModel(mod)
-		if e != nil {
+		coll, retErr = orm.NewModel(mod)
+		if retErr != nil {
 			coll = Discard
 		}
 	}
@@ -617,8 +620,8 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res *types.Result, e e
 			}
 		case dataRowMsg:
 			model = coll.NewModel()
-			if err := readDataRow(cn, model, columns); err != nil {
-				e = err
+			if err := readDataRow(cn, model, columns); err != nil && retErr == nil {
+				retErr = err
 			}
 			if err := coll.AddModel(model); err != nil {
 				return nil, err
@@ -634,12 +637,14 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res *types.Result, e e
 			if err != nil {
 				return nil, err
 			}
-			return
+			return res, retErr
 		case errorResponseMsg:
-			var err error
-			e, err = readError(cn)
+			e, err := readError(cn)
 			if err != nil {
 				return nil, err
+			}
+			if e != nil && retErr == nil {
+				retErr = e
 			}
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
@@ -650,9 +655,6 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res *types.Result, e e
 				return nil, err
 			}
 		default:
-			if e != nil {
-				return nil, e
-			}
 			return nil, fmt.Errorf("pg: readSimpleQueryData: unexpected message %#x", c)
 		}
 	}

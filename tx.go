@@ -173,8 +173,8 @@ func (tx *Tx) Select(model interface{}) error {
 }
 
 // Create inserts the model updating primary keys if they are empty.
-func (tx *Tx) Create(model interface{}) error {
-	return orm.Create(tx, model)
+func (tx *Tx) Create(model ...interface{}) error {
+	return orm.Create(tx, model...)
 }
 
 // Update updates the model by primary key.

@@ -7,7 +7,6 @@ import (
 	"strings"
 )
 
-// TODO: extract AppendParam to separate struct and use it in Formatter
 type structTableModel struct {
 	table *Table
 	joins []join
