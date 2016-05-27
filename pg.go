@@ -19,7 +19,7 @@ func Scan(values ...interface{}) orm.ColumnScanner {
 }
 
 // SQL returns a SQL query with params that are formatted on query execution.
-func SQL(query string, params ...interface{}) orm.SQL {
+func SQL(query string, params ...interface{}) *orm.SQL {
 	return orm.NewSQL(query, params...)
 }
 

@@ -15,8 +15,8 @@ type SQL struct {
 
 var _ types.ValueAppender = (*SQL)(nil)
 
-func NewSQL(query string, params ...interface{}) SQL {
-	return SQL{
+func NewSQL(query string, params ...interface{}) *SQL {
+	return &SQL{
 		query:  query,
 		params: params,
 	}
