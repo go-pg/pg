@@ -33,6 +33,13 @@ Examples: http://godoc.org/gopkg.in/pg.v4#pkg-examples.
 * [Quickstart](#quickstart)
 * [Model definition](#model-definition)
 * [Writing queries](#writing-queries)
+  * [Select](#select)
+  * [Insert](#insert)
+  * [Update](#update)
+  * [Delete](#delete)
+  * [Has one](#has-one)
+  * [Has many](#has-many)
+  * [Has many to many](#has-many-to-many)
 * [Howto](#howto)
 * [FAQ](#faq)
 
@@ -358,6 +365,59 @@ err := db.Delete(&book)
 // Delete book by title.
 res, err := db.Model(&book).Where("title = ?title").Delete()
 // DELETE FROM "books" WHERE title = 'my title'
+```
+
+### Has one
+
+```go
+type Item struct {
+    Id int
+
+    Sub   *Item
+    SubId int
+}
+
+var items []Item
+err := db.Model(&items).
+    Column("item.*", "Sub").
+    Where("item.sub_id IS NOT NULL").
+    Select()
+// SELECT "item".*, "sub"."id" AS "sub__id", "sub"."sub_id" AS "sub__sub_id"
+// FROM "items" AS "item"
+// LEFT JOIN "items" AS "sub" ON "sub"."id" = item."sub_id"
+// WHERE (item.sub_id IS NOT NULL)
+```
+
+### Has many
+
+```go
+type Item struct {
+    Id       int
+    Items    []Item `pg:",fk:Parent"`
+    ParentId int
+}
+
+var item Item
+err := db.Model(&item).Column("item.*", "Items").First()
+// SELECT "item".* FROM "items" AS "item" ORDER BY "item"."id" LIMIT 1
+//
+// SELECT "item".* FROM "items" AS "item" WHERE (("item"."parent_id") IN ((1)))
+```
+
+### Has many to many
+
+```go
+type Item struct {
+    Id    int
+    Items []Item `pg:",many2many:item_to_items,joinFK:Sub"`
+}
+
+err := db.Model(&item).Column("item.*", "Items").First()
+// SELECT "item".* FROM "items" AS "item" ORDER BY "item"."id" LIMIT 1
+//
+// SELECT * FROM "items" AS "item"
+// JOIN "item_to_items" ON ("item_to_items"."item_id") IN ((1))
+// WHERE ("item"."id" = "item_to_items"."sub_id")
 ```
 
 ## Howto
