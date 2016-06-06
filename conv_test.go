@@ -167,6 +167,7 @@ func conversionTests() []conversionTest {
 		{src: nil, dst: new(bool), pgtype: "bool", wantzero: true},
 		{src: true, dst: new(bool), pgtype: "bool"},
 		{src: true, dst: new(*bool), pgtype: "bool"},
+		{src: 1, dst: new(bool), wanted: true},
 
 		{src: nil, dst: "", pgtype: "text", wanterr: "pg: Scan(nonsettable string)"},
 		{src: nil, dst: new(string), pgtype: "text", wantzero: true},
