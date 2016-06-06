@@ -153,7 +153,7 @@ func scanBoolValue(v reflect.Value, b []byte) error {
 		v.SetBool(false)
 		return nil
 	}
-	v.SetBool(len(b) == 1 && b[0] == 't')
+	v.SetBool(len(b) == 1 && (b[0] == 't' || b[0] == '1'))
 	return nil
 }
 
