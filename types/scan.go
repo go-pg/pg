@@ -88,26 +88,3 @@ func scanBytes(b []byte) ([]byte, error) {
 	_, err := hex.Decode(tmp, b)
 	return tmp, err
 }
-
-func scanStringStringMap(f []byte) (map[string]string, error) {
-	p := newHstoreParser(f)
-	m := make(map[string]string)
-	for p.Valid() {
-		key, err := p.NextKey()
-		if err != nil {
-			return nil, err
-		}
-		if key == nil {
-			return nil, internal.Errorf("pg: unexpected NULL: %q", f)
-		}
-		value, err := p.NextValue()
-		if err != nil {
-			return nil, err
-		}
-		if value == nil {
-			return nil, internal.Errorf("pg: unexpected NULL: %q", f)
-		}
-		m[string(key)] = string(value)
-	}
-	return m, nil
-}

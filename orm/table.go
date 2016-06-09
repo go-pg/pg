@@ -176,6 +176,9 @@ func (t *Table) newField(f reflect.StructField) *Field {
 	if _, ok := pgOpt.Get("array"); ok {
 		appender = types.ArrayAppender(f.Type)
 		scanner = types.ArrayScanner(f.Type)
+	} else if _, ok := pgOpt.Get("hstore"); ok {
+		appender = types.HstoreAppender(f.Type)
+		scanner = types.HstoreScanner(f.Type)
 	} else {
 		appender = types.Appender(f.Type)
 		scanner = types.Scanner(f.Type)

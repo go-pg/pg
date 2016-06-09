@@ -6,7 +6,7 @@ import (
 	"gopkg.in/pg.v4/internal/parser"
 )
 
-var tests = []struct {
+var arrayTests = []struct {
 	s   string
 	els []string
 }{
@@ -24,7 +24,7 @@ var tests = []struct {
 }
 
 func TestArrayParser(t *testing.T) {
-	for testi, test := range tests {
+	for testi, test := range arrayTests {
 		p := parser.NewArrayParser([]byte(test.s))
 
 		var got []string

@@ -258,19 +258,6 @@ func scanBytesValue(v reflect.Value, b []byte) error {
 	return nil
 }
 
-func scanMapValue(v reflect.Value, b []byte) error {
-	typ := v.Type()
-	if typ.Key().Kind() == reflect.String && typ.Elem().Kind() == reflect.String {
-		m, err := scanStringStringMap(b)
-		if err != nil {
-			return err
-		}
-		v.Set(reflect.ValueOf(m))
-		return nil
-	}
-	return internal.Errorf("pg: Scan(unsupported %s)", v.Type())
-}
-
 func scanSQLScannerValue(v reflect.Value, b []byte) error {
 	if b == nil {
 		if v.IsNil() {

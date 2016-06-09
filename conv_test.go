@@ -58,6 +58,9 @@ func unwrap(v interface{}) interface{} {
 	if arr, ok := v.(*types.Array); ok {
 		return arr.Value()
 	}
+	if hstore, ok := v.(*types.Hstore); ok {
+		return hstore.Value()
+	}
 	return v
 }
 
@@ -286,7 +289,14 @@ func conversionTests() []conversionTest {
 		{src: pg.Array([][]string(nil)), dst: pg.Array(new([]string)), pgtype: "text[][]", wantnil: true},
 		{src: pg.Array([][]string{}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
 		{src: pg.Array([][]string{{"one", "two"}, {"three"}}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
-		{src: pg.Array([][]string{{`'"{}`}}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
+		{src: pg.Array([][]string{{`'"\{}`}}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
+
+		{src: nil, dst: pg.Hstore(map[string]string(nil)), pgtype: "hstore", wanterr: "pg: Scan(nonsettable map[string]string)"},
+		{src: nil, dst: pg.Hstore(new(map[string]string)), pgtype: "hstore", wantnil: true},
+		{src: pg.Hstore(map[string]string(nil)), dst: pg.Hstore(new(map[string]string)), pgtype: "hstore", wantnil: true},
+		{src: pg.Hstore(map[string]string{}), dst: pg.Hstore(new(map[string]string)), pgtype: "hstore"},
+		{src: pg.Hstore(map[string]string{"foo": "bar"}), dst: pg.Hstore(new(map[string]string)), pgtype: "hstore"},
+		{src: pg.Hstore(map[string]string{`'"\{}=>`: `'"\{}=>`}), dst: pg.Hstore(new(map[string]string)), pgtype: "hstore"},
 
 		{src: nil, dst: sql.NullBool{}, pgtype: "bool", wanterr: "pg: Scan(nonsettable sql.NullBool)"},
 		{src: nil, dst: new(*sql.NullBool), pgtype: "bool", wantnil: true},
@@ -362,8 +372,6 @@ func conversionTests() []conversionTest {
 
 func TestConversion(t *testing.T) {
 	db := pg.Connect(pgOptions())
-	db.Exec("CREATE EXTENSION hstore")
-	defer db.Exec("DROP EXTENSION hstore")
 
 	for i, test := range conversionTests() {
 		test.i = i

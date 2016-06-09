@@ -34,9 +34,25 @@ func F(field string, params ...interface{}) types.F {
 	return orm.F(field, params...)
 }
 
-// Array returns an Array type that represents PostgreSQL array of any type.
+// Array accepts a slice and returns a wrapper for working with PostgreSQL
+// array data type.
+//
+// Note that for struct fields you should use array tag:
+//
+//    Emails  []string `pg:",array"`
 func Array(v interface{}) *types.Array {
 	return types.NewArray(v)
+}
+
+// Hstore accepts a map and returns a wrapper for working with hstore data type.
+// Supported map types are:
+//   - map[string]string
+//
+// Note that for struct fields you should use hstore tag:
+//
+//    Attrs map[string]string `pg:",hstore"`
+func Hstore(v interface{}) *types.Hstore {
+	return types.NewHstore(v)
 }
 
 func SetLogger(logger *log.Logger) {
