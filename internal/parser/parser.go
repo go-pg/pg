@@ -50,7 +50,7 @@ func (p *Parser) Skip(c byte) bool {
 	return false
 }
 
-func (p *Parser) Got(s string) bool {
+func (p *Parser) SkipString(s string) bool {
 	if len(s) > len(p.b) {
 		return false
 	}
@@ -104,4 +104,37 @@ func (p *Parser) ReadNumber() int {
 	n, _ := strconv.Atoi(string(p.b[:end]))
 	p.b = p.b[end:]
 	return n
+}
+
+func (p *Parser) readSubstring() []byte {
+	var b []byte
+	for p.Valid() {
+		c := p.Read()
+		switch c {
+		case '\\':
+			switch p.Peek() {
+			case '\\':
+				b = append(b, '\\')
+				p.Advance()
+			case '"':
+				b = append(b, '"')
+				p.Advance()
+			default:
+				b = append(b, c)
+			}
+		case '\'':
+			switch p.Peek() {
+			case '\'':
+				b = append(b, '\'')
+				p.Skip(c)
+			default:
+				b = append(b, c)
+			}
+		case '"':
+			return b
+		default:
+			b = append(b, c)
+		}
+	}
+	return b
 }

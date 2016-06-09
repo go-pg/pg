@@ -207,7 +207,7 @@ func appendField(b []byte, p *parser.Parser, quote int) []byte {
 				quoted = false
 			}
 			b = append(b, '.')
-			if p.Got("*") {
+			if p.Skip('*') {
 				b = append(b, '*')
 			} else if quote == 1 {
 				b = append(b, '"')

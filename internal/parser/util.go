@@ -1,5 +1,7 @@
 package parser
 
+var pgNull = []byte("NULL")
+
 func isNum(c byte) bool {
 	return c >= '0' && c <= '9'
 }

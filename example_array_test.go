@@ -17,6 +17,7 @@ func ExampleDB_Model_postgresArrayStructTag() {
 	if err != nil {
 		panic(err)
 	}
+	defer db.Exec("DROP TABLE items")
 
 	item1 := Item{
 		Id:      1,

@@ -5,8 +5,6 @@ import (
 	"fmt"
 )
 
-var pgNull = []byte("NULL")
-
 type ArrayParser struct {
 	*Parser
 
@@ -35,7 +33,7 @@ func (p *ArrayParser) NextElem() ([]byte, error) {
 	switch c := p.Peek(); c {
 	case '"':
 		p.Advance()
-		b := p.readSubstring(false)
+		b := p.readSubstring()
 		p.Skip(',')
 		return b, nil
 	case '{':
@@ -75,39 +73,6 @@ func (p *ArrayParser) readElem() []byte {
 				}
 			}
 		case '}':
-			return b
-		default:
-			b = append(b, c)
-		}
-	}
-	return b
-}
-
-func (p *Parser) readSubstring(escape bool) []byte {
-	var b []byte
-	for p.Valid() {
-		c := p.Read()
-		switch c {
-		case '\\':
-			switch p.Peek() {
-			case '\\':
-				b = append(b, '\\')
-				p.Advance()
-			case '"':
-				b = append(b, '"')
-				p.Advance()
-			default:
-				b = append(b, c)
-			}
-		case '\'':
-			switch p.Peek() {
-			case '\'':
-				b = append(b, '\'')
-				p.Skip(c)
-			default:
-				b = append(b, c)
-			}
-		case '"':
 			return b
 		default:
 			b = append(b, c)
