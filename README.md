@@ -8,6 +8,7 @@ Supports:
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
 - Structs, maps and arrays are marshalled as JSON by default.
 - PostgreSQL multidimensional Arrays using [array tag](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-PostgresArrayStructTag) and [Array wrapper](https://godoc.org/gopkg.in/pg.v4#example-Array).
+- Hstore using [hstore tag](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-HstoreStructTag) and [Hstore wrapper](https://godoc.org/gopkg.in/pg.v4#example-Hstore).
 - [Transactions](http://godoc.org/gopkg.in/pg.v4#example-DB-Begin).
 - [Prepared statements](http://godoc.org/gopkg.in/pg.v4#example-DB-Prepare).
 - [Notifications](http://godoc.org/gopkg.in/pg.v4#example-Listener) using `LISTEN` and `NOTIFY`.
