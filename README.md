@@ -35,6 +35,7 @@ Examples: http://godoc.org/gopkg.in/pg.v4#pkg-examples.
 * [Model definition](#model-definition)
 * [Writing queries](#writing-queries)
   * [Select](#select)
+  * [Reusing queries](#reusing-queries)
   * [Insert](#insert)
   * [Update](#update)
   * [Delete](#delete)
@@ -311,6 +312,30 @@ err := db.Model(&Book{}).ColumnExpr("array_agg(id)").Select(pg.Array(&ids))
 // SELECT array_agg(id) FROM "books"
 ```
 
+### Reusing queries
+
+```go
+// pager retrieves page number from the req and sets query LIMIT and OFFSET.
+func pager(req *http.Request) func(*orm.Query) *orm.Query {
+    const pageSize = 20
+    return func(q *orm.Query) *orm.Query {
+        param := req.URL.Query().Get("page")
+        if param == "" {
+            return q
+        }
+        page, err := strconv.Atoi(param)
+        if err == nil {
+            q = q.Offset((page - 1) * pageSize).Limit(pageSize)
+        }
+        return q
+    }
+}
+
+var books []Book
+err := db.Model(&books).Apply(pager(req)).Select()
+// SELECT * FROM "books" LIMIT 20
+```
+
 ### Insert
 
 ```go
@@ -370,6 +395,8 @@ res, err := db.Model(&book).Where("title = ?title").Delete()
 
 ### Has one
 
+Following example selects all items and their subitems using LEFT JOIN and `sub_id` column.
+
 ```go
 type Item struct {
     Id int
@@ -391,6 +418,8 @@ err := db.Model(&items).
 
 ### Has many
 
+Following example selects one item and all subitems using `parent_id` column.
+
 ```go
 type Item struct {
     Id       int
@@ -406,6 +435,8 @@ err := db.Model(&item).Column("item.*", "Items").First()
 ```
 
 ### Has many to many
+
+Following example selects one item and all subitems using itermediary `item_to_items` table.
 
 ```go
 type Item struct {
