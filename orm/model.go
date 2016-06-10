@@ -39,7 +39,7 @@ func NewModel(values ...interface{}) (Model, error) {
 		return nil, errors.New("pg: Model(nil)")
 	}
 	if v.Kind() != reflect.Ptr {
-		return nil, fmt.Errorf("pg: Model(nonsettable %T)", v0)
+		return nil, fmt.Errorf("pg: Model(non-pointer %T)", v0)
 	}
 	v = v.Elem()
 

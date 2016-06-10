@@ -48,7 +48,7 @@ func scanMapStringString(b []byte) (map[string]string, error) {
 
 func scanMapStringStringValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return internal.Errorf("pg: Scan(nonsettable %s)", v.Type())
+		return internal.Errorf("pg: Scan(non-pointer %s)", v.Type())
 	}
 	m, err := scanMapStringString(b)
 	if err != nil {

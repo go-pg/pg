@@ -62,11 +62,11 @@ func Scan(v interface{}, b []byte) error {
 		return internal.Errorf("pg: Scan(nil)")
 	}
 	if vv.Kind() != reflect.Ptr {
-		return internal.Errorf("pg: Scan(nonsettable %T)", v)
+		return internal.Errorf("pg: Scan(non-pointer %T)", v)
 	}
 	vv = vv.Elem()
 	if !vv.IsValid() {
-		return internal.Errorf("pg: Scan(nonsettable %T)", v)
+		return internal.Errorf("pg: Scan(non-pointer %T)", v)
 	}
 	return ScanValue(vv, b)
 }

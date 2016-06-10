@@ -37,7 +37,7 @@ func newTableModel(v interface{}) (tableModel, error) {
 			return nil, errors.New("pg: Model(nil)")
 		}
 		if vv.Kind() != reflect.Ptr {
-			return nil, fmt.Errorf("pg: Model(nonsettable %T)", v)
+			return nil, fmt.Errorf("pg: Model(non-pointer %T)", v)
 		}
 		return newTableModelValue(vv.Elem())
 	}
