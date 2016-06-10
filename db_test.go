@@ -347,7 +347,7 @@ var _ = Describe("DB.Create", func() {
 
 	It("returns an errors if value is not settable", func() {
 		err := db.Create(1)
-		Expect(err).To(MatchError("pg: Model(nonsettable int)"))
+		Expect(err).To(MatchError("pg: Model(non-pointer int)"))
 	})
 
 	It("returns an errors if value is not supported", func() {
