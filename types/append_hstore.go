@@ -5,7 +5,6 @@ import (
 	"reflect"
 )
 
-var stringType = reflect.TypeOf((*string)(nil)).Elem()
 var mapStringStringType = reflect.TypeOf(map[string]string(nil))
 
 func HstoreAppender(typ reflect.Type) AppenderFunc {

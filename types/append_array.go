@@ -5,47 +5,30 @@ import (
 	"strconv"
 )
 
-var (
-	stringSliceType  = reflect.TypeOf([]string(nil))
-	intSliceType     = reflect.TypeOf([]int(nil))
-	int64SliceType   = reflect.TypeOf([]int64(nil))
-	float64SliceType = reflect.TypeOf([]float64(nil))
-)
+var stringType = reflect.TypeOf((*string)(nil)).Elem()
+var sliceStringType = reflect.TypeOf([]string(nil))
 
-var sliceAppenders = []AppenderFunc{
-	reflect.Bool:          nil,
-	reflect.Int:           appendIntSliceValue,
-	reflect.Int8:          nil,
-	reflect.Int16:         nil,
-	reflect.Int32:         nil,
-	reflect.Int64:         appendInt64SliceValue,
-	reflect.Uint:          nil,
-	reflect.Uint8:         nil,
-	reflect.Uint16:        nil,
-	reflect.Uint32:        nil,
-	reflect.Uint64:        nil,
-	reflect.Uintptr:       nil,
-	reflect.Float32:       nil,
-	reflect.Float64:       appendFloat64SliceValue,
-	reflect.Complex64:     nil,
-	reflect.Complex128:    nil,
-	reflect.Array:         nil,
-	reflect.Chan:          nil,
-	reflect.Func:          nil,
-	reflect.Interface:     nil,
-	reflect.Map:           nil,
-	reflect.Ptr:           nil,
-	reflect.Slice:         nil,
-	reflect.String:        appendStringSliceValue,
-	reflect.Struct:        nil,
-	reflect.UnsafePointer: nil,
-}
+var intType = reflect.TypeOf((*int)(nil)).Elem()
+var sliceIntType = reflect.TypeOf([]int(nil))
+
+var int64Type = reflect.TypeOf((*int64)(nil)).Elem()
+var sliceInt64Type = reflect.TypeOf([]int64(nil))
+
+var float64Type = reflect.TypeOf((*float64)(nil)).Elem()
+var sliceFloat64Type = reflect.TypeOf([]float64(nil))
 
 func ArrayAppender(typ reflect.Type) AppenderFunc {
 	elemType := typ.Elem()
 
-	if appender := sliceAppenders[elemType.Kind()]; appender != nil {
-		return appender
+	switch elemType {
+	case stringType:
+		return appendSliceStringValue
+	case intType:
+		return appendSliceIntValue
+	case int64Type:
+		return appendSliceInt64Value
+	case float64Type:
+		return appendSliceFloat64Value
 	}
 
 	appendElem := appender(elemType, true)
@@ -78,12 +61,12 @@ func ArrayAppender(typ reflect.Type) AppenderFunc {
 	}
 }
 
-func appendStringSliceValue(b []byte, v reflect.Value, quote int) []byte {
-	ss := v.Convert(stringSliceType).Interface().([]string)
-	return appendStringSlice(b, ss, quote)
+func appendSliceStringValue(b []byte, v reflect.Value, quote int) []byte {
+	ss := v.Convert(sliceStringType).Interface().([]string)
+	return appendSliceString(b, ss, quote)
 }
 
-func appendStringSlice(b []byte, ss []string, quote int) []byte {
+func appendSliceString(b []byte, ss []string, quote int) []byte {
 	if ss == nil {
 		return AppendNull(b, quote)
 	}
@@ -110,12 +93,12 @@ func appendStringSlice(b []byte, ss []string, quote int) []byte {
 	return b
 }
 
-func appendIntSliceValue(b []byte, v reflect.Value, quote int) []byte {
-	ints := v.Convert(intSliceType).Interface().([]int)
-	return appendIntSlice(b, ints, quote)
+func appendSliceIntValue(b []byte, v reflect.Value, quote int) []byte {
+	ints := v.Convert(sliceIntType).Interface().([]int)
+	return appendSliceInt(b, ints, quote)
 }
 
-func appendIntSlice(b []byte, ints []int, quote int) []byte {
+func appendSliceInt(b []byte, ints []int, quote int) []byte {
 	if ints == nil {
 		return AppendNull(b, quote)
 	}
@@ -142,12 +125,12 @@ func appendIntSlice(b []byte, ints []int, quote int) []byte {
 	return b
 }
 
-func appendInt64SliceValue(b []byte, v reflect.Value, quote int) []byte {
-	ints := v.Convert(int64SliceType).Interface().([]int64)
-	return appendInt64Slice(b, ints, quote)
+func appendSliceInt64Value(b []byte, v reflect.Value, quote int) []byte {
+	ints := v.Convert(sliceInt64Type).Interface().([]int64)
+	return appendSliceInt64(b, ints, quote)
 }
 
-func appendInt64Slice(b []byte, ints []int64, quote int) []byte {
+func appendSliceInt64(b []byte, ints []int64, quote int) []byte {
 	if ints == nil {
 		return AppendNull(b, quote)
 	}
@@ -174,12 +157,12 @@ func appendInt64Slice(b []byte, ints []int64, quote int) []byte {
 	return b
 }
 
-func appendFloat64SliceValue(b []byte, v reflect.Value, quote int) []byte {
-	floats := v.Convert(float64SliceType).Interface().([]float64)
-	return appendFloat64Slice(b, floats, quote)
+func appendSliceFloat64Value(b []byte, v reflect.Value, quote int) []byte {
+	floats := v.Convert(sliceFloat64Type).Interface().([]float64)
+	return appendSliceFloat64(b, floats, quote)
 }
 
-func appendFloat64Slice(b []byte, floats []float64, quote int) []byte {
+func appendSliceFloat64(b []byte, floats []float64, quote int) []byte {
 	if floats == nil {
 		return AppendNull(b, quote)
 	}
