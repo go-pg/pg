@@ -41,7 +41,7 @@ type Options struct {
 	WriteTimeout time.Duration
 
 	// The maximum number of open socket connections.
-	// Default is 10 connections.
+	// Default is 20 connections.
 	PoolSize int
 	// The amount of time client waits for free connection if all
 	// connections are busy before returning an error.
@@ -95,7 +95,7 @@ func (opt *Options) getDatabase() string {
 
 func (opt *Options) getPoolSize() int {
 	if opt == nil || opt.PoolSize == 0 {
-		return 10
+		return 20
 	}
 	return opt.PoolSize
 }
