@@ -235,16 +235,17 @@ func (q *Query) Select(values ...interface{}) error {
 		model = q.model
 	}
 
+	var res *types.Result
 	if m, ok := model.(useQueryOne); ok && m.useQueryOne() {
-		_, err = q.db.QueryOne(model, sel, q.model)
+		res, err = q.db.QueryOne(model, sel, q.model)
 	} else {
-		_, err = q.db.Query(model, sel, q.model)
+		res, err = q.db.Query(model, sel, q.model)
 	}
 	if err != nil {
 		return err
 	}
 
-	if q.model != nil {
+	if q.model != nil && res.Affected() > 0 {
 		return selectJoins(q.db, q.model.GetJoins())
 	}
 	return nil

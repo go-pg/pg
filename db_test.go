@@ -751,6 +751,15 @@ var _ = Describe("ORM", func() {
 			Expect(translation.BookId).To(Equal(101))
 			Expect(translation.Lang).To(Equal("ua"))
 		})
+
+		It("works when there are no results", func() {
+			var book Book
+			err := db.Model(&book).
+				Column("book.*", "Author", "Genres", "Comments").
+				Where("1 = 2").
+				Select()
+			Expect(err).To(Equal(pg.ErrNoRows))
+		})
 	})
 
 	Describe("slice model", func() {
@@ -850,6 +859,16 @@ var _ = Describe("ORM", func() {
 				Translation{Id: 1000, BookId: 100, Lang: "ru"},
 				Translation{Id: 1001, BookId: 100, Lang: "md"},
 			))
+		})
+
+		It("works when there are no results", func() {
+			var books []Book
+			err := db.Model(&books).
+				Column("book.*", "Author", "Genres", "Comments").
+				Where("1 = 2").
+				Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(books).To(BeNil())
 		})
 	})
 
