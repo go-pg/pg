@@ -8,8 +8,8 @@ import (
 
 const (
 	PrimaryKeyFlag = 1 << iota
-	ForeignKeyFlag = 1 << iota
-	NullFlag       = 1 << iota
+	ForeignKeyFlag
+	NullFlag
 )
 
 type Field struct {
@@ -18,7 +18,7 @@ type Field struct {
 	ColName types.Q
 	Index   []int
 
-	flags int8
+	flags uint8
 
 	append types.AppenderFunc
 	scan   types.ScannerFunc
@@ -32,7 +32,7 @@ func (f *Field) Copy() *Field {
 	return &copy
 }
 
-func (f *Field) Has(flag int8) bool {
+func (f *Field) Has(flag uint8) bool {
 	return f.flags&flag != 0
 }
 

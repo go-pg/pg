@@ -21,7 +21,7 @@ type B struct {
 	A
 }
 
-var _ = Describe("Table on embedded struct", func() {
+var _ = Describe("Model embedding", func() {
 	var strct reflect.Value
 	var table *orm.Table
 
@@ -53,5 +53,43 @@ var _ = Describe("Table on embedded struct", func() {
 		Expect(ok).To(BeTrue())
 		Expect(m.Index).To(Equal(0))
 		Expect(string(m.AppendValue(nil, strct, 1))).To(Equal("10"))
+	})
+})
+
+type C struct {
+	Name int `sql:",pk"`
+	Id   int
+	UUID int
+}
+
+var _ = Describe("primary key annotation", func() {
+	var table *orm.Table
+
+	BeforeEach(func() {
+		strct := reflect.ValueOf(C{})
+		table = orm.Tables.Get(strct.Type())
+	})
+
+	It("has precedence over auto-detection", func() {
+		Expect(table.PKs).To(HaveLen(1))
+		Expect(table.PKs[0].GoName).To(Equal("Name"))
+	})
+})
+
+type D struct {
+	UUID int
+}
+
+var _ = Describe("uuid field", func() {
+	var table *orm.Table
+
+	BeforeEach(func() {
+		strct := reflect.ValueOf(D{})
+		table = orm.Tables.Get(strct.Type())
+	})
+
+	It("is detected as primary key", func() {
+		Expect(table.PKs).To(HaveLen(1))
+		Expect(table.PKs[0].GoName).To(Equal("UUID"))
 	})
 })

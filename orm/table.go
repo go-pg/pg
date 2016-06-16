@@ -205,7 +205,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 	if _, ok := sqlOpt.Get("null"); ok {
 		field.flags |= NullFlag
 	}
-	if field.SQLName == "id" {
+	if len(t.PKs) == 0 && (field.SQLName == "id" || field.SQLName == "uuid") {
 		field.flags |= PrimaryKeyFlag
 		t.PKs = append(t.PKs, &field)
 	} else if _, ok := sqlOpt.Get("pk"); ok {
