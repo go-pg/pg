@@ -58,24 +58,8 @@ func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 }
 
 func (f *Field) ScanValue(strct reflect.Value, b []byte) error {
-	fv := fieldByIndex(strct, f.Index)
+	fv := fieldByIndex(strct, f.Index, true)
 	return f.scan(fv, b)
-}
-
-func fieldByIndex(v reflect.Value, index []int) reflect.Value {
-	if len(index) == 1 {
-		return v.Field(index[0])
-	}
-	for i, x := range index {
-		if i > 0 && v.Kind() == reflect.Ptr {
-			if v.IsNil() {
-				v.Set(reflect.New(v.Type().Elem()))
-			}
-			v = v.Elem()
-		}
-		v = v.Field(x)
-	}
-	return v
 }
 
 type Method struct {

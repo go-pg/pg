@@ -11,8 +11,8 @@ type structTableModel struct {
 	table *Table
 	joins []join
 
-	root reflect.Value
-	path []int
+	root  reflect.Value
+	index []int
 
 	strct reflect.Value
 }
@@ -79,12 +79,12 @@ func (m *structTableModel) Root() reflect.Value {
 	return m.root
 }
 
-func (m *structTableModel) Path() []int {
-	return m.path
+func (m *structTableModel) Index() []int {
+	return m.index
 }
 
 func (m *structTableModel) Bind(bind reflect.Value) {
-	m.strct = bind.Field(m.path[len(m.path)-1])
+	m.strct = bind.Field(m.index[len(m.index)-1])
 }
 
 func (m *structTableModel) Value() reflect.Value {
@@ -129,12 +129,7 @@ func (m *structTableModel) scanColumn(colIdx int, colName string, b []byte) (boo
 		if m.strct.Kind() == reflect.Interface {
 			m.strct = m.strct.Elem()
 		}
-		if m.strct.Kind() == reflect.Ptr {
-			if m.strct.IsNil() {
-				m.strct.Set(reflect.New(m.strct.Type().Elem()))
-			}
-			m.strct = m.strct.Elem()
-		}
+		m.strct = indirectNew(m.strct, true)
 		return true, field.ScanValue(m.strct, b)
 	}
 
@@ -189,7 +184,7 @@ func addJoin(m *structTableModel, bind reflect.Value, name string) *join {
 			thejoin.JoinModel = j.JoinModel
 			lastJoin = j
 		} else {
-			model, err := newTableModelPath(bind, index, rel.Join)
+			model, err := newTableModelIndex(bind, index, rel.Join)
 			if err != nil {
 				return nil
 			}

@@ -13,12 +13,30 @@ func indirectType(t reflect.Type) reflect.Type {
 	return t
 }
 
-func indirectNew(v reflect.Value) reflect.Value {
+func indirectNew(v reflect.Value, set bool) reflect.Value {
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
-			v.Set(reflect.New(v.Type().Elem()))
+			if set {
+				v.Set(reflect.New(v.Type().Elem()))
+			} else {
+				v = reflect.New(v.Type().Elem())
+			}
+
 		}
 		v = v.Elem()
+	}
+	return v
+}
+
+func fieldByIndex(v reflect.Value, index []int, set bool) reflect.Value {
+	for i, x := range index {
+		if v.Kind() == reflect.Slice {
+			v = reflect.Zero(v.Type().Elem())
+		}
+		if i > 0 {
+			v = indirectNew(v, set)
+		}
+		v = v.Field(x)
 	}
 	return v
 }
@@ -38,9 +56,9 @@ func columns(table types.Q, prefix string, fields []*Field) []byte {
 	return b
 }
 
-func values(v reflect.Value, path []int, fields []*Field) []byte {
+func values(v reflect.Value, index []int, fields []*Field) []byte {
 	var b []byte
-	walk(v, path, func(v reflect.Value) {
+	walk(v, index, func(v reflect.Value) {
 		b = append(b, '(')
 		for i, field := range fields {
 			b = field.AppendValue(b, v, 1)
@@ -56,25 +74,21 @@ func values(v reflect.Value, path []int, fields []*Field) []byte {
 	return b
 }
 
-func walk(v reflect.Value, path []int, fn func(reflect.Value)) {
+func walk(v reflect.Value, index []int, fn func(reflect.Value)) {
 	v = reflect.Indirect(v)
 	if v.Kind() == reflect.Slice {
-		walkSlice(v, path, fn)
+		for i := 0; i < v.Len(); i++ {
+			visitStruct(v.Index(i), index, fn)
+		}
 	} else {
-		visitStruct(v, path, fn)
+		visitStruct(v, index, fn)
 	}
 }
 
-func walkSlice(slice reflect.Value, path []int, fn func(reflect.Value)) {
-	for i := 0; i < slice.Len(); i++ {
-		visitStruct(slice.Index(i), path, fn)
-	}
-}
-
-func visitStruct(strct reflect.Value, path []int, fn func(reflect.Value)) {
-	if len(path) > 0 {
-		strct = strct.Field(path[0])
-		walk(strct, path[1:], fn)
+func visitStruct(strct reflect.Value, index []int, fn func(reflect.Value)) {
+	if len(index) > 0 {
+		strct = strct.Field(index[0])
+		walk(strct, index[1:], fn)
 	} else {
 		fn(strct)
 	}
