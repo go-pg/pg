@@ -18,7 +18,7 @@ type tableModel interface {
 	AddJoin(join) *join
 
 	Root() reflect.Value
-	Path() []int
+	Index() []int
 	Bind(reflect.Value)
 	Value() reflect.Value
 
@@ -71,15 +71,15 @@ func newTableModelValue(v reflect.Value) (tableModel, error) {
 	return nil, fmt.Errorf("pg: Model(unsupported %s)", v.Type())
 }
 
-func newTableModelPath(root reflect.Value, path []int, table *Table) (tableModel, error) {
-	v := fieldByPath(root, path)
-	v = reflect.Indirect(v)
+func newTableModelIndex(root reflect.Value, index []int, table *Table) (tableModel, error) {
+	v := fieldByIndex(root, index, false)
+	v = indirectNew(v, false)
 
 	if v.Kind() == reflect.Struct {
 		return &structTableModel{
 			table: Tables.Get(v.Type()),
 			root:  root,
-			path:  path,
+			index: index,
 		}, nil
 	}
 
@@ -90,28 +90,11 @@ func newTableModelPath(root reflect.Value, path []int, table *Table) (tableModel
 				structTableModel: structTableModel{
 					table: Tables.Get(elType),
 					root:  root,
-					path:  path,
+					index: index,
 				},
 			}, nil
 		}
 	}
 
-	return nil, fmt.Errorf("pg: newTableModelPath(path %s on %s)", path, root.Type())
-}
-
-func fieldByPath(v reflect.Value, path []int) reflect.Value {
-	for _, index := range path {
-		if v.Kind() == reflect.Slice {
-			v = reflect.Zero(v.Type().Elem())
-		}
-
-		v = v.Field(index)
-		if v.Kind() == reflect.Ptr {
-			if v.IsNil() {
-				v = reflect.New(v.Type().Elem())
-			}
-			v = v.Elem()
-		}
-	}
-	return v
+	return nil, fmt.Errorf("pg: NewModel(index %s on %s)", index, root.Type())
 }

@@ -20,7 +20,7 @@ var _ tableModel = (*m2mModel)(nil)
 func newM2MModel(join *join) *m2mModel {
 	baseTable := join.BaseModel.Table()
 	joinModel := join.JoinModel.(*sliceTableModel)
-	dstValues := dstValues(joinModel.Root(), joinModel.Path(), baseTable.PKs)
+	dstValues := dstValues(joinModel.Root(), joinModel.Index(), baseTable.PKs)
 	return &m2mModel{
 		sliceTableModel: joinModel,
 		baseTable:       baseTable,

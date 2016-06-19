@@ -74,8 +74,8 @@ func (j *join) Select(db dber) error {
 
 func (j *join) selectMany(db dber) error {
 	root := j.JoinModel.Root()
-	path := j.JoinModel.Path()
-	path = path[:len(path)-1]
+	index := j.JoinModel.Index()
+	index = index[:len(index)-1]
 
 	manyModel := newManyModel(j)
 	q := NewQuery(db, manyModel)
@@ -85,7 +85,7 @@ func (j *join) selectMany(db dber) error {
 	q.columns = append(q.columns, ".*"...)
 
 	cols := columns(j.JoinModel.Table().Alias, "", j.Rel.FKs)
-	vals := values(root, path, j.BaseModel.Table().PKs)
+	vals := values(root, index, j.BaseModel.Table().PKs)
 	q.Where(`(?) IN (?)`, types.Q(cols), types.Q(vals))
 
 	if j.Rel.Polymorphic {
@@ -101,12 +101,12 @@ func (j *join) selectMany(db dber) error {
 }
 
 func (j *join) selectM2M(db dber) error {
-	path := j.JoinModel.Path()
-	path = path[:len(path)-1]
+	index := j.JoinModel.Index()
+	index = index[:len(index)-1]
 
 	baseTable := j.BaseModel.Table()
 	m2mCols := columns(j.Rel.M2MTableName, j.Rel.BasePrefix, baseTable.PKs)
-	m2mVals := values(j.BaseModel.Root(), path, baseTable.PKs)
+	m2mVals := values(j.BaseModel.Root(), index, baseTable.PKs)
 
 	m2mModel := newM2MModel(j)
 	q := NewQuery(db, m2mModel)

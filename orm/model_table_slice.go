@@ -22,7 +22,7 @@ func (m *sliceTableModel) Join(name string) *join {
 }
 
 func (m *sliceTableModel) Bind(bind reflect.Value) {
-	m.slice = bind.Field(m.path[len(m.path)-1])
+	m.slice = bind.Field(m.index[len(m.index)-1])
 }
 
 func (m *sliceTableModel) Value() reflect.Value {
