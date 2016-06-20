@@ -651,105 +651,144 @@ var _ = Describe("ORM", func() {
 		It("supports HasOne, HasMany, HasMany2Many, Polymorphic, HasMany -> Polymorphic", func() {
 			var book Book
 			err := db.Model(&book).
-				Column("book.id", "Author.id", "Editor.id", "Genres.id", "Comments", "Translations", "Translations.Comments").
+				Column("book.id", "Author", "Editor", "Genres", "Comments", "Translations", "Translations.Comments").
 				First()
 			Expect(err).NotTo(HaveOccurred())
-
-			Expect(book.Id).To(Equal(100))
-			Expect(book.Author.ID).To(Equal(10))
-
-			Expect(book.Genres).To(HaveLen(2))
-			genre := book.Genres[0]
-			Expect(genre.Id).To(Equal(1))
-			genre = book.Genres[1]
-			Expect(genre.Id).To(Equal(2))
-
-			Expect(book.Translations).To(HaveLen(2))
-			translation := book.Translations[0]
-			Expect(translation.Id).To(Equal(1000))
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("ru"))
-
-			Expect(translation.Comments).To(HaveLen(1))
-			comment := translation.Comments[0]
-			Expect(comment.Text).To(Equal("comment3"))
-
-			translation = book.Translations[1]
-			Expect(translation.Id).To(Equal(1001))
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("md"))
-			Expect(translation.Comments).To(HaveLen(0))
-
-			Expect(book.Comments).To(HaveLen(2))
-			comment = book.Comments[0]
-			Expect(comment.Text).To(Equal("comment1"))
-			comment = book.Comments[1]
-			Expect(comment.Text).To(Equal("comment2"))
+			Expect(book).To(Equal(Book{
+				Id:        100,
+				Title:     "",
+				AuthorID:  0,
+				Author:    &Author{ID: 10, Name: "author 1", Books: nil},
+				EditorID:  0,
+				Editor:    &Author{ID: 11, Name: "author 2", Books: nil},
+				CreatedAt: time.Time{},
+				Genres: []Genre{
+					{Id: 1, Name: "genre 1", Rating: 999, Books: nil, ParentId: 0, Subgenres: nil},
+					{Id: 2, Name: "genre 2", Rating: 9999, Books: nil, ParentId: 0, Subgenres: nil},
+				},
+				Translations: []Translation{
+					{
+						Id:     1000,
+						BookId: 100,
+						Book:   nil,
+						Lang:   "ru",
+						Comments: []Comment{
+							{
+								TrackableId:   1000,
+								TrackableType: "translation",
+								Text:          "comment3",
+							},
+						},
+					},
+					{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
+				},
+				Comments: []Comment{
+					{
+						TrackableId:   100,
+						TrackableType: "book",
+						Text:          "comment1",
+					},
+					{
+						TrackableId:   100,
+						TrackableType: "book",
+						Text:          "comment2",
+					},
+				},
+			}))
 		})
 
 		It("supports HasMany -> HasOne, HasMany -> HasMany", func() {
 			var author Author
 			err := db.Model(&author).
-				Column("author.*", "Books.Author", "Books.Editor", "Books.Translations").
+				Column(
+					"author.*",
+					"Books.id", "Books.author_id", "Books.editor_id",
+					"Books.Author", "Books.Editor",
+					"Books.Translations",
+				).
 				First()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(author.ID).To(Equal(10))
-
-			Expect(author.Books).To(HaveLen(2))
-
-			book := &author.Books[0]
-			Expect(book.Id).To(Equal(100))
-			Expect(book.Author.ID).To(Equal(10))
-			Expect(book.Editor.ID).To(Equal(11))
-
-			Expect(book.Translations).To(HaveLen(2))
-			translation := book.Translations[0]
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("ru"))
-			translation = book.Translations[1]
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("md"))
-
-			book = &author.Books[1]
-			Expect(book.Id).To(Equal(101))
-			Expect(book.Author.ID).To(Equal(10))
-			Expect(book.Editor.ID).To(Equal(12))
-
-			Expect(book.Translations).To(HaveLen(1))
-			translation = book.Translations[0]
-			Expect(translation.BookId).To(Equal(101))
-			Expect(translation.Lang).To(Equal("ua"))
+			Expect(author).To(Equal(Author{
+				ID:   10,
+				Name: "author 1",
+				Books: []Book{
+					{
+						Id:        100,
+						Title:     "",
+						AuthorID:  10,
+						Author:    &Author{ID: 10, Name: "author 1", Books: nil},
+						EditorID:  11,
+						Editor:    &Author{ID: 11, Name: "author 2", Books: nil},
+						CreatedAt: time.Time{},
+						Genres:    nil,
+						Translations: []Translation{
+							{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+							{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
+						},
+						Comments: nil,
+					},
+					{
+						Id:        101,
+						Title:     "",
+						AuthorID:  10,
+						Author:    &Author{ID: 10, Name: "author 1", Books: nil},
+						EditorID:  12,
+						Editor:    &Author{ID: 12, Name: "author 3", Books: nil},
+						CreatedAt: time.Time{},
+						Genres:    nil,
+						Translations: []Translation{
+							{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
+						},
+						Comments: nil,
+					},
+				},
+			}))
 		})
 
 		It("supports HasMany -> HasMany -> HasMany", func() {
 			var genre Genre
 			err := db.Model(&genre).
-				Column("genre.id", "Books.id", "Books.Translations").
+				Column("genre.*", "Books.id", "Books.Translations").
 				First()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(genre.Id).To(Equal(1))
-			Expect(genre.Rating).To(Equal(0))
-
-			Expect(genre.Books).To(HaveLen(2))
-			book := &genre.Books[0]
-			Expect(book.Id).To(Equal(100))
-
-			Expect(book.Translations).To(HaveLen(2))
-			translation := book.Translations[0]
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("ru"))
-			translation = book.Translations[1]
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("md"))
-
-			Expect(genre.Books).To(HaveLen(2))
-			book = &genre.Books[1]
-			Expect(book.Id).To(Equal(101))
-
-			Expect(book.Translations).To(HaveLen(1))
-			translation = book.Translations[0]
-			Expect(translation.BookId).To(Equal(101))
-			Expect(translation.Lang).To(Equal("ua"))
+			Expect(genre).To(Equal(Genre{
+				Id:     1,
+				Name:   "genre 1",
+				Rating: 0,
+				Books: []Book{
+					{
+						Id:        100,
+						Title:     "",
+						AuthorID:  0,
+						Author:    nil,
+						EditorID:  0,
+						Editor:    nil,
+						CreatedAt: time.Time{},
+						Genres:    nil,
+						Translations: []Translation{
+							{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+							{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
+						},
+						Comments: nil,
+					},
+					{
+						Id:        101,
+						Title:     "",
+						AuthorID:  0,
+						Author:    nil,
+						EditorID:  0,
+						Editor:    nil,
+						CreatedAt: time.Time{},
+						Genres:    nil,
+						Translations: []Translation{
+							{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
+						},
+						Comments: nil,
+					},
+				},
+				ParentId:  0,
+				Subgenres: nil,
+			}))
 		})
 
 		It("works when there are no results", func() {
@@ -770,95 +809,131 @@ var _ = Describe("ORM", func() {
 				Order("book.id ASC").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(books).To(HaveLen(3))
-
-			book := &books[0]
-			Expect(book.Id).To(Equal(100))
-			Expect(book.Author).NotTo(BeNil())
-			Expect(book.Author.ID).To(Equal(10))
-
-			Expect(book.Translations).To(HaveLen(2))
-			translation := book.Translations[0]
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("ru"))
-			translation = book.Translations[1]
-			Expect(translation.BookId).To(Equal(100))
-			Expect(translation.Lang).To(Equal("md"))
-
-			Expect(book.Genres).To(HaveLen(2))
-			genre := book.Genres[0]
-			Expect(genre.Id).To(Equal(1))
-			Expect(genre.Rating).To(Equal(999))
-			genre = book.Genres[1]
-			Expect(genre.Id).To(Equal(2))
-			Expect(genre.Rating).To(Equal(9999))
-
-			book = &books[1]
-			Expect(book.Id).To(Equal(101))
-			Expect(book.Author.ID).To(Equal(10))
-
-			Expect(book.Translations).To(HaveLen(1))
-			translation = book.Translations[0]
-			Expect(translation.BookId).To(Equal(101))
-			Expect(translation.Lang).To(Equal("ua"))
-
-			Expect(book.Genres).To(HaveLen(1))
-			genre = book.Genres[0]
-			Expect(genre.Id).To(Equal(1))
-			Expect(genre.Rating).To(Equal(99999))
-
-			book = &books[2]
-			Expect(book.Id).To(Equal(102))
-			Expect(book.Author.ID).To(Equal(11))
-
-			Expect(book.Translations).To(HaveLen(0))
-
-			Expect(book.Genres).To(HaveLen(0))
+			Expect(books).To(ConsistOf([]Book{
+				{
+					Id:        100,
+					Title:     "",
+					AuthorID:  0,
+					Author:    &Author{ID: 10, Name: "author 1", Books: nil},
+					EditorID:  0,
+					Editor:    &Author{ID: 11, Name: "author 2", Books: nil},
+					CreatedAt: time.Time{},
+					Genres: []Genre{
+						{Id: 1, Name: "genre 1", Rating: 999, Books: nil, ParentId: 0, Subgenres: nil},
+						{Id: 2, Name: "genre 2", Rating: 9999, Books: nil, ParentId: 0, Subgenres: nil},
+					},
+					Translations: []Translation{
+						{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+						{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
+					},
+					Comments: nil,
+				},
+				{
+					Id:        101,
+					Title:     "",
+					AuthorID:  0,
+					Author:    &Author{ID: 10, Name: "author 1", Books: nil},
+					EditorID:  0,
+					Editor:    &Author{ID: 12, Name: "author 3", Books: nil},
+					CreatedAt: time.Time{},
+					Genres: []Genre{
+						{Id: 1, Name: "genre 1", Rating: 99999, Books: nil, ParentId: 0, Subgenres: nil},
+					},
+					Translations: []Translation{
+						{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
+					},
+					Comments: nil,
+				},
+				{
+					Id:           102,
+					Title:        "",
+					AuthorID:     0,
+					Author:       &Author{ID: 11, Name: "author 2", Books: nil},
+					EditorID:     0,
+					Editor:       &Author{ID: 11, Name: "author 2", Books: nil},
+					CreatedAt:    time.Time{},
+					Genres:       nil,
+					Translations: nil,
+					Comments:     nil,
+				},
+			}))
 		})
 
 		It("supports HasMany2Many, HasMany2Many -> HasMany", func() {
 			var genres []Genre
 			err := db.Model(&genres).
-				Column("genre.*", "Subgenres", "Books", "Books.Translations").
+				Column("genre.*", "Subgenres", "Books.id", "Books.Translations").
 				Where("genre.parent_id IS NULL").
 				Order("genre.id").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(genres).To(HaveLen(2))
-
-			genre := &genres[0]
-			Expect(genre.Id).To(Equal(1))
-			Expect(genre.Subgenres).To(ConsistOf(
-				Genre{Id: 3, Name: "subgenre 1", ParentId: 1},
-				Genre{Id: 4, Name: "subgenre 2", ParentId: 1},
-			))
-
-			book := genre.Books[0]
-			Expect(book.Id).To(Equal(100))
-
-			Expect(book.Translations).To(HaveLen(2))
-			Expect(book.Translations).To(ConsistOf(
-				Translation{Id: 1000, BookId: 100, Lang: "ru"},
-				Translation{Id: 1001, BookId: 100, Lang: "md"},
-			))
-
-			book = genre.Books[1]
-			Expect(book.Id).To(Equal(101))
-			Expect(book.Translations).To(ConsistOf(
-				Translation{Id: 1002, BookId: 101, Lang: "ua"},
-			))
-
-			genre = &genres[1]
-			Expect(genre.Id).To(Equal(2))
-			Expect(genre.Subgenres).To(BeEmpty())
-
-			Expect(genre.Books).To(HaveLen(1))
-			book = genre.Books[0]
-			Expect(book.Id).To(Equal(100))
-			Expect(book.Translations).To(ConsistOf(
-				Translation{Id: 1000, BookId: 100, Lang: "ru"},
-				Translation{Id: 1001, BookId: 100, Lang: "md"},
-			))
+			Expect(genres).To(ConsistOf([]Genre{
+				{
+					Id:     1,
+					Name:   "genre 1",
+					Rating: 0,
+					Books: []Book{
+						{
+							Id:        100,
+							Title:     "",
+							AuthorID:  0,
+							Author:    nil,
+							EditorID:  0,
+							Editor:    nil,
+							CreatedAt: time.Time{},
+							Genres:    nil,
+							Translations: []Translation{
+								{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+								{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
+							},
+							Comments: nil,
+						},
+						{
+							Id:        101,
+							Title:     "",
+							AuthorID:  0,
+							Author:    nil,
+							EditorID:  0,
+							Editor:    nil,
+							CreatedAt: time.Time{},
+							Genres:    nil,
+							Translations: []Translation{
+								{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
+							},
+							Comments: nil,
+						},
+					},
+					ParentId: 0,
+					Subgenres: []Genre{
+						{Id: 3, Name: "subgenre 1", Rating: 0, Books: nil, ParentId: 1, Subgenres: nil},
+						{Id: 4, Name: "subgenre 2", Rating: 0, Books: nil, ParentId: 1, Subgenres: nil},
+					},
+				},
+				{
+					Id:     2,
+					Name:   "genre 2",
+					Rating: 0,
+					Books: []Book{
+						{
+							Id:        100,
+							Title:     "",
+							AuthorID:  0,
+							Author:    nil,
+							EditorID:  0,
+							Editor:    nil,
+							CreatedAt: time.Time{},
+							Genres:    nil,
+							Translations: []Translation{
+								{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+								{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
+							},
+							Comments: nil,
+						},
+					},
+					ParentId:  0,
+					Subgenres: nil,
+				},
+			}))
 		})
 
 		It("works when there are no results", func() {
@@ -880,10 +955,31 @@ var _ = Describe("ORM", func() {
 			Order("book.id ASC").
 			Select()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(books).To(HaveLen(2))
-		Expect(books[0].Id).To(Equal(100))
-		Expect(books[0].Author).To(BeNil())
-		Expect(books[1].Id).To(Equal(101))
-		Expect(books[1].Author).To(BeNil())
+		Expect(books).To(ConsistOf([]Book{
+			{
+				Id:           100,
+				Title:        "",
+				AuthorID:     0,
+				Author:       nil,
+				EditorID:     0,
+				Editor:       nil,
+				CreatedAt:    time.Time{},
+				Genres:       nil,
+				Translations: nil,
+				Comments:     nil,
+			},
+			{
+				Id:           101,
+				Title:        "",
+				AuthorID:     0,
+				Author:       nil,
+				EditorID:     0,
+				Editor:       nil,
+				CreatedAt:    time.Time{},
+				Genres:       nil,
+				Translations: nil,
+				Comments:     nil,
+			},
+		}))
 	})
 })

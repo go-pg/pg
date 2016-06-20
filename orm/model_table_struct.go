@@ -202,13 +202,7 @@ func addJoin(m *structTableModel, bind reflect.Value, name string) *join {
 
 	if hasColumnName {
 		column := path[len(path)-1]
-		if column == "_" {
-			column = path[len(path)-2]
-		} else {
-			lastJoin.Columns = append(lastJoin.Columns, column)
-		}
-	} else {
-		lastJoin.SelectAll = true
+		lastJoin.Columns = append(lastJoin.Columns, column)
 	}
 
 	return lastJoin

@@ -28,13 +28,20 @@ func indirectNew(v reflect.Value, set bool) reflect.Value {
 	return v
 }
 
-func fieldByIndex(v reflect.Value, index []int, set bool) reflect.Value {
-	for i, x := range index {
-		if v.Kind() == reflect.Slice {
-			v = reflect.Zero(v.Type().Elem())
+func typeByIndex(t reflect.Type, index []int) reflect.Type {
+	for _, x := range index {
+		if t.Kind() == reflect.Slice {
+			t = t.Elem()
 		}
+		t = t.Field(x).Type
+	}
+	return indirectType(t)
+}
+
+func fieldByIndex(v reflect.Value, index []int) reflect.Value {
+	for i, x := range index {
 		if i > 0 {
-			v = indirectNew(v, set)
+			v = indirectNew(v, true)
 		}
 		v = v.Field(x)
 	}

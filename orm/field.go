@@ -58,7 +58,7 @@ func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 }
 
 func (f *Field) ScanValue(strct reflect.Value, b []byte) error {
-	fv := fieldByIndex(strct, f.Index, true)
+	fv := fieldByIndex(strct, f.Index)
 	return f.scan(fv, b)
 }
 
