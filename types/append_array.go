@@ -139,7 +139,7 @@ func appendSliceInt64(b []byte, ints []int64, quote int) []byte {
 		b = append(b, '\'')
 	}
 
-	b = append(b, "{"...)
+	b = append(b, '{')
 	for _, n := range ints {
 		b = strconv.AppendInt(b, n, 10)
 		b = append(b, ',')
@@ -171,7 +171,7 @@ func appendSliceFloat64(b []byte, floats []float64, quote int) []byte {
 		b = append(b, '\'')
 	}
 
-	b = append(b, "{"...)
+	b = append(b, '{')
 	for _, n := range floats {
 		b = appendFloat(b, n)
 		b = append(b, ',')

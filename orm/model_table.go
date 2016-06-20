@@ -72,19 +72,18 @@ func newTableModelValue(v reflect.Value) (tableModel, error) {
 }
 
 func newTableModelIndex(root reflect.Value, index []int, table *Table) (tableModel, error) {
-	v := fieldByIndex(root, index, false)
-	v = indirectNew(v, false)
+	typ := typeByIndex(root.Type(), index)
 
-	if v.Kind() == reflect.Struct {
+	if typ.Kind() == reflect.Struct {
 		return &structTableModel{
-			table: Tables.Get(v.Type()),
+			table: Tables.Get(typ),
 			root:  root,
 			index: index,
 		}, nil
 	}
 
-	if v.Kind() == reflect.Slice {
-		elType := indirectType(v.Type().Elem())
+	if typ.Kind() == reflect.Slice {
+		elType := indirectType(typ.Elem())
 		if elType.Kind() == reflect.Struct {
 			return &sliceTableModel{
 				structTableModel: structTableModel{

@@ -9,8 +9,9 @@ type manyModel struct {
 	*sliceTableModel
 	rel *Relation
 
-	buf       []byte
-	dstValues map[string][]reflect.Value
+	buf        []byte
+	zeroStruct reflect.Value
+	dstValues  map[string][]reflect.Value
 }
 
 var _ tableModel = (*manyModel)(nil)
@@ -18,16 +19,19 @@ var _ tableModel = (*manyModel)(nil)
 func newManyModel(j *join) *manyModel {
 	joinModel := j.JoinModel.(*sliceTableModel)
 	dstValues := dstValues(joinModel.Root(), joinModel.Index(), j.BaseModel.Table().PKs)
-	return &manyModel{
+	m := &manyModel{
 		sliceTableModel: joinModel,
 		rel:             j.Rel,
 
 		dstValues: dstValues,
 	}
+	m.strct = reflect.New(m.table.Type).Elem()
+	m.zeroStruct = reflect.Zero(m.table.Type)
+	return m
 }
 
 func (m *manyModel) NewModel() ColumnScanner {
-	m.strct = reflect.New(m.table.Type).Elem()
+	m.strct.Set(m.zeroStruct)
 	m.structTableModel.NewModel()
 	return m
 }
