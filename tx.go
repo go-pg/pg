@@ -10,12 +10,13 @@ import (
 )
 
 // When true Tx does not issue BEGIN, COMMIT, and ROLLBACK.
-// It is primarily useful for testing and can be enabled with
-// GO_PG_NO_TX environment variable.
+// Also underlying database connection is immediately returned to the pool.
+// This is primarily useful for running your database tests in transaction.
+// singleTx can be enabled with GO_PG_NO_TX environment variable.
 var noTx bool
 
 func init() {
-	noTx = os.Getenv("GO_PG_NO_TX") != ""
+	_, noTx = os.LookupEnv("GO_PG_NO_TX")
 }
 
 // Tx is an in-progress database transaction.
@@ -45,7 +46,9 @@ func (db *DB) Begin() (*Tx, error) {
 		db:  db,
 		_cn: cn,
 	}
-	if !noTx {
+	if noTx {
+		_ = tx.db.freeConn(tx._cn, nil)
+	} else {
 		if _, err := tx.Exec("BEGIN"); err != nil {
 			tx.close(err)
 			return nil, err
@@ -188,21 +191,21 @@ func (tx *Tx) Delete(model interface{}) error {
 }
 
 // Commit commits the transaction.
-func (tx *Tx) Commit() (err error) {
+func (tx *Tx) Commit() error {
+	var err error
 	if !noTx {
 		_, err = tx.Exec("COMMIT")
 	}
-
 	tx.close(err)
 	return err
 }
 
 // Rollback aborts the transaction.
-func (tx *Tx) Rollback() (err error) {
+func (tx *Tx) Rollback() error {
+	var err error
 	if !noTx {
 		_, err = tx.Exec("ROLLBACK")
 	}
-
 	tx.close(err)
 	return err
 }
@@ -211,7 +214,7 @@ func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byt
 	return tx.db.FormatQuery(dst, query, params...)
 }
 
-func (tx *Tx) close(err error) error {
+func (tx *Tx) close(lastErr error) error {
 	if tx._cn == nil {
 		return errTxDone
 	}
@@ -221,7 +224,10 @@ func (tx *Tx) close(err error) error {
 	}
 	tx.stmts = nil
 
-	err = tx.db.freeConn(tx._cn, err)
+	var err error
+	if !noTx {
+		err = tx.db.freeConn(tx._cn, lastErr)
+	}
 	tx._cn = nil
 
 	return err
