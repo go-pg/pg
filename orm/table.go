@@ -220,56 +220,62 @@ func (t *Table) newField(f reflect.StructField) *Field {
 	}
 
 	fieldType := indirectType(f.Type)
+
 	switch fieldType.Kind() {
 	case reflect.Slice:
-		if fieldType.Elem().Kind() == reflect.Struct {
-			joinTable := newTable(fieldType.Elem())
+		if fieldType.Elem().Kind() != reflect.Struct {
+			break
+		}
 
-			basePrefix := t.Type.Name()
-			if s, _ := pgOpt.Get("fk:"); s != "" {
-				basePrefix = s
+		joinTable := newTable(fieldType.Elem())
+
+		basePrefix := t.Type.Name()
+		if s, ok := pgOpt.Get("fk:"); ok {
+			basePrefix = s
+		}
+
+		if m2mTable, _ := pgOpt.Get("many2many:"); m2mTable != "" {
+			joinPrefix := joinTable.Type.Name()
+			if s, ok := pgOpt.Get("joinFK:"); ok {
+				joinPrefix = s
 			}
 
-			if m2mTable, _ := pgOpt.Get("many2many:"); m2mTable != "" {
-				joinPrefix := joinTable.Type.Name()
-				if s, _ := pgOpt.Get("joinFK:"); s != "" {
-					joinPrefix = s
-				}
+			t.addRelation(&Relation{
+				Type:         Many2ManyRelation,
+				Field:        &field,
+				Join:         joinTable,
+				M2MTableName: types.AppendField(nil, m2mTable, 1),
+				BasePrefix:   Underscore(basePrefix + "_"),
+				JoinPrefix:   Underscore(joinPrefix + "_"),
+			})
+			return nil
+		}
 
-				t.addRelation(&Relation{
-					Field:        &field,
-					Join:         joinTable,
-					M2MTableName: types.AppendField(nil, m2mTable, 1),
-					BasePrefix:   Underscore(basePrefix + "_"),
-					JoinPrefix:   Underscore(joinPrefix + "_"),
-				})
-				return nil
-			}
+		var relType int
+		if s, ok := pgOpt.Get("polymorphic:"); ok {
+			basePrefix = s
+			relType = PolymorphicRelation
+		} else {
+			relType = HasManyRelation
+		}
 
-			var polymorphic bool
-			if s, _ := pgOpt.Get("polymorphic:"); s != "" {
-				basePrefix = s
-				polymorphic = true
+		var fks []*Field
+		for _, pk := range t.PKs {
+			fkName := basePrefix + pk.GoName
+			if fk := joinTable.getField(fkName); fk != nil {
+				fks = append(fks, fk)
 			}
+		}
 
-			var fks []*Field
-			for _, pk := range t.PKs {
-				fkName := basePrefix + pk.GoName
-				if fk := joinTable.getField(fkName); fk != nil {
-					fks = append(fks, fk)
-				}
-			}
-
-			if len(fks) > 0 {
-				t.addRelation(&Relation{
-					Polymorphic: polymorphic,
-					Field:       &field,
-					FKs:         fks,
-					Join:        joinTable,
-					BasePrefix:  Underscore(basePrefix + "_"),
-				})
-				return nil
-			}
+		if len(fks) > 0 {
+			t.addRelation(&Relation{
+				Type:       relType,
+				Field:      &field,
+				FKs:        fks,
+				Join:       joinTable,
+				BasePrefix: Underscore(basePrefix + "_"),
+			})
+			return nil
 		}
 	case reflect.Struct:
 		joinTable := newTable(fieldType)
@@ -285,26 +291,50 @@ func (t *Table) newField(f reflect.StructField) *Field {
 			t.FieldsMap[ff.SQLName] = ff
 		}
 
-		var fks []*Field
-		for _, pk := range joinTable.PKs {
-			fkName := field.GoName + pk.GoName
-			if fk := t.getField(fkName); fk != nil {
-				fks = append(fks, fk)
-			}
-		}
-
-		if len(fks) > 0 {
-			t.addRelation(&Relation{
-				One:   true,
-				Field: &field,
-				FKs:   fks,
-				Join:  joinTable,
-			})
-		}
+		t.detectHasOne(&field, joinTable)
+		t.detectBelongsTo(&field, joinTable)
 
 		t.FieldsMap[field.SQLName] = &field
 		return nil
 	}
 
 	return &field
+}
+
+func (t *Table) detectHasOne(field *Field, joinTable *Table) {
+	var fks []*Field
+	for _, pk := range joinTable.PKs {
+		fkName := field.GoName + pk.GoName
+		if fk := t.getField(fkName); fk != nil {
+			fks = append(fks, fk)
+		}
+	}
+
+	if len(fks) > 0 {
+		t.addRelation(&Relation{
+			Type:  HasOneRelation,
+			Field: field,
+			FKs:   fks,
+			Join:  joinTable,
+		})
+	}
+}
+
+func (t *Table) detectBelongsTo(field *Field, joinTable *Table) {
+	var fks []*Field
+	for _, pk := range t.PKs {
+		fkName := t.Type.Name() + pk.GoName
+		if fk := joinTable.getField(fkName); fk != nil {
+			fks = append(fks, fk)
+		}
+	}
+
+	if len(fks) > 0 {
+		t.addRelation(&Relation{
+			Type:  BelongsToRelation,
+			Field: field,
+			FKs:   fks,
+			Join:  joinTable,
+		})
+	}
 }

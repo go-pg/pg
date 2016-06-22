@@ -284,8 +284,11 @@ func (q *Query) joinHasOne() {
 	joins := q.model.GetJoins()
 	for i := range joins {
 		j := &joins[i]
-		if j.Rel.One {
-			j.JoinOne(q)
+		switch j.Rel.Type {
+		case HasOneRelation:
+			j.JoinHasOne(q)
+		case BelongsToRelation:
+			j.JoinBelongsTo(q)
 		}
 	}
 }
@@ -294,7 +297,7 @@ func selectJoins(db dber, joins []join) error {
 	var err error
 	for i := range joins {
 		j := &joins[i]
-		if j.Rel.One {
+		if j.Rel.Type == HasOneRelation || j.Rel.Type == BelongsToRelation {
 			err = selectJoins(db, j.JoinModel.GetJoins())
 		} else {
 			err = j.Select(db)

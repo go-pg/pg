@@ -10,37 +10,53 @@ type join struct {
 	Columns []string
 }
 
-func (j *join) JoinOne(q *Query) {
+func (j *join) JoinHasOne(q *Query) {
 	var cond types.Q
-	for i, pk := range j.Rel.Join.PKs {
+	for _, pk := range j.Rel.Join.PKs {
+		cond = appendSep(cond, " AND ")
 		cond = q.FormatQuery(
 			cond,
 			`?.? = ?.?`,
-			j.Rel.Field.ColName,
-			pk.ColName,
-			j.BaseModel.Table().Alias,
-			types.F(j.Rel.Field.SQLName+"_"+pk.SQLName),
+			j.Rel.Field.ColName, pk.ColName,
+			j.BaseModel.Table().Alias, types.F(j.Rel.Field.SQLName+"_"+pk.SQLName),
 		)
-		if i != len(j.Rel.Join.PKs)-1 {
-			cond = append(cond, " AND "...)
-		}
 	}
 
-	q.Join(
+	q = q.Join(
 		"LEFT JOIN ? AS ? ON ?",
 		j.JoinModel.Table().Name, j.Rel.Field.ColName, cond,
 	)
-	q.columns = j.appendColumnsHasOne(q.columns)
+	q.columns = j.appendJoinedColumns(q.columns)
+}
+
+func (j *join) JoinBelongsTo(q *Query) {
+	baseTable := j.BaseModel.Table()
+	var cond types.Q
+	for i, fk := range j.Rel.FKs {
+		cond = appendSep(cond, " AND ")
+		cond = q.FormatQuery(
+			cond,
+			`?.? = ?.?`,
+			j.Rel.Field.ColName, fk.ColName,
+			baseTable.Alias, baseTable.PKs[i].ColName,
+		)
+	}
+
+	q = q.Join(
+		"LEFT JOIN ? AS ? ON ?",
+		j.JoinModel.Table().Name, j.Rel.Field.ColName, cond,
+	)
+	q.columns = j.appendJoinedColumns(q.columns)
 }
 
 func (j *join) Select(db dber) error {
-	if j.Rel.One {
-		panic("not reached")
-	} else if len(j.Rel.M2MTableName) > 0 {
-		return j.selectM2M(db)
-	} else {
+	switch j.Rel.Type {
+	case HasManyRelation, PolymorphicRelation:
 		return j.selectMany(db)
+	case Many2ManyRelation:
+		return j.selectM2M(db)
 	}
+	panic("not reached")
 }
 
 func (j *join) selectMany(db dber) error {
@@ -55,10 +71,10 @@ func (j *join) selectMany(db dber) error {
 
 	cols := columns(j.JoinModel.Table().Alias, "", j.Rel.FKs)
 	vals := values(root, index, j.BaseModel.Table().PKs)
-	q.Where(`(?) IN (?)`, types.Q(cols), types.Q(vals))
+	q = q.Where(`(?) IN (?)`, types.Q(cols), types.Q(vals))
 
-	if j.Rel.Polymorphic {
-		q.Where(`? = ?`, types.F(j.Rel.BasePrefix+"type"), j.BaseModel.Table().ModelName)
+	if j.Rel.Type == PolymorphicRelation {
+		q = q.Where(`? = ?`, types.F(j.Rel.BasePrefix+"type"), j.BaseModel.Table().ModelName)
 	}
 
 	err := q.Select()
@@ -87,7 +103,7 @@ func (j *join) selectM2M(db dber) error {
 
 	q.columns = j.appendColumnsMany(q.columns)
 
-	q.Join(
+	q = q.Join(
 		"JOIN ? ON (?) IN (?)",
 		j.Rel.M2MTableName,
 		types.Q(m2mCols), types.Q(m2mVals),
@@ -95,7 +111,7 @@ func (j *join) selectM2M(db dber) error {
 
 	joinAlias := j.JoinModel.Table().Alias
 	for _, pk := range j.JoinModel.Table().PKs {
-		q.Where(
+		q = q.Where(
 			"?.? = ?.?",
 			joinAlias, pk.ColName,
 			j.Rel.M2MTableName, types.F(j.Rel.JoinPrefix+pk.SQLName),
@@ -110,7 +126,7 @@ func (j *join) selectM2M(db dber) error {
 	return nil
 }
 
-func (j *join) appendColumnsHasOne(dst []byte) []byte {
+func (j *join) appendJoinedColumns(dst []byte) []byte {
 	var alias []byte
 	alias = append(alias, j.Rel.Field.SQLName...)
 	alias = append(alias, "__"...)

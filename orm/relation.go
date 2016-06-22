@@ -2,10 +2,16 @@ package orm
 
 import "gopkg.in/pg.v4/types"
 
-type Relation struct {
-	One         bool
-	Polymorphic bool
+const (
+	HasOneRelation = 1 << iota
+	BelongsToRelation
+	HasManyRelation
+	PolymorphicRelation
+	Many2ManyRelation
+)
 
+type Relation struct {
+	Type  int
 	Field *Field
 	Join  *Table
 	FKs   []*Field
