@@ -495,12 +495,67 @@ func ExampleDB_Model_hasOne() {
 		panic(err)
 	}
 
-	fmt.Printf("found %d items\n", len(items))
+	fmt.Printf("%d items\n", len(items))
 	fmt.Printf("item %d, subitem %d\n", items[0].Id, items[0].Sub.Id)
 	fmt.Printf("item %d, subitem %d\n", items[1].Id, items[1].Sub.Id)
-	// Output: found 2 items
+	// Output: 2 items
 	// item 2, subitem 1
 	// item 4, subitem 2
+}
+
+func ExampleDB_Model_belongsTo() {
+	type Profile struct {
+		Id     int
+		Lang   string
+		UserId int // belongs to User
+	}
+
+	type User struct {
+		Id      int
+		Name    string
+		Profile *Profile
+	}
+
+	db := connect()
+	defer db.Close()
+
+	qs := []string{
+		"CREATE TEMP TABLE users (id int, name text)",
+		"CREATE TEMP TABLE profiles (id int, lang text, user_id int)",
+		"INSERT INTO users VALUES (1, 'user 1'), (2, 'user 2')",
+		"INSERT INTO profiles VALUES (1, 'en', 1), (2, 'ru', 2)",
+	}
+	for _, q := range qs {
+		_, err := db.Exec(q)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// Select users and join user profile using following query:
+	//
+	// SELECT
+	//   "user".*,
+	//   "profile"."id" AS "profile__id",
+	//   "profile"."lang" AS "profile__lang",
+	//   "profile"."user_id" AS "profile__user_id"
+	// FROM "users" AS "user"
+	// LEFT JOIN "profiles" AS "profile" ON "profile"."user_id" = "user"."id"
+
+	var users []User
+	err := db.Model(&users).
+		Column("user.*", "Profile").
+		Select()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(len(users), "results")
+	fmt.Println(users[0].Id, users[0].Name, users[0].Profile)
+	fmt.Println(users[1].Id, users[1].Name, users[1].Profile)
+	// Output: 2 results
+	// 1 user 1 &{1 en 1}
+	// 2 user 2 &{2 ru 2}
 }
 
 func ExampleDB_Model_hasMany() {

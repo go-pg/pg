@@ -94,7 +94,7 @@ func (m *structTableModel) Value() reflect.Value {
 func (m *structTableModel) NewModel() ColumnScanner {
 	for i := range m.joins {
 		j := &m.joins[i]
-		if j.Rel.One {
+		if j.Rel.Type == HasOneRelation || j.Rel.Type == BelongsToRelation {
 			j.JoinModel.Bind(m.strct)
 		}
 	}
