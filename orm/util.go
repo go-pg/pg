@@ -28,6 +28,15 @@ func indirectNew(v reflect.Value, set bool) reflect.Value {
 	return v
 }
 
+func sliceElemType(v reflect.Value) reflect.Type {
+	elemType := v.Type().Elem()
+	if elemType.Kind() == reflect.Interface && v.Len() > 0 {
+		return reflect.Indirect(v.Index(0).Elem()).Type()
+	} else {
+		return indirectType(elemType)
+	}
+}
+
 func typeByIndex(t reflect.Type, index []int) reflect.Type {
 	for _, x := range index {
 		if t.Kind() == reflect.Slice {

@@ -223,11 +223,12 @@ func (t *Table) newField(f reflect.StructField) *Field {
 
 	switch fieldType.Kind() {
 	case reflect.Slice:
-		if fieldType.Elem().Kind() != reflect.Struct {
+		elemType := indirectType(fieldType.Elem())
+		if elemType.Kind() != reflect.Struct {
 			break
 		}
 
-		joinTable := newTable(fieldType.Elem())
+		joinTable := newTable(elemType)
 
 		basePrefix := t.Type.Name()
 		if s, ok := pgOpt.Get("fk:"); ok {
@@ -251,29 +252,21 @@ func (t *Table) newField(f reflect.StructField) *Field {
 			return nil
 		}
 
-		var relType int
+		var polymorphic bool
 		if s, ok := pgOpt.Get("polymorphic:"); ok {
+			polymorphic = true
 			basePrefix = s
-			relType = PolymorphicRelation
-		} else {
-			relType = HasManyRelation
 		}
 
-		var fks []*Field
-		for _, pk := range t.PKs {
-			fkName := basePrefix + pk.GoName
-			if fk := joinTable.getField(fkName); fk != nil {
-				fks = append(fks, fk)
-			}
-		}
-
+		fks := foreignKeys(t, joinTable, basePrefix)
 		if len(fks) > 0 {
 			t.addRelation(&Relation{
-				Type:       relType,
-				Field:      &field,
-				FKs:        fks,
-				Join:       joinTable,
-				BasePrefix: Underscore(basePrefix + "_"),
+				Type:        HasManyRelation,
+				Polymorphic: polymorphic,
+				Field:       &field,
+				FKs:         fks,
+				Join:        joinTable,
+				BasePrefix:  Underscore(basePrefix + "_"),
 			})
 			return nil
 		}
@@ -292,7 +285,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		}
 
 		t.detectHasOne(&field, joinTable)
-		t.detectBelongsTo(&field, joinTable)
+		t.detectBelongsToOne(&field, joinTable)
 
 		t.FieldsMap[field.SQLName] = &field
 		return nil
@@ -302,14 +295,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 }
 
 func (t *Table) detectHasOne(field *Field, joinTable *Table) {
-	var fks []*Field
-	for _, pk := range joinTable.PKs {
-		fkName := field.GoName + pk.GoName
-		if fk := t.getField(fkName); fk != nil {
-			fks = append(fks, fk)
-		}
-	}
-
+	fks := foreignKeys(joinTable, t, field.GoName)
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
 			Type:  HasOneRelation,
@@ -320,15 +306,8 @@ func (t *Table) detectHasOne(field *Field, joinTable *Table) {
 	}
 }
 
-func (t *Table) detectBelongsTo(field *Field, joinTable *Table) {
-	var fks []*Field
-	for _, pk := range t.PKs {
-		fkName := t.Type.Name() + pk.GoName
-		if fk := joinTable.getField(fkName); fk != nil {
-			fks = append(fks, fk)
-		}
-	}
-
+func (t *Table) detectBelongsToOne(field *Field, joinTable *Table) {
+	fks := foreignKeys(t, joinTable, t.Type.Name())
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
 			Type:  BelongsToRelation,
@@ -337,4 +316,15 @@ func (t *Table) detectBelongsTo(field *Field, joinTable *Table) {
 			Join:  joinTable,
 		})
 	}
+}
+
+func foreignKeys(base, join *Table, prefix string) []*Field {
+	var fks []*Field
+	for _, pk := range base.PKs {
+		fkName := prefix + pk.GoName
+		if fk := join.getField(fkName); fk != nil {
+			fks = append(fks, fk)
+		}
+	}
+	return fks
 }

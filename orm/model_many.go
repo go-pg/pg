@@ -19,19 +19,25 @@ var _ tableModel = (*manyModel)(nil)
 func newManyModel(j *join) *manyModel {
 	joinModel := j.JoinModel.(*sliceTableModel)
 	dstValues := dstValues(joinModel.Root(), joinModel.Index(), j.BaseModel.Table().PKs)
-	m := &manyModel{
+	m := manyModel{
 		sliceTableModel: joinModel,
 		rel:             j.Rel,
 
 		dstValues: dstValues,
 	}
-	m.strct = reflect.New(m.table.Type).Elem()
-	m.zeroStruct = reflect.Zero(m.table.Type)
-	return m
+	if !m.sliceOfPtr {
+		m.strct = reflect.New(m.table.Type).Elem()
+		m.zeroStruct = reflect.Zero(m.table.Type)
+	}
+	return &m
 }
 
 func (m *manyModel) NewModel() ColumnScanner {
-	m.strct.Set(m.zeroStruct)
+	if m.sliceOfPtr {
+		m.strct = reflect.New(m.table.Type).Elem()
+	} else {
+		m.strct.Set(m.zeroStruct)
+	}
 	m.structTableModel.NewModel()
 	return m
 }
@@ -42,8 +48,16 @@ func (m *manyModel) AddModel(_ ColumnScanner) error {
 	if !ok {
 		return fmt.Errorf("pg: can't find dst value for model id=%q", m.buf)
 	}
-	for _, v := range dstValues {
-		v.Set(reflect.Append(v, m.strct))
+
+	if m.sliceOfPtr {
+		for _, v := range dstValues {
+			v.Set(reflect.Append(v, m.strct.Addr()))
+		}
+	} else {
+		for _, v := range dstValues {
+			v.Set(reflect.Append(v, m.strct))
+		}
 	}
+
 	return nil
 }

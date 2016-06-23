@@ -6,15 +6,15 @@ const (
 	HasOneRelation = 1 << iota
 	BelongsToRelation
 	HasManyRelation
-	PolymorphicRelation
 	Many2ManyRelation
 )
 
 type Relation struct {
-	Type  int
-	Field *Field
-	Join  *Table
-	FKs   []*Field
+	Type        int
+	Polymorphic bool
+	Field       *Field
+	Join        *Table
+	FKs         []*Field
 
 	M2MTableName types.Q
 	BasePrefix   string
