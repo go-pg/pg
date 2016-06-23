@@ -53,18 +53,17 @@ func newTableModelValue(v reflect.Value) (tableModel, error) {
 	case reflect.Struct:
 		return newStructTableModel(v)
 	case reflect.Slice:
-		elType := indirectType(v.Type().Elem())
-		if elType.Kind() == reflect.Interface && v.Len() > 0 {
-			elType = reflect.Indirect(v.Index(0).Elem()).Type()
-		}
-		if elType.Kind() == reflect.Struct {
-			return &sliceTableModel{
+		structType := sliceElemType(v)
+		if structType.Kind() == reflect.Struct {
+			m := sliceTableModel{
 				structTableModel: structTableModel{
-					table: Tables.Get(elType),
+					table: Tables.Get(structType),
 					root:  v,
 				},
 				slice: v,
-			}, nil
+			}
+			m.init(v.Type())
+			return &m, nil
 		}
 	}
 
@@ -83,17 +82,19 @@ func newTableModelIndex(root reflect.Value, index []int, table *Table) (tableMod
 	}
 
 	if typ.Kind() == reflect.Slice {
-		elType := indirectType(typ.Elem())
-		if elType.Kind() == reflect.Struct {
-			return &sliceTableModel{
+		structType := indirectType(typ.Elem())
+		if structType.Kind() == reflect.Struct {
+			m := sliceTableModel{
 				structTableModel: structTableModel{
-					table: Tables.Get(elType),
+					table: Tables.Get(structType),
 					root:  root,
 					index: index,
 				},
-			}, nil
+			}
+			m.init(typ)
+			return &m, nil
 		}
 	}
 
-	return nil, fmt.Errorf("pg: NewModel(index %s on %s)", index, root.Type())
+	return nil, fmt.Errorf("pg: NewModel(%s)", typ)
 }

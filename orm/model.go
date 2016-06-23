@@ -47,19 +47,22 @@ func NewModel(values ...interface{}) (Model, error) {
 	case reflect.Struct:
 		return newStructTableModel(v)
 	case reflect.Slice:
-		elType := indirectType(v.Type().Elem())
-		if elType.Kind() == reflect.Struct && elType != timeType {
-			return &sliceTableModel{
+		typ := v.Type()
+		structType := indirectType(typ.Elem())
+		if structType.Kind() == reflect.Struct && structType != timeType {
+			m := sliceTableModel{
 				structTableModel: structTableModel{
-					table: Tables.Get(elType),
+					table: Tables.Get(structType),
 					root:  v,
 				},
 				slice: v,
-			}, nil
+			}
+			m.init(typ)
+			return &m, nil
 		} else {
 			return &sliceModel{
 				slice: v,
-				scan:  types.Scanner(elType),
+				scan:  types.Scanner(structType),
 			}, nil
 		}
 	}

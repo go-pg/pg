@@ -30,13 +30,19 @@ func newM2MModel(join *join) *m2mModel {
 		dstValues: dstValues,
 		columns:   make(map[string]string),
 	}
-	m.strct = reflect.New(m.table.Type).Elem()
-	m.zeroStruct = reflect.Zero(m.table.Type)
+	if !m.sliceOfPtr {
+		m.strct = reflect.New(m.table.Type).Elem()
+		m.zeroStruct = reflect.Zero(m.table.Type)
+	}
 	return m
 }
 
 func (m *m2mModel) NewModel() ColumnScanner {
-	m.strct.Set(m.zeroStruct)
+	if m.sliceOfPtr {
+		m.strct = reflect.New(m.table.Type).Elem()
+	} else {
+		m.strct.Set(m.zeroStruct)
+	}
 	m.structTableModel.NewModel()
 	return m
 }
@@ -47,9 +53,17 @@ func (m *m2mModel) AddModel(_ ColumnScanner) error {
 	if !ok {
 		return fmt.Errorf("pg: can't find dst value for model id=%q", m.buf)
 	}
-	for _, v := range dstValues {
-		v.Set(reflect.Append(v, m.strct))
+
+	if m.sliceOfPtr {
+		for _, v := range dstValues {
+			v.Set(reflect.Append(v, m.strct.Addr()))
+		}
+	} else {
+		for _, v := range dstValues {
+			v.Set(reflect.Append(v, m.strct))
+		}
 	}
+
 	return nil
 }
 

@@ -504,10 +504,11 @@ func ExampleDB_Model_hasOne() {
 }
 
 func ExampleDB_Model_belongsTo() {
+	// Profile belongs to User.
 	type Profile struct {
 		Id     int
 		Lang   string
-		UserId int // belongs to User
+		UserId int
 	}
 
 	type User struct {
@@ -559,6 +560,51 @@ func ExampleDB_Model_belongsTo() {
 }
 
 func ExampleDB_Model_hasMany() {
+	type Profile struct {
+		Id     int
+		Lang   string
+		UserId int
+	}
+
+	// User has many profiles.
+	type User struct {
+		Id       int
+		Name     string
+		Profiles []*Profile
+	}
+
+	db := connect()
+	defer db.Close()
+
+	qs := []string{
+		"CREATE TEMP TABLE users (id int, name text)",
+		"CREATE TEMP TABLE profiles (id int, lang text, user_id int)",
+		"INSERT INTO users VALUES (1, 'user 1')",
+		"INSERT INTO profiles VALUES (1, 'en', 1), (2, 'ru', 1)",
+	}
+	for _, q := range qs {
+		_, err := db.Exec(q)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	// Select user and all his profiles using following queries:
+	//
+	// SELECT "user".* FROM "users" AS "user" ORDER BY "user"."id" LIMIT 1
+	//
+	// SELECT "profile".* FROM "profiles" AS "profile" WHERE (("profile"."user_id") IN ((1)))
+
+	var user User
+	err := db.Model(&user).Column("user.*", "Profiles").First()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(user.Id, user.Name, user.Profiles[0], user.Profiles[1])
+	// Output: 1 user 1 &{1 en 1} &{2 ru 1}
+}
+
+func ExampleDB_Model_hasManySelf() {
 	type Item struct {
 		Id       int
 		Items    []Item `pg:",fk:Parent"`

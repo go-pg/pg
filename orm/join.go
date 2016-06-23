@@ -51,7 +51,7 @@ func (j *join) JoinBelongsTo(q *Query) {
 
 func (j *join) Select(db dber) error {
 	switch j.Rel.Type {
-	case HasManyRelation, PolymorphicRelation:
+	case HasManyRelation:
 		return j.selectMany(db)
 	case Many2ManyRelation:
 		return j.selectM2M(db)
@@ -73,7 +73,7 @@ func (j *join) selectMany(db dber) error {
 	vals := values(root, index, j.BaseModel.Table().PKs)
 	q = q.Where(`(?) IN (?)`, types.Q(cols), types.Q(vals))
 
-	if j.Rel.Type == PolymorphicRelation {
+	if j.Rel.Polymorphic {
 		q = q.Where(`? = ?`, types.F(j.Rel.BasePrefix+"type"), j.BaseModel.Table().ModelName)
 	}
 
