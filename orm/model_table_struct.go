@@ -155,11 +155,11 @@ func (m *structTableModel) AddJoin(j join) *join {
 	return &m.joins[len(m.joins)-1]
 }
 
-func (m *structTableModel) Join(name string) *join {
-	return addJoin(m, m.Value(), name)
+func (m *structTableModel) Join(name string, apply func(*Query) *Query) *join {
+	return m.join(m.Value(), name, apply)
 }
 
-func addJoin(m *structTableModel, bind reflect.Value, name string) *join {
+func (m *structTableModel) join(bind reflect.Value, name string, apply func(*Query) *Query) *join {
 	path := strings.Split(name, ".")
 	index := make([]int, 0, len(path))
 
@@ -198,6 +198,9 @@ func addJoin(m *structTableModel, bind reflect.Value, name string) *join {
 	// No joins with such name.
 	if lastJoin == nil {
 		return nil
+	}
+	if apply != nil {
+		lastJoin.ApplyQuery = apply
 	}
 
 	if hasColumnName {

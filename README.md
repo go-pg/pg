@@ -40,6 +40,7 @@ Examples: http://godoc.org/gopkg.in/pg.v4#pkg-examples.
   * [Update](#update)
   * [Delete](#delete)
   * [Has one](#has-one)
+  * [Belongs to](#belongs-to)
   * [Has many](#has-many)
   * [Has many to many](#has-many-to-many)
 * [Howto](#howto)
@@ -416,22 +417,120 @@ err := db.Model(&items).
 // WHERE (item.sub_id IS NOT NULL)
 ```
 
-### Has many
+### Belongs to
 
-Following example selects one item and all subitems using `parent_id` column.
+Following examples selects users joining their profiles:
 
 ```go
-type Item struct {
-    Id       int
-    Items    []Item `pg:",fk:Parent"`
-    ParentId int
+// Profile belongs to User.
+type Profile struct {
+    Id     int
+    Lang   string
+    UserId int
 }
 
-var item Item
-err := db.Model(&item).Column("item.*", "Items").First()
-// SELECT "item".* FROM "items" AS "item" ORDER BY "item"."id" LIMIT 1
+type User struct {
+    Id      int
+    Name    string
+    Profile *Profile
+}
+
+db := connect()
+defer db.Close()
+
+qs := []string{
+    "CREATE TEMP TABLE users (id int, name text)",
+    "CREATE TEMP TABLE profiles (id int, lang text, user_id int)",
+    "INSERT INTO users VALUES (1, 'user 1'), (2, 'user 2')",
+    "INSERT INTO profiles VALUES (1, 'en', 1), (2, 'ru', 2)",
+}
+for _, q := range qs {
+    _, err := db.Exec(q)
+    if err != nil {
+        panic(err)
+    }
+}
+
+// Select users joining their profiles with following query:
 //
-// SELECT "item".* FROM "items" AS "item" WHERE (("item"."parent_id") IN ((1)))
+// SELECT
+//   "user".*,
+//   "profile"."id" AS "profile__id",
+//   "profile"."lang" AS "profile__lang",
+//   "profile"."user_id" AS "profile__user_id"
+// FROM "users" AS "user"
+// LEFT JOIN "profiles" AS "profile" ON "profile"."user_id" = "user"."id"
+
+var users []User
+err := db.Model(&users).
+    Column("user.*", "Profile").
+    Select()
+if err != nil {
+    panic(err)
+}
+
+fmt.Println(len(users), "results")
+fmt.Println(users[0].Id, users[0].Name, users[0].Profile)
+fmt.Println(users[1].Id, users[1].Name, users[1].Profile)
+// Output: 2 results
+// 1 user 1 &{1 en 1}
+// 2 user 2 &{2 ru 2}
+```
+
+### Has many
+
+Following example selects first user and all his active profiles:
+
+```go
+type Profile struct {
+    Id     int
+    Lang   string
+    Active bool
+    UserId int
+}
+
+// User has many profiles.
+type User struct {
+    Id       int
+    Name     string
+    Profiles []*Profile
+}
+
+db := connect()
+defer db.Close()
+
+qs := []string{
+    "CREATE TEMP TABLE users (id int, name text)",
+    "CREATE TEMP TABLE profiles (id int, lang text, active bool, user_id int)",
+    "INSERT INTO users VALUES (1, 'user 1')",
+    "INSERT INTO profiles VALUES (1, 'en', TRUE, 1), (2, 'ru', TRUE, 1), (3, 'md', FALSE, 1)",
+}
+for _, q := range qs {
+    _, err := db.Exec(q)
+    if err != nil {
+        panic(err)
+    }
+}
+
+// Select user and all his active profiles using following queries:
+//
+// SELECT "user".* FROM "users" AS "user" ORDER BY "user"."id" LIMIT 1
+//
+// SELECT "profile".* FROM "profiles" AS "profile"
+// WHERE (active IS TRUE) AND (("profile"."user_id") IN ((1)))
+
+var user User
+err := db.Model(&user).
+    Column("user.*", "Profiles").
+    Relation("Profiles", func(q *orm.Query) *orm.Query {
+        return q.Where("active IS TRUE")
+    }).
+    First()
+if err != nil {
+    panic(err)
+}
+fmt.Println(user.Id, user.Name, user.Profiles[0], user.Profiles[1])
+// Output: 1 user 1 &{1 en true 1} &{2 ru true 1}
 ```
 
 ### Has many to many
@@ -439,6 +538,7 @@ err := db.Model(&item).Column("item.*", "Items").First()
 Following example selects one item and all subitems using itermediary `item_to_items` table.
 
 ```go
+
 type Item struct {
     Id    int
     Items []Item `pg:",many2many:item_to_items,joinFK:Sub"`
