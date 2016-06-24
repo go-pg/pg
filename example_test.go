@@ -192,8 +192,8 @@ func ExampleInts() {
 	// Output: [0 1 2 3 4 5 6 7 8 9 10] <nil>
 }
 
-func ExampleInts_in() {
-	ids := pg.Ints{1, 2, 3}
+func ExampleIn() {
+	ids := pg.In([]int{1, 2, 3})
 	q := pg.SQL(`SELECT * FROM table WHERE id IN (?)`, ids)
 	fmt.Println(q)
 	// Output: SELECT * FROM table WHERE id IN (1,2,3)

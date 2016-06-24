@@ -28,7 +28,7 @@ func GetUsers(db *pg.DB) ([]User, error) {
 
 func GetUsersByIds(db *pg.DB, ids []int64) ([]User, error) {
 	var users []User
-	_, err := db.Query(&users, `SELECT * FROM users WHERE id IN (?)`, pg.Ints(ids))
+	_, err := db.Query(&users, `SELECT * FROM users WHERE id IN (?)`, pg.In(ids))
 	return users, err
 }
 

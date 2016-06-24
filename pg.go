@@ -34,6 +34,14 @@ func F(field string, params ...interface{}) types.F {
 	return orm.F(field, params...)
 }
 
+// In accepts a slice and returns a wrapper that can be used with PostgreSQL
+// IN operator:
+//
+//    Where("id IN (?)", pg.In([]int{1, 2, 3}))
+func In(slice interface{}) types.ValueAppender {
+	return types.In(slice)
+}
+
 // Array accepts a slice and returns a wrapper for working with PostgreSQL
 // array data type.
 //
