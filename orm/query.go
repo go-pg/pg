@@ -20,6 +20,7 @@ type Query struct {
 	tables     []byte
 	fields     []string
 	columns    []byte
+	rels       map[string]func(*Query) *Query
 	set        []byte
 	where      []byte
 	join       []byte
@@ -78,7 +79,7 @@ func (q *Query) Column(columns ...string) *Query {
 loop:
 	for _, column := range columns {
 		if q.model != nil {
-			if j := q.model.Join(column); j != nil {
+			if j := q.model.Join(column, nil); j != nil {
 				continue loop
 			}
 		}
@@ -93,6 +94,16 @@ loop:
 func (q *Query) ColumnExpr(expr string, params ...interface{}) *Query {
 	q.columns = appendSep(q.columns, ", ")
 	q.columns = q.FormatQuery(q.columns, expr, params...)
+	return q
+}
+
+func (q *Query) Relation(name string, apply func(*Query) *Query) *Query {
+	if j := q.model.Join(name, apply); j == nil {
+		q.err = fmt.Errorf(
+			"model %s does not have relation %s",
+			q.model.Table().Type.Name, name,
+		)
+	}
 	return q
 }
 

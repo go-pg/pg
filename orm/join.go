@@ -3,9 +3,10 @@ package orm
 import "gopkg.in/pg.v4/types"
 
 type join struct {
-	BaseModel tableModel
-	JoinModel tableModel
-	Rel       *Relation
+	BaseModel  tableModel
+	JoinModel  tableModel
+	Rel        *Relation
+	ApplyQuery func(*Query) *Query
 
 	Columns []string
 }
@@ -66,6 +67,9 @@ func (j *join) selectMany(db dber) error {
 
 	manyModel := newManyModel(j)
 	q := NewQuery(db, manyModel)
+	if j.ApplyQuery != nil {
+		q = j.ApplyQuery(q)
+	}
 
 	q.columns = j.appendColumnsMany(q.columns)
 

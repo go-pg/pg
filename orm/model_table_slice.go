@@ -23,8 +23,8 @@ func (sliceTableModel) useQueryOne() bool {
 	return false
 }
 
-func (m *sliceTableModel) Join(name string) *join {
-	return addJoin(&m.structTableModel, m.Value(), name)
+func (m *sliceTableModel) Join(name string, apply func(*Query) *Query) *join {
+	return m.join(m.Value(), name, apply)
 }
 
 func (m *sliceTableModel) Bind(bind reflect.Value) {
