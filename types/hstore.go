@@ -19,7 +19,7 @@ var _ sql.Scanner = (*Hstore)(nil)
 func NewHstore(vi interface{}) *Hstore {
 	v := reflect.ValueOf(vi)
 	if !v.IsValid() {
-		panic(fmt.Errorf("pg.Hstore(nil)", v.Type()))
+		panic(fmt.Errorf("pg.Hstore(nil)"))
 	}
 	v = reflect.Indirect(v)
 	if v.Kind() != reflect.Map {

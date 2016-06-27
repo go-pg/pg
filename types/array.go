@@ -19,7 +19,7 @@ var _ sql.Scanner = (*Array)(nil)
 func NewArray(vi interface{}) *Array {
 	v := reflect.ValueOf(vi)
 	if !v.IsValid() {
-		panic(fmt.Errorf("pg.Array(nil)", v.Type()))
+		panic(fmt.Errorf("pg.Array(nil)"))
 	}
 	v = reflect.Indirect(v)
 	if v.Kind() != reflect.Slice {

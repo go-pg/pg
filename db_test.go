@@ -378,7 +378,7 @@ var _ = Describe("DB.Update", func() {
 		type Test struct{}
 		var test Test
 		err := db.Update(&test)
-		Expect(err).To(MatchError(`model "test" does not have primary keys`))
+		Expect(err).To(MatchError(`model Test does not have primary keys`))
 	})
 })
 
@@ -403,7 +403,7 @@ var _ = Describe("DB.Delete", func() {
 		type Test struct{}
 		var test Test
 		err := db.Delete(&test)
-		Expect(err).To(MatchError(`model "test" does not have primary keys`))
+		Expect(err).To(MatchError(`model Test does not have primary keys`))
 	})
 })
 
@@ -426,7 +426,7 @@ var _ = Describe("scanning unknown column", func() {
 
 		var test Test
 		_, err := db.QueryOne(&test, "SELECT 1 AS col1, 2 AS col2")
-		Expect(err).To(MatchError(`pg: can't find column "col2" in model test`))
+		Expect(err).To(MatchError(`pg: can't find column col2 in model Test`))
 		Expect(test.Col1).To(Equal(1))
 	})
 })
@@ -500,7 +500,7 @@ type Translation struct {
 
 type Comment struct {
 	TrackableId   int    `sql:",pk"` // Book.Id or Translation.Id
-	TrackableType string `sql:",pk"` // "book" or "translation"
+	TrackableType string `sql:",pk"` // "Book" or "Translation"
 	Text          string
 }
 
@@ -631,15 +631,15 @@ var _ = Describe("ORM", func() {
 
 		comments := []Comment{{
 			TrackableId:   100,
-			TrackableType: "book",
+			TrackableType: "Book",
 			Text:          "comment1",
 		}, {
 			TrackableId:   100,
-			TrackableType: "book",
+			TrackableType: "Book",
 			Text:          "comment2",
 		}, {
 			TrackableId:   1000,
-			TrackableType: "translation",
+			TrackableType: "Translation",
 			Text:          "comment3",
 		}}
 		err = db.Create(&comments)
@@ -675,7 +675,7 @@ var _ = Describe("ORM", func() {
 						Comments: []Comment{
 							{
 								TrackableId:   1000,
-								TrackableType: "translation",
+								TrackableType: "Translation",
 								Text:          "comment3",
 							},
 						},
@@ -685,12 +685,12 @@ var _ = Describe("ORM", func() {
 				Comments: []Comment{
 					{
 						TrackableId:   100,
-						TrackableType: "book",
+						TrackableType: "Book",
 						Text:          "comment1",
 					},
 					{
 						TrackableId:   100,
-						TrackableType: "book",
+						TrackableType: "Book",
 						Text:          "comment2",
 					},
 				},

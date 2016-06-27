@@ -15,7 +15,7 @@ var _ ValueAppender = (*InOp)(nil)
 func In(slice interface{}) *InOp {
 	v := reflect.ValueOf(slice)
 	if !v.IsValid() {
-		panic(fmt.Errorf("pg.In(nil)", v.Type()))
+		panic(fmt.Errorf("pg.In(nil)"))
 	}
 	if v.Kind() != reflect.Slice {
 		panic(fmt.Errorf("pg.In(unsupported %s)", v.Type()))

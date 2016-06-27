@@ -16,7 +16,7 @@ func (o tagOptions) Get(name string) (string, bool) {
 			s, next = s[:idx], s[idx+1:]
 		}
 		if strings.HasPrefix(s, name) {
-			return string(s[len(name):]), true
+			return s[len(name):], true
 		}
 		s = next
 	}

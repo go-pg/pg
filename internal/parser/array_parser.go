@@ -50,8 +50,6 @@ func (p *ArrayParser) NextElem() ([]byte, error) {
 		}
 		return b, nil
 	}
-
-	return nil, fmt.Errorf("pg: can't parse array: %q", p.Bytes())
 }
 
 func (p *ArrayParser) readElem() []byte {
