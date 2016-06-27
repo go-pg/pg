@@ -13,13 +13,14 @@ type join struct {
 
 func (j *join) JoinHasOne(q *Query) {
 	var cond types.Q
-	for _, pk := range j.Rel.Join.PKs {
+	joinTable := j.Rel.JoinTable
+	for i, fk := range j.Rel.FKs {
 		cond = appendSep(cond, " AND ")
 		cond = q.FormatQuery(
 			cond,
 			`?.? = ?.?`,
-			j.Rel.Field.ColName, pk.ColName,
-			j.BaseModel.Table().Alias, types.F(j.Rel.Field.SQLName+"_"+pk.SQLName),
+			j.Rel.Field.ColName, joinTable.PKs[i].ColName,
+			j.BaseModel.Table().Alias, fk.ColName,
 		)
 	}
 

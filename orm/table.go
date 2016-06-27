@@ -244,7 +244,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 			t.addRelation(&Relation{
 				Type:         Many2ManyRelation,
 				Field:        &field,
-				Join:         joinTable,
+				JoinTable:    joinTable,
 				M2MTableName: types.AppendField(nil, m2mTable, 1),
 				BasePrefix:   Underscore(basePrefix + "_"),
 				JoinPrefix:   Underscore(joinPrefix + "_"),
@@ -265,7 +265,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 				Polymorphic: polymorphic,
 				Field:       &field,
 				FKs:         fks,
-				Join:        joinTable,
+				JoinTable:   joinTable,
 				BasePrefix:  Underscore(basePrefix + "_"),
 			})
 			return nil
@@ -298,10 +298,10 @@ func (t *Table) detectHasOne(field *Field, joinTable *Table) {
 	fks := foreignKeys(joinTable, t, field.GoName)
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
-			Type:  HasOneRelation,
-			Field: field,
-			FKs:   fks,
-			Join:  joinTable,
+			Type:      HasOneRelation,
+			Field:     field,
+			FKs:       fks,
+			JoinTable: joinTable,
 		})
 	}
 }
@@ -310,10 +310,10 @@ func (t *Table) detectBelongsToOne(field *Field, joinTable *Table) {
 	fks := foreignKeys(t, joinTable, t.Type.Name())
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
-			Type:  BelongsToRelation,
-			Field: field,
-			FKs:   fks,
-			Join:  joinTable,
+			Type:      BelongsToRelation,
+			Field:     field,
+			FKs:       fks,
+			JoinTable: joinTable,
 		})
 	}
 }

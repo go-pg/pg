@@ -184,7 +184,7 @@ func (m *structTableModel) join(bind reflect.Value, name string, apply func(*Que
 			thejoin.JoinModel = j.JoinModel
 			lastJoin = j
 		} else {
-			model, err := newTableModelIndex(bind, index, rel.Join)
+			model, err := newTableModelIndex(bind, index, rel.JoinTable)
 			if err != nil {
 				return nil
 			}

@@ -13,7 +13,7 @@ type Relation struct {
 	Type        int
 	Polymorphic bool
 	Field       *Field
-	Join        *Table
+	JoinTable   *Table
 	FKs         []*Field
 
 	M2MTableName types.Q
