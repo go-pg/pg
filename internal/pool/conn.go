@@ -12,9 +12,11 @@ var noDeadline = time.Time{}
 
 type Conn struct {
 	NetConn net.Conn
-	Buf     []byte
 	Rd      *bufio.Reader // read buffer
 	Wr      *Buffer       // write buffer
+
+	Buf     []byte   // reusable
+	Columns []string // reusable
 
 	Inited bool
 	UsedAt time.Time
