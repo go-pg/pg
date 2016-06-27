@@ -73,12 +73,17 @@ func (j *join) selectMany(db dber) error {
 
 	q.columns = j.appendColumnsMany(q.columns)
 
+	baseTable := j.BaseModel.Table()
 	cols := columns(j.JoinModel.Table().Alias, "", j.Rel.FKs)
-	vals := values(root, index, j.BaseModel.Table().PKs)
+	vals := values(root, index, baseTable.PKs)
 	q = q.Where(`(?) IN (?)`, types.Q(cols), types.Q(vals))
 
 	if j.Rel.Polymorphic {
-		q = q.Where(`? = ?`, types.F(j.Rel.BasePrefix+"type"), j.BaseModel.Table().ModelName)
+		q = q.Where(
+			`? IN (?, ?)`,
+			types.F(j.Rel.BasePrefix+"type"),
+			baseTable.ModelName, baseTable.Type.Name(),
+		)
 	}
 
 	err := q.Select()

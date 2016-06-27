@@ -26,7 +26,7 @@ type Table struct {
 
 func (t *Table) checkPKs() error {
 	if len(t.PKs) == 0 {
-		return fmt.Errorf("model %q does not have primary keys", t.ModelName)
+		return fmt.Errorf("model %s does not have primary keys", t.Type.Name())
 	}
 	return nil
 }

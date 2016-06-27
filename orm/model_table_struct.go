@@ -110,7 +110,7 @@ func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) erro
 	if ok {
 		return err
 	}
-	return fmt.Errorf("pg: can't find column %q in model %s", colName, m.table.ModelName)
+	return fmt.Errorf("pg: can't find column %s in model %s", colName, m.table.Type.Name())
 }
 
 func (m *structTableModel) scanColumn(colIdx int, colName string, b []byte) (bool, error) {

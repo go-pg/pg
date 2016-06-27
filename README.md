@@ -231,7 +231,7 @@ type Translation struct {
 
 type Comment struct {
 	TrackableId   int    `sql:",pk"` // Book.Id or Translation.Id
-	TrackableType string `sql:",pk"` // "book" or "translation"
+	TrackableType string `sql:",pk"` // "Book" or "Translation"
 	Text          string
 }
 ```

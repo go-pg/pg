@@ -101,7 +101,7 @@ func (q *Query) Relation(name string, apply func(*Query) *Query) *Query {
 	if j := q.model.Join(name, apply); j == nil {
 		q.err = fmt.Errorf(
 			"model %s does not have relation %s",
-			q.model.Table().Type.Name, name,
+			q.model.Table().Type.Name(), name,
 		)
 	}
 	return q
