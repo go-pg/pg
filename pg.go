@@ -121,7 +121,7 @@ func (Ints) AddModel(_ orm.ColumnScanner) error {
 }
 
 func (ints *Ints) ScanColumn(colIdx int, colName string, b []byte) error {
-	n, err := strconv.ParseInt(string(b), 10, 64)
+	n, err := strconv.ParseInt(internal.BytesToString(b), 10, 64)
 	if err != nil {
 		return err
 	}
@@ -163,7 +163,7 @@ func (setptr *IntSet) ScanColumn(colIdx int, colName string, b []byte) error {
 		set = *setptr
 	}
 
-	n, err := strconv.ParseInt(string(b), 10, 64)
+	n, err := strconv.ParseInt(internal.BytesToString(b), 10, 64)
 	if err != nil {
 		return err
 	}

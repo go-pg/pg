@@ -142,7 +142,7 @@ func decodeSliceInt64(b []byte) ([]int64, error) {
 			slice = append(slice, 0)
 			continue
 		}
-		n, err := strconv.ParseInt(string(elem), 10, 64)
+		n, err := strconv.ParseInt(internal.BytesToString(elem), 10, 64)
 		if err != nil {
 			return nil, err
 		}
@@ -178,7 +178,7 @@ func decodeSliceFloat64(b []byte) ([]float64, error) {
 			slice = append(slice, 0)
 			continue
 		}
-		n, err := strconv.ParseFloat(string(elem), 64)
+		n, err := strconv.ParseFloat(internal.BytesToString(elem), 64)
 		if err != nil {
 			return nil, err
 		}

@@ -29,15 +29,7 @@ func Scan(v interface{}, b []byte) error {
 			return nil
 		}
 		var err error
-		*v, err = strconv.Atoi(string(b))
-		return err
-	case *int32:
-		if b == nil {
-			*v = 0
-			return nil
-		}
-		n, err := strconv.ParseInt(string(b), 10, 32)
-		*v = int32(n)
+		*v, err = strconv.Atoi(internal.BytesToString(b))
 		return err
 	case *int64:
 		if b == nil {
@@ -45,7 +37,7 @@ func Scan(v interface{}, b []byte) error {
 			return nil
 		}
 		var err error
-		*v, err = strconv.ParseInt(string(b), 10, 64)
+		*v, err = strconv.ParseInt(internal.BytesToString(b), 10, 64)
 		return err
 	case *time.Time:
 		if b == nil {

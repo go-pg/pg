@@ -3,6 +3,8 @@ package types
 import (
 	"bytes"
 	"strconv"
+
+	"gopkg.in/pg.v4/internal"
 )
 
 // A Result summarizes an executed SQL command.
@@ -18,7 +20,8 @@ func ParseResult(b []byte) *Result {
 	if ind == -1 {
 		return &res
 	}
-	affected, err := strconv.Atoi(string(b[ind+1 : len(b)-1]))
+	s := internal.BytesToString(b[ind+1 : len(b)-1])
+	affected, err := strconv.Atoi(s)
 	if err == nil {
 		res.affected = affected
 	}
