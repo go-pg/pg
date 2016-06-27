@@ -305,7 +305,7 @@ func readParseDescribeSync(cn *pool.Conn) ([]string, error) {
 				return nil, err
 			}
 		case rowDescriptionMsg: // Response to the DESCRIBE message.
-			columns, err = readRowDescription(cn)
+			columns, err = readRowDescription(cn, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -549,23 +549,32 @@ func readExtQuery(cn *pool.Conn) (res *types.Result, e error) {
 	}
 }
 
-func readRowDescription(cn *pool.Conn) ([]string, error) {
+func readRowDescription(cn *pool.Conn, columns []string) ([]string, error) {
 	colNum, err := readInt16(cn)
 	if err != nil {
 		return nil, err
 	}
-	cols := make([]string, colNum)
-	for i := int16(0); i < colNum; i++ {
+	columns = setStringsLen(columns, int(colNum))
+	for i := 0; i < int(colNum); i++ {
 		col, err := readString(cn)
 		if err != nil {
 			return nil, err
 		}
-		cols[i] = col
+		columns[i] = col
 		if _, err := cn.ReadN(18); err != nil {
 			return nil, err
 		}
 	}
-	return cols, nil
+	return columns, nil
+}
+
+func setStringsLen(s []string, n int) []string {
+	if n <= cap(s) {
+		return s[:n]
+	}
+	s = s[:cap(s)]
+	s = append(s, make([]string, n-cap(s))...)
+	return s
 }
 
 func readDataRow(cn *pool.Conn, scanner orm.ColumnScanner, columns []string) (scanErr error) {
@@ -605,7 +614,6 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (*types.Result, error) 
 		}
 	}
 
-	var columns []string
 	var model orm.ColumnScanner
 	for {
 		c, msgLen, err := readMessageType(cn)
@@ -614,13 +622,13 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (*types.Result, error) 
 		}
 		switch c {
 		case rowDescriptionMsg:
-			columns, err = readRowDescription(cn)
+			cn.Columns, err = readRowDescription(cn, cn.Columns[:0])
 			if err != nil {
 				return nil, err
 			}
 		case dataRowMsg:
 			model = coll.NewModel()
-			if err := readDataRow(cn, model, columns); err != nil && retErr == nil {
+			if err := readDataRow(cn, model, cn.Columns); err != nil && retErr == nil {
 				retErr = err
 			}
 			if err := coll.AddModel(model); err != nil {
