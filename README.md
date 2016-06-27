@@ -320,15 +320,16 @@ err := db.Model(&Book{}).ColumnExpr("array_agg(id)").Select(pg.Array(&ids))
 func pager(req *http.Request) func(*orm.Query) *orm.Query {
     const pageSize = 20
     return func(q *orm.Query) *orm.Query {
+        q = q.Limit(pageSize)
         param := req.URL.Query().Get("page")
         if param == "" {
             return q
         }
         page, err := strconv.Atoi(param)
-        if err == nil {
-            q = q.Offset((page - 1) * pageSize).Limit(pageSize)
+        if err != nil {
+            return q
         }
-        return q
+        return q.Offset((page - 1) * pageSize)
     }
 }
 
