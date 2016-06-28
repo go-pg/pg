@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"bufio"
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/binary"
@@ -291,8 +292,8 @@ func writeParseDescribeSyncMsg(buf *pool.Buffer, name, q string) {
 	writeSyncMsg(buf)
 }
 
-func readParseDescribeSync(cn *pool.Conn) ([]string, error) {
-	var columns []string
+func readParseDescribeSync(cn *pool.Conn) ([][]byte, error) {
+	var columns [][]byte
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -549,18 +550,17 @@ func readExtQuery(cn *pool.Conn) (res *types.Result, e error) {
 	}
 }
 
-func readRowDescription(cn *pool.Conn, columns []string) ([]string, error) {
+func readRowDescription(cn *pool.Conn, columns [][]byte) ([][]byte, error) {
 	colNum, err := readInt16(cn)
 	if err != nil {
 		return nil, err
 	}
-	columns = setStringsLen(columns, int(colNum))
+	columns = setByteSliceLen(columns, int(colNum))
 	for i := 0; i < int(colNum); i++ {
-		col, err := readString(cn)
+		columns[i], err = readBytes(cn, columns[i][:0])
 		if err != nil {
 			return nil, err
 		}
-		columns[i] = col
 		if _, err := cn.ReadN(18); err != nil {
 			return nil, err
 		}
@@ -568,16 +568,16 @@ func readRowDescription(cn *pool.Conn, columns []string) ([]string, error) {
 	return columns, nil
 }
 
-func setStringsLen(s []string, n int) []string {
-	if n <= cap(s) {
-		return s[:n]
+func setByteSliceLen(b [][]byte, n int) [][]byte {
+	if n <= cap(b) {
+		return b[:n]
 	}
-	s = s[:cap(s)]
-	s = append(s, make([]string, n-cap(s))...)
-	return s
+	b = b[:cap(b)]
+	b = append(b, make([][]byte, n-cap(b))...)
+	return b
 }
 
-func readDataRow(cn *pool.Conn, scanner orm.ColumnScanner, columns []string) (scanErr error) {
+func readDataRow(cn *pool.Conn, scanner orm.ColumnScanner, columns [][]byte) (scanErr error) {
 	colNum, err := readInt16(cn)
 	if err != nil {
 		return err
@@ -594,7 +594,8 @@ func readDataRow(cn *pool.Conn, scanner orm.ColumnScanner, columns []string) (sc
 				return err
 			}
 		}
-		if err := scanner.ScanColumn(colIdx, columns[colIdx], b); err != nil {
+		column := internal.BytesToString(columns[colIdx])
+		if err := scanner.ScanColumn(colIdx, column, b); err != nil {
 			scanErr = err
 		}
 
@@ -668,7 +669,7 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (*types.Result, error) 
 	}
 }
 
-func readExtQueryData(cn *pool.Conn, mod interface{}, columns []string) (res *types.Result, e error) {
+func readExtQueryData(cn *pool.Conn, mod interface{}, columns [][]byte) (res *types.Result, e error) {
 	coll, ok := mod.(orm.Collection)
 	if !ok {
 		coll, e = orm.NewModel(mod)
@@ -983,6 +984,20 @@ func readString(cn *pool.Conn) (string, error) {
 		return "", err
 	}
 	return s[:len(s)-1], nil
+}
+
+func readBytes(cn *pool.Conn, b []byte) ([]byte, error) {
+	for {
+		line, err := cn.Rd.ReadSlice(0)
+		if err != nil && err != bufio.ErrBufferFull {
+			return nil, err
+		}
+		b = append(b, line...)
+		if err == nil {
+			break
+		}
+	}
+	return b[:len(b)-1], nil
 }
 
 func readError(cn *pool.Conn) (error, error) {

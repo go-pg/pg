@@ -19,7 +19,7 @@ type Stmt struct {
 
 	q       string
 	name    string
-	columns []string
+	columns [][]byte
 
 	stickyErr error
 }
@@ -192,7 +192,7 @@ func extQuery(cn *pool.Conn, name string, params ...interface{}) (*types.Result,
 	return readExtQuery(cn)
 }
 
-func extQueryData(cn *pool.Conn, name string, model interface{}, columns []string, params ...interface{}) (*types.Result, error) {
+func extQueryData(cn *pool.Conn, name string, model interface{}, columns [][]byte, params ...interface{}) (*types.Result, error) {
 	if err := writeBindExecuteMsg(cn.Wr, name, params...); err != nil {
 		return nil, err
 	}

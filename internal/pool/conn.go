@@ -16,7 +16,7 @@ type Conn struct {
 	Wr      *Buffer       // write buffer
 
 	Buf     []byte   // reusable
-	Columns []string // reusable
+	Columns [][]byte // reusable
 
 	Inited bool
 	UsedAt time.Time
