@@ -35,6 +35,6 @@ func (p *HstoreParser) NextValue() ([]byte, error) {
 	}
 
 	value := p.readSubstring()
-	p.SkipString(", ")
+	p.SkipBytes([]byte(", "))
 	return value, nil
 }

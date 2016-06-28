@@ -3,6 +3,8 @@ package parser
 import (
 	"bytes"
 	"strconv"
+
+	"gopkg.in/pg.v4/internal"
 )
 
 type Parser struct {
@@ -14,7 +16,7 @@ func New(b []byte) *Parser {
 }
 
 func NewString(s string) *Parser {
-	return &Parser{b: []byte(s)}
+	return &Parser{b: internal.StringToBytes(s)}
 }
 
 func (p *Parser) Bytes() []byte {
@@ -50,14 +52,14 @@ func (p *Parser) Skip(c byte) bool {
 	return false
 }
 
-func (p *Parser) SkipString(s string) bool {
-	if len(s) > len(p.b) {
+func (p *Parser) SkipBytes(b []byte) bool {
+	if len(b) > len(p.b) {
 		return false
 	}
-	if !bytes.Equal(p.b[:len(s)], []byte(s)) {
+	if !bytes.Equal(p.b[:len(b)], b) {
 		return false
 	}
-	p.b = p.b[len(s):]
+	p.b = p.b[len(b):]
 	return true
 }
 

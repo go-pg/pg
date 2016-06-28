@@ -92,7 +92,9 @@ func AppendString(b []byte, s string, quote int) []byte {
 		b = append(b, '\'')
 	}
 
-	for _, c := range []byte(s) {
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+
 		if c == '\000' {
 			continue
 		}

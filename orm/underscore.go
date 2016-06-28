@@ -18,11 +18,11 @@ func toLower(c byte) byte {
 
 // Underscore converts "CamelCasedString" to "camel_cased_string".
 func Underscore(s string) string {
-	b := []byte(s)
-	r := make([]byte, 0, len(b))
-	for i, c := range b {
+	r := make([]byte, 0, len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
 		if isUpper(c) {
-			if i-0 > 0 && i+1 < len(b) && (isLower(b[i-1]) || isLower(b[i+1])) {
+			if i-0 > 0 && i+1 < len(s) && (isLower(s[i-1]) || isLower(s[i+1])) {
 				r = append(r, '_', toLower(c))
 			} else {
 				r = append(r, toLower(c))

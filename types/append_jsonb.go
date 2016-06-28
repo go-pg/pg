@@ -20,7 +20,7 @@ func AppendJSONB(b, jsonb []byte, quote int) []byte {
 		case '\000':
 			continue
 		case '\\':
-			if p.SkipString("u0000") {
+			if p.SkipBytes([]byte("u0000")) {
 				b = append(b, "\\\\u0000"...)
 			} else {
 				b = append(b, '\\')

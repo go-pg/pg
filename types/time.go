@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	"gopkg.in/pg.v4/internal"
+)
 
 const (
 	dateFormat         = "2006-01-02"
@@ -12,22 +16,23 @@ const (
 )
 
 func ParseTime(b []byte) (time.Time, error) {
+	s := internal.BytesToString(b)
 	switch l := len(b); {
 	case l <= len(dateFormat):
-		return time.Parse(dateFormat, string(b))
+		return time.Parse(dateFormat, s)
 	case l <= len(timeFormat):
-		return time.Parse(timeFormat, string(b))
+		return time.Parse(timeFormat, s)
 	default:
 		if c := b[len(b)-6]; c == '+' || c == '-' {
-			return time.Parse(timestamptzFormat, string(b))
+			return time.Parse(timestamptzFormat, s)
 		}
 		if c := b[len(b)-3]; c == '+' || c == '-' {
-			return time.Parse(timestamptzFormat2, string(b))
+			return time.Parse(timestamptzFormat2, s)
 		}
 		if c := b[len(b)-9]; c == '+' || c == '-' {
-			return time.Parse(timestamptzFormat3, string(b))
+			return time.Parse(timestamptzFormat3, s)
 		}
-		return time.ParseInLocation(timestampFormat, string(b), time.Local)
+		return time.ParseInLocation(timestampFormat, s, time.Local)
 	}
 }
 
