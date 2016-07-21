@@ -359,7 +359,7 @@ err := db.Model(&book).
 // 3. go to step 1 on error
 
 // Create new book or update existing one.
-_, err := db.Model(book).
+_, err := db.Model(&book).
     OnConflict("(id) DO UPDATE").
     Set("title = ?title").
     Create()
