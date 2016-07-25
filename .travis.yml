@@ -28,9 +28,7 @@ before_install:
 
 install:
   - go get gopkg.in/bsm/ratelimit.v1
-  - go get github.com/go-sql-driver/mysql
-  - go get github.com/lib/pq
-  - go get github.com/jinzhu/gorm
+  - go get github.com/jinzhu/inflection
   - go get gopkg.in/check.v1
   - go get github.com/onsi/ginkgo
   - go get github.com/onsi/gomega

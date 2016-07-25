@@ -1,17 +1,12 @@
 package pg_test
 
 import (
-	"database/sql"
 	"fmt"
 	"math/rand"
 	"strconv"
 	"sync"
 	"testing"
 	"time"
-
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jinzhu/gorm"
-	_ "github.com/lib/pq"
 
 	"gopkg.in/pg.v4"
 	"gopkg.in/pg.v4/orm"
@@ -113,69 +108,6 @@ func BenchmarkQueryRowsGopgORM(b *testing.B) {
 	})
 }
 
-func BenchmarkQueryRowsStdlibPq(b *testing.B) {
-	seedDB()
-
-	pqdb, err := pqdb()
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer pqdb.Close()
-
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			rows, err := pqdb.Query(`SELECT * FROM records LIMIT 100`)
-			if err != nil {
-				b.Fatal(err)
-			}
-
-			var rs []Record
-			for rows.Next() {
-				rs = append(rs, Record{})
-				rec := &rs[len(rs)-1]
-
-				err := rows.Scan(&rec.Num1, &rec.Num2, &rec.Num3, &rec.Str1, &rec.Str2, &rec.Str3)
-				if err != nil {
-					b.Fatal(err)
-				}
-			}
-			rows.Close()
-
-			if len(rs) != 100 {
-				b.Fatalf("got %d, wanted 100", len(rs))
-			}
-		}
-	})
-}
-
-func BenchmarkQueryRowsGORM(b *testing.B) {
-	seedDB()
-
-	db, err := gormdb()
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer db.Close()
-
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			var rs []Record
-			err := db.Limit(100).Find(&rs).Error
-			if err != nil {
-				b.Fatal(err)
-			}
-
-			if len(rs) != 100 {
-				b.Fatalf("got %d, wanted 100", len(rs))
-			}
-		}
-	})
-}
-
 func BenchmarkModelHasOneGopg(b *testing.B) {
 	seedDB()
 
@@ -188,32 +120,6 @@ func BenchmarkModelHasOneGopg(b *testing.B) {
 		for pb.Next() {
 			var books []Book
 			err := db.Model(&books).Column("book.*", "Author").Limit(100).Select()
-			if err != nil {
-				b.Fatal(err)
-			}
-
-			if len(books) != 100 {
-				b.Fatalf("got %d, wanted 100", len(books))
-			}
-		}
-	})
-}
-
-func BenchmarkModelHasOneGORM(b *testing.B) {
-	seedDB()
-
-	db, err := gormdb()
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer db.Close()
-
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			var books []Book
-			err := db.Preload("Author").Limit(100).Find(&books).Error
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -252,37 +158,6 @@ func BenchmarkModelHasManyGopg(b *testing.B) {
 	})
 }
 
-func BenchmarkModelHasManyGORM(b *testing.B) {
-	seedDB()
-
-	db, err := gormdb()
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer db.Close()
-
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			var books []Book
-			err := db.Preload("Translations").Limit(100).Find(&books).Error
-			if err != nil {
-				b.Fatal(err)
-			}
-
-			if len(books) != 100 {
-				b.Fatalf("got %d, wanted 100", len(books))
-			}
-			for _, book := range books {
-				if len(book.Translations) != 10 {
-					b.Fatalf("got %d, wanted 10", len(book.Translations))
-				}
-			}
-		}
-	})
-}
-
 func BenchmarkModelHasMany2ManyGopg(b *testing.B) {
 	seedDB()
 
@@ -298,37 +173,6 @@ func BenchmarkModelHasMany2ManyGopg(b *testing.B) {
 				Limit(100).
 				Select()
 
-			if err != nil {
-				b.Fatal(err)
-			}
-
-			if len(books) != 100 {
-				b.Fatalf("got %d, wanted 100", len(books))
-			}
-			for _, book := range books {
-				if len(book.Genres) != 10 {
-					b.Fatalf("got %d, wanted 10", len(book.Genres))
-				}
-			}
-		}
-	})
-}
-
-func BenchmarkModelHasMany2ManyGORM(b *testing.B) {
-	seedDB()
-
-	db, err := gormdb()
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer db.Close()
-
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			var books []Book
-			err = db.Preload("Genres").Limit(100).Find(&books).Error
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -431,99 +275,6 @@ func BenchmarkQueryRowStmtScan(b *testing.B) {
 	}
 }
 
-func BenchmarkQueryRowStdlibPq(b *testing.B) {
-	db, err := pqdb()
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer db.Close()
-
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			var n int64
-			r := db.QueryRow(`SELECT $1::bigint AS num`, 1)
-			if err := r.Scan(&n); err != nil {
-				b.Fatal(err)
-			}
-			if n != 1 {
-				b.Fatalf("got %d, wanted 1", n)
-			}
-		}
-	})
-}
-
-func BenchmarkQueryRowWithoutParamsStdlibPq(b *testing.B) {
-	db, err := pqdb()
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer db.Close()
-
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			var n int64
-			r := db.QueryRow("SELECT 1::bigint AS num")
-			if err := r.Scan(&n); err != nil {
-				b.Fatal(err)
-			}
-			if n != 1 {
-				b.Fatalf("got %d, wanted 1", n)
-			}
-		}
-	})
-}
-
-func BenchmarkQueryRowStdlibMySQL(b *testing.B) {
-	db, err := mysqldb()
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer db.Close()
-
-	b.ResetTimer()
-
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			var n int64
-			r := db.QueryRow("SELECT ? AS num", 1)
-			if err := r.Scan(&n); err != nil {
-				b.Fatal(err)
-			}
-			if n != 1 {
-				b.Fatalf("got %d, wanted 1", n)
-			}
-		}
-	})
-}
-
-func BenchmarkQueryRowStmtStdlibPq(b *testing.B) {
-	db, err := pqdb()
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer db.Close()
-
-	stmt, err := db.Prepare(`SELECT $1::bigint AS num`)
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer stmt.Close()
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		var n int64
-		r := stmt.QueryRow(1)
-		if err := r.Scan(&n); err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
 func BenchmarkExec(b *testing.B) {
 	db := benchmarkDB()
 	defer db.Close()
@@ -612,34 +363,6 @@ func BenchmarkExecStmt(b *testing.B) {
 	}
 }
 
-func BenchmarkExecStmtStdlibPq(b *testing.B) {
-	db, err := pqdb()
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer db.Close()
-
-	_, err = db.Exec(`CREATE TEMP TABLE statement_exec(id bigint, name varchar(500))`)
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	stmt, err := db.Prepare(`INSERT INTO statement_exec (id, name) VALUES ($1, $2)`)
-	if err != nil {
-		b.Fatal(err)
-	}
-	defer stmt.Close()
-
-	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		_, err := stmt.Exec(1, "hello world")
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
 var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 func randSeq(n int) string {
@@ -648,18 +371,6 @@ func randSeq(n int) string {
 		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
-}
-
-func pqdb() (*sql.DB, error) {
-	return sql.Open("postgres", "user=postgres dbname=postgres sslmode=disable")
-}
-
-func mysqldb() (*sql.DB, error) {
-	return sql.Open("mysql", "root:root@tcp(localhost:3306)/test")
-}
-
-func gormdb() (*gorm.DB, error) {
-	return gorm.Open("postgres", "user=postgres dbname=postgres sslmode=disable")
 }
 
 type Record struct {
