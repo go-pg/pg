@@ -232,7 +232,9 @@ func (q *Query) Select(values ...interface{}) error {
 		return q.err
 	}
 
-	q.joinHasOne()
+	if q.model != nil {
+		q.addJoins(q.model.GetJoins())
+	}
 	sel := selectQuery{q}
 
 	var model Model
@@ -288,18 +290,16 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 	return count, err
 }
 
-func (q *Query) joinHasOne() {
-	if q.model == nil {
-		return
-	}
-	joins := q.model.GetJoins()
+func (q *Query) addJoins(joins []join) {
 	for i := range joins {
 		j := &joins[i]
 		switch j.Rel.Type {
 		case HasOneRelation:
 			j.JoinHasOne(q)
+			q.addJoins(j.JoinModel.GetJoins())
 		case BelongsToRelation:
 			j.JoinBelongsTo(q)
+			q.addJoins(j.JoinModel.GetJoins())
 		}
 	}
 }
