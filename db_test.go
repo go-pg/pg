@@ -791,6 +791,24 @@ var _ = Describe("ORM", func() {
 			}))
 		})
 
+		It("supports HasOne -> HasOne", func() {
+			var translation Translation
+			err := db.Model(&translation).
+				Column("tr.*", "Book.id", "Book.Author", "Book.Editor").
+				First()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(translation).To(Equal(Translation{
+				Id:     1000,
+				BookId: 100,
+				Book: &Book{
+					Id:     100,
+					Author: &Author{ID: 10, Name: "author 1"},
+					Editor: &Author{ID: 11, Name: "author 2"},
+				},
+				Lang: "ru",
+			}))
+		})
+
 		It("works when there are no results", func() {
 			var book Book
 			err := db.Model(&book).
@@ -934,6 +952,42 @@ var _ = Describe("ORM", func() {
 					Subgenres: nil,
 				},
 			}))
+		})
+
+		It("supports HasOne -> HasOne", func() {
+			var translations []Translation
+			err := db.Model(&translations).
+				Column("tr.*", "Book.id", "Book.Author", "Book.Editor").
+				Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(translations).To(ConsistOf([]Translation{{
+				Id:     1000,
+				BookId: 100,
+				Book: &Book{
+					Id:     100,
+					Author: &Author{ID: 10, Name: "author 1"},
+					Editor: &Author{ID: 11, Name: "author 2"},
+				},
+				Lang: "ru",
+			}, {
+				Id:     1001,
+				BookId: 100,
+				Book: &Book{
+					Id:     100,
+					Author: &Author{ID: 10, Name: "author 1"},
+					Editor: &Author{ID: 11, Name: "author 2"},
+				},
+				Lang: "md",
+			}, {
+				Id:     1002,
+				BookId: 101,
+				Book: &Book{
+					Id:     101,
+					Author: &Author{ID: 10, Name: "author 1", Books: nil},
+					Editor: &Author{ID: 12, Name: "author 3", Books: nil},
+				},
+				Lang: "ua",
+			}}))
 		})
 
 		It("works when there are no results", func() {

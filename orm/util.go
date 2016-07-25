@@ -13,21 +13,6 @@ func indirectType(t reflect.Type) reflect.Type {
 	return t
 }
 
-func indirectNew(v reflect.Value, set bool) reflect.Value {
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			if set {
-				v.Set(reflect.New(v.Type().Elem()))
-			} else {
-				v = reflect.New(v.Type().Elem())
-			}
-
-		}
-		v = v.Elem()
-	}
-	return v
-}
-
 func sliceElemType(v reflect.Value) reflect.Type {
 	elemType := v.Type().Elem()
 	if elemType.Kind() == reflect.Interface && v.Len() > 0 {
@@ -39,7 +24,8 @@ func sliceElemType(v reflect.Value) reflect.Type {
 
 func typeByIndex(t reflect.Type, index []int) reflect.Type {
 	for _, x := range index {
-		if t.Kind() == reflect.Slice {
+		switch t.Kind() {
+		case reflect.Ptr, reflect.Slice:
 			t = t.Elem()
 		}
 		t = t.Field(x).Type
@@ -50,9 +36,19 @@ func typeByIndex(t reflect.Type, index []int) reflect.Type {
 func fieldByIndex(v reflect.Value, index []int) reflect.Value {
 	for i, x := range index {
 		if i > 0 {
-			v = indirectNew(v, true)
+			v = indirectNew(v)
 		}
 		v = v.Field(x)
+	}
+	return v
+}
+
+func indirectNew(v reflect.Value) reflect.Value {
+	if v.Kind() == reflect.Ptr {
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		v = v.Elem()
 	}
 	return v
 }

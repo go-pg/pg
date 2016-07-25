@@ -91,13 +91,18 @@ func (m *structTableModel) Value() reflect.Value {
 	return m.strct
 }
 
-func (m *structTableModel) NewModel() ColumnScanner {
+func (m *structTableModel) bindChildren() {
 	for i := range m.joins {
 		j := &m.joins[i]
-		if j.Rel.Type == HasOneRelation || j.Rel.Type == BelongsToRelation {
+		switch j.Rel.Type {
+		case HasOneRelation, BelongsToRelation:
 			j.JoinModel.Bind(m.strct)
 		}
 	}
+}
+
+func (m *structTableModel) NewModel() ColumnScanner {
+	m.bindChildren()
 	return m
 }
 
@@ -129,7 +134,15 @@ func (m *structTableModel) scanColumn(colIdx int, colName string, b []byte) (boo
 		if m.strct.Kind() == reflect.Interface {
 			m.strct = m.strct.Elem()
 		}
-		m.strct = indirectNew(m.strct, true)
+		if m.strct.Kind() == reflect.Ptr {
+			if m.strct.IsNil() {
+				m.strct.Set(reflect.New(m.strct.Type().Elem()))
+				m.strct = m.strct.Elem()
+				m.bindChildren()
+			} else {
+				m.strct = m.strct.Elem()
+			}
+		}
 		return true, field.ScanValue(m.strct, b)
 	}
 
@@ -163,7 +176,7 @@ func (m *structTableModel) join(bind reflect.Value, name string, apply func(*Que
 	path := strings.Split(name, ".")
 	index := make([]int, 0, len(path))
 
-	thejoin := join{
+	currJoin := join{
 		BaseModel: m,
 		JoinModel: m,
 	}
@@ -171,17 +184,17 @@ func (m *structTableModel) join(bind reflect.Value, name string, apply func(*Que
 	var hasColumnName bool
 
 	for _, name := range path {
-		rel, ok := thejoin.JoinModel.Table().Relations[name]
+		rel, ok := currJoin.JoinModel.Table().Relations[name]
 		if !ok {
 			hasColumnName = true
 			break
 		}
-		thejoin.Rel = rel
+		currJoin.Rel = rel
 		index = append(index, rel.Field.Index...)
 
-		if j := thejoin.JoinModel.GetJoin(name); j != nil {
-			thejoin.BaseModel = j.BaseModel
-			thejoin.JoinModel = j.JoinModel
+		if j := currJoin.JoinModel.GetJoin(name); j != nil {
+			currJoin.BaseModel = j.BaseModel
+			currJoin.JoinModel = j.JoinModel
 			lastJoin = j
 		} else {
 			model, err := newTableModelIndex(bind, index, rel.JoinTable)
@@ -189,9 +202,10 @@ func (m *structTableModel) join(bind reflect.Value, name string, apply func(*Que
 				return nil
 			}
 
-			thejoin.BaseModel = thejoin.JoinModel
-			thejoin.JoinModel = model
-			lastJoin = thejoin.BaseModel.AddJoin(thejoin)
+			currJoin.Parent = lastJoin
+			currJoin.BaseModel = currJoin.JoinModel
+			currJoin.JoinModel = model
+			lastJoin = currJoin.BaseModel.AddJoin(currJoin)
 		}
 	}
 

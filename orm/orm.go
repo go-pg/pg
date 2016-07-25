@@ -2,7 +2,7 @@ package orm
 
 import "gopkg.in/pg.v4/types"
 
-// ColumnScanner is an interface used to scan column.
+// ColumnScanner is used to scan column values.
 type ColumnScanner interface {
 	// Scan assigns a column value from a row.
 	//

@@ -3,6 +3,7 @@ package orm
 import "gopkg.in/pg.v4/types"
 
 type join struct {
+	Parent     *join
 	BaseModel  tableModel
 	JoinModel  tableModel
 	Rel        *Relation
@@ -136,10 +137,25 @@ func (j *join) selectM2M(db dber) error {
 	return nil
 }
 
+func (j *join) alias() []byte {
+	var b []byte
+	return appendAlias(b, j)
+}
+
+func appendAlias(b []byte, j *join) []byte {
+	if j.Parent != nil {
+		switch j.Parent.Rel.Type {
+		case HasOneRelation, BelongsToRelation:
+			b = appendAlias(b, j.Parent)
+		}
+	}
+	b = append(b, j.Rel.Field.SQLName...)
+	b = append(b, "__"...)
+	return b
+}
+
 func (j *join) appendJoinedColumns(dst []byte) []byte {
-	var alias []byte
-	alias = append(alias, j.Rel.Field.SQLName...)
-	alias = append(alias, "__"...)
+	alias := j.alias()
 
 	if len(j.Columns) == 0 {
 		for _, f := range j.JoinModel.Table().Fields {
