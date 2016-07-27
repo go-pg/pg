@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"crypto/tls"
 	"net"
 	"time"
 
@@ -17,8 +18,12 @@ type Options struct {
 	User     string
 	Password string
 	Database string
+
 	// Whether to use secure TCP/IP connections (TLS).
+	// TODO: deprecated in favor of TLSConfig
 	SSL bool
+	// TLS config for secure connections.
+	TLSConfig *tls.Config
 
 	// PostgreSQL run-time configuration parameters to be set on connection.
 	Params map[string]interface{}
@@ -123,10 +128,6 @@ func (opt *Options) getIdleCheckFrequency() time.Duration {
 		return time.Minute
 	}
 	return opt.IdleCheckFrequency
-}
-
-func (opt *Options) getSSL() bool {
-	return opt.SSL
 }
 
 func (opt *Options) getDialer() func() (net.Conn, error) {

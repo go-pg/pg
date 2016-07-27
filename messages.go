@@ -103,7 +103,7 @@ func startup(cn *pool.Conn, user, password, database string) error {
 	}
 }
 
-func enableSSL(cn *pool.Conn) error {
+func enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
 	writeSSLMsg(cn.Wr)
 	if err := cn.Wr.Flush(); err != nil {
 		return err
@@ -118,8 +118,10 @@ func enableSSL(cn *pool.Conn) error {
 		return errSSLNotSupported
 	}
 
-	tlsConf := &tls.Config{
-		InsecureSkipVerify: true,
+	if tlsConf == nil {
+		tlsConf = &tls.Config{
+			InsecureSkipVerify: true,
+		}
 	}
 	cn.NetConn = tls.Client(cn.NetConn, tlsConf)
 

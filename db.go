@@ -66,8 +66,8 @@ func (db *DB) conn() (*pool.Conn, error) {
 }
 
 func (db *DB) initConn(cn *pool.Conn) error {
-	if db.opt.getSSL() {
-		if err := enableSSL(cn); err != nil {
+	if db.opt.SSL || db.opt.TLSConfig != nil {
+		if err := enableSSL(cn, db.opt.TLSConfig); err != nil {
 			return err
 		}
 	}
