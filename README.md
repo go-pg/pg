@@ -3,7 +3,7 @@
 Supports:
 
 - Basic types: integers, floats, string, bool, time.Time.
-- sql.NullBool, sql.NullString, sql.NullInt64 and sql.NullFloat64.
+- sql.NullBool, sql.NullString, sql.NullInt64, sql.NullFloat64 and [pg.NullTime](http://godoc.org/gopkg.in/pg.v4#NullTime).
 - `sql:",null"` struct tag which marshalls zero struct fields as SQL `NULL` and completely omits them from `INSERT` queries.
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
 - Structs, maps and arrays are marshalled as JSON by default.
