@@ -17,6 +17,7 @@ type Query struct {
 	tableName  types.Q
 	tableAlias string
 
+	with       []byte
 	tables     []byte
 	fields     []string
 	columns    []byte
@@ -62,8 +63,16 @@ func (q *Query) setErr(err error) {
 	}
 }
 
-func (q *Query) Alias(alias string) *Query {
-	q.tableAlias = alias
+func (q *Query) With(name string, subq *Query) *Query {
+	var err error
+	q.with = appendSep(q.with, ", ")
+	q.with = types.AppendField(q.with, name, 1)
+	q.with = append(q.with, " AS ("...)
+	q.with, err = selectQuery{subq}.AppendQuery(q.with)
+	if err != nil {
+		q.setErr(err)
+	}
+	q.with = append(q.with, ')')
 	return q
 }
 
@@ -72,6 +81,11 @@ func (q *Query) Table(names ...string) *Query {
 		q.tables = appendSep(q.tables, ", ")
 		q.tables = types.AppendField(q.tables, name, 1)
 	}
+	return q
+}
+
+func (q *Query) Alias(alias string) *Query {
+	q.tableAlias = alias
 	return q
 }
 
@@ -394,17 +408,20 @@ func (q *Query) FormatQuery(dst []byte, query string, params ...interface{}) []b
 	return q.db.FormatQuery(dst, query, params...)
 }
 
-func (q *Query) appendTableAlias(b []byte) []byte {
+func (q *Query) appendTableAlias(b []byte) ([]byte, bool) {
 	if q.tableAlias != "" {
-		return types.AppendField(b, q.tableAlias, 1)
+		return types.AppendField(b, q.tableAlias, 1), true
 	}
-	return append(b, q.model.Table().Alias...)
+	if q.model != nil {
+		return append(b, q.model.Table().Alias...), true
+	}
+	return b, false
 }
 
 func (q *Query) appendTableNameWithAlias(b []byte) []byte {
 	b = append(b, q.tableName...)
 	b = append(b, " AS "...)
-	b = q.appendTableAlias(b)
+	b, _ = q.appendTableAlias(b)
 	return b
 }
 

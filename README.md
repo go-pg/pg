@@ -311,6 +311,15 @@ err := db.Model(&Book{}).
 var ids []int
 err := db.Model(&Book{}).ColumnExpr("array_agg(id)").Select(pg.Array(&ids))
 // SELECT array_agg(id) FROM "books"
+
+// Select books using WITH statement.
+authorBooks := db.Model(&Book{}).Where("author_id = ?", 1)
+err := db.Model(nil).
+    With("author_books", authorBooks).
+    Table("author_books").
+    Select(&books)
+// WITH "author_books" AS (SELECT "book".* FROM "books" AS "book" WHERE (author_id = 1))
+// SELECT * FROM "author_books"
 ```
 
 ### Reusing queries
