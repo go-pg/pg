@@ -25,10 +25,20 @@ type selectQuery struct {
 var _ QueryAppender = (*selectQuery)(nil)
 
 func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	if len(sel.with) > 0 {
+		b = append(b, "WITH "...)
+		b = append(b, sel.with...)
+		b = append(b, ' ')
+	}
+
 	b = append(b, "SELECT "...)
 	if sel.columns == nil {
-		b = sel.appendTableAlias(b)
-		b = append(b, ".*"...)
+		var ok bool
+		b, ok = sel.appendTableAlias(b)
+		if ok {
+			b = append(b, '.')
+		}
+		b = append(b, '*')
 	} else {
 		b = append(b, sel.columns...)
 	}

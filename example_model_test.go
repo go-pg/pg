@@ -376,6 +376,21 @@ func ExampleDB_Select_whereOr() {
 	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
 }
 
+func ExampleDB_Select_With() {
+	authorBooks := db.Model(&Book{}).Where("author_id = ?", 1)
+
+	var books []Book
+	err := db.Model(nil).
+		With("author_books", authorBooks).
+		Table("author_books").
+		Select(&books)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(books)
+	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
+}
+
 func ExampleDB_Model_count() {
 	db := modelDB()
 
