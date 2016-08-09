@@ -205,11 +205,9 @@ func (p *ConnPool) Get() (*Conn, error) {
 }
 
 func (p *ConnPool) Put(cn *Conn) error {
-	if cn.Rd.Buffered() != 0 {
-		b, _ := cn.Rd.Peek(cn.Rd.Buffered())
-		err := fmt.Errorf("connection has unread data: %q", b)
-		internal.Logf(err.Error())
-		return p.Remove(cn, err)
+	if e := cn.CheckHealth(); e != nil {
+		internal.Logf(e.Error())
+		return p.Remove(cn, e)
 	}
 	p.freeConnsMu.Lock()
 	p.freeConns = append(p.freeConns, cn)

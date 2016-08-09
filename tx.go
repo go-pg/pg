@@ -29,31 +29,30 @@ func init() {
 // The statements prepared for a transaction by calling the transaction's
 // Prepare or Stmt methods are closed by the call to Commit or Rollback.
 type Tx struct {
-	db  *DB
-	_cn *pool.Conn
+	db *DB
+	cn *pool.Conn
 
 	stmts []*Stmt
 }
 
 // Begin starts a transaction. Most callers should use RunInTransaction instead.
 func (db *DB) Begin() (*Tx, error) {
-	cn, err := db.conn()
-	if err != nil {
+	tx := &Tx{
+		db: db,
+	}
+
+	if !noTx {
+		cn, err := db.conn()
+		if err != nil {
+			return nil, err
+		}
+		tx.cn = cn
+	}
+
+	if err := tx.begin(); err != nil {
 		return nil, err
 	}
 
-	tx := &Tx{
-		db:  db,
-		_cn: cn,
-	}
-	if noTx {
-		_ = tx.db.freeConn(tx._cn, nil)
-	} else {
-		if _, err := tx.Exec("BEGIN"); err != nil {
-			tx.close(err)
-			return nil, err
-		}
-	}
 	return tx, nil
 }
 
@@ -74,12 +73,21 @@ func (db *DB) RunInTransaction(fn func(*Tx) error) error {
 }
 
 func (tx *Tx) conn() (*pool.Conn, error) {
-	if tx._cn == nil {
+	if noTx {
+		return tx.db.conn()
+	}
+	if tx.cn == nil {
 		return nil, errTxDone
 	}
-	tx._cn.SetReadTimeout(tx.db.opt.ReadTimeout)
-	tx._cn.SetWriteTimeout(tx.db.opt.WriteTimeout)
-	return tx._cn, nil
+	tx.cn.SetReadTimeout(tx.db.opt.ReadTimeout)
+	tx.cn.SetWriteTimeout(tx.db.opt.WriteTimeout)
+	return tx.cn, nil
+}
+
+func (tx *Tx) freeConn(cn *pool.Conn, err error) {
+	if noTx {
+		_ = tx.db.freeConn(cn, err)
+	}
 }
 
 // Stmt returns a transaction-specific prepared statement from an existing statement.
@@ -102,12 +110,16 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	stmt, err := prepare(tx.db, cn, q)
+	tx.freeConn(cn, err)
 	if err != nil {
 		return nil, err
 	}
+
 	stmt.inTx = true
 	tx.stmts = append(tx.stmts, stmt)
+
 	return stmt, nil
 }
 
@@ -119,10 +131,8 @@ func (tx *Tx) Exec(query interface{}, params ...interface{}) (*types.Result, err
 	}
 
 	res, err := simpleQuery(cn, query, params...)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	tx.freeConn(cn, err)
+	return res, err
 }
 
 // ExecOne acts like Exec, but query must affect only one row. It
@@ -144,10 +154,8 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 	}
 
 	res, err := simpleQueryData(cn, model, query, params...)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	tx.freeConn(cn, err)
+	return res, err
 }
 
 // QueryOne acts like Query, but query must return only one row. It
@@ -158,10 +166,12 @@ func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface
 	if err != nil {
 		return nil, err
 	}
+
 	res, err := tx.Query(mod, query, params...)
 	if err != nil {
 		return nil, err
 	}
+
 	return assertOneAffected(res)
 }
 
@@ -190,22 +200,33 @@ func (tx *Tx) Delete(model interface{}) error {
 	return orm.Delete(tx, model)
 }
 
+func (tx *Tx) begin() error {
+	if noTx {
+		return nil
+	}
+
+	_, err := tx.Exec("BEGIN")
+	return err
+}
+
 // Commit commits the transaction.
 func (tx *Tx) Commit() error {
-	var err error
-	if !noTx {
-		_, err = tx.Exec("COMMIT")
+	if noTx {
+		return nil
 	}
+
+	_, err := tx.Exec("COMMIT")
 	tx.close(err)
 	return err
 }
 
 // Rollback aborts the transaction.
 func (tx *Tx) Rollback() error {
-	var err error
-	if !noTx {
-		_, err = tx.Exec("ROLLBACK")
+	if noTx {
+		return nil
 	}
+
+	_, err := tx.Exec("ROLLBACK")
 	tx.close(err)
 	return err
 }
@@ -215,7 +236,7 @@ func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byt
 }
 
 func (tx *Tx) close(lastErr error) error {
-	if tx._cn == nil {
+	if tx.cn == nil {
 		return errTxDone
 	}
 
@@ -224,11 +245,8 @@ func (tx *Tx) close(lastErr error) error {
 	}
 	tx.stmts = nil
 
-	var err error
-	if !noTx {
-		err = tx.db.freeConn(tx._cn, lastErr)
-	}
-	tx._cn = nil
+	err := tx.db.freeConn(tx.cn, lastErr)
+	tx.cn = nil
 
 	return err
 }
@@ -241,8 +259,6 @@ func (tx *Tx) CopyFrom(r io.Reader, query string, params ...interface{}) (*types
 	}
 
 	res, err := copyFrom(cn, r, query, params...)
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	tx.freeConn(cn, err)
+	return res, err
 }
