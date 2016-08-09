@@ -10,7 +10,7 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
-const defaultBackoff = 500 * time.Millisecond
+const defaultBackoff = 250 * time.Millisecond
 
 // Connect connects to a database using provided options.
 //
@@ -307,12 +307,7 @@ func simpleQuery(cn *pool.Conn, query interface{}, params ...interface{}) (*type
 		return nil, err
 	}
 
-	res, err := readSimpleQuery(cn)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+	return readSimpleQuery(cn)
 }
 
 func simpleQueryData(cn *pool.Conn, model, query interface{}, params ...interface{}) (*types.Result, error) {
@@ -324,12 +319,7 @@ func simpleQueryData(cn *pool.Conn, model, query interface{}, params ...interfac
 		return nil, err
 	}
 
-	res, err := readSimpleQueryData(cn, model)
-	if err != nil {
-		return nil, err
-	}
-
-	return res, nil
+	return readSimpleQueryData(cn, model)
 }
 
 type singleModel struct {
@@ -405,5 +395,5 @@ func copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface
 		return nil, err
 	}
 
-	return readReadyForQueryOrError(cn)
+	return readReadyForQuery(cn)
 }
