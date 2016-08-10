@@ -47,11 +47,7 @@ func Append(b []byte, v interface{}, quote int) []byte {
 	case []byte:
 		return appendBytes(b, v, quote)
 	case ValueAppender:
-		bb, err := v.AppendValue(b, quote)
-		if err != nil {
-			return appendError(b, err)
-		}
-		return bb
+		return appendAppender(b, v, quote)
 	case driver.Valuer:
 		return appendDriverValuer(b, v, quote)
 	default:
@@ -233,4 +229,12 @@ func appendField(b []byte, p *parser.Parser, quote int) []byte {
 		b = append(b, '"')
 	}
 	return b
+}
+
+func appendAppender(b []byte, v ValueAppender, quote int) []byte {
+	bb, err := v.AppendValue(b, quote)
+	if err != nil {
+		return appendError(b, err)
+	}
+	return bb
 }

@@ -150,11 +150,7 @@ func appendTimeValue(b []byte, v reflect.Value, quote int) []byte {
 }
 
 func appendAppenderValue(b []byte, v reflect.Value, quote int) []byte {
-	b, err := v.Interface().(ValueAppender).AppendValue(b, quote)
-	if err != nil {
-		return appendError(b, err)
-	}
-	return b
+	return appendAppender(b, v.Interface().(ValueAppender), quote)
 }
 
 func appendDriverValuerValue(b []byte, v reflect.Value, quote int) []byte {
