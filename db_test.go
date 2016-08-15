@@ -190,7 +190,7 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 	It("copies corrupted data to a table", func() {
 		buf := bytes.NewBufferString("corrupted data")
 		res, err := db.CopyFrom(buf, "COPY copy_to FROM STDIN")
-		Expect(err).To(MatchError(`ERROR #22P02 invalid input syntax for integer: "corrupted data": `))
+		Expect(err).To(MatchError(`ERROR #22P02 invalid input syntax for integer: "corrupted data" (addr="127.0.0.1:5432")`))
 		Expect(res).To(BeNil())
 
 		st := db.Pool().Stats()

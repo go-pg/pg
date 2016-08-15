@@ -21,7 +21,7 @@ func TestStatementTimeout(t *testing.T) {
 	if err == nil {
 		t.Fatalf("err is nil")
 	}
-	if err.Error() != "ERROR #57014 canceling statement due to statement timeout: " {
+	if err.Error() != `ERROR #57014 canceling statement due to statement timeout (addr="127.0.0.1:5432")` {
 		t.Fatalf("got %q", err.Error())
 	}
 
