@@ -1025,7 +1025,9 @@ func readBytes(cn *pool.Conn, b []byte) ([]byte, error) {
 }
 
 func readError(cn *pool.Conn) (error, error) {
-	m := make(map[byte]string)
+	m := map[byte]string{
+		'a': cn.NetConn.RemoteAddr().String(),
+	}
 	for {
 		c, err := cn.Rd.ReadByte()
 		if err != nil {
