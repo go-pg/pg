@@ -8,9 +8,7 @@ import (
 	"time"
 )
 
-var (
-	appenderType = reflect.TypeOf((*ValueAppender)(nil)).Elem()
-)
+var appenderType = reflect.TypeOf((*ValueAppender)(nil)).Elem()
 
 type AppenderFunc func([]byte, reflect.Value, int) []byte
 
