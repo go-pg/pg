@@ -25,8 +25,10 @@ func sliceElemType(v reflect.Value) reflect.Type {
 func typeByIndex(t reflect.Type, index []int) reflect.Type {
 	for _, x := range index {
 		switch t.Kind() {
-		case reflect.Ptr, reflect.Slice:
+		case reflect.Ptr:
 			t = t.Elem()
+		case reflect.Slice:
+			t = indirectType(t.Elem())
 		}
 		t = t.Field(x).Type
 	}
@@ -88,21 +90,23 @@ func values(v reflect.Value, index []int, fields []*Field) []byte {
 
 func walk(v reflect.Value, index []int, fn func(reflect.Value)) {
 	v = reflect.Indirect(v)
-	if v.Kind() == reflect.Slice {
+	switch v.Kind() {
+	case reflect.Slice:
 		for i := 0; i < v.Len(); i++ {
-			visitStruct(v.Index(i), index, fn)
+			visitField(v.Index(i), index, fn)
 		}
-	} else {
-		visitStruct(v, index, fn)
+	default:
+		visitField(v, index, fn)
 	}
 }
 
-func visitStruct(strct reflect.Value, index []int, fn func(reflect.Value)) {
+func visitField(v reflect.Value, index []int, fn func(reflect.Value)) {
+	v = reflect.Indirect(v)
 	if len(index) > 0 {
-		strct = strct.Field(index[0])
-		walk(strct, index[1:], fn)
+		v = v.Field(index[0])
+		walk(v, index[1:], fn)
 	} else {
-		fn(strct)
+		fn(v)
 	}
 }
 
