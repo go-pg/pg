@@ -380,7 +380,7 @@ func ExampleDB_Select_With() {
 	authorBooks := db.Model(&Book{}).Where("author_id = ?", 1)
 
 	var books []Book
-	err := db.Model(nil).
+	err := db.Model().
 		With("author_books", authorBooks).
 		Table("author_books").
 		Select(&books)

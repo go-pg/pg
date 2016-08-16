@@ -397,7 +397,7 @@ func TestConversion(t *testing.T) {
 			scanner = pg.Scan(test.dst)
 		}
 
-		err := db.Model(nil).ColumnExpr("(?) AS dst", test.src).Select(scanner)
+		err := db.Model().ColumnExpr("(?) AS dst", test.src).Select(scanner)
 		test.Assert(t, err)
 	}
 	return

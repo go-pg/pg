@@ -336,7 +336,8 @@ func pager(req *http.Request) func(*orm.Query) *orm.Query {
         }
         page, err := strconv.Atoi(param)
         if err != nil {
-            return q
+            // Set the query error.
+            return q.Err(err)
         }
         return q.Offset((page - 1) * pageSize)
     }
@@ -344,6 +345,12 @@ func pager(req *http.Request) func(*orm.Query) *orm.Query {
 
 var books []Book
 err := db.Model(&books).Apply(pager(req)).Select()
+// SELECT * FROM "books" LIMIT 20
+
+// OR using DB and model late binding
+
+query := pg.Model().Apply(pager(req))
+err := query.DB(db).Model(&books).Select()
 // SELECT * FROM "books" LIMIT 20
 ```
 

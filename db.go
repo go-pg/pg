@@ -245,8 +245,8 @@ func (db *DB) CopyTo(writer io.Writer, query interface{}, params ...interface{})
 }
 
 // Model returns new query for the model.
-func (db *DB) Model(model interface{}) *orm.Query {
-	return orm.NewQuery(db, model)
+func (db *DB) Model(model ...interface{}) *orm.Query {
+	return orm.NewQuery(db, model...)
 }
 
 // Select selects the model by primary key.
