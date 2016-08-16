@@ -621,6 +621,14 @@ func readDataRow(cn *pool.Conn, scanner orm.ColumnScanner, columns [][]byte) (re
 	return retErr
 }
 
+func newCollection(mod interface{}) (orm.Collection, error) {
+	coll, ok := mod.(orm.Collection)
+	if ok {
+		return coll, nil
+	}
+	return orm.NewModel(mod)
+}
+
 func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res *types.Result, retErr error) {
 	setErr := func(err error) {
 		if retErr == nil {
@@ -628,15 +636,7 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res *types.Result, ret
 		}
 	}
 
-	coll, ok := mod.(orm.Collection)
-	if !ok {
-		coll, retErr = orm.NewModel(mod)
-		if retErr != nil {
-			coll = Discard
-		}
-	}
-
-	var model orm.ColumnScanner
+	var coll orm.Collection
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -650,7 +650,16 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res *types.Result, ret
 				return nil, err
 			}
 		case dataRowMsg:
-			model = coll.NewModel()
+			if coll == nil {
+				var err error
+				coll, err = newCollection(mod)
+				if err != nil {
+					setErr(err)
+					coll = Discard
+				}
+			}
+
+			model := coll.NewModel()
 			if err := readDataRow(cn, model, cn.Columns); err != nil {
 				setErr(err)
 			} else {
@@ -699,15 +708,7 @@ func readExtQueryData(
 		}
 	}
 
-	coll, ok := mod.(orm.Collection)
-	if !ok {
-		coll, retErr = orm.NewModel(mod)
-		if retErr != nil {
-			coll = Discard
-		}
-	}
-
-	var model orm.ColumnScanner
+	var coll orm.Collection
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -721,7 +722,16 @@ func readExtQueryData(
 				return nil, err
 			}
 		case dataRowMsg:
-			model = coll.NewModel()
+			if coll == nil {
+				var err error
+				coll, err = newCollection(mod)
+				if err != nil {
+					setErr(err)
+					coll = Discard
+				}
+			}
+
+			model := coll.NewModel()
 			if err := readDataRow(cn, model, columns); err != nil {
 				setErr(err)
 			} else {
