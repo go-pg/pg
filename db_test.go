@@ -453,7 +453,7 @@ func (g Genre) String() string {
 type Author struct {
 	ID    int // both "Id" and "ID" are detected as primary key
 	Name  string
-	Books []Book // has many relation
+	Books []*Book // has many relation
 }
 
 func (a Author) String() string {
@@ -657,42 +657,29 @@ var _ = Describe("ORM", func() {
 			Expect(book).To(Equal(Book{
 				Id:        100,
 				Title:     "",
-				AuthorID:  0,
 				Author:    &Author{ID: 10, Name: "author 1", Books: nil},
-				EditorID:  0,
 				Editor:    &Author{ID: 11, Name: "author 2", Books: nil},
 				CreatedAt: time.Time{},
 				Genres: []Genre{
-					{Id: 1, Name: "genre 1", Rating: 999, Books: nil, ParentId: 0, Subgenres: nil},
-					{Id: 2, Name: "genre 2", Rating: 9999, Books: nil, ParentId: 0, Subgenres: nil},
+					{Id: 1, Name: "genre 1", Rating: 999},
+					{Id: 2, Name: "genre 2", Rating: 9999},
 				},
-				Translations: []Translation{
-					{
-						Id:     1000,
-						BookId: 100,
-						Book:   nil,
-						Lang:   "ru",
-						Comments: []Comment{
-							{
-								TrackableId:   1000,
-								TrackableType: "Translation",
-								Text:          "comment3",
-							},
-						},
+				Translations: []Translation{{
+					Id:     1000,
+					BookId: 100,
+					Lang:   "ru",
+					Comments: []Comment{
+						{TrackableId: 1000, TrackableType: "Translation", Text: "comment3"},
 					},
-					{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
-				},
+				}, {
+					Id:       1001,
+					BookId:   100,
+					Lang:     "md",
+					Comments: nil,
+				}},
 				Comments: []Comment{
-					{
-						TrackableId:   100,
-						TrackableType: "Book",
-						Text:          "comment1",
-					},
-					{
-						TrackableId:   100,
-						TrackableType: "Book",
-						Text:          "comment2",
-					},
+					{TrackableId: 100, TrackableType: "Book", Text: "comment1"},
+					{TrackableId: 100, TrackableType: "Book", Text: "comment2"},
 				},
 			}))
 		})
@@ -711,37 +698,32 @@ var _ = Describe("ORM", func() {
 			Expect(author).To(Equal(Author{
 				ID:   10,
 				Name: "author 1",
-				Books: []Book{
-					{
-						Id:        100,
-						Title:     "",
-						AuthorID:  10,
-						Author:    &Author{ID: 10, Name: "author 1", Books: nil},
-						EditorID:  11,
-						Editor:    &Author{ID: 11, Name: "author 2", Books: nil},
-						CreatedAt: time.Time{},
-						Genres:    nil,
-						Translations: []Translation{
-							{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
-							{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
-						},
-						Comments: nil,
+				Books: []*Book{{
+					Id:        100,
+					Title:     "",
+					AuthorID:  10,
+					Author:    &Author{ID: 10, Name: "author 1", Books: nil},
+					EditorID:  11,
+					Editor:    &Author{ID: 11, Name: "author 2", Books: nil},
+					CreatedAt: time.Time{},
+					Genres:    nil,
+					Translations: []Translation{
+						{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+						{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
 					},
-					{
-						Id:        101,
-						Title:     "",
-						AuthorID:  10,
-						Author:    &Author{ID: 10, Name: "author 1", Books: nil},
-						EditorID:  12,
-						Editor:    &Author{ID: 12, Name: "author 3", Books: nil},
-						CreatedAt: time.Time{},
-						Genres:    nil,
-						Translations: []Translation{
-							{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
-						},
-						Comments: nil,
+				}, {
+					Id:        101,
+					Title:     "",
+					AuthorID:  10,
+					Author:    &Author{ID: 10, Name: "author 1", Books: nil},
+					EditorID:  12,
+					Editor:    &Author{ID: 12, Name: "author 3", Books: nil},
+					CreatedAt: time.Time{},
+					Genres:    nil,
+					Translations: []Translation{
+						{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
 					},
-				},
+				}},
 			}))
 		})
 
@@ -755,37 +737,34 @@ var _ = Describe("ORM", func() {
 				Id:     1,
 				Name:   "genre 1",
 				Rating: 0,
-				Books: []Book{
-					{
-						Id:        100,
-						Title:     "",
-						AuthorID:  0,
-						Author:    nil,
-						EditorID:  0,
-						Editor:    nil,
-						CreatedAt: time.Time{},
-						Genres:    nil,
-						Translations: []Translation{
-							{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
-							{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
-						},
-						Comments: nil,
+				Books: []Book{{
+					Id:        100,
+					Title:     "",
+					AuthorID:  0,
+					Author:    nil,
+					EditorID:  0,
+					Editor:    nil,
+					CreatedAt: time.Time{},
+					Genres:    nil,
+					Translations: []Translation{
+						{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+						{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
 					},
-					{
-						Id:        101,
-						Title:     "",
-						AuthorID:  0,
-						Author:    nil,
-						EditorID:  0,
-						Editor:    nil,
-						CreatedAt: time.Time{},
-						Genres:    nil,
-						Translations: []Translation{
-							{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
-						},
-						Comments: nil,
+					Comments: nil,
+				}, {
+					Id:        101,
+					Title:     "",
+					AuthorID:  0,
+					Author:    nil,
+					EditorID:  0,
+					Editor:    nil,
+					CreatedAt: time.Time{},
+					Genres:    nil,
+					Translations: []Translation{
+						{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
 					},
-				},
+					Comments: nil,
+				}},
 				ParentId:  0,
 				Subgenres: nil,
 			}))
@@ -827,54 +806,50 @@ var _ = Describe("ORM", func() {
 				Order("book.id ASC").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(books).To(ConsistOf([]Book{
-				{
-					Id:        100,
-					Title:     "",
-					AuthorID:  0,
-					Author:    &Author{ID: 10, Name: "author 1", Books: nil},
-					EditorID:  0,
-					Editor:    &Author{ID: 11, Name: "author 2", Books: nil},
-					CreatedAt: time.Time{},
-					Genres: []Genre{
-						{Id: 1, Name: "genre 1", Rating: 999, Books: nil, ParentId: 0, Subgenres: nil},
-						{Id: 2, Name: "genre 2", Rating: 9999, Books: nil, ParentId: 0, Subgenres: nil},
-					},
-					Translations: []Translation{
-						{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
-						{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
-					},
-					Comments: nil,
+			Expect(books).To(ConsistOf([]Book{{
+				Id:        100,
+				Title:     "",
+				AuthorID:  0,
+				Author:    &Author{ID: 10, Name: "author 1", Books: nil},
+				EditorID:  0,
+				Editor:    &Author{ID: 11, Name: "author 2", Books: nil},
+				CreatedAt: time.Time{},
+				Genres: []Genre{
+					{Id: 1, Name: "genre 1", Rating: 999, Books: nil, ParentId: 0, Subgenres: nil},
+					{Id: 2, Name: "genre 2", Rating: 9999, Books: nil, ParentId: 0, Subgenres: nil},
 				},
-				{
-					Id:        101,
-					Title:     "",
-					AuthorID:  0,
-					Author:    &Author{ID: 10, Name: "author 1", Books: nil},
-					EditorID:  0,
-					Editor:    &Author{ID: 12, Name: "author 3", Books: nil},
-					CreatedAt: time.Time{},
-					Genres: []Genre{
-						{Id: 1, Name: "genre 1", Rating: 99999, Books: nil, ParentId: 0, Subgenres: nil},
-					},
-					Translations: []Translation{
-						{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
-					},
-					Comments: nil,
+				Translations: []Translation{
+					{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+					{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
 				},
-				{
-					Id:           102,
-					Title:        "",
-					AuthorID:     0,
-					Author:       &Author{ID: 11, Name: "author 2", Books: nil},
-					EditorID:     0,
-					Editor:       &Author{ID: 11, Name: "author 2", Books: nil},
-					CreatedAt:    time.Time{},
-					Genres:       nil,
-					Translations: nil,
-					Comments:     nil,
+				Comments: nil,
+			}, {
+				Id:        101,
+				Title:     "",
+				AuthorID:  0,
+				Author:    &Author{ID: 10, Name: "author 1", Books: nil},
+				EditorID:  0,
+				Editor:    &Author{ID: 12, Name: "author 3", Books: nil},
+				CreatedAt: time.Time{},
+				Genres: []Genre{
+					{Id: 1, Name: "genre 1", Rating: 99999, Books: nil, ParentId: 0, Subgenres: nil},
 				},
-			}))
+				Translations: []Translation{
+					{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
+				},
+				Comments: nil,
+			}, {
+				Id:           102,
+				Title:        "",
+				AuthorID:     0,
+				Author:       &Author{ID: 11, Name: "author 2", Books: nil},
+				EditorID:     0,
+				Editor:       &Author{ID: 11, Name: "author 2", Books: nil},
+				CreatedAt:    time.Time{},
+				Genres:       nil,
+				Translations: nil,
+				Comments:     nil,
+			}}))
 		})
 
 		It("supports HasMany2Many, HasMany2Many -> HasMany", func() {
@@ -885,72 +860,65 @@ var _ = Describe("ORM", func() {
 				Order("genre.id").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(genres).To(ConsistOf([]Genre{
-				{
-					Id:     1,
-					Name:   "genre 1",
-					Rating: 0,
-					Books: []Book{
-						{
-							Id:        100,
-							Title:     "",
-							AuthorID:  0,
-							Author:    nil,
-							EditorID:  0,
-							Editor:    nil,
-							CreatedAt: time.Time{},
-							Genres:    nil,
-							Translations: []Translation{
-								{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
-								{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
-							},
-							Comments: nil,
-						},
-						{
-							Id:        101,
-							Title:     "",
-							AuthorID:  0,
-							Author:    nil,
-							EditorID:  0,
-							Editor:    nil,
-							CreatedAt: time.Time{},
-							Genres:    nil,
-							Translations: []Translation{
-								{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
-							},
-							Comments: nil,
-						},
+			Expect(genres).To(ConsistOf([]Genre{{
+				Id:     1,
+				Name:   "genre 1",
+				Rating: 0,
+				Books: []Book{{
+					Id:        100,
+					Title:     "",
+					AuthorID:  0,
+					Author:    nil,
+					EditorID:  0,
+					Editor:    nil,
+					CreatedAt: time.Time{},
+					Genres:    nil,
+					Translations: []Translation{
+						{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+						{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
 					},
-					ParentId: 0,
-					Subgenres: []Genre{
-						{Id: 3, Name: "subgenre 1", Rating: 0, Books: nil, ParentId: 1, Subgenres: nil},
-						{Id: 4, Name: "subgenre 2", Rating: 0, Books: nil, ParentId: 1, Subgenres: nil},
+					Comments: nil,
+				}, {
+					Id:        101,
+					Title:     "",
+					AuthorID:  0,
+					Author:    nil,
+					EditorID:  0,
+					Editor:    nil,
+					CreatedAt: time.Time{},
+					Genres:    nil,
+					Translations: []Translation{
+						{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
 					},
+					Comments: nil,
+				}},
+				ParentId: 0,
+				Subgenres: []Genre{
+					{Id: 3, Name: "subgenre 1", Rating: 0, Books: nil, ParentId: 1, Subgenres: nil},
+					{Id: 4, Name: "subgenre 2", Rating: 0, Books: nil, ParentId: 1, Subgenres: nil},
 				},
-				{
-					Id:     2,
-					Name:   "genre 2",
-					Rating: 0,
-					Books: []Book{
-						{
-							Id:        100,
-							Title:     "",
-							AuthorID:  0,
-							Author:    nil,
-							EditorID:  0,
-							Editor:    nil,
-							CreatedAt: time.Time{},
-							Genres:    nil,
-							Translations: []Translation{
-								{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
-								{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
-							},
-							Comments: nil,
-						},
+			}, {
+				Id:     2,
+				Name:   "genre 2",
+				Rating: 0,
+				Books: []Book{{
+					Id:        100,
+					Title:     "",
+					AuthorID:  0,
+					Author:    nil,
+					EditorID:  0,
+					Editor:    nil,
+					CreatedAt: time.Time{},
+					Genres:    nil,
+					Translations: []Translation{
+						{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+						{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
 					},
-					ParentId:  0,
-					Subgenres: nil,
-				},
+					Comments: nil,
+				}},
+				ParentId:  0,
+				Subgenres: nil,
+			},
 			}))
 		})
 
@@ -1009,31 +977,28 @@ var _ = Describe("ORM", func() {
 			Order("book.id ASC").
 			Select()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(books).To(ConsistOf([]Book{
-			{
-				Id:           100,
-				Title:        "",
-				AuthorID:     0,
-				Author:       nil,
-				EditorID:     0,
-				Editor:       nil,
-				CreatedAt:    time.Time{},
-				Genres:       nil,
-				Translations: nil,
-				Comments:     nil,
-			},
-			{
-				Id:           101,
-				Title:        "",
-				AuthorID:     0,
-				Author:       nil,
-				EditorID:     0,
-				Editor:       nil,
-				CreatedAt:    time.Time{},
-				Genres:       nil,
-				Translations: nil,
-				Comments:     nil,
-			},
-		}))
+		Expect(books).To(ConsistOf([]Book{{
+			Id:           100,
+			Title:        "",
+			AuthorID:     0,
+			Author:       nil,
+			EditorID:     0,
+			Editor:       nil,
+			CreatedAt:    time.Time{},
+			Genres:       nil,
+			Translations: nil,
+			Comments:     nil,
+		}, {
+			Id:           101,
+			Title:        "",
+			AuthorID:     0,
+			Author:       nil,
+			EditorID:     0,
+			Editor:       nil,
+			CreatedAt:    time.Time{},
+			Genres:       nil,
+			Translations: nil,
+			Comments:     nil,
+		}}))
 	})
 })
