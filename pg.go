@@ -12,6 +12,11 @@ import (
 // Discard is used with Query and QueryOne to discard rows.
 var Discard orm.Discard
 
+// Model returns new query for the optional model.
+func Model(model ...interface{}) *orm.Query {
+	return orm.NewQuery(nil, model...)
+}
+
 // Scan returns ColumnScanner that copies the columns in the
 // row into the values.
 func Scan(values ...interface{}) orm.ColumnScanner {

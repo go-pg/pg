@@ -323,7 +323,7 @@ var _ = Describe("DB.Select", func() {
 
 	It("selects bytea", func() {
 		var col []byte
-		err := db.Model(nil).Table("tests").Column("col").Select(pg.Scan(&col))
+		err := db.Model().Table("tests").Column("col").Select(pg.Scan(&col))
 		Expect(err).NotTo(HaveOccurred())
 	})
 })

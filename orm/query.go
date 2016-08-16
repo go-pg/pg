@@ -33,23 +33,8 @@ type Query struct {
 	offset     int
 }
 
-func NewQuery(db dber, v ...interface{}) *Query {
-	q := Query{
-		db: db,
-	}
-	switch l := len(v); {
-	case l == 1:
-		v0 := v[0]
-		if v0 != nil {
-			q.model, q.err = newTableModel(v0)
-		}
-	case l > 1:
-		q.model, q.err = newTableModel(&v)
-	}
-	if q.model != nil {
-		q.tableName = q.FormatQuery(q.tableName, string(q.model.Table().Name))
-	}
-	return &q
+func NewQuery(db dber, model ...interface{}) *Query {
+	return (&Query{}).DB(db).Model(model...)
 }
 
 func (q *Query) copy() *Query {
@@ -57,10 +42,41 @@ func (q *Query) copy() *Query {
 	return &cp
 }
 
-func (q *Query) setErr(err error) {
+// Err sets the err returned when query is executed.
+func (q *Query) Err(err error) *Query {
 	if q.err == nil {
 		q.err = err
 	}
+	return q
+}
+
+func (q *Query) DB(db dber) *Query {
+	q.db = db
+	return q
+}
+
+func (q *Query) Model(model ...interface{}) *Query {
+	var err error
+	switch l := len(model); {
+	case l == 0:
+		q.model = nil
+	case l == 1:
+		model0 := model[0]
+		if model0 != nil {
+			q.model, err = newTableModel(model0)
+		}
+	case l > 1:
+		q.model, err = newTableModel(&model)
+	}
+	if err != nil {
+		q = q.Err(err)
+	}
+	if q.model != nil {
+		q.tableName = q.FormatQuery(q.tableName, string(q.model.Table().Name))
+	} else {
+		q.tableName = nil
+	}
+	return q
 }
 
 func (q *Query) With(name string, subq *Query) *Query {
@@ -70,7 +86,7 @@ func (q *Query) With(name string, subq *Query) *Query {
 	q.with = append(q.with, " AS ("...)
 	q.with, err = selectQuery{subq}.AppendQuery(q.with)
 	if err != nil {
-		q.setErr(err)
+		q = q.Err(err)
 	}
 	q.with = append(q.with, ')')
 	return q
@@ -193,10 +209,10 @@ func (q *Query) Returning(columns ...interface{}) *Query {
 			var err error
 			q.returning, err = column.AppendValue(q.returning, 1)
 			if err != nil {
-				q.setErr(err)
+				q = q.Err(err)
 			}
 		default:
-			q.setErr(fmt.Errorf("unsupported column type: %T", column))
+			q = q.Err(fmt.Errorf("unsupported column type: %T", column))
 		}
 	}
 	return q
