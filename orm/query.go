@@ -421,7 +421,10 @@ func (q *Query) Delete() (*types.Result, error) {
 
 func (q *Query) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
 	params = append(params, q.model)
-	return q.db.FormatQuery(dst, query, params...)
+	if q.db != nil {
+		return q.db.FormatQuery(dst, query, params...)
+	}
+	return Formatter{}.Append(dst, query, params...)
 }
 
 func (q *Query) appendTableAlias(b []byte) ([]byte, bool) {
