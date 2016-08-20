@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"bytes"
 	"errors"
 	"reflect"
 )
@@ -61,20 +60,7 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	b = append(b, ')')
 
 	if len(ins.onConflict) > 0 {
-		b = append(b, " ON CONFLICT "...)
 		b = append(b, ins.onConflict...)
-		if bytes.HasSuffix(ins.onConflict, []byte("DO UPDATE")) {
-			var err error
-			b, err = ins.appendSet(b)
-			if err != nil {
-				return nil, err
-			}
-
-			if len(ins.where) > 0 {
-				b = append(b, " WHERE "...)
-				b = append(b, ins.where...)
-			}
-		}
 	}
 
 	if len(ins.returning) > 0 {

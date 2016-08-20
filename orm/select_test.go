@@ -5,10 +5,9 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var _ = Describe("Query", func() {
+var _ = Describe("Select", func() {
 	It("works without db", func() {
-		q := NewQuery(nil)
-		q = q.Where("hello = ?", "world")
+		q := NewQuery(nil).Where("hello = ?", "world")
 
 		b, err := selectQuery{q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())

@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -138,16 +139,54 @@ func (q *Query) Relation(name string, apply func(*Query) *Query) *Query {
 }
 
 func (q *Query) Set(set string, params ...interface{}) *Query {
+	if q.onConflictDoUpdate() {
+		return q.onConflictSet(set, params...)
+	}
+
 	q.set = appendSep(q.set, ", ")
 	q.set = q.FormatQuery(q.set, set, params...)
 	return q
 }
 
+func (q *Query) onConflictSet(set string, params ...interface{}) *Query {
+	ind := bytes.LastIndex(q.onConflict, []byte(" DO UPDATE"))
+	if ind == -1 {
+		return q
+	}
+	if bytes.Contains(q.onConflict[ind:], []byte(" SET ")) {
+		q.onConflict = append(q.onConflict, ", "...)
+	} else {
+		q.onConflict = append(q.onConflict, " SET "...)
+	}
+	q.onConflict = q.FormatQuery(q.onConflict, set, params...)
+	return q
+}
+
 func (q *Query) Where(where string, params ...interface{}) *Query {
+	if q.onConflictDoUpdate() {
+		return q.onConflictWhere(where, params...)
+	}
+
 	q.where = appendSep(q.where, " AND ")
 	q.where = append(q.where, '(')
 	q.where = q.FormatQuery(q.where, where, params...)
 	q.where = append(q.where, ')')
+	return q
+}
+
+func (q *Query) onConflictWhere(where string, params ...interface{}) *Query {
+	ind := bytes.LastIndex(q.onConflict, []byte(" DO UPDATE"))
+	if ind == -1 {
+		return q
+	}
+	if bytes.Contains(q.onConflict[ind:], []byte(" WHERE ")) {
+		q.onConflict = append(q.onConflict, " AND "...)
+	} else {
+		q.onConflict = append(q.onConflict, " WHERE "...)
+	}
+	q.onConflict = append(q.onConflict, '(')
+	q.onConflict = q.FormatQuery(q.onConflict, where, params...)
+	q.onConflict = append(q.onConflict, ')')
 	return q
 }
 
@@ -194,8 +233,14 @@ func (q *Query) Offset(n int) *Query {
 }
 
 func (q *Query) OnConflict(s string, params ...interface{}) *Query {
-	q.onConflict = q.FormatQuery(nil, s, params...)
+	q.onConflict = append(q.onConflict, " ON CONFLICT "...)
+	q.onConflict = q.FormatQuery(q.onConflict, s, params...)
 	return q
+}
+
+func (q *Query) onConflictDoUpdate() bool {
+	return len(q.onConflict) > 0 &&
+		bytes.Contains(q.onConflict, []byte(" DO UPDATE"))
 }
 
 func (q *Query) Returning(columns ...interface{}) *Query {
