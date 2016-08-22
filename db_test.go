@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"gopkg.in/pg.v4"
+	"gopkg.in/pg.v4/orm"
 )
 
 func init() {
@@ -1000,5 +1001,39 @@ var _ = Describe("ORM", func() {
 			Translations: nil,
 			Comments:     nil,
 		}}))
+	})
+
+	It("supports filtering HasMany", func() {
+		var book Book
+		err := db.Model(&book).
+			Column("book.id", "Translations").
+			Relation("Translations", func(q *orm.Query) *orm.Query {
+				return q.Where("lang = 'ru'")
+			}).
+			First()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(book).To(Equal(Book{
+			Id: 100,
+			Translations: []Translation{
+				{Id: 1000, BookId: 100, Lang: "ru"},
+			},
+		}))
+	})
+
+	It("supports filtering HasMany2Many", func() {
+		var book Book
+		err := db.Model(&book).
+			Column("book.id", "Genres").
+			Relation("Genres", func(q *orm.Query) *orm.Query {
+				return q.Where("genre__rating > 999")
+			}).
+			First()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(book).To(Equal(Book{
+			Id: 100,
+			Genres: []Genre{
+				{Id: 2, Name: "genre 2", Rating: 9999},
+			},
+		}))
 	})
 })

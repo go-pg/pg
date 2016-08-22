@@ -106,6 +106,9 @@ func (j *join) selectM2M(db dber) error {
 
 	m2mModel := newM2MModel(j)
 	q := NewQuery(db, m2mModel)
+	if j.ApplyQuery != nil {
+		q = j.ApplyQuery(q)
+	}
 
 	// Select all m2m intermediate table columns.
 	q.columns = appendSep(q.columns, ", ")
