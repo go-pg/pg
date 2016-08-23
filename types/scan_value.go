@@ -114,7 +114,7 @@ func ptrScannerFunc(typ reflect.Type) ScannerFunc {
 
 func scanIfaceValue(v reflect.Value, b []byte) error {
 	if v.IsNil() {
-		return internal.Errorf("pg: Scan(nil)")
+		return scanJSONValue(v, b)
 	}
 	return ScanValue(v.Elem(), b)
 }
