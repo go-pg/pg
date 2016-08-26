@@ -56,6 +56,12 @@ func isEmptyFloat(v reflect.Value) bool {
 }
 
 func isEmptyZero(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Ptr:
+		if v.IsNil() {
+			return true
+		}
+	}
 	return v.Interface().(isZeroer).IsZero()
 }
 
