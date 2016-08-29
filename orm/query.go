@@ -15,7 +15,6 @@ type Query struct {
 	model tableModel
 	err   error
 
-	tableName  types.Q
 	tableAlias string
 
 	with       []byte
@@ -71,11 +70,6 @@ func (q *Query) Model(model ...interface{}) *Query {
 	}
 	if err != nil {
 		q = q.Err(err)
-	}
-	if q.model != nil {
-		q.tableName = q.FormatQuery(q.tableName, string(q.model.Table().Name))
-	} else {
-		q.tableName = nil
 	}
 	return q
 }
@@ -482,8 +476,12 @@ func (q *Query) appendTableAlias(b []byte) ([]byte, bool) {
 	return b, false
 }
 
+func (q *Query) appendTableName(b []byte) []byte {
+	return q.FormatQuery(b, string(q.model.Table().Name))
+}
+
 func (q *Query) appendTableNameWithAlias(b []byte) []byte {
-	b = append(b, q.tableName...)
+	b = q.appendTableName(b)
 	b = append(b, " AS "...)
 	b, _ = q.appendTableAlias(b)
 	return b

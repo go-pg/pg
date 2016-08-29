@@ -29,7 +29,7 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	if len(ins.onConflict) > 0 {
 		b = ins.appendTableNameWithAlias(b)
 	} else {
-		b = append(b, ins.tableName...)
+		b = ins.appendTableName(b)
 	}
 	b = append(b, " ("...)
 
