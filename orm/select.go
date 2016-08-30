@@ -33,12 +33,7 @@ func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 
 	b = append(b, "SELECT "...)
 	if sel.columns == nil {
-		var ok bool
-		b, ok = sel.appendTableAlias(b)
-		if ok {
-			b = append(b, '.')
-		}
-		b = append(b, '*')
+		b = sel.appendColumns(b)
 	} else {
 		b = append(b, sel.columns...)
 	}
@@ -79,4 +74,33 @@ func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	}
 
 	return b, nil
+}
+
+func (sel selectQuery) appendColumns(b []byte) []byte {
+	if sel.model != nil {
+		return sel.appendModelColumns(b)
+	}
+
+	var ok bool
+	b, ok = sel.appendTableAlias(b)
+	if ok {
+		b = append(b, '.')
+	}
+	b = append(b, '*')
+	return b
+}
+
+func (sel selectQuery) appendModelColumns(b []byte) []byte {
+	alias, hasAlias := sel.appendTableAlias(nil)
+	for i, f := range sel.model.Table().Fields {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		if hasAlias {
+			b = append(b, alias...)
+			b = append(b, '.')
+		}
+		b = append(b, f.ColName...)
+	}
+	return b
 }
