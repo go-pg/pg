@@ -284,38 +284,14 @@ func (t *Table) newField(f reflect.StructField) *Field {
 			t.FieldsMap[ff.SQLName] = ff
 		}
 
-		t.detectHasOne(&field, joinTable)
-		t.detectBelongsToOne(&field, joinTable)
-
-		t.FieldsMap[field.SQLName] = &field
-		return nil
+		if t.detectHasOne(&field, joinTable) ||
+			t.detectBelongsToOne(&field, joinTable) {
+			t.FieldsMap[field.SQLName] = &field
+			return nil
+		}
 	}
 
 	return &field
-}
-
-func (t *Table) detectHasOne(field *Field, joinTable *Table) {
-	fks := foreignKeys(joinTable, t, field.GoName)
-	if len(fks) > 0 {
-		t.addRelation(&Relation{
-			Type:      HasOneRelation,
-			Field:     field,
-			FKs:       fks,
-			JoinTable: joinTable,
-		})
-	}
-}
-
-func (t *Table) detectBelongsToOne(field *Field, joinTable *Table) {
-	fks := foreignKeys(t, joinTable, t.Type.Name())
-	if len(fks) > 0 {
-		t.addRelation(&Relation{
-			Type:      BelongsToRelation,
-			Field:     field,
-			FKs:       fks,
-			JoinTable: joinTable,
-		})
-	}
 }
 
 func foreignKeys(base, join *Table, prefix string) []*Field {
@@ -327,4 +303,32 @@ func foreignKeys(base, join *Table, prefix string) []*Field {
 		}
 	}
 	return fks
+}
+
+func (t *Table) detectHasOne(field *Field, joinTable *Table) bool {
+	fks := foreignKeys(joinTable, t, field.GoName)
+	if len(fks) > 0 {
+		t.addRelation(&Relation{
+			Type:      HasOneRelation,
+			Field:     field,
+			FKs:       fks,
+			JoinTable: joinTable,
+		})
+		return true
+	}
+	return false
+}
+
+func (t *Table) detectBelongsToOne(field *Field, joinTable *Table) bool {
+	fks := foreignKeys(t, joinTable, t.Type.Name())
+	if len(fks) > 0 {
+		t.addRelation(&Relation{
+			Type:      BelongsToRelation,
+			Field:     field,
+			FKs:       fks,
+			JoinTable: joinTable,
+		})
+		return true
+	}
+	return false
 }
