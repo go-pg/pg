@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"gopkg.in/pg.v4/internal"
 	"gopkg.in/pg.v4/internal/pool"
 	"gopkg.in/pg.v4/types"
 )
@@ -70,7 +71,7 @@ func (stmt *Stmt) Exec(params ...interface{}) (res *types.Result, err error) {
 			break
 		}
 
-		time.Sleep(defaultBackoff << uint(i))
+		time.Sleep(internal.RetryBackoff << uint(i))
 	}
 	if err != nil {
 		stmt.setErr(err)
@@ -112,7 +113,7 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res *types.Re
 			break
 		}
 
-		time.Sleep(defaultBackoff << uint(i))
+		time.Sleep(internal.RetryBackoff << uint(i))
 	}
 	if err != nil {
 		stmt.setErr(err)

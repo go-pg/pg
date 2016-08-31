@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
 	"gopkg.in/pg.v4/internal"
 	"gopkg.in/pg.v4/types"
@@ -412,7 +413,11 @@ func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) 
 		return false, q.err
 	}
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
+		if i >= 2 {
+			time.Sleep(internal.RetryBackoff << uint(i-2))
+		}
+
 		err := q.Select(values...)
 		if err == nil {
 			return false, nil
@@ -439,7 +444,7 @@ func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) 
 		}
 	}
 
-	return false, errors.New("pg: GetOrCreate does not make progress after 10 iterations")
+	return false, errors.New("pg: SelectOrCreate: select returns no rows")
 }
 
 // Update updates the model.

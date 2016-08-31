@@ -46,7 +46,7 @@ var _ = Describe("DB race", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(a.ID).NotTo(BeZero())
 
-				if i%2 == 0 {
+				if i%(N/C) == 0 {
 					err := db.Delete(a)
 					if err != pg.ErrNoRows {
 						Expect(err).NotTo(HaveOccurred())
@@ -75,7 +75,7 @@ var _ = Describe("DB race", func() {
 				Expect(err).NotTo(HaveOccurred())
 				Expect(a.ID).NotTo(BeZero())
 
-				if i%2 == 0 {
+				if i%(N/C) == 0 {
 					err := db.Delete(a)
 					if err != pg.ErrNoRows {
 						Expect(err).NotTo(HaveOccurred())
