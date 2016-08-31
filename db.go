@@ -10,8 +10,6 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
-const defaultBackoff = 250 * time.Millisecond
-
 // Connect connects to a database using provided options.
 //
 // The returned DB is safe for concurrent use by multiple goroutines
@@ -128,7 +126,7 @@ func (db *DB) Exec(query interface{}, params ...interface{}) (res *types.Result,
 			return res, err
 		}
 
-		time.Sleep(defaultBackoff << uint(i))
+		time.Sleep(internal.RetryBackoff << uint(i))
 	}
 	return
 }
@@ -165,7 +163,7 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types
 			return res, err
 		}
 
-		time.Sleep(defaultBackoff << uint(i))
+		time.Sleep(internal.RetryBackoff << uint(i))
 	}
 	return
 }
