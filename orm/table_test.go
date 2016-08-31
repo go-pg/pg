@@ -93,3 +93,27 @@ var _ = Describe("uuid field", func() {
 		Expect(table.PKs[0].GoName).To(Equal("UUID"))
 	})
 })
+
+type E struct {
+	Id          int
+	StructField struct {
+		Foo string
+		Bar string
+	}
+}
+
+var _ = Describe("struct field", func() {
+	var table *orm.Table
+
+	BeforeEach(func() {
+		strct := reflect.ValueOf(E{})
+		table = orm.Tables.Get(strct.Type())
+	})
+
+	It("is present in the list", func() {
+		Expect(table.Fields).To(HaveLen(2))
+
+		_, ok := table.FieldsMap["struct_field"]
+		Expect(ok).To(BeTrue())
+	})
+})
