@@ -153,7 +153,7 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 		return nil, err
 	}
 
-	res, err := simpleQueryData(cn, model, query, params...)
+	res, err := simpleQueryData(tx, cn, model, query, params...)
 	tx.freeConn(cn, err)
 	return res, err
 }

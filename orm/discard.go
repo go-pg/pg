@@ -5,11 +5,11 @@ type Discard struct{}
 var _ Collection = (*Discard)(nil)
 var _ ColumnScanner = (*Discard)(nil)
 
-func (d Discard) NewModel() ColumnScanner {
+func (d Discard) NewModel(_ DB) ColumnScanner {
 	return d
 }
 
-func (Discard) AddModel(_ ColumnScanner) error {
+func (Discard) AddModel(_ DB, _ ColumnScanner) error {
 	return nil
 }
 

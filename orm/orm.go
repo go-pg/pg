@@ -15,10 +15,10 @@ type ColumnScanner interface {
 type Collection interface {
 	// NewModel returns ColumnScanner that is used to scan columns
 	// from the current row.
-	NewModel() ColumnScanner
+	NewModel(DB) ColumnScanner
 
 	// AddModel adds ColumnScanner to the Collection.
-	AddModel(ColumnScanner) error
+	AddModel(DB, ColumnScanner) error
 }
 
 type QueryAppender interface {
@@ -29,7 +29,8 @@ type QueryFormatter interface {
 	FormatQuery(dst []byte, query string, params ...interface{}) []byte
 }
 
-type dber interface {
+// DB is a common interface for pg.DB and pg.Tx types.
+type DB interface {
 	Exec(q interface{}, params ...interface{}) (*types.Result, error)
 	ExecOne(q interface{}, params ...interface{}) (*types.Result, error)
 	Query(coll, query interface{}, params ...interface{}) (*types.Result, error)

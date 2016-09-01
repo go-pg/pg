@@ -153,7 +153,7 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types
 			return nil, err
 		}
 
-		res, err = simpleQueryData(cn, model, query, params...)
+		res, err = simpleQueryData(db, cn, model, query, params...)
 		db.freeConn(cn, err)
 
 		if i >= db.opt.MaxRetries {
@@ -308,7 +308,7 @@ func simpleQuery(cn *pool.Conn, query interface{}, params ...interface{}) (*type
 	return readSimpleQuery(cn)
 }
 
-func simpleQueryData(cn *pool.Conn, model, query interface{}, params ...interface{}) (*types.Result, error) {
+func simpleQueryData(db orm.DB, cn *pool.Conn, model, query interface{}, params ...interface{}) (*types.Result, error) {
 	if err := writeQueryMsg(cn.Wr, query, params...); err != nil {
 		return nil, err
 	}
@@ -317,7 +317,7 @@ func simpleQueryData(cn *pool.Conn, model, query interface{}, params ...interfac
 		return nil, err
 	}
 
-	return readSimpleQueryData(cn, model)
+	return readSimpleQueryData(db, cn, model)
 }
 
 type singleModel struct {
@@ -340,8 +340,8 @@ func newSingleModel(mod interface{}) (*singleModel, error) {
 	}, nil
 }
 
-func (m *singleModel) AddModel(_ orm.ColumnScanner) error {
-	return nil
+func (m *singleModel) AddModel(db orm.DB, model orm.ColumnScanner) error {
+	return m.Model.AddModel(db, model)
 }
 
 func assertOne(l int) error {

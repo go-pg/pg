@@ -32,17 +32,23 @@ func newManyModel(j *join) *manyModel {
 	return &m
 }
 
-func (m *manyModel) NewModel() ColumnScanner {
+func (m *manyModel) NewModel(db DB) ColumnScanner {
 	if m.sliceOfPtr {
 		m.strct = reflect.New(m.table.Type).Elem()
 	} else {
 		m.strct.Set(m.zeroStruct)
 	}
-	m.structTableModel.NewModel()
+	m.structTableModel.NewModel(db)
 	return m
 }
 
-func (m *manyModel) AddModel(_ ColumnScanner) error {
+func (m *manyModel) AddModel(db DB, model ColumnScanner) error {
+	if m.rel.JoinTable.Has(AfterSelectHookFlag) {
+		if err := callAfterSelectHook(m.strct, db); err != nil {
+			return err
+		}
+	}
+
 	m.buf = modelId(m.buf[:0], m.strct, m.rel.FKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {

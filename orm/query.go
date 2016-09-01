@@ -12,7 +12,7 @@ import (
 )
 
 type Query struct {
-	db    dber
+	db    DB
 	model tableModel
 	err   error
 
@@ -34,7 +34,7 @@ type Query struct {
 	offset     int
 }
 
-func NewQuery(db dber, model ...interface{}) *Query {
+func NewQuery(db DB, model ...interface{}) *Query {
 	return (&Query{}).DB(db).Model(model...)
 }
 
@@ -51,7 +51,7 @@ func (q *Query) Err(err error) *Query {
 	return q
 }
 
-func (q *Query) DB(db dber) *Query {
+func (q *Query) DB(db DB) *Query {
 	q.db = db
 	return q
 }
@@ -374,7 +374,7 @@ func (q *Query) addJoins(joins []join) {
 	}
 }
 
-func selectJoins(db dber, joins []join) error {
+func selectJoins(db DB, joins []join) error {
 	var err error
 	for i := range joins {
 		j := &joins[i]
@@ -397,14 +397,33 @@ func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 	}
 
 	var model Model
+	var table *Table
 	if len(values) > 0 {
 		model = Scan(values...)
-	} else {
+	} else if q.model != nil {
 		model = q.model
+		table = q.model.Table()
+	}
+
+	if table.Has(BeforeCreateHookFlag) {
+		if err := callBeforeCreateHook(q.model.Value(), q.db); err != nil {
+			return nil, err
+		}
 	}
 
 	ins := insertQuery{Query: q}
-	return q.db.Query(model, ins, q.model)
+	res, err := q.db.Query(model, ins, q.model)
+	if err != nil {
+		return nil, err
+	}
+
+	if table.Has(AfterCreateHookFlag) {
+		if err := callAfterCreateHook(q.model.Value(), q.db); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
 }
 
 // SelectOrCreate selects the model creating one if it does not exist.

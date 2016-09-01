@@ -5,7 +5,7 @@ import (
 	"strconv"
 )
 
-func Select(db dber, model interface{}) error {
+func Select(db DB, model interface{}) error {
 	q := NewQuery(db, model)
 	m, ok := q.model.(*structTableModel)
 	if !ok {

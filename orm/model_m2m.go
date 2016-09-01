@@ -37,17 +37,23 @@ func newM2MModel(join *join) *m2mModel {
 	return m
 }
 
-func (m *m2mModel) NewModel() ColumnScanner {
+func (m *m2mModel) NewModel(db DB) ColumnScanner {
 	if m.sliceOfPtr {
 		m.strct = reflect.New(m.table.Type).Elem()
 	} else {
 		m.strct.Set(m.zeroStruct)
 	}
-	m.structTableModel.NewModel()
+	m.structTableModel.NewModel(db)
 	return m
 }
 
-func (m *m2mModel) AddModel(_ ColumnScanner) error {
+func (m *m2mModel) AddModel(db DB, model ColumnScanner) error {
+	if m.rel.JoinTable.Has(AfterSelectHookFlag) {
+		if err := callAfterSelectHook(m.strct, db); err != nil {
+			return err
+		}
+	}
+
 	m.buf = modelIdMap(m.buf[:0], m.columns, m.baseTable.ModelName+"_", m.baseTable.PKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {

@@ -488,6 +488,13 @@ func (b Book) String() string {
 	return fmt.Sprintf("Book<Id=%d Title=%q>", b.Id, b.Title)
 }
 
+func (b *Book) BeforeCreate(db orm.DB) error {
+	if b.CreatedAt.IsZero() {
+		b.CreatedAt = time.Now()
+	}
+	return nil
+}
+
 type Translation struct {
 	TableName struct{} `sql:",alias:tr"` // custom table alias
 
@@ -514,7 +521,7 @@ func createTestSchema(db *pg.DB) error {
 		`DROP TABLE IF EXISTS genres`,
 		`DROP TABLE IF EXISTS book_genres`,
 		`CREATE TABLE authors (id serial, name text)`,
-		`CREATE TABLE books (id serial PRIMARY KEY, title text, author_id int, editor_id int, created_at timestamptz DEFAULT now())`,
+		`CREATE TABLE books (id serial PRIMARY KEY, title text, author_id int, editor_id int, created_at timestamptz)`,
 		`CREATE TABLE genres (id serial, name text, parent_id int)`,
 		`CREATE TABLE book_genres (book_id int, genre_id int, genre__rating int)`,
 		`CREATE TABLE translations (id serial, book_id int, lang varchar(2))`,

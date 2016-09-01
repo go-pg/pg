@@ -52,7 +52,7 @@ func (j *join) JoinBelongsTo(q *Query) {
 	q.columns = j.appendJoinedColumns(q.columns)
 }
 
-func (j *join) Select(db dber) error {
+func (j *join) Select(db DB) error {
 	switch j.Rel.Type {
 	case HasManyRelation:
 		return j.selectMany(db)
@@ -62,7 +62,7 @@ func (j *join) Select(db dber) error {
 	panic("not reached")
 }
 
-func (j *join) selectMany(db dber) error {
+func (j *join) selectMany(db DB) error {
 	root := j.JoinModel.Root()
 	index := j.JoinModel.Index()
 	index = index[:len(index)-1]
@@ -96,7 +96,7 @@ func (j *join) selectMany(db dber) error {
 	return nil
 }
 
-func (j *join) selectM2M(db dber) error {
+func (j *join) selectM2M(db DB) error {
 	index := j.JoinModel.Index()
 	index = index[:len(index)-1]
 
