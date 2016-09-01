@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"context"
 	"io"
 	"os"
 
@@ -29,10 +30,29 @@ func init() {
 // The statements prepared for a transaction by calling the transaction's
 // Prepare or Stmt methods are closed by the call to Commit or Rollback.
 type Tx struct {
-	db *DB
-	cn *pool.Conn
+	db  *DB
+	cn  *pool.Conn
+	ctx context.Context
 
 	stmts []*Stmt
+}
+
+// Context returns the tx's context. To change the context, use WithContext.
+//
+// The returned context is always non-nil; it defaults to the db's context.
+func (tx *Tx) Context() context.Context {
+	if tx.ctx == nil {
+		return tx.db.Context()
+	}
+	return tx.ctx
+}
+
+// WithContext returns a shallow copy of db with its context changed to ctx.
+// The provided ctx must be non-nil.
+func (tx *Tx) WithContext(c context.Context) *Tx {
+	copy := *tx
+	copy.ctx = c
+	return &copy
 }
 
 // Begin starts a transaction. Most callers should use RunInTransaction instead.

@@ -1,6 +1,7 @@
 package pg // import "gopkg.in/pg.v4"
 
 import (
+	"context"
 	"io"
 	"time"
 
@@ -27,6 +28,7 @@ func Connect(opt *Options) *DB {
 type DB struct {
 	opt  *Options
 	pool *pool.ConnPool
+	ctx  context.Context
 }
 
 // Options returns read-only Options that were used to connect to the DB.
@@ -43,6 +45,24 @@ func (db *DB) WithTimeout(d time.Duration) *DB {
 		opt:  &newopt,
 		pool: db.pool,
 	}
+}
+
+// Context returns the db's context. To change the context, use WithContext.
+//
+// The returned context is always non-nil; it defaults to the background context.
+func (db *DB) Context() context.Context {
+	if db.ctx == nil {
+		db.ctx = context.Background()
+	}
+	return db.ctx
+}
+
+// WithContext returns a shallow copy of db with its context changed to ctx.
+// The provided ctx must be non-nil.
+func (db *DB) WithContext(c context.Context) *DB {
+	copy := *db
+	copy.ctx = c
+	return &copy
 }
 
 func (db *DB) conn() (*pool.Conn, error) {
