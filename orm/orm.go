@@ -1,6 +1,10 @@
 package orm
 
-import "gopkg.in/pg.v4/types"
+import (
+	"context"
+
+	"gopkg.in/pg.v4/types"
+)
 
 // ColumnScanner is used to scan column values.
 type ColumnScanner interface {
@@ -30,6 +34,7 @@ type QueryFormatter interface {
 }
 
 type dber interface {
+	Context() context.Context
 	Exec(q interface{}, params ...interface{}) (*types.Result, error)
 	ExecOne(q interface{}, params ...interface{}) (*types.Result, error)
 	Query(coll, query interface{}, params ...interface{}) (*types.Result, error)

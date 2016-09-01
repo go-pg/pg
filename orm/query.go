@@ -397,14 +397,33 @@ func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 	}
 
 	var model Model
+	var table *Table
 	if len(values) > 0 {
 		model = Scan(values...)
-	} else {
+	} else if q.model != nil {
 		model = q.model
+		table = q.model.Table()
+	}
+
+	if table.Has(BeforeCreateHookFlag) {
+		if err := callBeforeCreateHook(q.db.Context(), q.model.Value()); err != nil {
+			return nil, err
+		}
 	}
 
 	ins := insertQuery{Query: q}
-	return q.db.Query(model, ins, q.model)
+	res, err := q.db.Query(model, ins, q.model)
+	if err != nil {
+		return nil, err
+	}
+
+	if table.Has(AfterCreateHookFlag) {
+		if err := callAfterCreateHook(q.db.Context(), q.model.Value()); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
 }
 
 // SelectOrCreate selects the model creating one if it does not exist.
