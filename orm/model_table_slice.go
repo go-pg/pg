@@ -35,13 +35,13 @@ func (m *sliceTableModel) Value() reflect.Value {
 	return m.slice
 }
 
-func (m *sliceTableModel) NewModel() ColumnScanner {
+func (m *sliceTableModel) NewModel(db DB) ColumnScanner {
 	if !m.strct.IsValid() {
 		m.slice.Set(m.slice.Slice(0, 0))
 	}
 
 	m.strct = m.nextElem()
-	m.structTableModel.NewModel()
+	m.structTableModel.NewModel(db)
 	return m
 }
 

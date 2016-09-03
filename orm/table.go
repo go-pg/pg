@@ -15,13 +15,22 @@ type Table struct {
 	Alias     types.Q
 	ModelName string
 	Type      reflect.Type
+	flags     int8
 
 	PKs       []*Field
 	Fields    []*Field
 	FieldsMap map[string]*Field
 
-	Methods   map[string]*Method
+	Methods map[string]*Method
+
 	Relations map[string]*Relation
+}
+
+func (t *Table) Has(flag int8) bool {
+	if t == nil {
+		return false
+	}
+	return t.flags&flag != 0
 }
 
 func (t *Table) checkPKs() error {
@@ -102,6 +111,17 @@ func newTable(typ reflect.Type) *Table {
 	}
 
 	typ = reflect.PtrTo(typ)
+
+	if typ.Implements(afterSelectHookType) {
+		table.flags |= AfterSelectHookFlag
+	}
+	if typ.Implements(beforeCreateHookType) {
+		table.flags |= BeforeCreateHookFlag
+	}
+	if typ.Implements(afterCreateHookType) {
+		table.flags |= AfterCreateHookFlag
+	}
+
 	if table.Methods == nil {
 		table.Methods = make(map[string]*Method)
 	}

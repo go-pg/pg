@@ -629,7 +629,7 @@ func newCollection(mod interface{}) (orm.Collection, error) {
 	return orm.NewModel(mod)
 }
 
-func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res *types.Result, retErr error) {
+func readSimpleQueryData(db orm.DB, cn *pool.Conn, mod interface{}) (res *types.Result, retErr error) {
 	setErr := func(err error) {
 		if retErr == nil {
 			retErr = err
@@ -659,11 +659,11 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res *types.Result, ret
 				}
 			}
 
-			model := coll.NewModel()
+			model := coll.NewModel(db)
 			if err := readDataRow(cn, model, cn.Columns); err != nil {
 				setErr(err)
 			} else {
-				if err := coll.AddModel(model); err != nil {
+				if err := coll.AddModel(db, model); err != nil {
 					setErr(err)
 				}
 			}
@@ -700,7 +700,7 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (res *types.Result, ret
 }
 
 func readExtQueryData(
-	cn *pool.Conn, mod interface{}, columns [][]byte,
+	db orm.DB, cn *pool.Conn, mod interface{}, columns [][]byte,
 ) (res *types.Result, retErr error) {
 	setErr := func(err error) {
 		if retErr == nil {
@@ -731,11 +731,11 @@ func readExtQueryData(
 				}
 			}
 
-			model := coll.NewModel()
+			model := coll.NewModel(db)
 			if err := readDataRow(cn, model, columns); err != nil {
 				setErr(err)
 			} else {
-				if err := coll.AddModel(model); err != nil {
+				if err := coll.AddModel(db, model); err != nil {
 					setErr(err)
 				}
 			}

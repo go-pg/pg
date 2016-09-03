@@ -1,6 +1,6 @@
 package orm
 
-func Delete(db dber, v interface{}) error {
+func Delete(db DB, v interface{}) error {
 	q := NewQuery(db, v)
 	if q.err != nil {
 		return q.err

@@ -6,6 +6,7 @@ import (
 
 	"gopkg.in/pg.v4/internal"
 	"gopkg.in/pg.v4/internal/pool"
+	"gopkg.in/pg.v4/orm"
 	"gopkg.in/pg.v4/types"
 )
 
@@ -98,7 +99,7 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (*types.Result
 	if err != nil {
 		return nil, err
 	}
-	return extQueryData(cn, stmt.name, model, stmt.columns, params...)
+	return extQueryData(stmt.db, cn, stmt.name, model, stmt.columns, params...)
 }
 
 // Query executes a prepared query statement with the given parameters.
@@ -193,14 +194,16 @@ func extQuery(cn *pool.Conn, name string, params ...interface{}) (*types.Result,
 	return readExtQuery(cn)
 }
 
-func extQueryData(cn *pool.Conn, name string, model interface{}, columns [][]byte, params ...interface{}) (*types.Result, error) {
+func extQueryData(
+	db orm.DB, cn *pool.Conn, name string, model interface{}, columns [][]byte, params ...interface{},
+) (*types.Result, error) {
 	if err := writeBindExecuteMsg(cn.Wr, name, params...); err != nil {
 		return nil, err
 	}
 	if err := cn.Wr.Flush(); err != nil {
 		return nil, err
 	}
-	return readExtQueryData(cn, model, columns)
+	return readExtQueryData(db, cn, model, columns)
 }
 
 func closeStmt(cn *pool.Conn, name string) error {

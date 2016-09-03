@@ -436,12 +436,12 @@ type OptRecords struct {
 
 var _ orm.Collection = (*OptRecords)(nil)
 
-func (rs *OptRecords) NewModel() orm.ColumnScanner {
+func (rs *OptRecords) NewModel(_ orm.DB) orm.ColumnScanner {
 	rs.C = append(rs.C, OptRecord{})
 	return &rs.C[len(rs.C)-1]
 }
 
-func (rs *OptRecords) AddModel(_ orm.ColumnScanner) error {
+func (rs *OptRecords) AddModel(_ orm.DB, _ orm.ColumnScanner) error {
 	return nil
 }
 
