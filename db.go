@@ -15,6 +15,7 @@ import (
 // The returned DB is safe for concurrent use by multiple goroutines
 // and maintains its own connection pool.
 func Connect(opt *Options) *DB {
+	opt.init()
 	return &DB{
 		opt:  opt,
 		pool: newConnPool(opt),
@@ -70,7 +71,7 @@ func (db *DB) initConn(cn *pool.Conn) error {
 		}
 	}
 
-	err := startup(cn, db.opt.getUser(), db.opt.getPassword(), db.opt.getDatabase())
+	err := startup(cn, db.opt.User, db.opt.Password, db.opt.Database)
 	if err != nil {
 		return err
 	}

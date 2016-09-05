@@ -10,7 +10,7 @@ import (
 
 // Database connection options.
 type Options struct {
-	// The network type, either tcp or unix.
+	// Network type, either tcp or unix.
 	// Default is tcp.
 	Network string
 	// TCP host:port or Unix socket depending on Network.
@@ -28,121 +28,79 @@ type Options struct {
 	// PostgreSQL run-time configuration parameters to be set on connection.
 	Params map[string]interface{}
 
-	// The maximum number of retries before giving up.
+	// Maximum number of retries before giving up.
 	// Default is to not retry failed queries.
 	MaxRetries int
 
-	// The deadline for establishing new connections. If reached,
-	// dial will fail with a timeout.
+	// Dial timeout for establishing new connections.
 	// Default is 5 seconds.
 	DialTimeout time.Duration
-	// The timeout for socket reads. If reached, commands will fail
-	// with a timeout error instead of blocking.
-	// Default is no timeout.
+	// Timeout for socket reads. If reached, commands will fail
+	// with a timeout instead of blocking.
 	ReadTimeout time.Duration
-	// The timeout for socket writes. If reached, commands will fail
-	// with a timeout error instead of blocking.
-	// Default is no timeout.
+	// Timeout for socket writes. If reached, commands will fail
+	// with a timeout instead of blocking.
 	WriteTimeout time.Duration
 
-	// The maximum number of open socket connections.
+	// Maximum number of socket connections.
 	// Default is 20 connections.
 	PoolSize int
-	// The amount of time client waits for free connection if all
+	// Amount of time client waits for free connection if all
 	// connections are busy before returning an error.
 	// Default is 5 seconds.
 	PoolTimeout time.Duration
-	// The amount of time after which client closes idle connections.
+	// Amount of time after which client closes idle connections.
 	// Default is to not close idle connections.
 	IdleTimeout time.Duration
-	// The frequency of idle checks.
+	// Frequency of idle checks.
 	// Default is 1 minute.
 	IdleCheckFrequency time.Duration
 }
 
-func (opt *Options) getNetwork() string {
-	if opt == nil || opt.Network == "" {
-		return "tcp"
+func (opt *Options) init() {
+	if opt.Network == "" {
+		opt.Network = "tcp"
 	}
-	return opt.Network
-}
 
-func (opt *Options) getAddr() string {
-	if opt.Addr != "" {
-		return opt.Addr
+	if opt.Addr == "" {
+		switch opt.Network {
+		case "tcp":
+			opt.Addr = "localhost:5432"
+		case "unix":
+			opt.Addr = "/var/run/postgresql/.s.PGSQL.5432"
+		}
 	}
-	if opt.getNetwork() == "unix" {
-		return "/var/run/postgresql/.s.PGSQL.5432"
-	}
-	return "localhost:5432"
-}
 
-func (opt *Options) getUser() string {
-	if opt == nil || opt.User == "" {
-		return ""
+	if opt.PoolSize == 0 {
+		opt.PoolSize = 20
 	}
-	return opt.User
-}
 
-func (opt *Options) getPassword() string {
-	if opt == nil || opt.Password == "" {
-		return ""
+	if opt.PoolTimeout == 0 {
+		opt.PoolTimeout = 5 * time.Second
 	}
-	return opt.Password
-}
 
-func (opt *Options) getDatabase() string {
-	if opt == nil || opt.Database == "" {
-		return ""
-	}
-	return opt.Database
-}
-
-func (opt *Options) getPoolSize() int {
-	if opt == nil || opt.PoolSize == 0 {
-		return 20
-	}
-	return opt.PoolSize
-}
-
-func (opt *Options) getPoolTimeout() time.Duration {
-	if opt == nil || opt.PoolTimeout == 0 {
-		return 5 * time.Second
-	}
-	return opt.PoolTimeout
-}
-
-func (opt *Options) getDialTimeout() time.Duration {
 	if opt.DialTimeout == 0 {
-		return 5 * time.Second
+		opt.DialTimeout = 5 * time.Second
 	}
-	return opt.DialTimeout
-}
 
-func (opt *Options) getIdleTimeout() time.Duration {
-	return opt.IdleTimeout
-}
-
-func (opt *Options) getIdleCheckFrequency() time.Duration {
 	if opt.IdleCheckFrequency == 0 {
-		return time.Minute
+		opt.IdleCheckFrequency = time.Minute
 	}
-	return opt.IdleCheckFrequency
 }
 
 func (opt *Options) getDialer() func() (net.Conn, error) {
 	return func() (net.Conn, error) {
-		return net.DialTimeout(opt.getNetwork(), opt.getAddr(), opt.getDialTimeout())
+		return net.DialTimeout(opt.Network, opt.Addr, opt.DialTimeout)
 	}
 }
 
 func newConnPool(opt *Options) *pool.ConnPool {
 	p := pool.NewConnPool(
 		opt.getDialer(),
-		opt.getPoolSize(),
-		opt.getPoolTimeout(),
-		opt.getIdleTimeout(),
-		opt.getIdleCheckFrequency(),
+		opt.PoolSize,
+		opt.PoolTimeout,
+		opt.IdleTimeout,
+		opt.IdleCheckFrequency,
 	)
 	p.OnClose = func(cn *pool.Conn) error {
 		return terminateConn(cn)
