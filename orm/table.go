@@ -217,11 +217,6 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		isEmpty: isEmptier(f.Type),
 	}
 
-	if skip {
-		t.FieldsMap[field.SQLName] = &field
-		return nil
-	}
-
 	if _, ok := sqlOpt.Get("null"); ok {
 		field.flags |= NullFlag
 	}
@@ -235,7 +230,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		field.flags |= ForeignKeyFlag
 	}
 
-	if types.IsSQLScanner(f.Type) {
+	if !skip && types.IsSQLScanner(f.Type) {
 		return &field
 	}
 
@@ -311,6 +306,10 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		}
 	}
 
+	if skip {
+		t.FieldsMap[field.SQLName] = &field
+		return nil
+	}
 	return &field
 }
 
