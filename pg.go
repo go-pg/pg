@@ -84,11 +84,15 @@ type Strings []string
 var _ orm.Model = (*Strings)(nil)
 var _ types.ValueAppender = (*Strings)(nil)
 
-func (strings *Strings) NewModel(_ orm.DB) orm.ColumnScanner {
+func (strings *Strings) NewModel() orm.ColumnScanner {
 	return strings
 }
 
-func (Strings) AddModel(_ orm.DB, _ orm.ColumnScanner) error {
+func (Strings) AddModel(_ orm.ColumnScanner) error {
+	return nil
+}
+
+func (Strings) AfterSelect(_ orm.DB) error {
 	return nil
 }
 
@@ -117,11 +121,15 @@ type Ints []int64
 var _ orm.Model = (*Ints)(nil)
 var _ types.ValueAppender = (*Ints)(nil)
 
-func (ints *Ints) NewModel(_ orm.DB) orm.ColumnScanner {
+func (ints *Ints) NewModel() orm.ColumnScanner {
 	return ints
 }
 
-func (Ints) AddModel(_ orm.DB, _ orm.ColumnScanner) error {
+func (Ints) AddModel(_ orm.ColumnScanner) error {
+	return nil
+}
+
+func (Ints) AfterSelect(_ orm.DB) error {
 	return nil
 }
 
@@ -153,11 +161,15 @@ type IntSet map[int64]struct{}
 
 var _ orm.Model = (*IntSet)(nil)
 
-func (set *IntSet) NewModel(_ orm.DB) orm.ColumnScanner {
+func (set *IntSet) NewModel() orm.ColumnScanner {
 	return set
 }
 
-func (IntSet) AddModel(_ orm.DB, _ orm.ColumnScanner) error {
+func (IntSet) AddModel(_ orm.ColumnScanner) error {
+	return nil
+}
+
+func (IntSet) AfterSelect(_ orm.DB) error {
 	return nil
 }
 

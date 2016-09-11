@@ -121,15 +121,15 @@ func (db *DB) Exec(query interface{}, params ...interface{}) (res *types.Result,
 		db.freeConn(cn, err)
 
 		if i >= db.opt.MaxRetries {
-			return res, err
+			break
 		}
 		if !shouldRetry(err) {
-			return res, err
+			break
 		}
 
 		time.Sleep(internal.RetryBackoff << uint(i))
 	}
-	return
+	return res, err
 }
 
 // ExecOne acts like Exec, but query must affect only one row. It
@@ -146,6 +146,7 @@ func (db *DB) ExecOne(query interface{}, params ...interface{}) (*types.Result, 
 // Query executes a query that returns rows, typically a SELECT.
 // The params are for any placeholder parameters in the query.
 func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types.Result, err error) {
+	var coll orm.Collection
 	for i := 0; i < 3; i++ {
 		var cn *pool.Conn
 
@@ -154,33 +155,43 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types
 			return nil, err
 		}
 
-		res, err = simpleQueryData(db, cn, model, query, params...)
+		res, coll, err = simpleQueryData(cn, model, query, params...)
 		db.freeConn(cn, err)
 
 		if i >= db.opt.MaxRetries {
-			return res, err
+			break
 		}
 		if !shouldRetry(err) {
-			return res, err
+			break
 		}
 
 		time.Sleep(internal.RetryBackoff << uint(i))
 	}
-	return
+	if err != nil {
+		return nil, err
+	}
+	if coll != nil {
+		if err = coll.AfterSelect(db); err != nil {
+			return res, err
+		}
+	}
+	return res, nil
 }
 
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (db *DB) QueryOne(model, query interface{}, params ...interface{}) (*types.Result, error) {
-	mod, err := newSingleModel(model)
+	mod, err := orm.NewSingleModel(model)
 	if err != nil {
 		return nil, err
 	}
+
 	res, err := db.Query(mod, query, params...)
 	if err != nil {
 		return nil, err
 	}
+
 	return assertOneAffected(res)
 }
 
@@ -309,40 +320,18 @@ func simpleQuery(cn *pool.Conn, query interface{}, params ...interface{}) (*type
 	return readSimpleQuery(cn)
 }
 
-func simpleQueryData(db orm.DB, cn *pool.Conn, model, query interface{}, params ...interface{}) (*types.Result, error) {
+func simpleQueryData(
+	cn *pool.Conn, model, query interface{}, params ...interface{},
+) (*types.Result, orm.Collection, error) {
 	if err := writeQueryMsg(cn.Wr, query, params...); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	if err := cn.Wr.Flush(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return readSimpleQueryData(db, cn, model)
-}
-
-type singleModel struct {
-	orm.Model
-}
-
-var _ orm.Collection = (*singleModel)(nil)
-
-func newSingleModel(mod interface{}) (*singleModel, error) {
-	model, ok := mod.(orm.Model)
-	if !ok {
-		var err error
-		model, err = orm.NewModel(mod)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return &singleModel{
-		Model: model,
-	}, nil
-}
-
-func (m *singleModel) AddModel(db orm.DB, model orm.ColumnScanner) error {
-	return m.Model.AddModel(db, model)
+	return readSimpleQueryData(cn, model)
 }
 
 func assertOne(l int) error {

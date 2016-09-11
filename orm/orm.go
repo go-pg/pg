@@ -15,10 +15,12 @@ type ColumnScanner interface {
 type Collection interface {
 	// NewModel returns ColumnScanner that is used to scan columns
 	// from the current row.
-	NewModel(DB) ColumnScanner
+	NewModel() ColumnScanner
 
 	// AddModel adds ColumnScanner to the Collection.
-	AddModel(DB, ColumnScanner) error
+	AddModel(ColumnScanner) error
+
+	AfterSelect(DB) error
 }
 
 type QueryAppender interface {

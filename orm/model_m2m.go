@@ -37,40 +37,49 @@ func newM2MModel(join *join) *m2mModel {
 	return m
 }
 
-func (m *m2mModel) NewModel(db DB) ColumnScanner {
+func (m *m2mModel) NewModel() ColumnScanner {
 	if m.sliceOfPtr {
 		m.strct = reflect.New(m.table.Type).Elem()
 	} else {
 		m.strct.Set(m.zeroStruct)
 	}
-	m.structTableModel.NewModel(db)
+	m.structTableModel.NewModel()
 	return m
 }
 
-func (m *m2mModel) AddModel(db DB, model ColumnScanner) error {
-	if m.rel.JoinTable.Has(AfterSelectHookFlag) {
-		if err := callAfterSelectHook(m.strct, db); err != nil {
-			return err
-		}
-	}
-
+func (m *m2mModel) AddModel(model ColumnScanner) error {
 	m.buf = modelIdMap(m.buf[:0], m.columns, m.baseTable.ModelName+"_", m.baseTable.PKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
 		return fmt.Errorf("pg: can't find dst value for model id=%q", m.buf)
 	}
 
-	if m.sliceOfPtr {
-		for _, v := range dstValues {
+	for _, v := range dstValues {
+		if m.sliceOfPtr {
 			v.Set(reflect.Append(v, m.strct.Addr()))
-		}
-	} else {
-		for _, v := range dstValues {
+		} else {
 			v.Set(reflect.Append(v, m.strct))
 		}
 	}
 
 	return nil
+}
+
+func (m *m2mModel) AfterSelect(db DB) error {
+	if !m.rel.JoinTable.Has(AfterSelectHookFlag) {
+		return nil
+	}
+
+	var retErr error
+	for _, slices := range m.dstValues {
+		for _, slice := range slices {
+			err := callAfterSelectHookSlice(slice, m.sliceOfPtr, db)
+			if err != nil && retErr == nil {
+				retErr = err
+			}
+		}
+	}
+	return retErr
 }
 
 func (m *m2mModel) ScanColumn(colIdx int, colName string, b []byte) error {

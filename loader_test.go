@@ -114,11 +114,15 @@ type errLoader string
 
 var _ orm.Model = errLoader("")
 
-func (m errLoader) NewModel(_ orm.DB) orm.ColumnScanner {
+func (m errLoader) NewModel() orm.ColumnScanner {
 	return m
 }
 
-func (errLoader) AddModel(_ orm.DB, _ orm.ColumnScanner) error {
+func (errLoader) AddModel(_ orm.ColumnScanner) error {
+	return nil
+}
+
+func (errLoader) AfterSelect(_ orm.DB) error {
 	return nil
 }
 

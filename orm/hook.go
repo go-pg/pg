@@ -30,7 +30,23 @@ type afterCreateHook interface {
 var afterCreateHookType = reflect.TypeOf((*afterCreateHook)(nil)).Elem()
 
 func callAfterSelectHook(v reflect.Value, db DB) error {
-	return v.Addr().Interface().(afterSelectHook).AfterSelect(db)
+	return v.Interface().(afterSelectHook).AfterSelect(db)
+}
+
+func callAfterSelectHookSlice(slice reflect.Value, ptr bool, db DB) error {
+	var retErr error
+	for i := 0; i < slice.Len(); i++ {
+		var err error
+		if ptr {
+			err = callAfterSelectHook(slice.Index(i), db)
+		} else {
+			err = callAfterSelectHook(slice.Index(i).Addr(), db)
+		}
+		if err != nil && retErr == nil {
+			retErr = err
+		}
+	}
+	return retErr
 }
 
 func callBeforeCreateHook(v reflect.Value, db DB) error {

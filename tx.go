@@ -153,8 +153,16 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 		return nil, err
 	}
 
-	res, err := simpleQueryData(tx, cn, model, query, params...)
+	res, coll, err := simpleQueryData(cn, model, query, params...)
 	tx.freeConn(cn, err)
+	if err != nil {
+		return nil, err
+	}
+	if coll != nil {
+		if err = coll.AfterSelect(tx); err != nil {
+			return res, err
+		}
+	}
 	return res, err
 }
 
@@ -162,7 +170,7 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (*types.Result, error) {
-	mod, err := newSingleModel(model)
+	mod, err := orm.NewSingleModel(model)
 	if err != nil {
 		return nil, err
 	}
