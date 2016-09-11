@@ -35,14 +35,21 @@ func (m *sliceTableModel) Value() reflect.Value {
 	return m.slice
 }
 
-func (m *sliceTableModel) NewModel(db DB) ColumnScanner {
+func (m *sliceTableModel) NewModel() ColumnScanner {
 	if !m.strct.IsValid() {
 		m.slice.Set(m.slice.Slice(0, 0))
 	}
 
 	m.strct = m.nextElem()
-	m.structTableModel.NewModel(db)
+	m.structTableModel.NewModel()
 	return m
+}
+
+func (m *sliceTableModel) AfterSelect(db DB) error {
+	if !m.table.Has(AfterSelectHookFlag) {
+		return nil
+	}
+	return callAfterSelectHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
 func (m *sliceTableModel) nextElem() reflect.Value {

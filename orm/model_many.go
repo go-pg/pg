@@ -32,38 +32,47 @@ func newManyModel(j *join) *manyModel {
 	return &m
 }
 
-func (m *manyModel) NewModel(db DB) ColumnScanner {
+func (m *manyModel) NewModel() ColumnScanner {
 	if m.sliceOfPtr {
 		m.strct = reflect.New(m.table.Type).Elem()
 	} else {
 		m.strct.Set(m.zeroStruct)
 	}
-	m.structTableModel.NewModel(db)
+	m.structTableModel.NewModel()
 	return m
 }
 
-func (m *manyModel) AddModel(db DB, model ColumnScanner) error {
-	if m.rel.JoinTable.Has(AfterSelectHookFlag) {
-		if err := callAfterSelectHook(m.strct, db); err != nil {
-			return err
-		}
-	}
-
+func (m *manyModel) AddModel(model ColumnScanner) error {
 	m.buf = modelId(m.buf[:0], m.strct, m.rel.FKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
 		return fmt.Errorf("pg: can't find dst value for model id=%q", m.buf)
 	}
 
-	if m.sliceOfPtr {
-		for _, v := range dstValues {
+	for _, v := range dstValues {
+		if m.sliceOfPtr {
 			v.Set(reflect.Append(v, m.strct.Addr()))
-		}
-	} else {
-		for _, v := range dstValues {
+		} else {
 			v.Set(reflect.Append(v, m.strct))
 		}
 	}
 
 	return nil
+}
+
+func (m *manyModel) AfterSelect(db DB) error {
+	if !m.rel.JoinTable.Has(AfterSelectHookFlag) {
+		return nil
+	}
+
+	var retErr error
+	for _, slices := range m.dstValues {
+		for _, slice := range slices {
+			err := callAfterSelectHookSlice(slice, m.sliceOfPtr, db)
+			if err != nil && retErr == nil {
+				retErr = err
+			}
+		}
+	}
+	return retErr
 }

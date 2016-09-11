@@ -13,11 +13,15 @@ type sliceModel struct {
 
 var _ Model = (*sliceModel)(nil)
 
-func (m *sliceModel) NewModel(_ DB) ColumnScanner {
+func (m *sliceModel) NewModel() ColumnScanner {
 	return m
 }
 
-func (sliceModel) AddModel(_ DB, _ ColumnScanner) error {
+func (sliceModel) AddModel(_ ColumnScanner) error {
+	return nil
+}
+
+func (sliceModel) AfterSelect(_ DB) error {
 	return nil
 }
 

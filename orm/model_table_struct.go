@@ -101,18 +101,20 @@ func (m *structTableModel) bindChildren() {
 	}
 }
 
-func (m *structTableModel) NewModel(db DB) ColumnScanner {
+func (m *structTableModel) NewModel() ColumnScanner {
 	m.bindChildren()
 	return m
 }
 
-func (m *structTableModel) AddModel(db DB, _ ColumnScanner) error {
-	if m.table.Has(AfterSelectHookFlag) {
-		if err := callAfterSelectHook(m.strct, db); err != nil {
-			return err
-		}
-	}
+func (m *structTableModel) AddModel(_ ColumnScanner) error {
 	return nil
+}
+
+func (m *structTableModel) AfterSelect(db DB) error {
+	if !m.table.Has(AfterSelectHookFlag) {
+		return nil
+	}
+	return callAfterSelectHook(m.strct.Addr(), db)
 }
 
 func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) error {

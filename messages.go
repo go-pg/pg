@@ -629,25 +629,26 @@ func newCollection(mod interface{}) (orm.Collection, error) {
 	return orm.NewModel(mod)
 }
 
-func readSimpleQueryData(db orm.DB, cn *pool.Conn, mod interface{}) (res *types.Result, retErr error) {
+func readSimpleQueryData(
+	cn *pool.Conn, mod interface{},
+) (res *types.Result, coll orm.Collection, retErr error) {
 	setErr := func(err error) {
 		if retErr == nil {
 			retErr = err
 		}
 	}
 
-	var coll orm.Collection
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		switch c {
 		case rowDescriptionMsg:
 			cn.Columns, err = readRowDescription(cn, cn.Columns[:0])
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		case dataRowMsg:
 			if coll == nil {
@@ -659,67 +660,66 @@ func readSimpleQueryData(db orm.DB, cn *pool.Conn, mod interface{}) (res *types.
 				}
 			}
 
-			model := coll.NewModel(db)
+			model := coll.NewModel()
 			if err := readDataRow(cn, model, cn.Columns); err != nil {
 				setErr(err)
 			} else {
-				if err := coll.AddModel(db, model); err != nil {
+				if err := coll.AddModel(model); err != nil {
 					setErr(err)
 				}
 			}
 		case commandCompleteMsg:
 			b, err := cn.ReadN(msgLen)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			res = types.ParseResult(b)
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			return res, retErr
+			return res, coll, retErr
 		case errorResponseMsg:
 			e, err := readError(cn)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			setErr(e)
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		case parameterStatusMsg:
 			if err := logParameterStatus(cn, msgLen); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readSimpleQueryData: unexpected message %#x", c)
+			return nil, nil, fmt.Errorf("pg: readSimpleQueryData: unexpected message %#x", c)
 		}
 	}
 }
 
 func readExtQueryData(
-	db orm.DB, cn *pool.Conn, mod interface{}, columns [][]byte,
-) (res *types.Result, retErr error) {
+	cn *pool.Conn, mod interface{}, columns [][]byte,
+) (res *types.Result, coll orm.Collection, retErr error) {
 	setErr := func(err error) {
 		if retErr == nil {
 			retErr = err
 		}
 	}
 
-	var coll orm.Collection
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		switch c {
 		case bindCompleteMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		case dataRowMsg:
 			if coll == nil {
@@ -731,42 +731,42 @@ func readExtQueryData(
 				}
 			}
 
-			model := coll.NewModel(db)
+			model := coll.NewModel()
 			if err := readDataRow(cn, model, columns); err != nil {
 				setErr(err)
 			} else {
-				if err := coll.AddModel(db, model); err != nil {
+				if err := coll.AddModel(model); err != nil {
 					setErr(err)
 				}
 			}
 		case commandCompleteMsg: // Response to the EXECUTE message.
 			b, err := cn.ReadN(msgLen)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			res = types.ParseResult(b)
 		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			return res, retErr
+			return res, coll, retErr
 		case errorResponseMsg:
 			e, err := readError(cn)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 			setErr(e)
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		case parameterStatusMsg:
 			if err := logParameterStatus(cn, msgLen); err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readExtQueryData: unexpected message %#x", c)
+			return nil, nil, fmt.Errorf("pg: readExtQueryData: unexpected message %#x", c)
 		}
 	}
 }

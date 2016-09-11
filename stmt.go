@@ -99,7 +99,17 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (*types.Result
 	if err != nil {
 		return nil, err
 	}
-	return extQueryData(stmt.db, cn, stmt.name, model, stmt.columns, params...)
+
+	res, coll, err := extQueryData(cn, stmt.name, model, stmt.columns, params...)
+	if err != nil {
+		return nil, err
+	}
+	if coll != nil {
+		if err = coll.AfterSelect(stmt.db); err != nil {
+			return res, err
+		}
+	}
+	return res, nil
 }
 
 // Query executes a prepared query statement with the given parameters.
@@ -126,7 +136,7 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res *types.Re
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (*types.Result, error) {
-	mod, err := newSingleModel(model)
+	mod, err := orm.NewSingleModel(model)
 	if err != nil {
 		return nil, err
 	}
@@ -195,15 +205,15 @@ func extQuery(cn *pool.Conn, name string, params ...interface{}) (*types.Result,
 }
 
 func extQueryData(
-	db orm.DB, cn *pool.Conn, name string, model interface{}, columns [][]byte, params ...interface{},
-) (*types.Result, error) {
+	cn *pool.Conn, name string, model interface{}, columns [][]byte, params ...interface{},
+) (*types.Result, orm.Collection, error) {
 	if err := writeBindExecuteMsg(cn.Wr, name, params...); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if err := cn.Wr.Flush(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return readExtQueryData(db, cn, model, columns)
+	return readExtQueryData(cn, model, columns)
 }
 
 func closeStmt(cn *pool.Conn, name string) error {

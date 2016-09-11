@@ -70,24 +70,6 @@ func columns(table types.Q, prefix string, fields []*Field) []byte {
 	return b
 }
 
-func values(v reflect.Value, index []int, fields []*Field) []byte {
-	var b []byte
-	walk(v, index, func(v reflect.Value) {
-		b = append(b, '(')
-		for i, field := range fields {
-			b = field.AppendValue(b, v, 1)
-			if i != len(fields)-1 {
-				b = append(b, ", "...)
-			}
-		}
-		b = append(b, "), "...)
-	})
-	if len(b) > 0 {
-		b = b[:len(b)-2] // trim ", "
-	}
-	return b
-}
-
 func walk(v reflect.Value, index []int, fn func(reflect.Value)) {
 	v = reflect.Indirect(v)
 	switch v.Kind() {
@@ -108,6 +90,34 @@ func visitField(v reflect.Value, index []int, fn func(reflect.Value)) {
 	} else {
 		fn(v)
 	}
+}
+
+func values(v reflect.Value, index []int, fields []*Field) []byte {
+	var b []byte
+	walk(v, index, func(v reflect.Value) {
+		b = append(b, '(')
+		for i, field := range fields {
+			b = field.AppendValue(b, v, 1)
+			if i != len(fields)-1 {
+				b = append(b, ", "...)
+			}
+		}
+		b = append(b, "), "...)
+	})
+	if len(b) > 0 {
+		b = b[:len(b)-2] // trim ", "
+	}
+	return b
+}
+
+func dstValues(root reflect.Value, path []int, fields []*Field) map[string][]reflect.Value {
+	mp := make(map[string][]reflect.Value)
+	var id []byte
+	walk(root, path[:len(path)-1], func(v reflect.Value) {
+		id = modelId(id[:0], v, fields)
+		mp[string(id)] = append(mp[string(id)], v.Field(path[len(path)-1]))
+	})
+	return mp
 }
 
 func appendColumnAndValue(b []byte, v reflect.Value, table *Table, fields []*Field) []byte {
@@ -138,16 +148,6 @@ func modelIdMap(b []byte, m map[string]string, prefix string, fields []*Field) [
 		b = append(b, ',')
 	}
 	return b
-}
-
-func dstValues(root reflect.Value, path []int, fields []*Field) map[string][]reflect.Value {
-	mp := make(map[string][]reflect.Value)
-	var id []byte
-	walk(root, path[:len(path)-1], func(v reflect.Value) {
-		id = modelId(id[:0], v, fields)
-		mp[string(id)] = append(mp[string(id)], v.Field(path[len(path)-1]))
-	})
-	return mp
 }
 
 func appendSep(b []byte, sep string) []byte {
