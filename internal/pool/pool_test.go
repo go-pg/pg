@@ -2,7 +2,6 @@ package pool_test
 
 import (
 	"errors"
-	"net"
 	"testing"
 	"time"
 
@@ -94,31 +93,41 @@ var _ = Describe("ConnPool", func() {
 })
 
 var _ = Describe("conns reaper", func() {
+	const idleTimeout = time.Minute
+
 	var connPool *pool.ConnPool
+	var conns, idleConns, closedConns []*pool.Conn
 
 	BeforeEach(func() {
 		connPool = pool.NewConnPool(
-			dummyDialer, 10, time.Second, time.Minute, time.Hour)
+			dummyDialer, 10, time.Second, idleTimeout, time.Hour)
 
-		var cns []*pool.Conn
+		closedConns = nil
+		connPool.OnClose = func(cn *pool.Conn) error {
+			closedConns = append(closedConns, cn)
+			return nil
+		}
+
+		conns = nil
 
 		// add stale connections
+		idleConns = nil
 		for i := 0; i < 3; i++ {
 			cn, err := connPool.Get()
 			Expect(err).NotTo(HaveOccurred())
-			cn.UsedAt = time.Now().Add(-2 * time.Minute)
-			cns = append(cns, cn)
+			cn.UsedAt = time.Now().Add(-2 * idleTimeout)
+			conns = append(conns, cn)
+			idleConns = append(idleConns, cn)
 		}
 
 		// add fresh connections
 		for i := 0; i < 3; i++ {
-			cn := pool.NewConn(&net.TCPConn{})
 			cn, err := connPool.Get()
 			Expect(err).NotTo(HaveOccurred())
-			cns = append(cns, cn)
+			conns = append(conns, cn)
 		}
 
-		for _, cn := range cns {
+		for _, cn := range conns {
 			Expect(connPool.Put(cn)).NotTo(HaveOccurred())
 		}
 
@@ -131,12 +140,27 @@ var _ = Describe("conns reaper", func() {
 	})
 
 	AfterEach(func() {
-		connPool.Close()
+		_ = connPool.Close()
+		Expect(connPool.Len()).To(Equal(0))
+		Expect(connPool.FreeLen()).To(Equal(0))
+		Expect(len(closedConns)).To(Equal(len(conns)))
+		Expect(closedConns).To(ConsistOf(conns))
 	})
 
 	It("reaps stale connections", func() {
 		Expect(connPool.Len()).To(Equal(3))
 		Expect(connPool.FreeLen()).To(Equal(3))
+	})
+
+	It("does not reap fresh connections", func() {
+		n, err := connPool.ReapStaleConns()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(n).To(Equal(0))
+	})
+
+	It("stale connections are closed", func() {
+		Expect(len(closedConns)).To(Equal(len(idleConns)))
+		Expect(closedConns).To(ConsistOf(idleConns))
 	})
 
 	It("pool is functional", func() {
@@ -155,6 +179,7 @@ var _ = Describe("conns reaper", func() {
 			cn, err := connPool.Get()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(cn).NotTo(BeNil())
+			conns = append(conns, cn)
 
 			Expect(connPool.Len()).To(Equal(4))
 			Expect(connPool.FreeLen()).To(Equal(0))
