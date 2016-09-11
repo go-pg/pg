@@ -182,7 +182,7 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (db *DB) QueryOne(model, query interface{}, params ...interface{}) (*types.Result, error) {
-	mod, err := orm.NewSingleModel(model)
+	mod, err := orm.NewModel(model)
 	if err != nil {
 		return nil, err
 	}
