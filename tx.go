@@ -170,7 +170,7 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (*types.Result, error) {
-	mod, err := orm.NewSingleModel(model)
+	mod, err := orm.NewModel(model)
 	if err != nil {
 		return nil, err
 	}

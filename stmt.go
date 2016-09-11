@@ -136,14 +136,16 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res *types.Re
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (*types.Result, error) {
-	mod, err := orm.NewSingleModel(model)
+	mod, err := orm.NewModel(model)
 	if err != nil {
 		return nil, err
 	}
+
 	res, err := stmt.Query(mod, params...)
 	if err != nil {
 		return nil, err
 	}
+
 	return assertOneAffected(res)
 }
 
