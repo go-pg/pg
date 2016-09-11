@@ -296,6 +296,13 @@ func (q *Query) Last() error {
 	return q.Order(string(b)).Limit(1).Select()
 }
 
+func (q *Query) newModel(values []interface{}) (model Model, err error) {
+	if len(values) > 0 {
+		return NewModel(values...)
+	}
+	return q.model, nil
+}
+
 // Select selects the model.
 func (q *Query) Select(values ...interface{}) error {
 	if q.err != nil {
@@ -307,15 +314,9 @@ func (q *Query) Select(values ...interface{}) error {
 	}
 	sel := selectQuery{q}
 
-	var model Model
-	var err error
-	if len(values) > 0 {
-		model, err = NewModel(values...)
-		if err != nil {
-			return err
-		}
-	} else {
-		model = q.model
+	model, err := q.newModel(values)
+	if err != nil {
+		return err
 	}
 
 	var res *types.Result
@@ -467,11 +468,17 @@ func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) 
 }
 
 // Update updates the model.
-func (q *Query) Update() (*types.Result, error) {
+func (q *Query) Update(values ...interface{}) (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
-	return q.db.Query(q.model, updateQuery{q}, q.model)
+
+	model, err := q.newModel(values)
+	if err != nil {
+		return nil, err
+	}
+
+	return q.db.Query(model, updateQuery{q}, q.model)
 }
 
 // Delete deletes the model.
