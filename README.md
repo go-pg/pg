@@ -33,6 +33,7 @@ Examples: http://godoc.org/gopkg.in/pg.v4#pkg-examples.
 * [Installation](#installation)
 * [Quickstart](#quickstart)
 * [Model definition](#model-definition)
+* [Model hooks](#model-hooks)
 * [Writing queries](#writing-queries)
   * [Select](#select)
   * [Reusing queries](#reusing-queries)
@@ -233,6 +234,27 @@ type Comment struct {
 	TrackableId   int    `sql:",pk"` // Book.Id or Translation.Id
 	TrackableType string `sql:",pk"` // "Book" or "Translation"
 	Text          string
+}
+```
+
+## Model hooks
+
+Models support optional hooks that accept `orm.DB` interface which value can be either `*pg.DB` or `*pg.Tx`:
+
+```
+func (b *Book) AfterSelect(db orm.DB) error {
+    return updateBookCache(b)
+}
+
+func (b *Book) BeforeCreate(db orm.DB) error {
+    if b.CreatedAt.IsZero() {
+        b.CreatedAt = time.Now()
+    }
+    return nil
+}
+
+func (b *Book) AfterCreate(db orm.DB) error {
+    return updateBookCache(b)
 }
 ```
 
