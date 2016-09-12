@@ -419,6 +419,15 @@ res, err := db.Model(&book).Set("title = ?title").Where("id = ?id").Update()
 // Update only column "title".
 res, err := db.Model(&book).Column("title").Update()
 // UPDATE "books" SET title = 'my title' WHERE id = 1
+
+// Upper column "title" and scan it.
+var title string
+res, err := db.Model(&book).
+    Set("title = upper(title)").
+    Where("id = ?", 1).
+    Returning("title").
+    Update(&title)
+// UPDATE "books" SET title = upper(title) WHERE id = 1 RETURNING title
 ```
 
 ### Delete
