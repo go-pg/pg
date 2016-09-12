@@ -11,24 +11,30 @@ import (
 type HookTest struct {
 	Id int
 
-	afterSelect bool
+	afterQuery  int
+	afterSelect int
 
-	beforeCreate bool
-	afterCreate  bool
+	beforeCreate int
+	afterCreate  int
+}
+
+func (t *HookTest) AfterQuery(db orm.DB) error {
+	t.afterQuery++
+	return nil
 }
 
 func (t *HookTest) AfterSelect(db orm.DB) error {
-	t.afterSelect = true
+	t.afterSelect++
 	return nil
 }
 
 func (t *HookTest) BeforeCreate(db orm.DB) error {
-	t.beforeCreate = true
+	t.beforeCreate++
 	return nil
 }
 
 func (t *HookTest) AfterCreate(db orm.DB) error {
-	t.afterCreate = true
+	t.afterCreate++
 	return nil
 }
 
@@ -37,37 +43,62 @@ var _ = Describe("HookTest", func() {
 
 	BeforeEach(func() {
 		db = pg.Connect(pgOptions())
+
+		qs := []string{
+			"CREATE TEMP TABLE hook_tests (id int)",
+			"INSERT INTO hook_tests VALUES (1)",
+		}
+		for _, q := range qs {
+			_, err := db.Exec(q)
+			Expect(err).NotTo(HaveOccurred())
+		}
 	})
 
 	AfterEach(func() {
 		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
-	It("calls AfterSelect for struct", func() {
+	It("calls AfterQuery for struct", func() {
 		var hook HookTest
 		_, err := db.QueryOne(&hook, "SELECT 1 AS id")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.afterSelect).To(BeTrue())
+		Expect(hook.afterQuery).To(Equal(1))
+		Expect(hook.afterSelect).To(Equal(0))
 	})
 
-	It("calls AfterSelect for slice", func() {
+	It("calls AfterQuery and AfterSelect for struct model", func() {
+		var hook HookTest
+		err := db.Model(&hook).Select()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(hook.afterQuery).To(Equal(1))
+		Expect(hook.afterSelect).To(Equal(1))
+	})
+
+	It("calls AfterQuery for slice", func() {
 		var hooks []HookTest
 		_, err := db.Query(&hooks, "SELECT 1 AS id")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(hooks).To(HaveLen(1))
-		Expect(hooks[0].afterSelect).To(BeTrue())
+		Expect(hooks[0].afterQuery).To(Equal(1))
+		Expect(hooks[0].afterSelect).To(Equal(0))
+	})
+
+	It("calls AfterQuery and AfterSelect for slice model", func() {
+		var hooks []HookTest
+		err := db.Model(&hooks).Select()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(hooks).To(HaveLen(1))
+		Expect(hooks[0].afterQuery).To(Equal(1))
+		Expect(hooks[0].afterSelect).To(Equal(1))
 	})
 
 	It("calls BeforeInsert and AfterInsert", func() {
-		_, err := db.Exec("CREATE TEMP TABLE hook_tests (id int)")
-		Expect(err).NotTo(HaveOccurred())
-
 		hook := &HookTest{
 			Id: 1,
 		}
-		err = db.Create(&hook)
+		err := db.Create(&hook)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.beforeCreate).To(BeTrue())
-		Expect(hook.afterCreate).To(BeTrue())
+		Expect(hook.beforeCreate).To(Equal(1))
+		Expect(hook.afterCreate).To(Equal(1))
 	})
 })

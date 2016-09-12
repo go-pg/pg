@@ -122,7 +122,19 @@ func (errLoader) AddModel(_ orm.ColumnScanner) error {
 	return nil
 }
 
+func (errLoader) AfterQuery(_ orm.DB) error {
+	return nil
+}
+
 func (errLoader) AfterSelect(_ orm.DB) error {
+	return nil
+}
+
+func (errLoader) BeforeCreate(_ orm.DB) error {
+	return nil
+}
+
+func (errLoader) AfterCreate(_ orm.DB) error {
 	return nil
 }
 

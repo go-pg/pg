@@ -146,7 +146,7 @@ func (db *DB) ExecOne(query interface{}, params ...interface{}) (*types.Result, 
 // Query executes a query that returns rows, typically a SELECT.
 // The params are for any placeholder parameters in the query.
 func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types.Result, err error) {
-	var coll orm.Collection
+	var mod orm.Model
 	for i := 0; i < 3; i++ {
 		var cn *pool.Conn
 
@@ -155,7 +155,7 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types
 			return nil, err
 		}
 
-		res, coll, err = simpleQueryData(cn, model, query, params...)
+		res, mod, err = simpleQueryData(cn, model, query, params...)
 		db.freeConn(cn, err)
 
 		if i >= db.opt.MaxRetries {
@@ -170,11 +170,13 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types
 	if err != nil {
 		return nil, err
 	}
-	if coll != nil {
-		if err = coll.AfterSelect(db); err != nil {
+
+	if mod != nil {
+		if err = mod.AfterQuery(db); err != nil {
 			return res, err
 		}
 	}
+
 	return res, nil
 }
 
@@ -213,13 +215,10 @@ func (db *DB) CopyFrom(reader io.Reader, query interface{}, params ...interface{
 	if err != nil {
 		return nil, err
 	}
+
 	res, err := copyFrom(cn, reader, query, params...)
-	if err != nil {
-		db.freeConn(cn, err)
-		return nil, err
-	}
-	db.pool.Put(cn)
-	return res, nil
+	db.freeConn(cn, err)
+	return res, err
 }
 
 // CopyTo copies data from a table to writer.
@@ -322,7 +321,7 @@ func simpleQuery(cn *pool.Conn, query interface{}, params ...interface{}) (*type
 
 func simpleQueryData(
 	cn *pool.Conn, model, query interface{}, params ...interface{},
-) (*types.Result, orm.Collection, error) {
+) (*types.Result, orm.Model, error) {
 	if err := writeQueryMsg(cn.Wr, query, params...); err != nil {
 		return nil, nil, err
 	}

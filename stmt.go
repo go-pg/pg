@@ -100,15 +100,17 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (*types.Result
 		return nil, err
 	}
 
-	res, coll, err := extQueryData(cn, stmt.name, model, stmt.columns, params...)
+	res, mod, err := extQueryData(cn, stmt.name, model, stmt.columns, params...)
 	if err != nil {
 		return nil, err
 	}
-	if coll != nil {
-		if err = coll.AfterSelect(stmt.db); err != nil {
+
+	if mod != nil {
+		if err = mod.AfterQuery(stmt.db); err != nil {
 			return res, err
 		}
 	}
+
 	return res, nil
 }
 
@@ -208,7 +210,7 @@ func extQuery(cn *pool.Conn, name string, params ...interface{}) (*types.Result,
 
 func extQueryData(
 	cn *pool.Conn, name string, model interface{}, columns [][]byte, params ...interface{},
-) (*types.Result, orm.Collection, error) {
+) (*types.Result, orm.Model, error) {
 	if err := writeBindExecuteMsg(cn.Wr, name, params...); err != nil {
 		return nil, nil, err
 	}

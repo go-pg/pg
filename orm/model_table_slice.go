@@ -13,7 +13,10 @@ type sliceTableModel struct {
 var _ tableModel = (*sliceTableModel)(nil)
 
 func (m *sliceTableModel) init(sliceType reflect.Type) {
-	m.sliceOfPtr = sliceType.Elem().Kind() == reflect.Ptr
+	switch sliceType.Elem().Kind() {
+	case reflect.Ptr, reflect.Interface:
+		m.sliceOfPtr = true
+	}
 	if !m.sliceOfPtr {
 		m.zeroElem = reflect.Zero(m.table.Type)
 	}
@@ -45,11 +48,32 @@ func (m *sliceTableModel) NewModel() ColumnScanner {
 	return m
 }
 
+func (m *sliceTableModel) AfterQuery(db DB) error {
+	if !m.table.Has(AfterQueryHookFlag) {
+		return nil
+	}
+	return callAfterQueryHookSlice(m.slice, m.sliceOfPtr, db)
+}
+
 func (m *sliceTableModel) AfterSelect(db DB) error {
 	if !m.table.Has(AfterSelectHookFlag) {
 		return nil
 	}
 	return callAfterSelectHookSlice(m.slice, m.sliceOfPtr, db)
+}
+
+func (m *sliceTableModel) BeforeCreate(db DB) error {
+	if !m.table.Has(BeforeCreateHookFlag) {
+		return nil
+	}
+	return callBeforeCreateHookSlice(m.slice, m.sliceOfPtr, db)
+}
+
+func (m *sliceTableModel) AfterCreate(db DB) error {
+	if !m.table.Has(AfterCreateHookFlag) {
+		return nil
+	}
+	return callAfterCreateHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
 func (m *sliceTableModel) nextElem() reflect.Value {

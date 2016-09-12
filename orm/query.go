@@ -330,8 +330,14 @@ func (q *Query) Select(values ...interface{}) error {
 	}
 
 	if q.model != nil && res.Affected() > 0 {
-		return selectJoins(q.db, q.model.GetJoins())
+		if err := selectJoins(q.db, q.model.GetJoins()); err != nil {
+			return err
+		}
+		if err := model.AfterSelect(q.db); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
 
@@ -398,16 +404,14 @@ func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 	}
 
 	var model Model
-	var table *Table
 	if len(values) > 0 {
 		model = Scan(values...)
 	} else if q.model != nil {
 		model = q.model
-		table = q.model.Table()
 	}
 
-	if table.Has(BeforeCreateHookFlag) {
-		if err := callBeforeCreateHook(q.model.Value(), q.db); err != nil {
+	if q.model != nil {
+		if err := q.model.BeforeCreate(q.db); err != nil {
 			return nil, err
 		}
 	}
@@ -418,8 +422,8 @@ func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 		return nil, err
 	}
 
-	if table.Has(AfterCreateHookFlag) {
-		if err := callAfterCreateHook(q.model.Value(), q.db); err != nil {
+	if q.model != nil {
+		if err := q.model.AfterCreate(q.db); err != nil {
 			return nil, err
 		}
 	}

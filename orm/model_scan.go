@@ -27,7 +27,19 @@ func (valuesModel) AddModel(_ ColumnScanner) error {
 	return nil
 }
 
+func (valuesModel) AfterQuery(_ DB) error {
+	return nil
+}
+
 func (valuesModel) AfterSelect(_ DB) error {
+	return nil
+}
+
+func (valuesModel) BeforeCreate(_ DB) error {
+	return nil
+}
+
+func (valuesModel) AfterCreate(_ DB) error {
 	return nil
 }
 
