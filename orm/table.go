@@ -112,6 +112,9 @@ func newTable(typ reflect.Type) *Table {
 
 	typ = reflect.PtrTo(typ)
 
+	if typ.Implements(afterQueryHookType) {
+		table.flags |= AfterQueryHookFlag
+	}
 	if typ.Implements(afterSelectHookType) {
 		table.flags |= AfterSelectHookFlag
 	}

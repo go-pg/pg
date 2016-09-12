@@ -65,21 +65,33 @@ func (m *m2mModel) AddModel(model ColumnScanner) error {
 	return nil
 }
 
-func (m *m2mModel) AfterSelect(db DB) error {
-	if !m.rel.JoinTable.Has(AfterSelectHookFlag) {
+func (m *m2mModel) AfterQuery(db DB) error {
+	if !m.rel.JoinTable.Has(AfterQueryHookFlag) {
 		return nil
 	}
 
 	var retErr error
 	for _, slices := range m.dstValues {
 		for _, slice := range slices {
-			err := callAfterSelectHookSlice(slice, m.sliceOfPtr, db)
+			err := callAfterQueryHookSlice(slice, m.sliceOfPtr, db)
 			if err != nil && retErr == nil {
 				retErr = err
 			}
 		}
 	}
 	return retErr
+}
+
+func (m *m2mModel) AfterSelect(db DB) error {
+	return nil
+}
+
+func (m *m2mModel) BeforeCreate(db DB) error {
+	return nil
+}
+
+func (m *m2mModel) AfterCreate(db DB) error {
+	return nil
 }
 
 func (m *m2mModel) ScanColumn(colIdx int, colName string, b []byte) error {

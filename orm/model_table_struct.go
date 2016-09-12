@@ -110,11 +110,32 @@ func (m *structTableModel) AddModel(_ ColumnScanner) error {
 	return nil
 }
 
+func (m *structTableModel) AfterQuery(db DB) error {
+	if !m.table.Has(AfterQueryHookFlag) {
+		return nil
+	}
+	return callAfterQueryHook(m.strct.Addr(), db)
+}
+
 func (m *structTableModel) AfterSelect(db DB) error {
 	if !m.table.Has(AfterSelectHookFlag) {
 		return nil
 	}
 	return callAfterSelectHook(m.strct.Addr(), db)
+}
+
+func (m *structTableModel) BeforeCreate(db DB) error {
+	if !m.table.Has(BeforeCreateHookFlag) {
+		return nil
+	}
+	return callBeforeCreateHook(m.strct.Addr(), db)
+}
+
+func (m *structTableModel) AfterCreate(db DB) error {
+	if !m.table.Has(AfterCreateHookFlag) {
+		return nil
+	}
+	return callAfterCreateHook(m.strct.Addr(), db)
 }
 
 func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) error {

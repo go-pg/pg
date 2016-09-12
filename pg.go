@@ -92,7 +92,19 @@ func (Strings) AddModel(_ orm.ColumnScanner) error {
 	return nil
 }
 
+func (Strings) AfterQuery(_ orm.DB) error {
+	return nil
+}
+
 func (Strings) AfterSelect(_ orm.DB) error {
+	return nil
+}
+
+func (Strings) BeforeCreate(_ orm.DB) error {
+	return nil
+}
+
+func (Strings) AfterCreate(_ orm.DB) error {
 	return nil
 }
 
@@ -129,7 +141,19 @@ func (Ints) AddModel(_ orm.ColumnScanner) error {
 	return nil
 }
 
+func (Ints) AfterQuery(_ orm.DB) error {
+	return nil
+}
+
 func (Ints) AfterSelect(_ orm.DB) error {
+	return nil
+}
+
+func (Ints) BeforeCreate(_ orm.DB) error {
+	return nil
+}
+
+func (Ints) AfterCreate(_ orm.DB) error {
 	return nil
 }
 
@@ -169,7 +193,19 @@ func (IntSet) AddModel(_ orm.ColumnScanner) error {
 	return nil
 }
 
+func (IntSet) AfterQuery(_ orm.DB) error {
+	return nil
+}
+
 func (IntSet) AfterSelect(_ orm.DB) error {
+	return nil
+}
+
+func (IntSet) BeforeCreate(_ orm.DB) error {
+	return nil
+}
+
+func (IntSet) AfterCreate(_ orm.DB) error {
 	return nil
 }
 

@@ -60,19 +60,31 @@ func (m *manyModel) AddModel(model ColumnScanner) error {
 	return nil
 }
 
-func (m *manyModel) AfterSelect(db DB) error {
-	if !m.rel.JoinTable.Has(AfterSelectHookFlag) {
+func (m *manyModel) AfterQuery(db DB) error {
+	if !m.rel.JoinTable.Has(AfterQueryHookFlag) {
 		return nil
 	}
 
 	var retErr error
 	for _, slices := range m.dstValues {
 		for _, slice := range slices {
-			err := callAfterSelectHookSlice(slice, m.sliceOfPtr, db)
+			err := callAfterQueryHookSlice(slice, m.sliceOfPtr, db)
 			if err != nil && retErr == nil {
 				retErr = err
 			}
 		}
 	}
 	return retErr
+}
+
+func (m *manyModel) AfterSelect(db DB) error {
+	return nil
+}
+
+func (m *manyModel) BeforeCreate(db DB) error {
+	return nil
+}
+
+func (m *manyModel) AfterCreate(db DB) error {
+	return nil
 }

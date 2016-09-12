@@ -17,6 +17,18 @@ func (Discard) ScanColumn(colIdx int, colName string, b []byte) error {
 	return nil
 }
 
+func (Discard) AfterQuery(DB) error {
+	return nil
+}
+
 func (Discard) AfterSelect(DB) error {
+	return nil
+}
+
+func (Discard) BeforeCreate(DB) error {
+	return nil
+}
+
+func (Discard) AfterCreate(DB) error {
 	return nil
 }

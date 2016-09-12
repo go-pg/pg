@@ -19,6 +19,12 @@ type useQueryOne interface {
 type Model interface {
 	Collection
 	ColumnScanner
+
+	AfterQuery(DB) error
+	AfterSelect(DB) error
+
+	BeforeCreate(DB) error
+	AfterCreate(DB) error
 }
 
 func NewModel(values ...interface{}) (Model, error) {

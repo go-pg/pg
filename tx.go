@@ -153,16 +153,18 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 		return nil, err
 	}
 
-	res, coll, err := simpleQueryData(cn, model, query, params...)
+	res, mod, err := simpleQueryData(cn, model, query, params...)
 	tx.freeConn(cn, err)
 	if err != nil {
 		return nil, err
 	}
-	if coll != nil {
-		if err = coll.AfterSelect(tx); err != nil {
+
+	if mod != nil {
+		if err = mod.AfterQuery(tx); err != nil {
 			return res, err
 		}
 	}
+
 	return res, err
 }
 

@@ -19,8 +19,6 @@ type Collection interface {
 
 	// AddModel adds ColumnScanner to the Collection.
 	AddModel(ColumnScanner) error
-
-	AfterSelect(DB) error
 }
 
 type QueryAppender interface {

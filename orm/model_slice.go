@@ -21,7 +21,19 @@ func (sliceModel) AddModel(_ ColumnScanner) error {
 	return nil
 }
 
+func (sliceModel) AfterQuery(_ DB) error {
+	return nil
+}
+
 func (sliceModel) AfterSelect(_ DB) error {
+	return nil
+}
+
+func (sliceModel) BeforeCreate(_ DB) error {
+	return nil
+}
+
+func (sliceModel) AfterCreate(_ DB) error {
 	return nil
 }
 

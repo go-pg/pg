@@ -621,17 +621,17 @@ func readDataRow(cn *pool.Conn, scanner orm.ColumnScanner, columns [][]byte) (re
 	return retErr
 }
 
-func newCollection(mod interface{}) (orm.Collection, error) {
-	coll, ok := mod.(orm.Collection)
+func newModel(mod interface{}) (orm.Model, error) {
+	m, ok := mod.(orm.Model)
 	if ok {
-		return coll, nil
+		return m, nil
 	}
 	return orm.NewModel(mod)
 }
 
 func readSimpleQueryData(
 	cn *pool.Conn, mod interface{},
-) (res *types.Result, coll orm.Collection, retErr error) {
+) (res *types.Result, model orm.Model, retErr error) {
 	setErr := func(err error) {
 		if retErr == nil {
 			retErr = err
@@ -651,20 +651,20 @@ func readSimpleQueryData(
 				return nil, nil, err
 			}
 		case dataRowMsg:
-			if coll == nil {
+			if model == nil {
 				var err error
-				coll, err = newCollection(mod)
+				model, err = newModel(mod)
 				if err != nil {
 					setErr(err)
-					coll = Discard
+					model = Discard
 				}
 			}
 
-			model := coll.NewModel()
-			if err := readDataRow(cn, model, cn.Columns); err != nil {
+			m := model.NewModel()
+			if err := readDataRow(cn, m, cn.Columns); err != nil {
 				setErr(err)
 			} else {
-				if err := coll.AddModel(model); err != nil {
+				if err := model.AddModel(m); err != nil {
 					setErr(err)
 				}
 			}
@@ -679,7 +679,7 @@ func readSimpleQueryData(
 			if err != nil {
 				return nil, nil, err
 			}
-			return res, coll, retErr
+			return res, model, retErr
 		case errorResponseMsg:
 			e, err := readError(cn)
 			if err != nil {
@@ -702,7 +702,7 @@ func readSimpleQueryData(
 
 func readExtQueryData(
 	cn *pool.Conn, mod interface{}, columns [][]byte,
-) (res *types.Result, coll orm.Collection, retErr error) {
+) (res *types.Result, model orm.Model, retErr error) {
 	setErr := func(err error) {
 		if retErr == nil {
 			retErr = err
@@ -722,20 +722,20 @@ func readExtQueryData(
 				return nil, nil, err
 			}
 		case dataRowMsg:
-			if coll == nil {
+			if model == nil {
 				var err error
-				coll, err = newCollection(mod)
+				model, err = newModel(mod)
 				if err != nil {
 					setErr(err)
-					coll = Discard
+					model = Discard
 				}
 			}
 
-			model := coll.NewModel()
-			if err := readDataRow(cn, model, columns); err != nil {
+			m := model.NewModel()
+			if err := readDataRow(cn, m, columns); err != nil {
 				setErr(err)
 			} else {
-				if err := coll.AddModel(model); err != nil {
+				if err := model.AddModel(m); err != nil {
 					setErr(err)
 				}
 			}
@@ -750,7 +750,7 @@ func readExtQueryData(
 			if err != nil {
 				return nil, nil, err
 			}
-			return res, coll, retErr
+			return res, model, retErr
 		case errorResponseMsg:
 			e, err := readError(cn)
 			if err != nil {
