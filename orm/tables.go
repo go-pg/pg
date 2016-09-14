@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 )
@@ -21,6 +22,10 @@ func newTables() *tables {
 }
 
 func (t *tables) Get(typ reflect.Type) *Table {
+	if typ.Kind() != reflect.Struct {
+		panic(fmt.Errorf("got %s, wanted %s", typ.Kind(), reflect.Struct))
+	}
+
 	t.mu.RLock()
 	table, ok := t.tables[typ]
 	t.mu.RUnlock()

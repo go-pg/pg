@@ -220,6 +220,8 @@ func (t *Table) newField(f reflect.StructField) *Field {
 	}
 
 	field := Field{
+		Type: indirectType(f.Type),
+
 		GoName:  f.Name,
 		SQLName: sqlName,
 		ColName: types.Q(types.AppendField(nil, sqlName, 1)),
@@ -245,15 +247,15 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		field.flags |= ForeignKeyFlag
 	}
 
+	field.SQLType = sqlType(&field, sqlOpt)
+
 	if !skip && types.IsSQLScanner(f.Type) {
 		return &field
 	}
 
-	fieldType := indirectType(f.Type)
-
-	switch fieldType.Kind() {
+	switch field.Type.Kind() {
 	case reflect.Slice:
-		elemType := indirectType(fieldType.Elem())
+		elemType := indirectType(field.Type.Elem())
 		if elemType.Kind() != reflect.Struct {
 			break
 		}
@@ -301,7 +303,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 			return nil
 		}
 	case reflect.Struct:
-		joinTable := newTable(fieldType)
+		joinTable := newTable(field.Type)
 		if len(joinTable.Fields) == 0 {
 			break
 		}
@@ -326,6 +328,46 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		return nil
 	}
 	return &field
+}
+
+func sqlType(field *Field, sqlOpt tagOptions) string {
+	if v, ok := sqlOpt.Get("type:"); ok {
+		return v
+	}
+
+	if field.Type == timeType {
+		return "timestamptz"
+	}
+
+	switch field.Type.Kind() {
+	case reflect.Int8, reflect.Uint8, reflect.Int16:
+		if field.Has(PrimaryKeyFlag) {
+			return "smallserial"
+		}
+		return "smallint"
+	case reflect.Uint16, reflect.Int32:
+		if field.Has(PrimaryKeyFlag) {
+			return "serial"
+		}
+		return "integer"
+	case reflect.Uint32, reflect.Int64, reflect.Int:
+		if field.Has(PrimaryKeyFlag) {
+			return "bigserial"
+		}
+		return "bigint"
+	case reflect.Uint, reflect.Uint64:
+		return "decimal"
+	case reflect.Float32:
+		return "real"
+	case reflect.Float64:
+		return "double precision"
+	case reflect.Bool:
+		return "boolean"
+	case reflect.String:
+		return "text"
+	default:
+		return field.Type.Kind().String()
+	}
 }
 
 func foreignKeys(base, join *Table, prefix string) []*Field {

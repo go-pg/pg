@@ -304,6 +304,12 @@ func (db *DB) Delete(model interface{}) error {
 	return orm.Delete(db, model)
 }
 
+// CreateTable creates table for the model in db.
+func (db *DB) CreateTable(model interface{}, opt *orm.CreateTableOptions) error {
+	_, err := orm.CreateTable(db, model, opt)
+	return err
+}
+
 func (db *DB) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
 	return orm.Formatter{}.Append(dst, query, params...)
 }
