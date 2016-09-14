@@ -507,8 +507,8 @@ type Translation struct {
 }
 
 type Comment struct {
-	TrackableId   int    `sql:",pk"` // Book.Id or Translation.Id
-	TrackableType string `sql:",pk"` // "Book" or "Translation"
+	TrackableId   int    // Book.Id or Translation.Id
+	TrackableType string // "Book" or "Translation"
 	Text          string
 }
 
@@ -520,13 +520,6 @@ func createTestSchema(db *pg.DB) error {
 		`DROP TABLE IF EXISTS books`,
 		`DROP TABLE IF EXISTS genres`,
 		`DROP TABLE IF EXISTS book_genres`,
-		`CREATE TABLE authors (id serial, name text)`,
-		`CREATE TABLE books (id serial PRIMARY KEY, title text, author_id int, editor_id int, created_at timestamptz)`,
-		`CREATE TABLE genres (id serial, name text, parent_id int)`,
-		`CREATE TABLE book_genres (book_id int, genre_id int, genre__rating int)`,
-		`CREATE TABLE translations (id serial, book_id int, lang varchar(2))`,
-		`CREATE TABLE comments (trackable_id int, trackable_type varchar(100), text text)`,
-		`CREATE UNIQUE INDEX authors_name ON authors (name)`,
 	}
 	for _, q := range sql {
 		_, err := db.Exec(q)
@@ -534,7 +527,17 @@ func createTestSchema(db *pg.DB) error {
 			return err
 		}
 	}
-	return nil
+
+	tables := []interface{}{Author{}, Book{}, Genre{}, BookGenre{}, Translation{}, Comment{}}
+	for _, table := range tables {
+		err := db.CreateTable(table)
+		if err != nil {
+			return err
+		}
+	}
+
+	_, err := db.Exec(`CREATE UNIQUE INDEX authors_name ON authors (name)`)
+	return err
 }
 
 var _ = Describe("ORM", func() {

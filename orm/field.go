@@ -14,8 +14,9 @@ const (
 
 type Field struct {
 	GoName  string // struct field name, e.g. Id
-	SQLName string // SQL name, .e.g. id
 	ColName types.Q
+	SQLName string // SQL name, .e.g. id
+	SQLType string
 	Index   []int
 
 	flags uint8
