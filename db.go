@@ -30,6 +30,8 @@ type DB struct {
 	pool *pool.ConnPool
 }
 
+var _ orm.DB = (*DB)(nil)
+
 // Options returns read-only Options that were used to connect to the DB.
 func (db *DB) Options() *Options {
 	return db.opt

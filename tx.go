@@ -35,6 +35,8 @@ type Tx struct {
 	stmts []*Stmt
 }
 
+var _ orm.DB = (*Tx)(nil)
+
 // Begin starts a transaction. Most callers should use RunInTransaction instead.
 func (db *DB) Begin() (*Tx, error) {
 	tx := &Tx{
