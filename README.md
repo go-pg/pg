@@ -18,8 +18,8 @@ Supports:
 - Queries retries on network errors.
 - Working with models using [ORM](https://godoc.org/gopkg.in/pg.v4#example-DB-Model) and [SQL](https://godoc.org/gopkg.in/pg.v4#example-DB-Query).
 - Scanning variables using [ORM](https://godoc.org/gopkg.in/pg.v4#example-DB-Select-SomeColumnsIntoVars) and [SQL](https://godoc.org/gopkg.in/pg.v4#example-Scan).
-- [SelectOrCreate](https://godoc.org/gopkg.in/pg.v4#example-DB-Create-SelectOrCreate) using upserts.
-- [INSERT ... ON CONFLICT DO UPDATE](https://godoc.org/gopkg.in/pg.v4#example-DB-Create-OnConflictDoUpdate) using ORM.
+- [SelectOrInsert](https://godoc.org/gopkg.in/pg.v4#example-DB-Insert-SelectOrInsert) using on-conflict.
+- [INSERT ... ON CONFLICT DO UPDATE](https://godoc.org/gopkg.in/pg.v4#example-DB-Insert-OnConflictDoUpdate) using ORM.
 - [CountEstimate](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-CountEstimate) using `EXPLAIN` to get [estimated number of matching rows](https://wiki.postgresql.org/wiki/Count_estimate).
 - [HasOne](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-HasOne), [BelongsTo](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-BelongsTo), [HasMany](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-HasMany) and [ManyToMany](https://godoc.org/gopkg.in/pg.v4#example-DB-Model-ManyToMany).
 - [Migrations](https://github.com/go-pg/migrations).
@@ -113,12 +113,12 @@ func ExampleDB_Model() {
 		Name:   "admin",
 		Emails: []string{"admin1@admin", "admin2@admin"},
 	}
-	err = db.Create(user1)
+	err = db.Insert(user1)
 	if err != nil {
 		panic(err)
 	}
 
-	err = db.Create(&User{
+	err = db.Insert(&User{
 		Name:   "root",
 		Emails: []string{"root1@root", "root2@root"},
 	})
@@ -130,7 +130,7 @@ func ExampleDB_Model() {
 		Title:    "Cool story",
 		AuthorId: user1.Id,
 	}
-	err = db.Create(story1)
+	err = db.Insert(story1)
 	if err != nil {
 		panic(err)
 	}
@@ -246,14 +246,14 @@ func (b *Book) AfterSelect(db orm.DB) error {
     return updateBookCache(b)
 }
 
-func (b *Book) BeforeCreate(db orm.DB) error {
+func (b *Book) BeforeInsert(db orm.DB) error {
     if b.CreatedAt.IsZero() {
         b.CreatedAt = time.Now()
     }
     return nil
 }
 
-func (b *Book) AfterCreate(db orm.DB) error {
+func (b *Book) AfterInsert(db orm.DB) error {
     return updateBookCache(b)
 }
 ```
@@ -380,27 +380,27 @@ err := query.DB(db).Model(&books).Select()
 
 ```go
 // Insert new book returning primary keys.
-err := db.Create(&book)
+err := db.Insert(&book)
 // INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING "id"
 
 // Insert new book returning all columns.
-err := db.Model(&book).Returning("*").Create()
+err := db.Model(&book).Returning("*").Insert()
 // INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING *
 
 // Select existing book by name or create new book.
 err := db.Model(&book).
     Where("title = ?title").
     OnConflict("DO NOTHING"). // optional
-    SelectOrCreate()
+    SelectOrInsert()
 // 1. SELECT * FROM "books" WHERE title = 'my title'
 // 2. INSERT INTO "books" (title, text) VALUES ('my title', 'my text') RETURNING "id"
 // 3. go to step 1 on error
 
-// Create new book or update existing one.
+// Insert new book or update existing one.
 _, err := db.Model(&book).
     OnConflict("(id) DO UPDATE").
     Set("title = ?title").
-    Create()
+    Insert()
 // INSERT INTO "books" ("id", "title") VALUES (100, 'my title')
 // ON CONFLICT (id) DO UPDATE SET title = 'title version #1'
 ```

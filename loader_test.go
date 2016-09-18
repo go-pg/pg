@@ -130,11 +130,11 @@ func (errLoader) AfterSelect(_ orm.DB) error {
 	return nil
 }
 
-func (errLoader) BeforeCreate(_ orm.DB) error {
+func (errLoader) BeforeInsert(_ orm.DB) error {
 	return nil
 }
 
-func (errLoader) AfterCreate(_ orm.DB) error {
+func (errLoader) AfterInsert(_ orm.DB) error {
 	return nil
 }
 

@@ -397,8 +397,8 @@ func selectJoins(db DB, joins []join) error {
 	return nil
 }
 
-// Create inserts the model.
-func (q *Query) Create(values ...interface{}) (*types.Result, error) {
+// Insert inserts the model.
+func (q *Query) Insert(values ...interface{}) (*types.Result, error) {
 	if q.err != nil {
 		return nil, q.err
 	}
@@ -411,7 +411,7 @@ func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 	}
 
 	if q.model != nil {
-		if err := q.model.BeforeCreate(q.db); err != nil {
+		if err := q.model.BeforeInsert(q.db); err != nil {
 			return nil, err
 		}
 	}
@@ -423,7 +423,7 @@ func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 	}
 
 	if q.model != nil {
-		if err := q.model.AfterCreate(q.db); err != nil {
+		if err := q.model.AfterInsert(q.db); err != nil {
 			return nil, err
 		}
 	}
@@ -431,8 +431,8 @@ func (q *Query) Create(values ...interface{}) (*types.Result, error) {
 	return res, nil
 }
 
-// SelectOrCreate selects the model creating one if it does not exist.
-func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) {
+// SelectOrInsert selects the model inserting one if it does not exist.
+func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, err error) {
 	if q.err != nil {
 		return false, q.err
 	}
@@ -451,7 +451,7 @@ func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) 
 			return false, err
 		}
 
-		res, err := q.Create(values...)
+		res, err := q.Insert(values...)
 		if err != nil {
 			insertErr = err
 			if pgErr, ok := err.(internal.PGError); ok {
@@ -471,7 +471,7 @@ func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) 
 	}
 
 	err = fmt.Errorf(
-		"pg: SelectOrCreate: select returns no rows (insert fails with err=%q)",
+		"pg: SelectOrInsert: select returns no rows (insert fails with err=%q)",
 		insertErr,
 	)
 	return false, err

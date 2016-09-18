@@ -35,11 +35,11 @@ func (valuesModel) AfterSelect(_ DB) error {
 	return nil
 }
 
-func (valuesModel) BeforeCreate(_ DB) error {
+func (valuesModel) BeforeInsert(_ DB) error {
 	return nil
 }
 
-func (valuesModel) AfterCreate(_ DB) error {
+func (valuesModel) AfterInsert(_ DB) error {
 	return nil
 }
 

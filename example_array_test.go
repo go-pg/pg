@@ -24,7 +24,7 @@ func ExampleDB_Model_postgresArrayStructTag() {
 		Emails:  []string{"one@example.com", "two@example.com"},
 		Numbers: [][]int{{1, 2}, {3, 4}},
 	}
-	if err := db.Create(&item1); err != nil {
+	if err := db.Insert(&item1); err != nil {
 		panic(err)
 	}
 

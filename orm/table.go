@@ -118,11 +118,11 @@ func newTable(typ reflect.Type) *Table {
 	if typ.Implements(afterSelectHookType) {
 		table.flags |= AfterSelectHookFlag
 	}
-	if typ.Implements(beforeCreateHookType) {
-		table.flags |= BeforeCreateHookFlag
+	if typ.Implements(beforeInsertHookType) {
+		table.flags |= BeforeInsertHookFlag
 	}
-	if typ.Implements(afterCreateHookType) {
-		table.flags |= AfterCreateHookFlag
+	if typ.Implements(afterInsertHookType) {
+		table.flags |= AfterInsertHookFlag
 	}
 
 	if table.Methods == nil {
