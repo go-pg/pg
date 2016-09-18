@@ -359,23 +359,6 @@ func ExampleDB_Select_groupBy() {
 	// author 11 has 1 books
 }
 
-func ExampleDB_Select_whereOr() {
-	authorIdOrEditorId := 1
-
-	var books []Book
-	err := db.Model(&books).
-		WhereOr(
-			pg.SQL("author_id = ?", authorIdOrEditorId),
-			pg.SQL("editor_id = ?", authorIdOrEditorId),
-		).
-		Select()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(books)
-	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
-}
-
 func ExampleDB_Select_With() {
 	authorBooks := db.Model(&Book{}).Where("author_id = ?", 1)
 
@@ -615,8 +598,8 @@ func ExampleDB_Model_hasMany() {
 	var user User
 	err := db.Model(&user).
 		Column("user.*", "Profiles").
-		Relation("Profiles", func(q *orm.Query) *orm.Query {
-			return q.Where("active IS TRUE")
+		Relation("Profiles", func(q *orm.Query) (*orm.Query, error) {
+			return q.Where("active IS TRUE"), nil
 		}).
 		First()
 	if err != nil {

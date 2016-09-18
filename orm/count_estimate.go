@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"gopkg.in/pg.v4/internal"
-	"gopkg.in/pg.v4/types"
 )
 
 // Placeholder that is replaced with count(*).
@@ -42,12 +41,12 @@ $$ LANGUAGE plpgsql;
 //
 // Based on https://wiki.postgresql.org/wiki/Count_estimate
 func (q *Query) CountEstimate(threshold int) (int, error) {
-	if q.err != nil {
-		return 0, q.err
+	if q.stickyErr != nil {
+		return 0, q.stickyErr
 	}
 
 	q = q.copy()
-	q.columns = types.Q(placeholder)
+	q.columns = []FormatAppender{queryParams{query: placeholder}}
 	q.order = nil
 	q.limit = 0
 	q.offset = 0
@@ -89,6 +88,10 @@ func (q *Query) createCountEstimateFunc() error {
 // SelectAndCountEstimate runs Select and CountEstimate in two separate goroutines,
 // waits for them to finish and returns the result.
 func (q *Query) SelectAndCountEstimate(threshold int) (count int, err error) {
+	if q.stickyErr != nil {
+		return 0, q.stickyErr
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 

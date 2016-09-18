@@ -23,19 +23,14 @@ func Scan(values ...interface{}) orm.ColumnScanner {
 	return orm.Scan(values...)
 }
 
-// SQL returns a SQL query with params that are formatted on query execution.
-func SQL(query string, params ...interface{}) *orm.SQL {
-	return orm.NewSQL(query, params...)
-}
-
 // Q replaces any placeholders found in the query.
-func Q(query string, params ...interface{}) types.Q {
+func Q(query string, params ...interface{}) orm.FormatAppender {
 	return orm.Q(query, params...)
 }
 
 // F quotes a SQL identifier such as a table or column name replacing any
 // placeholders found in the field.
-func F(field string, params ...interface{}) types.F {
+func F(field string, params ...interface{}) orm.FormatAppender {
 	return orm.F(field, params...)
 }
 

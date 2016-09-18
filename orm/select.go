@@ -1,20 +1,17 @@
 package orm
 
 import (
-	"fmt"
 	"strconv"
+
+	"gopkg.in/pg.v4/types"
 )
 
 func Select(db DB, model interface{}) error {
 	q := NewQuery(db, model)
-	m, ok := q.model.(*structTableModel)
-	if !ok {
-		return fmt.Errorf("Select expects struct, got %T", model)
-	}
-	if err := m.table.checkPKs(); err != nil {
+	if err := q.model.Table().checkPKs(); err != nil {
 		return err
 	}
-	q.where = appendColumnAndValue(q.where, m.strct, m.table, m.table.PKs)
+	q.where = append(q.where, pkWhereQuery{q})
 	return q.Select()
 }
 
@@ -24,69 +21,93 @@ type selectQuery struct {
 
 var _ QueryAppender = (*selectQuery)(nil)
 
-func (sel selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
-	if len(sel.with) > 0 {
-		b = append(b, "WITH "...)
-		b = append(b, sel.with...)
-		b = append(b, ' ')
+func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	var err error
+
+	if len(q.with) > 0 {
+		b, err = q.appendWith(b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	b = append(b, "SELECT "...)
-	if sel.columns == nil {
-		b = sel.appendColumns(b)
-	} else {
-		b = append(b, sel.columns...)
-	}
+	b = q.appendColumns(b)
 
-	if sel.haveTables() {
+	if q.haveTables() {
 		b = append(b, " FROM "...)
-		b = sel.appendTables(b)
+		b = q.appendTables(b)
 	}
 
-	if len(sel.join) > 0 {
-		b = append(b, ' ')
-		b = append(b, sel.join...)
+	if len(q.joins) > 0 {
+		for _, f := range q.joins {
+			b = append(b, ' ')
+			b = f.AppendFormat(b, q)
+		}
 	}
 
-	if len(sel.where) > 0 {
-		b = append(b, " WHERE "...)
-		b = append(b, sel.where...)
+	if len(q.where) > 0 {
+		b = q.appendWhere(b)
 	}
 
-	if len(sel.group) > 0 {
+	if len(q.group) > 0 {
 		b = append(b, " GROUP BY "...)
-		b = append(b, sel.group...)
+		for i, f := range q.group {
+			if i > 0 {
+				b = append(b, ' ')
+			}
+			b = f.AppendFormat(b, q)
+		}
 	}
 
-	if len(sel.order) > 0 {
+	if len(q.order) > 0 {
 		b = append(b, " ORDER BY "...)
-		b = append(b, sel.order...)
+		for i, f := range q.order {
+			if i > 0 {
+				b = append(b, ' ')
+			}
+			b = f.AppendFormat(b, q)
+		}
 	}
 
-	if sel.limit != 0 {
+	if q.limit != 0 {
 		b = append(b, " LIMIT "...)
-		b = strconv.AppendInt(b, int64(sel.limit), 10)
+		b = strconv.AppendInt(b, int64(q.limit), 10)
 	}
 
-	if sel.offset != 0 {
+	if q.offset != 0 {
 		b = append(b, " OFFSET "...)
-		b = strconv.AppendInt(b, int64(sel.offset), 10)
+		b = strconv.AppendInt(b, int64(q.offset), 10)
 	}
 
 	return b, nil
 }
 
-func (sel selectQuery) appendColumns(b []byte) []byte {
-	if sel.model != nil {
-		return sel.appendModelColumns(b)
+func (q selectQuery) appendColumns(b []byte) []byte {
+	if len(q.columns) > 0 {
+		return q.appendQueryColumns(b)
+	}
+
+	if q.model != nil {
+		return q.appendModelColumns(b)
 	}
 
 	var ok bool
-	b, ok = sel.appendTableAlias(b)
+	b, ok = q.appendTableAlias(b)
 	if ok {
 		b = append(b, '.')
 	}
 	b = append(b, '*')
+	return b
+}
+
+func (q selectQuery) appendQueryColumns(b []byte) []byte {
+	for i, f := range q.columns {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = f.AppendFormat(b, q)
+	}
 	return b
 }
 
@@ -103,4 +124,22 @@ func (sel selectQuery) appendModelColumns(b []byte) []byte {
 		b = append(b, f.ColName...)
 	}
 	return b
+}
+
+func (q selectQuery) appendWith(b []byte) ([]byte, error) {
+	var err error
+	b = append(b, "WITH "...)
+	for i, withq := range q.with {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = types.AppendField(b, withq.name, 1)
+		b = append(b, " AS ("...)
+		b, err = selectQuery{withq.query}.AppendQuery(b)
+		if err != nil {
+			return nil, err
+		}
+		b = append(b, ')')
+	}
+	return b, nil
 }

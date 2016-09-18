@@ -8,47 +8,42 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
-type SQL struct {
+type FormatAppender interface {
+	AppendFormat([]byte, QueryFormatter) []byte
+}
+
+//------------------------------------------------------------------------------
+
+type queryParams struct {
 	query  string
 	params []interface{}
 }
 
-var _ types.ValueAppender = (*SQL)(nil)
+var _ FormatAppender = (*queryParams)(nil)
 
-func NewSQL(query string, params ...interface{}) *SQL {
-	return &SQL{
-		query:  query,
-		params: params,
-	}
+func Q(query string, params ...interface{}) FormatAppender {
+	return queryParams{query, params}
 }
 
-func (q SQL) String() string {
-	b, _ := q.AppendValue(nil, 1)
-	return string(b)
-}
-
-func (q SQL) AppendValue(dst []byte, quote int) ([]byte, error) {
-	return Formatter{}.Append(dst, q.query, q.params...), nil
-}
-
-func (q SQL) AppendFormat(dst []byte, f QueryFormatter) []byte {
+func (q queryParams) AppendFormat(dst []byte, f QueryFormatter) []byte {
 	return f.FormatQuery(dst, q.query, q.params...)
 }
 
 //------------------------------------------------------------------------------
 
-func Q(query string, params ...interface{}) types.Q {
-	if len(params) == 0 {
-		return types.Q(query)
-	}
-	return Formatter{}.Append(nil, query, params...)
+type fieldParams struct {
+	field  string
+	params []interface{}
 }
 
-func F(field string, params ...interface{}) types.F {
-	if len(params) == 0 {
-		return types.F(field)
-	}
-	return types.F(Formatter{}.Append(nil, field, params...))
+var _ FormatAppender = (*fieldParams)(nil)
+
+func F(field string, params ...interface{}) FormatAppender {
+	return fieldParams{field, params}
+}
+
+func (q fieldParams) AppendFormat(b []byte, f QueryFormatter) []byte {
+	return types.AppendField(b, q.field, 1)
 }
 
 //------------------------------------------------------------------------------
@@ -76,6 +71,10 @@ func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
 		return append(dst, src...)
 	}
 	return f.append(dst, parser.New(src), params)
+}
+
+func (f Formatter) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
+	return f.Append(dst, query, params...)
 }
 
 func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []byte {
@@ -139,7 +138,11 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 		param := params[paramsIndex]
 		paramsIndex++
 
-		dst = types.Append(dst, param, 1)
+		if fa, ok := param.(FormatAppender); ok {
+			dst = fa.AppendFormat(dst, f)
+		} else {
+			dst = types.Append(dst, param, 1)
+		}
 	}
 
 	return dst

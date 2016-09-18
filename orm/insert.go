@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"bytes"
 	"errors"
 	"reflect"
 )
@@ -17,19 +18,19 @@ type insertQuery struct {
 
 var _ QueryAppender = (*insertQuery)(nil)
 
-func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
-	if ins.model == nil {
+func (q insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	if q.model == nil {
 		return nil, errors.New("pg: Model(nil)")
 	}
 
-	table := ins.model.Table()
-	value := ins.model.Value()
+	table := q.model.Table()
+	value := q.model.Value()
 
 	b = append(b, "INSERT INTO "...)
-	if len(ins.onConflict) > 0 {
-		b = ins.appendTableNameWithAlias(b)
+	if q.onConflict != nil {
+		b = q.appendTableNameWithAlias(b)
 	} else {
-		b = ins.appendTableName(b)
+		b = q.appendTableName(b)
 	}
 	b = append(b, " ("...)
 
@@ -44,14 +45,14 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 
 	b = append(b, ") VALUES ("...)
 	if value.Kind() == reflect.Struct {
-		b = ins.appendValues(b, table.Fields, value)
+		b = q.appendValues(b, table.Fields, value)
 	} else {
 		for i := 0; i < value.Len(); i++ {
 			el := value.Index(i)
 			if el.Kind() == reflect.Interface {
 				el = el.Elem()
 			}
-			b = ins.appendValues(b, table.Fields, reflect.Indirect(el))
+			b = q.appendValues(b, table.Fields, reflect.Indirect(el))
 			if i != value.Len()-1 {
 				b = append(b, "), ("...)
 			}
@@ -59,30 +60,44 @@ func (ins insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, err
 	}
 	b = append(b, ')')
 
-	if len(ins.onConflict) > 0 {
-		b = append(b, ins.onConflict...)
+	if q.onConflict != nil {
+		b = append(b, " ON CONFLICT "...)
+		b = q.onConflict.AppendFormat(b, q)
+
+		if onConflictDoUpdate(b) {
+			if len(q.set) > 0 {
+				b = q.appendSet(b)
+			}
+
+			if len(q.where) > 0 {
+				b = q.appendWhere(b)
+			}
+		}
 	}
 
-	if len(ins.returning) > 0 {
-		b = append(b, " RETURNING "...)
-		b = append(b, ins.returning...)
-	} else if len(ins.returningFields) > 0 {
-		b = ins.appendReturning(b, ins.returningFields)
+	if len(q.returning) > 0 {
+		b = q.appendReturning(b)
+	} else if len(q.returningFields) > 0 {
+		b = q.appendReturningFields(b, q.returningFields)
 	}
 
 	return b, nil
 }
 
-func (ins *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
+func onConflictDoUpdate(b []byte) bool {
+	return bytes.LastIndex(b, []byte(" DO UPDATE")) >= 0
+}
+
+func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
 	for i, f := range fields {
-		if ins.omitEmpty(f, v) {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		if q.omitEmpty(f, v) {
 			b = append(b, "DEFAULT"...)
-			ins.addReturningField(f)
+			q.addReturningField(f)
 		} else {
 			b = f.AppendValue(b, v, 1)
-		}
-		if i != len(fields)-1 {
-			b = append(b, ", "...)
 		}
 	}
 	return b
@@ -108,13 +123,13 @@ func (ins *insertQuery) addReturningField(field *Field) {
 	ins.returningFields = append(ins.returningFields, field)
 }
 
-func (insertQuery) appendReturning(b []byte, fields []*Field) []byte {
+func (insertQuery) appendReturningFields(b []byte, fields []*Field) []byte {
 	b = append(b, " RETURNING "...)
 	for i, f := range fields {
-		b = append(b, f.ColName...)
-		if i != len(fields)-1 {
+		if i > 0 {
 			b = append(b, ", "...)
 		}
+		b = append(b, f.ColName...)
 	}
 	return b
 }

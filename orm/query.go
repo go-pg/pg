@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"sync"
@@ -11,25 +10,29 @@ import (
 	"gopkg.in/pg.v4/types"
 )
 
+type withQuery struct {
+	name  string
+	query *Query
+}
+
 type Query struct {
-	db    DB
-	model tableModel
-	err   error
+	db        DB
+	model     tableModel
+	stickyErr error
 
 	tableAlias string
-
-	with       []byte
-	tables     []byte
+	with       []withQuery
+	tables     []string
 	fields     []string
-	columns    []byte
-	rels       map[string]func(*Query) *Query
-	set        []byte
-	where      []byte
-	join       []byte
-	group      []byte
-	order      []byte
-	onConflict []byte
-	returning  []byte
+	columns    []FormatAppender
+	rels       map[string]func(*Query) (*Query, error)
+	set        []queryParams
+	where      []FormatAppender
+	joins      []FormatAppender
+	group      []queryParams
+	order      []queryParams
+	onConflict FormatAppender
+	returning  []queryParams
 	limit      int
 	offset     int
 }
@@ -43,10 +46,9 @@ func (q *Query) copy() *Query {
 	return &cp
 }
 
-// Err sets the err returned when query is executed.
-func (q *Query) Err(err error) *Query {
-	if q.err == nil {
-		q.err = err
+func (q *Query) err(err error) *Query {
+	if q.stickyErr == nil {
+		q.stickyErr = err
 	}
 	return q
 }
@@ -70,28 +72,19 @@ func (q *Query) Model(model ...interface{}) *Query {
 		q.model, err = newTableModel(&model)
 	}
 	if err != nil {
-		q = q.Err(err)
+		q = q.err(err)
 	}
 	return q
 }
 
 func (q *Query) With(name string, subq *Query) *Query {
-	var err error
-	q.with = appendSep(q.with, ", ")
-	q.with = types.AppendField(q.with, name, 1)
-	q.with = append(q.with, " AS ("...)
-	q.with, err = selectQuery{subq}.AppendQuery(q.with)
-	if err != nil {
-		q = q.Err(err)
-	}
-	q.with = append(q.with, ')')
+	q.with = append(q.with, withQuery{name, subq})
 	return q
 }
 
-func (q *Query) Table(names ...string) *Query {
-	for _, name := range names {
-		q.tables = appendSep(q.tables, ", ")
-		q.tables = types.AppendField(q.tables, name, 1)
+func (q *Query) Table(tables ...string) *Query {
+	for _, table := range tables {
+		q.tables = append(q.tables, table)
 	}
 	return q
 }
@@ -111,109 +104,48 @@ loop:
 		}
 
 		q.fields = append(q.fields, column)
-		q.columns = appendSep(q.columns, ", ")
-		q.columns = types.AppendField(q.columns, column, 1)
+		q.columns = append(q.columns, fieldParams{field: column})
 	}
 	return q
 }
 
 func (q *Query) ColumnExpr(expr string, params ...interface{}) *Query {
-	q.columns = appendSep(q.columns, ", ")
-	q.columns = q.FormatQuery(q.columns, expr, params...)
+	q.columns = append(q.columns, queryParams{expr, params})
 	return q
 }
 
-func (q *Query) Relation(name string, apply func(*Query) *Query) *Query {
+func (q *Query) Relation(name string, apply func(*Query) (*Query, error)) *Query {
 	if j := q.model.Join(name, apply); j == nil {
-		q.err = fmt.Errorf(
+		return q.err(fmt.Errorf(
 			"model %s does not have relation %s",
 			q.model.Table().Type.Name(), name,
-		)
+		))
 	}
 	return q
 }
 
 func (q *Query) Set(set string, params ...interface{}) *Query {
-	if q.onConflictDoUpdate() {
-		return q.onConflictSet(set, params...)
-	}
-
-	q.set = appendSep(q.set, ", ")
-	q.set = q.FormatQuery(q.set, set, params...)
-	return q
-}
-
-func (q *Query) onConflictSet(set string, params ...interface{}) *Query {
-	ind := bytes.LastIndex(q.onConflict, []byte(" DO UPDATE"))
-	if ind == -1 {
-		return q
-	}
-	if bytes.Contains(q.onConflict[ind:], []byte(" SET ")) {
-		q.onConflict = append(q.onConflict, ", "...)
-	} else {
-		q.onConflict = append(q.onConflict, " SET "...)
-	}
-	q.onConflict = q.FormatQuery(q.onConflict, set, params...)
+	q.set = append(q.set, queryParams{set, params})
 	return q
 }
 
 func (q *Query) Where(where string, params ...interface{}) *Query {
-	if q.onConflictDoUpdate() {
-		return q.onConflictWhere(where, params...)
-	}
-
-	q.where = appendSep(q.where, " AND ")
-	q.where = append(q.where, '(')
-	q.where = q.FormatQuery(q.where, where, params...)
-	q.where = append(q.where, ')')
-	return q
-}
-
-func (q *Query) onConflictWhere(where string, params ...interface{}) *Query {
-	ind := bytes.LastIndex(q.onConflict, []byte(" DO UPDATE"))
-	if ind == -1 {
-		return q
-	}
-	if bytes.Contains(q.onConflict[ind:], []byte(" WHERE ")) {
-		q.onConflict = append(q.onConflict, " AND "...)
-	} else {
-		q.onConflict = append(q.onConflict, " WHERE "...)
-	}
-	q.onConflict = append(q.onConflict, '(')
-	q.onConflict = q.FormatQuery(q.onConflict, where, params...)
-	q.onConflict = append(q.onConflict, ')')
-	return q
-}
-
-// WhereOr joins passed conditions using OR operation.
-func (q *Query) WhereOr(conditions ...*SQL) *Query {
-	q.where = appendSep(q.where, " AND ")
-	q.where = append(q.where, '(')
-	for i, cond := range conditions {
-		q.where = cond.AppendFormat(q.where, q)
-		if i != len(conditions)-1 {
-			q.where = append(q.where, " OR "...)
-		}
-	}
-	q.where = append(q.where, ')')
+	q.where = append(q.where, queryParams{where, params})
 	return q
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
-	q.join = appendSep(q.join, " ")
-	q.join = q.FormatQuery(q.join, join, params...)
+	q.joins = append(q.joins, queryParams{join, params})
 	return q
 }
 
 func (q *Query) Group(group string, params ...interface{}) *Query {
-	q.group = appendSep(q.group, ", ")
-	q.group = q.FormatQuery(q.group, group, params...)
+	q.group = append(q.group, queryParams{group, params})
 	return q
 }
 
 func (q *Query) Order(order string, params ...interface{}) *Query {
-	q.order = appendSep(q.order, ", ")
-	q.order = q.FormatQuery(q.order, order, params...)
+	q.order = append(q.order, queryParams{order, params})
 	return q
 }
 
@@ -228,33 +160,12 @@ func (q *Query) Offset(n int) *Query {
 }
 
 func (q *Query) OnConflict(s string, params ...interface{}) *Query {
-	q.onConflict = append(q.onConflict, " ON CONFLICT "...)
-	q.onConflict = q.FormatQuery(q.onConflict, s, params...)
+	q.onConflict = queryParams{s, params}
 	return q
 }
 
-func (q *Query) onConflictDoUpdate() bool {
-	return len(q.onConflict) > 0 &&
-		bytes.Contains(q.onConflict, []byte(" DO UPDATE"))
-}
-
-func (q *Query) Returning(columns ...interface{}) *Query {
-	for _, column := range columns {
-		q.returning = appendSep(q.returning, ", ")
-
-		switch column := column.(type) {
-		case string:
-			q.returning = types.AppendField(q.returning, column, 1)
-		case types.ValueAppender:
-			var err error
-			q.returning, err = column.AppendValue(q.returning, 1)
-			if err != nil {
-				q = q.Err(err)
-			}
-		default:
-			q = q.Err(fmt.Errorf("unsupported column type: %T", column))
-		}
-	}
+func (q *Query) Returning(s string, params ...interface{}) *Query {
+	q.returning = append(q.returning, queryParams{s, params})
 	return q
 }
 
@@ -265,12 +176,12 @@ func (q *Query) Apply(fn func(*Query) *Query) *Query {
 
 // Count returns number of rows matching the query using count aggregate function.
 func (q *Query) Count() (int, error) {
-	if q.err != nil {
-		return 0, q.err
+	if q.stickyErr != nil {
+		return 0, q.stickyErr
 	}
 
 	q = q.copy()
-	q.columns = types.Q("count(*)")
+	q.columns = append(q.columns, Q("count(*)"))
 	q.order = nil
 	q.limit = 0
 	q.offset = 0
@@ -305,8 +216,8 @@ func (q *Query) newModel(values []interface{}) (model Model, err error) {
 
 // Select selects the model.
 func (q *Query) Select(values ...interface{}) error {
-	if q.err != nil {
-		return q.err
+	if q.stickyErr != nil {
+		return q.stickyErr
 	}
 
 	if q.model != nil {
@@ -344,6 +255,10 @@ func (q *Query) Select(values ...interface{}) error {
 // SelectAndCount runs Select and Count in two separate goroutines,
 // waits for them to finish and returns the result.
 func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
+	if q.stickyErr != nil {
+		return 0, q.stickyErr
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(2)
 
@@ -399,8 +314,8 @@ func selectJoins(db DB, joins []join) error {
 
 // Insert inserts the model.
 func (q *Query) Insert(values ...interface{}) (*types.Result, error) {
-	if q.err != nil {
-		return nil, q.err
+	if q.stickyErr != nil {
+		return nil, q.stickyErr
 	}
 
 	var model Model
@@ -433,8 +348,8 @@ func (q *Query) Insert(values ...interface{}) (*types.Result, error) {
 
 // SelectOrInsert selects the model inserting one if it does not exist.
 func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, err error) {
-	if q.err != nil {
-		return false, q.err
+	if q.stickyErr != nil {
+		return false, q.stickyErr
 	}
 
 	var insertErr error
@@ -479,8 +394,8 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, err error)
 
 // Update updates the model.
 func (q *Query) Update(values ...interface{}) (*types.Result, error) {
-	if q.err != nil {
-		return nil, q.err
+	if q.stickyErr != nil {
+		return nil, q.stickyErr
 	}
 
 	model, err := q.newModel(values)
@@ -493,8 +408,8 @@ func (q *Query) Update(values ...interface{}) (*types.Result, error) {
 
 // Delete deletes the model.
 func (q *Query) Delete() (*types.Result, error) {
-	if q.err != nil {
-		return nil, q.err
+	if q.stickyErr != nil {
+		return nil, q.stickyErr
 	}
 	return q.db.Exec(deleteQuery{q}, q.model)
 }
@@ -539,62 +454,18 @@ func (q *Query) appendTables(b []byte) []byte {
 			b = append(b, ", "...)
 		}
 	}
-	b = append(b, q.tables...)
+	for i, table := range q.tables {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = types.AppendField(b, table, 1)
+	}
 	return b
 }
 
-func (q *Query) appendSet(b []byte) ([]byte, error) {
-	b = append(b, " SET "...)
-	if len(q.set) > 0 {
-		b = append(b, q.set...)
-		return b, nil
-	}
-
-	if q.model == nil {
-		return nil, errors.New("pg: Model(nil)")
-	}
-
-	table := q.model.Table()
-	strct := q.model.Value()
-
-	if len(q.fields) > 0 {
-		for i, fieldName := range q.fields {
-			field, err := table.GetField(fieldName)
-			if err != nil {
-				return nil, err
-			}
-
-			b = append(b, field.ColName...)
-			b = append(b, " = "...)
-			b = field.AppendValue(b, strct, 1)
-			if i != len(q.fields)-1 {
-				b = append(b, ", "...)
-			}
-		}
-		return b, nil
-	}
-
-	start := len(b)
-	for _, field := range table.Fields {
-		if field.Has(PrimaryKeyFlag) {
-			continue
-		}
-
-		b = append(b, field.ColName...)
-		b = append(b, " = "...)
-		b = field.AppendValue(b, strct, 1)
-		b = append(b, ", "...)
-	}
-	if len(b) > start {
-		b = b[:len(b)-2]
-	}
-	return b, nil
-}
-
-func (q *Query) appendWhere(b []byte) ([]byte, error) {
-	b = append(b, " WHERE "...)
+func (q *Query) mustAppendWhere(b []byte) ([]byte, error) {
 	if len(q.where) > 0 {
-		b = append(b, q.where...)
+		b = q.appendWhere(b)
 		return b, nil
 	}
 
@@ -602,10 +473,54 @@ func (q *Query) appendWhere(b []byte) ([]byte, error) {
 		return nil, errors.New("pg: Model(nil)")
 	}
 
-	table := q.model.Table()
-	if err := table.checkPKs(); err != nil {
+	if err := q.model.Table().checkPKs(); err != nil {
 		return nil, err
 	}
-	b = appendColumnAndValue(b, q.model.Value(), table, table.PKs)
-	return b, nil
+
+	b = append(b, " WHERE "...)
+	return pkWhereQuery{q}.AppendFormat(b, nil), nil
+}
+
+func (q *Query) appendWhere(b []byte) []byte {
+	b = append(b, " WHERE "...)
+	for i, f := range q.where {
+		if i > 0 {
+			b = append(b, " AND "...)
+		}
+		b = append(b, '(')
+		b = f.AppendFormat(b, q)
+		b = append(b, ')')
+	}
+	return b
+}
+
+func (q *Query) appendSet(b []byte) []byte {
+	b = append(b, " SET "...)
+	for i, f := range q.set {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = f.AppendFormat(b, q)
+	}
+	return b
+}
+
+func (q *Query) appendReturning(b []byte) []byte {
+	b = append(b, " RETURNING "...)
+	for i, f := range q.returning {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = f.AppendFormat(b, q)
+	}
+	return b
+}
+
+type pkWhereQuery struct {
+	*Query
+}
+
+func (q pkWhereQuery) AppendFormat(b []byte, f QueryFormatter) []byte {
+	table := q.model.Table()
+	return appendColumnAndValue(b, q.model.Value(), table, table.PKs)
 }

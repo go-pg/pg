@@ -73,8 +73,8 @@ func newTable(typ reflect.Type) *Table {
 
 	modelName := Underscore(typ.Name())
 	table = &Table{
-		Name:      types.AppendField(nil, inflection.Plural(modelName), 1),
-		Alias:     types.AppendField(nil, modelName, 1),
+		Name:      types.Q(types.AppendField(nil, inflection.Plural(modelName), 1)),
+		Alias:     types.Q(types.AppendField(nil, modelName, 1)),
 		ModelName: modelName,
 		Type:      typ,
 		Fields:    make([]*Field, 0, typ.NumField()),
@@ -175,10 +175,10 @@ func (t *Table) newField(f reflect.StructField) *Field {
 
 	if f.Name == "TableName" {
 		if sqlName != "" {
-			t.Name = types.AppendField(nil, sqlName, 1)
+			t.Name = types.Q(sqlName)
 		}
-		if v, ok := sqlOpt.Get("alias:"); ok {
-			t.Alias = types.AppendField(nil, v, 1)
+		if alias, ok := sqlOpt.Get("alias:"); ok {
+			t.Alias = types.Q(alias)
 		}
 		return nil
 	}
@@ -210,7 +210,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 	field := Field{
 		GoName:  f.Name,
 		SQLName: sqlName,
-		ColName: types.AppendField(nil, sqlName, 1),
+		ColName: types.Q(types.AppendField(nil, sqlName, 1)),
 
 		Index: f.Index,
 
@@ -229,7 +229,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 	} else if _, ok := sqlOpt.Get("pk"); ok {
 		field.flags |= PrimaryKeyFlag
 		t.PKs = append(t.PKs, &field)
-	} else if strings.HasSuffix(field.SQLName, "_id") {
+	} else if strings.HasSuffix(string(field.SQLName), "_id") {
 		field.flags |= ForeignKeyFlag
 	}
 
@@ -263,7 +263,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 				Type:         Many2ManyRelation,
 				Field:        &field,
 				JoinTable:    joinTable,
-				M2MTableName: types.AppendField(nil, m2mTable, 1),
+				M2MTableName: types.Q(m2mTable),
 				BasePrefix:   Underscore(basePrefix + "_"),
 				JoinPrefix:   Underscore(joinPrefix + "_"),
 			})
@@ -297,7 +297,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		for _, ff := range joinTable.FieldsMap {
 			ff = ff.Copy()
 			ff.SQLName = field.SQLName + "__" + ff.SQLName
-			ff.ColName = types.AppendField(nil, ff.SQLName, 1)
+			ff.ColName = types.Q(types.AppendField(nil, ff.SQLName, 1))
 			ff.Index = append(field.Index, ff.Index...)
 			t.FieldsMap[ff.SQLName] = ff
 		}
