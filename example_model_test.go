@@ -432,7 +432,7 @@ func ExampleDB_Model_selectAndCount() {
 
 func ExampleDB_Model_nullEmptyValue() {
 	type Example struct {
-		Hello string `sql:",null"`
+		Hello string
 	}
 
 	var str sql.NullString
