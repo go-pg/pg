@@ -81,10 +81,10 @@ func (m *manyModel) AfterSelect(db DB) error {
 	return nil
 }
 
-func (m *manyModel) BeforeCreate(db DB) error {
+func (m *manyModel) BeforeInsert(db DB) error {
 	return nil
 }
 
-func (m *manyModel) AfterCreate(db DB) error {
+func (m *manyModel) AfterInsert(db DB) error {
 	return nil
 }

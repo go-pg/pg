@@ -14,8 +14,8 @@ type HookTest struct {
 	afterQuery  int
 	afterSelect int
 
-	beforeCreate int
-	afterCreate  int
+	beforeInsert int
+	afterInsert  int
 }
 
 func (t *HookTest) AfterQuery(db orm.DB) error {
@@ -28,13 +28,13 @@ func (t *HookTest) AfterSelect(db orm.DB) error {
 	return nil
 }
 
-func (t *HookTest) BeforeCreate(db orm.DB) error {
-	t.beforeCreate++
+func (t *HookTest) BeforeInsert(db orm.DB) error {
+	t.beforeInsert++
 	return nil
 }
 
-func (t *HookTest) AfterCreate(db orm.DB) error {
-	t.afterCreate++
+func (t *HookTest) AfterInsert(db orm.DB) error {
+	t.afterInsert++
 	return nil
 }
 
@@ -96,9 +96,9 @@ var _ = Describe("HookTest", func() {
 		hook := &HookTest{
 			Id: 1,
 		}
-		err := db.Create(&hook)
+		err := db.Insert(&hook)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.beforeCreate).To(Equal(1))
-		Expect(hook.afterCreate).To(Equal(1))
+		Expect(hook.beforeInsert).To(Equal(1))
+		Expect(hook.afterInsert).To(Equal(1))
 	})
 })

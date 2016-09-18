@@ -86,11 +86,11 @@ func (m *m2mModel) AfterSelect(db DB) error {
 	return nil
 }
 
-func (m *m2mModel) BeforeCreate(db DB) error {
+func (m *m2mModel) BeforeInsert(db DB) error {
 	return nil
 }
 
-func (m *m2mModel) AfterCreate(db DB) error {
+func (m *m2mModel) AfterInsert(db DB) error {
 	return nil
 }
 

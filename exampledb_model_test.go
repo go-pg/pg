@@ -55,12 +55,12 @@ func ExampleDB_Model() {
 		Name:   "admin",
 		Emails: []string{"admin1@admin", "admin2@admin"},
 	}
-	err = db.Create(user1)
+	err = db.Insert(user1)
 	if err != nil {
 		panic(err)
 	}
 
-	err = db.Create(&User{
+	err = db.Insert(&User{
 		Name:   "root",
 		Emails: []string{"root1@root", "root2@root"},
 	})
@@ -72,7 +72,7 @@ func ExampleDB_Model() {
 		Title:    "Cool story",
 		AuthorId: user1.Id,
 	}
-	err = db.Create(story1)
+	err = db.Insert(story1)
 	if err != nil {
 		panic(err)
 	}

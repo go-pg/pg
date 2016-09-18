@@ -218,7 +218,7 @@ var _ = Describe("DB nulls", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Describe("Create struct with sql.NullInt64", func() {
+	Describe("Insert struct with sql.NullInt64", func() {
 		type Test struct {
 			Id    int
 			Value sql.NullInt64
@@ -228,7 +228,7 @@ var _ = Describe("DB nulls", func() {
 			ins := Test{
 				Id: 1,
 			}
-			err := db.Create(&ins)
+			err := db.Insert(&ins)
 			Expect(err).NotTo(HaveOccurred())
 
 			sel := Test{
@@ -247,7 +247,7 @@ var _ = Describe("DB nulls", func() {
 					Valid: true,
 				},
 			}
-			err := db.Create(&ins)
+			err := db.Insert(&ins)
 			Expect(err).NotTo(HaveOccurred())
 
 			sel := Test{
@@ -270,7 +270,7 @@ var _ = Describe("DB nulls", func() {
 			ins := Test{
 				Id: 1,
 			}
-			err := db.Create(&ins)
+			err := db.Insert(&ins)
 			Expect(err).NotTo(HaveOccurred())
 
 			sel := Test{
@@ -287,7 +287,7 @@ var _ = Describe("DB nulls", func() {
 				Id:    1,
 				Value: &value,
 			}
-			err := db.Create(&ins)
+			err := db.Insert(&ins)
 			Expect(err).NotTo(HaveOccurred())
 
 			sel := Test{
@@ -329,7 +329,7 @@ var _ = Describe("DB.Select", func() {
 	})
 })
 
-var _ = Describe("DB.Create", func() {
+var _ = Describe("DB.Insert", func() {
 	var db *pg.DB
 
 	BeforeEach(func() {
@@ -342,18 +342,18 @@ var _ = Describe("DB.Create", func() {
 	})
 
 	It("returns an error on nil", func() {
-		err := db.Create(nil)
+		err := db.Insert(nil)
 		Expect(err).To(MatchError("pg: Model(nil)"))
 	})
 
 	It("returns an errors if value is not settable", func() {
-		err := db.Create(1)
+		err := db.Insert(1)
 		Expect(err).To(MatchError("pg: Model(non-pointer int)"))
 	})
 
 	It("returns an errors if value is not supported", func() {
 		var v int
-		err := db.Create(&v)
+		err := db.Insert(&v)
 		Expect(err).To(MatchError("pg: Model(unsupported int)"))
 	})
 })
@@ -488,7 +488,7 @@ func (b Book) String() string {
 	return fmt.Sprintf("Book<Id=%d Title=%q>", b.Id, b.Title)
 }
 
-func (b *Book) BeforeCreate(db orm.DB) error {
+func (b *Book) BeforeInsert(db orm.DB) error {
 	if b.CreatedAt.IsZero() {
 		b.CreatedAt = time.Now()
 	}
@@ -562,7 +562,7 @@ var _ = Describe("ORM", func() {
 			ParentId: 1,
 		}}
 
-		err = db.Create(&genres)
+		err = db.Insert(&genres)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(genres).To(HaveLen(4))
 
@@ -576,7 +576,7 @@ var _ = Describe("ORM", func() {
 			ID:   12,
 			Name: "author 3",
 		}}
-		err = db.Create(&authors)
+		err = db.Insert(&authors)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(authors).To(HaveLen(3))
 
@@ -596,7 +596,7 @@ var _ = Describe("ORM", func() {
 			AuthorID: 11,
 			EditorID: 11,
 		}}
-		err = db.Create(&books)
+		err = db.Insert(&books)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(books).To(HaveLen(3))
 		for _, book := range books {
@@ -616,7 +616,7 @@ var _ = Describe("ORM", func() {
 			GenreId:      1,
 			Genre_Rating: 99999,
 		}}
-		err = db.Create(&bookGenres)
+		err = db.Insert(&bookGenres)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(bookGenres).To(HaveLen(3))
 
@@ -633,7 +633,7 @@ var _ = Describe("ORM", func() {
 			BookId: 101,
 			Lang:   "ua",
 		}}
-		err = db.Create(&translations)
+		err = db.Insert(&translations)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(translations).To(HaveLen(3))
 
@@ -650,7 +650,7 @@ var _ = Describe("ORM", func() {
 			TrackableType: "Translation",
 			Text:          "comment3",
 		}}
-		err = db.Create(&comments)
+		err = db.Insert(&comments)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(comments).To(HaveLen(3))
 	})

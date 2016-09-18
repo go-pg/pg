@@ -5,8 +5,8 @@ import "reflect"
 const (
 	AfterQueryHookFlag = 1 << iota
 	AfterSelectHookFlag
-	BeforeCreateHookFlag
-	AfterCreateHookFlag
+	BeforeInsertHookFlag
+	AfterInsertHookFlag
 )
 
 func callHookSlice(slice reflect.Value, ptr bool, db DB, hook func(reflect.Value, DB) error) error {
@@ -53,30 +53,30 @@ func callAfterSelectHookSlice(slice reflect.Value, ptr bool, db DB) error {
 	return callHookSlice(slice, ptr, db, callAfterSelectHook)
 }
 
-type beforeCreateHook interface {
-	BeforeCreate(db DB) error
+type beforeInsertHook interface {
+	BeforeInsert(db DB) error
 }
 
-var beforeCreateHookType = reflect.TypeOf((*beforeCreateHook)(nil)).Elem()
+var beforeInsertHookType = reflect.TypeOf((*beforeInsertHook)(nil)).Elem()
 
-func callBeforeCreateHook(v reflect.Value, db DB) error {
-	return v.Interface().(beforeCreateHook).BeforeCreate(db)
+func callBeforeInsertHook(v reflect.Value, db DB) error {
+	return v.Interface().(beforeInsertHook).BeforeInsert(db)
 }
 
-func callBeforeCreateHookSlice(slice reflect.Value, ptr bool, db DB) error {
-	return callHookSlice(slice, ptr, db, callBeforeCreateHook)
+func callBeforeInsertHookSlice(slice reflect.Value, ptr bool, db DB) error {
+	return callHookSlice(slice, ptr, db, callBeforeInsertHook)
 }
 
-type afterCreateHook interface {
-	AfterCreate(db DB) error
+type afterInsertHook interface {
+	AfterInsert(db DB) error
 }
 
-var afterCreateHookType = reflect.TypeOf((*afterCreateHook)(nil)).Elem()
+var afterInsertHookType = reflect.TypeOf((*afterInsertHook)(nil)).Elem()
 
-func callAfterCreateHook(v reflect.Value, db DB) error {
-	return v.Interface().(afterCreateHook).AfterCreate(db)
+func callAfterInsertHook(v reflect.Value, db DB) error {
+	return v.Interface().(afterInsertHook).AfterInsert(db)
 }
 
-func callAfterCreateHookSlice(slice reflect.Value, ptr bool, db DB) error {
-	return callHookSlice(slice, ptr, db, callAfterCreateHook)
+func callAfterInsertHookSlice(slice reflect.Value, ptr bool, db DB) error {
+	return callHookSlice(slice, ptr, db, callAfterInsertHook)
 }

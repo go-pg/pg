@@ -124,18 +124,18 @@ func (m *structTableModel) AfterSelect(db DB) error {
 	return callAfterSelectHook(m.strct.Addr(), db)
 }
 
-func (m *structTableModel) BeforeCreate(db DB) error {
-	if !m.table.Has(BeforeCreateHookFlag) {
+func (m *structTableModel) BeforeInsert(db DB) error {
+	if !m.table.Has(BeforeInsertHookFlag) {
 		return nil
 	}
-	return callBeforeCreateHook(m.strct.Addr(), db)
+	return callBeforeInsertHook(m.strct.Addr(), db)
 }
 
-func (m *structTableModel) AfterCreate(db DB) error {
-	if !m.table.Has(AfterCreateHookFlag) {
+func (m *structTableModel) AfterInsert(db DB) error {
+	if !m.table.Has(AfterInsertHookFlag) {
 		return nil
 	}
-	return callAfterCreateHook(m.strct.Addr(), db)
+	return callAfterInsertHook(m.strct.Addr(), db)
 }
 
 func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) error {

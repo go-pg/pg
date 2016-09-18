@@ -5,8 +5,8 @@ import (
 	"reflect"
 )
 
-func Create(db DB, v ...interface{}) error {
-	_, err := NewQuery(db, v...).Create()
+func Insert(db DB, v ...interface{}) error {
+	_, err := NewQuery(db, v...).Insert()
 	return err
 }
 

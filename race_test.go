@@ -30,7 +30,7 @@ var _ = Describe("DB race", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("SelectOrCreate with OnConflict is race free", func() {
+	It("SelectOrInsert with OnConflict is race free", func() {
 		perform(C, func(id int) {
 			a := &Author{
 				Name: "R. Scott Bakker",
@@ -42,7 +42,7 @@ var _ = Describe("DB race", func() {
 					Where("name = ?name").
 					OnConflict("DO NOTHING").
 					Returning("id").
-					SelectOrCreate(&a.ID)
+					SelectOrInsert(&a.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(a.ID).NotTo(BeZero())
 
@@ -60,7 +60,7 @@ var _ = Describe("DB race", func() {
 		Expect(count).To(Equal(1))
 	})
 
-	It("SelectOrCreate without OnConflict is race free", func() {
+	It("SelectOrInsert without OnConflict is race free", func() {
 		perform(C, func(id int) {
 			a := &Author{
 				Name: "R. Scott Bakker",
@@ -71,7 +71,7 @@ var _ = Describe("DB race", func() {
 					Column("id").
 					Where("name = ?name").
 					Returning("id").
-					SelectOrCreate(&a.ID)
+					SelectOrInsert(&a.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(a.ID).NotTo(BeZero())
 

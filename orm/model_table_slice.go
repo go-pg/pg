@@ -62,18 +62,18 @@ func (m *sliceTableModel) AfterSelect(db DB) error {
 	return callAfterSelectHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
-func (m *sliceTableModel) BeforeCreate(db DB) error {
-	if !m.table.Has(BeforeCreateHookFlag) {
+func (m *sliceTableModel) BeforeInsert(db DB) error {
+	if !m.table.Has(BeforeInsertHookFlag) {
 		return nil
 	}
-	return callBeforeCreateHookSlice(m.slice, m.sliceOfPtr, db)
+	return callBeforeInsertHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
-func (m *sliceTableModel) AfterCreate(db DB) error {
-	if !m.table.Has(AfterCreateHookFlag) {
+func (m *sliceTableModel) AfterInsert(db DB) error {
+	if !m.table.Has(AfterInsertHookFlag) {
 		return nil
 	}
-	return callAfterCreateHookSlice(m.slice, m.sliceOfPtr, db)
+	return callAfterInsertHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
 func (m *sliceTableModel) nextElem() reflect.Value {

@@ -19,7 +19,7 @@ func modelDB() *pg.DB {
 		panic(err)
 	}
 
-	err = db.Create(&Author{
+	err = db.Insert(&Author{
 		Name: "author 1",
 	})
 
@@ -37,7 +37,7 @@ func modelDB() *pg.DB {
 		EditorID:  11,
 		CreatedAt: time.Now(),
 	}}
-	err = db.Create(&books)
+	err = db.Insert(&books)
 	if err != nil {
 		panic(err)
 	}
@@ -46,12 +46,12 @@ func modelDB() *pg.DB {
 		genre := Genre{
 			Name: fmt.Sprintf("genre %d", i+1),
 		}
-		err = db.Create(&genre)
+		err = db.Insert(&genre)
 		if err != nil {
 			panic(err)
 		}
 
-		err = db.Create(&BookGenre{
+		err = db.Insert(&BookGenre{
 			BookId:  1,
 			GenreId: genre.Id,
 		})
@@ -69,7 +69,7 @@ func modelDB() *pg.DB {
 	return db
 }
 
-func ExampleDB_Create() {
+func ExampleDB_Insert() {
 	db := modelDB()
 
 	book := Book{
@@ -77,7 +77,7 @@ func ExampleDB_Create() {
 		AuthorID: 1,
 	}
 
-	err := db.Create(&book)
+	err := db.Insert(&book)
 	if err != nil {
 		panic(err)
 	}
@@ -90,7 +90,7 @@ func ExampleDB_Create() {
 	}
 }
 
-func ExampleDB_Create_bulkInsert() {
+func ExampleDB_Insert_bulkInsert() {
 	db := modelDB()
 
 	book1 := Book{
@@ -99,7 +99,7 @@ func ExampleDB_Create_bulkInsert() {
 	book2 := Book{
 		Title: "new book 2",
 	}
-	err := db.Create(&book1, &book2)
+	err := db.Insert(&book1, &book2)
 	if err != nil {
 		panic(err)
 	}
@@ -114,7 +114,7 @@ func ExampleDB_Create_bulkInsert() {
 	}
 }
 
-func ExampleDB_Create_bulkInsert2() {
+func ExampleDB_Insert_bulkInsert2() {
 	db := modelDB()
 
 	books := []Book{{
@@ -122,7 +122,7 @@ func ExampleDB_Create_bulkInsert2() {
 	}, {
 		Title: "new book 2",
 	}}
-	err := db.Create(&books)
+	err := db.Insert(&books)
 	if err != nil {
 		panic(err)
 	}
@@ -137,7 +137,7 @@ func ExampleDB_Create_bulkInsert2() {
 	}
 }
 
-func ExampleDB_Create_onConflictDoNothing() {
+func ExampleDB_Insert_onConflictDoNothing() {
 	db := modelDB()
 
 	book := Book{
@@ -146,7 +146,7 @@ func ExampleDB_Create_onConflictDoNothing() {
 	}
 
 	for i := 0; i < 2; i++ {
-		res, err := db.Model(&book).OnConflict("DO NOTHING").Create()
+		res, err := db.Model(&book).OnConflict("DO NOTHING").Insert()
 		if err != nil {
 			panic(err)
 		}
@@ -166,7 +166,7 @@ func ExampleDB_Create_onConflictDoNothing() {
 	// did nothing
 }
 
-func ExampleDB_Create_onConflictDoUpdate() {
+func ExampleDB_Insert_onConflictDoUpdate() {
 	db := modelDB()
 
 	var book *Book
@@ -178,7 +178,7 @@ func ExampleDB_Create_onConflictDoUpdate() {
 		_, err := db.Model(book).
 			OnConflict("(id) DO UPDATE").
 			Set("title = ?title").
-			Create()
+			Insert()
 		if err != nil {
 			panic(err)
 		}
@@ -199,7 +199,7 @@ func ExampleDB_Create_onConflictDoUpdate() {
 	// Book<Id=100 Title="title version #1">
 }
 
-func ExampleDB_Create_selectOrCreate() {
+func ExampleDB_Insert_selectOrInsert() {
 	db := modelDB()
 
 	author := Author{
@@ -210,7 +210,7 @@ func ExampleDB_Create_selectOrCreate() {
 		Where("name = ?name").
 		OnConflict("DO NOTHING"). // OnConflict is optional
 		Returning("id").
-		SelectOrCreate()
+		SelectOrInsert()
 	if err != nil {
 		panic(err)
 	}
@@ -784,7 +784,7 @@ func ExampleDB_Delete() {
 		Title:    "title 1",
 		AuthorID: 1,
 	}
-	err := db.Create(&book)
+	err := db.Insert(&book)
 	if err != nil {
 		panic(err)
 	}

@@ -25,10 +25,10 @@ func (Discard) AfterSelect(DB) error {
 	return nil
 }
 
-func (Discard) BeforeCreate(DB) error {
+func (Discard) BeforeInsert(DB) error {
 	return nil
 }
 
-func (Discard) AfterCreate(DB) error {
+func (Discard) AfterInsert(DB) error {
 	return nil
 }

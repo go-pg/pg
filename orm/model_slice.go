@@ -29,11 +29,11 @@ func (sliceModel) AfterSelect(_ DB) error {
 	return nil
 }
 
-func (sliceModel) BeforeCreate(_ DB) error {
+func (sliceModel) BeforeInsert(_ DB) error {
 	return nil
 }
 
-func (sliceModel) AfterCreate(_ DB) error {
+func (sliceModel) AfterInsert(_ DB) error {
 	return nil
 }
 

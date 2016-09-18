@@ -22,7 +22,7 @@ func ExampleDB_Model_hstoreStructTag() {
 		Id:    1,
 		Attrs: map[string]string{"hello": "world"},
 	}
-	if err := db.Create(&item1); err != nil {
+	if err := db.Insert(&item1); err != nil {
 		panic(err)
 	}
 

@@ -33,7 +33,7 @@ type QueryFormatter interface {
 type DB interface {
 	Model(model ...interface{}) *Query
 	Select(model interface{}) error
-	Create(model ...interface{}) error
+	Insert(model ...interface{}) error
 	Update(model interface{}) error
 	Delete(model interface{}) error
 

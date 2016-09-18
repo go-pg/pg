@@ -100,11 +100,11 @@ func (Strings) AfterSelect(_ orm.DB) error {
 	return nil
 }
 
-func (Strings) BeforeCreate(_ orm.DB) error {
+func (Strings) BeforeInsert(_ orm.DB) error {
 	return nil
 }
 
-func (Strings) AfterCreate(_ orm.DB) error {
+func (Strings) AfterInsert(_ orm.DB) error {
 	return nil
 }
 
@@ -149,11 +149,11 @@ func (Ints) AfterSelect(_ orm.DB) error {
 	return nil
 }
 
-func (Ints) BeforeCreate(_ orm.DB) error {
+func (Ints) BeforeInsert(_ orm.DB) error {
 	return nil
 }
 
-func (Ints) AfterCreate(_ orm.DB) error {
+func (Ints) AfterInsert(_ orm.DB) error {
 	return nil
 }
 
@@ -201,11 +201,11 @@ func (IntSet) AfterSelect(_ orm.DB) error {
 	return nil
 }
 
-func (IntSet) BeforeCreate(_ orm.DB) error {
+func (IntSet) BeforeInsert(_ orm.DB) error {
 	return nil
 }
 
-func (IntSet) AfterCreate(_ orm.DB) error {
+func (IntSet) AfterInsert(_ orm.DB) error {
 	return nil
 }
 

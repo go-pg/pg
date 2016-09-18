@@ -23,8 +23,8 @@ type Model interface {
 	AfterQuery(DB) error
 	AfterSelect(DB) error
 
-	BeforeCreate(DB) error
-	AfterCreate(DB) error
+	BeforeInsert(DB) error
+	AfterInsert(DB) error
 }
 
 func NewModel(values ...interface{}) (Model, error) {
