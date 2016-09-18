@@ -437,6 +437,7 @@ func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) 
 		return false, q.err
 	}
 
+	var insertErr error
 	for i := 0; i < 5; i++ {
 		if i >= 2 {
 			time.Sleep(internal.RetryBackoff << uint(i-2))
@@ -452,6 +453,7 @@ func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) 
 
 		res, err := q.Create(values...)
 		if err != nil {
+			insertErr = err
 			if pgErr, ok := err.(internal.PGError); ok {
 				if pgErr.IntegrityViolation() {
 					continue
@@ -468,7 +470,11 @@ func (q *Query) SelectOrCreate(values ...interface{}) (created bool, err error) 
 		}
 	}
 
-	return false, errors.New("pg: SelectOrCreate: select returns no rows")
+	err = fmt.Errorf(
+		"pg: SelectOrCreate: select returns no rows (insert fails with err=%q)",
+		insertErr,
+	)
+	return false, err
 }
 
 // Update updates the model.
