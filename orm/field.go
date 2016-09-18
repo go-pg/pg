@@ -9,7 +9,7 @@ import (
 const (
 	PrimaryKeyFlag = 1 << iota
 	ForeignKeyFlag
-	NullFlag
+	NotNullFlag
 )
 
 type Field struct {
@@ -46,12 +46,12 @@ func (f *Field) IsEmpty(strct reflect.Value) bool {
 }
 
 func (f *Field) OmitEmpty(strct reflect.Value) bool {
-	return f.Has(NullFlag) && f.isEmpty(f.Value(strct))
+	return !f.Has(NotNullFlag) && f.isEmpty(f.Value(strct))
 }
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 	fv := f.Value(strct)
-	if f.Has(NullFlag) && f.isEmpty(fv) {
+	if !f.Has(NotNullFlag) && f.isEmpty(fv) {
 		return types.AppendNull(b, quote)
 	}
 	return f.append(b, fv, quote)

@@ -220,8 +220,8 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		isEmpty: isEmptier(f.Type),
 	}
 
-	if _, ok := sqlOpt.Get("null"); ok {
-		field.flags |= NullFlag
+	if _, ok := sqlOpt.Get("notnull"); ok {
+		field.flags |= NotNullFlag
 	}
 	if len(t.PKs) == 0 && (field.SQLName == "id" || field.SQLName == "uuid") {
 		field.flags |= PrimaryKeyFlag

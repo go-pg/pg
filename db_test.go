@@ -443,7 +443,7 @@ type Genre struct {
 
 	Books []Book `pg:",many2many:book_genres"` // many to many relation
 
-	ParentId  int     `sql:",null"`
+	ParentId  int
 	Subgenres []Genre `pg:",fk:Parent"` // fk specifies prefix for foreign key (ParentId)
 }
 
@@ -476,8 +476,8 @@ type Book struct {
 	AuthorID  int
 	Author    *Author // has one relation
 	EditorID  int
-	Editor    *Author   // has one relation
-	CreatedAt time.Time `sql:",null"`
+	Editor    *Author // has one relation
+	CreatedAt time.Time
 
 	Genres       []Genre       `pg:",many2many:book_genres" gorm:"many2many:book_genres;"` // many to many relation
 	Translations []Translation // has many relation
