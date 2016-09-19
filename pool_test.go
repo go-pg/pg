@@ -6,7 +6,7 @@ import (
 
 	. "gopkg.in/check.v1"
 
-	"gopkg.in/pg.v4"
+	"gopkg.in/pg.v5"
 )
 
 func TestStatementTimeout(t *testing.T) {

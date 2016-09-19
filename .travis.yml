@@ -33,4 +33,4 @@ install:
   - go get github.com/onsi/ginkgo
   - go get github.com/onsi/gomega
   - mkdir -p $HOME/gopath/src/gopkg.in
-  - mv `pwd` $HOME/gopath/src/gopkg.in/pg.v4
+  - mv `pwd` $HOME/gopath/src/gopkg.in/pg.v5

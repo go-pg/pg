@@ -3,7 +3,7 @@ package types_test
 import (
 	"testing"
 
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/types"
 )
 
 func BenchmarkParseTime(b *testing.B) {

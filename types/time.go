@@ -3,7 +3,7 @@ package types
 import (
 	"time"
 
-	"gopkg.in/pg.v4/internal"
+	"gopkg.in/pg.v5/internal"
 )
 
 const (

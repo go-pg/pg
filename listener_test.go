@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"gopkg.in/pg.v4"
+	"gopkg.in/pg.v5"
 )
 
 var _ = Context("Listener", func() {

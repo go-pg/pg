@@ -1,6 +1,6 @@
 package orm
 
-import "gopkg.in/pg.v4/types"
+import "gopkg.in/pg.v5/types"
 
 type join struct {
 	Parent     *join

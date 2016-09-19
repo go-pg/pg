@@ -1,6 +1,6 @@
 package types
 
-import "gopkg.in/pg.v4/internal/parser"
+import "gopkg.in/pg.v5/internal/parser"
 
 func AppendJSONB(b, jsonb []byte, quote int) []byte {
 	if quote == 1 {

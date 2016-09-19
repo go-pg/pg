@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/types"
 )
 
 var jsonbTests = []struct {

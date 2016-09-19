@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/pg.v4/internal/pool"
+	"gopkg.in/pg.v5/internal/pool"
 )
 
 func benchmarkPoolGetPut(b *testing.B, poolSize int) {

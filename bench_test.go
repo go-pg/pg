@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/pg.v4"
-	"gopkg.in/pg.v4/orm"
+	"gopkg.in/pg.v5"
+	"gopkg.in/pg.v5/orm"
 )
 
 func benchmarkDB() *pg.DB {

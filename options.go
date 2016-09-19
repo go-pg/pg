@@ -5,7 +5,7 @@ import (
 	"net"
 	"time"
 
-	"gopkg.in/pg.v4/internal/pool"
+	"gopkg.in/pg.v5/internal/pool"
 )
 
 // Database connection options.

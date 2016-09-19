@@ -3,7 +3,7 @@ package orm
 import (
 	"strconv"
 
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/types"
 )
 
 func Select(db DB, model interface{}) error {
