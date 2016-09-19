@@ -41,13 +41,13 @@ func (q updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 }
 
 func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
-	if q.model == nil {
-		return nil, errors.New("pg: Model(nil)")
-	}
-
 	if len(q.set) > 0 {
 		b = q.appendSet(b)
 		return b, nil
+	}
+
+	if q.model == nil {
+		return nil, errors.New("pg: Model(nil)")
 	}
 
 	b = append(b, " SET "...)
