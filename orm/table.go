@@ -7,7 +7,7 @@ import (
 
 	"github.com/jinzhu/inflection"
 
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/types"
 )
 
 type Table struct {

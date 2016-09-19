@@ -1,6 +1,6 @@
 package pg
 
-import "gopkg.in/pg.v4/internal/pool"
+import "gopkg.in/pg.v5/internal/pool"
 
 func (db *DB) Pool() *pool.ConnPool {
 	return db.pool

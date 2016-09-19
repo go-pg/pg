@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/pg.v4/internal"
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/internal"
+	"gopkg.in/pg.v5/types"
 )
 
 type withQuery struct {

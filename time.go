@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/types"
 )
 
 var jsonNull = []byte("null")

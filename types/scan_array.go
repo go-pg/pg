@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"strconv"
 
-	"gopkg.in/pg.v4/internal"
-	"gopkg.in/pg.v4/internal/parser"
+	"gopkg.in/pg.v5/internal"
+	"gopkg.in/pg.v5/internal/parser"
 )
 
 func ArrayScanner(typ reflect.Type) ScannerFunc {

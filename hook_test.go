@@ -4,8 +4,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"gopkg.in/pg.v4"
-	"gopkg.in/pg.v4/orm"
+	"gopkg.in/pg.v5"
+	"gopkg.in/pg.v5/orm"
 )
 
 type HookTest struct {

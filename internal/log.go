@@ -28,7 +28,7 @@ func LogQuery(query string) {
 	QueryLogger.Printf("%s:%d: %s", file, line, strings.TrimRight(query, "\t\n"))
 }
 
-const packageName = "gopkg.in/pg.v4"
+const packageName = "gopkg.in/pg.v5"
 
 func fileLine(depth int) (string, int) {
 	for i := depth; ; i++ {

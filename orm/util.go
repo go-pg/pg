@@ -3,7 +3,7 @@ package orm
 import (
 	"reflect"
 
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/types"
 )
 
 func indirectType(t reflect.Type) reflect.Type {

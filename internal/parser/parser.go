@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"strconv"
 
-	"gopkg.in/pg.v4/internal"
+	"gopkg.in/pg.v5/internal"
 )
 
 type Parser struct {

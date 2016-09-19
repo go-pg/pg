@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"io"
 
-	"gopkg.in/pg.v4/internal"
-	"gopkg.in/pg.v4/internal/pool"
-	"gopkg.in/pg.v4/orm"
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/internal"
+	"gopkg.in/pg.v5/internal/pool"
+	"gopkg.in/pg.v5/orm"
+	"gopkg.in/pg.v5/types"
 )
 
 const (

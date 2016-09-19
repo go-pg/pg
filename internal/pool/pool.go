@@ -10,7 +10,7 @@ import (
 
 	"gopkg.in/bsm/ratelimit.v1"
 
-	"gopkg.in/pg.v4/internal"
+	"gopkg.in/pg.v5/internal"
 )
 
 var (

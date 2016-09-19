@@ -1,13 +1,13 @@
-package pg // import "gopkg.in/pg.v4"
+package pg // import "gopkg.in/pg.v5"
 
 import (
 	"io"
 	"time"
 
-	"gopkg.in/pg.v4/internal"
-	"gopkg.in/pg.v4/internal/pool"
-	"gopkg.in/pg.v4/orm"
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/internal"
+	"gopkg.in/pg.v5/internal/pool"
+	"gopkg.in/pg.v5/orm"
+	"gopkg.in/pg.v5/types"
 )
 
 // Connect connects to a database using provided options.

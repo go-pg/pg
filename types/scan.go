@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"gopkg.in/pg.v4/internal"
+	"gopkg.in/pg.v5/internal"
 )
 
 func Scan(v interface{}, b []byte) error {

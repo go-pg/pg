@@ -3,7 +3,7 @@ package orm_test
 import (
 	"testing"
 
-	"gopkg.in/pg.v4/orm"
+	"gopkg.in/pg.v5/orm"
 )
 
 func TestUnderscore(t *testing.T) {

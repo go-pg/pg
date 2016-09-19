@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"strings"
 
-	"gopkg.in/pg.v4/internal/parser"
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/internal/parser"
+	"gopkg.in/pg.v5/types"
 )
 
 type FormatAppender interface {

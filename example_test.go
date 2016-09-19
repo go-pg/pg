@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/pg.v4"
+	"gopkg.in/pg.v5"
 )
 
 var db *pg.DB

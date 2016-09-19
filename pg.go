@@ -4,9 +4,9 @@ import (
 	"log"
 	"strconv"
 
-	"gopkg.in/pg.v4/internal"
-	"gopkg.in/pg.v4/orm"
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/internal"
+	"gopkg.in/pg.v5/orm"
+	"gopkg.in/pg.v5/types"
 )
 
 // Discard is used with Query and QueryOne to discard rows.

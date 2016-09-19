@@ -4,9 +4,9 @@ import (
 	"io"
 	"os"
 
-	"gopkg.in/pg.v4/internal/pool"
-	"gopkg.in/pg.v4/orm"
-	"gopkg.in/pg.v4/types"
+	"gopkg.in/pg.v5/internal/pool"
+	"gopkg.in/pg.v5/orm"
+	"gopkg.in/pg.v5/types"
 )
 
 // When true Tx does not issue BEGIN, COMMIT, and ROLLBACK.

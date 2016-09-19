@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"gopkg.in/pg.v4/internal"
+	"gopkg.in/pg.v5/internal"
 )
 
 // Placeholder that is replaced with count(*).

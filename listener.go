@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/pg.v4/internal"
-	"gopkg.in/pg.v4/internal/pool"
+	"gopkg.in/pg.v5/internal"
+	"gopkg.in/pg.v5/internal/pool"
 )
 
 // Not thread-safe.

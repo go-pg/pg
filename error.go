@@ -4,7 +4,7 @@ import (
 	"io"
 	"net"
 
-	"gopkg.in/pg.v4/internal"
+	"gopkg.in/pg.v5/internal"
 )
 
 var (
