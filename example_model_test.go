@@ -433,14 +433,14 @@ func ExampleDB_Model_applyFunc() {
 	var authorId int
 	var editorId int
 
-	filter := func(q *orm.Query) *orm.Query {
+	filter := func(q *orm.Query) (*orm.Query, error) {
 		if authorId != 0 {
 			q = q.Where("author_id = ?", authorId)
 		}
 		if editorId != 0 {
 			q = q.Where("editor_id = ?", editorId)
 		}
-		return q
+		return q, nil
 	}
 
 	var books []Book

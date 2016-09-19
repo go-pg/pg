@@ -170,8 +170,13 @@ func (q *Query) Returning(s string, params ...interface{}) *Query {
 }
 
 // Apply calls the fn passing the Query as an argument.
-func (q *Query) Apply(fn func(*Query) *Query) *Query {
-	return fn(q)
+func (q *Query) Apply(fn func(*Query) (*Query, error)) *Query {
+	qq, err := fn(q)
+	if err != nil {
+		q.err(err)
+		return q
+	}
+	return qq
 }
 
 // Count returns number of rows matching the query using count aggregate function.
