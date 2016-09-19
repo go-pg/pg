@@ -84,7 +84,7 @@ var formatTests = []formatTest{
 
 	{q: "?", params: params{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
 	{q: "?", params: params{orm.Q("query")}, wanted: "query"},
-	{q: "?", params: params{orm.F("field")}, wanted: `"field"`},
+	{q: "?", params: params{types.F("field")}, wanted: `"field"`},
 	{q: "?", params: params{structv}, wanted: `'{"String":"string_value","NotNull":"","Iface":"iface_value"}'`},
 
 	{q: `\? ?`, params: params{1}, wanted: "? 1"},
@@ -100,9 +100,9 @@ var formatTests = []formatTest{
 	{q: "?string ?Method ?Method2", params: params{embeddedStructv}, wanted: "'string_value' 'method_value' 'method_value2'"},
 
 	{q: "?string", params: params{structv}, paramsMap: paramsMap{"string": "my_value"}, wanted: "'my_value'"},
-
 	{q: "?", params: params{types.Q("?string")}, paramsMap: paramsMap{"string": "my_value"}, wanted: "?string"},
 	{q: "?", params: params{types.F("?string")}, paramsMap: paramsMap{"string": types.Q("my_value")}, wanted: `"?string"`},
+	{q: "?", params: params{orm.Q("?string")}, paramsMap: paramsMap{"string": "my_value"}, wanted: "'my_value'"},
 	{q: "?MethodParam", params: params{structv}, paramsMap: paramsMap{"string": "my_value"}, wanted: "?string"},
 }
 

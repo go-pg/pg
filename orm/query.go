@@ -104,7 +104,7 @@ loop:
 		}
 
 		q.fields = append(q.fields, column)
-		q.columns = append(q.columns, fieldParams{field: column})
+		q.columns = append(q.columns, fieldAppender{column})
 	}
 	return q
 }

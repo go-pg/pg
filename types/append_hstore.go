@@ -13,7 +13,7 @@ func HstoreAppender(typ reflect.Type) AppenderFunc {
 	}
 	return func(b []byte, v reflect.Value, quote int) []byte {
 		err := fmt.Errorf("pg.Hstore(unsupported %s)", v.Type())
-		return appendError(b, err)
+		return AppendError(b, err)
 	}
 }
 

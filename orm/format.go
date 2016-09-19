@@ -31,19 +31,14 @@ func (q queryParams) AppendFormat(dst []byte, f QueryFormatter) []byte {
 
 //------------------------------------------------------------------------------
 
-type fieldParams struct {
-	field  string
-	params []interface{}
+type fieldAppender struct {
+	field string
 }
 
-var _ FormatAppender = (*fieldParams)(nil)
+var _ FormatAppender = (*fieldAppender)(nil)
 
-func F(field string, params ...interface{}) FormatAppender {
-	return fieldParams{field, params}
-}
-
-func (q fieldParams) AppendFormat(b []byte, f QueryFormatter) []byte {
-	return types.AppendField(b, q.field, 1)
+func (a fieldAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
+	return types.AppendField(b, a.field, 1)
 }
 
 //------------------------------------------------------------------------------

@@ -55,7 +55,7 @@ func Append(b []byte, v interface{}, quote int) []byte {
 	}
 }
 
-func appendError(b []byte, err error) []byte {
+func AppendError(b []byte, err error) []byte {
 	b = append(b, "?!("...)
 	b = append(b, err.Error()...)
 	b = append(b, ')')
@@ -175,7 +175,7 @@ func AppendStringStringMap(b []byte, m map[string]string, quote int) []byte {
 func appendDriverValuer(b []byte, v driver.Valuer, quote int) []byte {
 	value, err := v.Value()
 	if err != nil {
-		return appendError(b, err)
+		return AppendError(b, err)
 	}
 	return Append(b, value, quote)
 }
@@ -234,7 +234,7 @@ func appendField(b []byte, p *parser.Parser, quote int) []byte {
 func appendAppender(b []byte, v ValueAppender, quote int) []byte {
 	bb, err := v.AppendValue(b, quote)
 	if err != nil {
-		return appendError(b, err)
+		return AppendError(b, err)
 	}
 	return bb
 }
