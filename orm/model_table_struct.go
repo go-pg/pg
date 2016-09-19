@@ -196,11 +196,13 @@ func (m *structTableModel) AddJoin(j join) *join {
 	return &m.joins[len(m.joins)-1]
 }
 
-func (m *structTableModel) Join(name string, apply func(*Query) *Query) *join {
+func (m *structTableModel) Join(name string, apply func(*Query) (*Query, error)) *join {
 	return m.join(m.Value(), name, apply)
 }
 
-func (m *structTableModel) join(bind reflect.Value, name string, apply func(*Query) *Query) *join {
+func (m *structTableModel) join(
+	bind reflect.Value, name string, apply func(*Query) (*Query, error),
+) *join {
 	path := strings.Split(name, ".")
 	index := make([]int, 0, len(path))
 
@@ -247,7 +249,13 @@ func (m *structTableModel) join(bind reflect.Value, name string, apply func(*Que
 
 	if hasColumnName {
 		column := path[len(path)-1]
-		lastJoin.Columns = append(lastJoin.Columns, column)
+		if column == "_" {
+			if lastJoin.Columns == nil {
+				lastJoin.Columns = make([]string, 0)
+			}
+		} else {
+			lastJoin.Columns = append(lastJoin.Columns, column)
+		}
 	}
 
 	return lastJoin

@@ -7,9 +7,9 @@ type ValueAppender interface {
 //------------------------------------------------------------------------------
 
 // Q represents safe SQL query.
-type Q []byte
+type Q string
 
-var _ ValueAppender = Q(nil)
+var _ ValueAppender = Q("")
 
 func (q Q) AppendValue(dst []byte, quote int) ([]byte, error) {
 	return append(dst, q...), nil

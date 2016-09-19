@@ -26,7 +26,7 @@ func (sliceTableModel) useQueryOne() bool {
 	return false
 }
 
-func (m *sliceTableModel) Join(name string, apply func(*Query) *Query) *join {
+func (m *sliceTableModel) Join(name string, apply func(*Query) (*Query, error)) *join {
 	return m.join(m.Value(), name, apply)
 }
 

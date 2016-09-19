@@ -12,7 +12,7 @@ type tableModel interface {
 	Table() *Table
 	AppendParam([]byte, string) ([]byte, bool)
 
-	Join(string, func(*Query) *Query) *join
+	Join(string, func(*Query) (*Query, error)) *join
 	GetJoin(string) *join
 	GetJoins() []join
 	AddJoin(join) *join

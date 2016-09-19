@@ -1014,8 +1014,8 @@ var _ = Describe("ORM", func() {
 		var book Book
 		err := db.Model(&book).
 			Column("book.id", "Translations").
-			Relation("Translations", func(q *orm.Query) *orm.Query {
-				return q.Where("lang = 'ru'")
+			Relation("Translations", func(q *orm.Query) (*orm.Query, error) {
+				return q.Where("lang = 'ru'"), nil
 			}).
 			First()
 		Expect(err).NotTo(HaveOccurred())
@@ -1031,8 +1031,8 @@ var _ = Describe("ORM", func() {
 		var book Book
 		err := db.Model(&book).
 			Column("book.id", "Genres").
-			Relation("Genres", func(q *orm.Query) *orm.Query {
-				return q.Where("genre__rating > 999")
+			Relation("Genres", func(q *orm.Query) (*orm.Query, error) {
+				return q.Where("genre__rating > 999"), nil
 			}).
 			First()
 		Expect(err).NotTo(HaveOccurred())

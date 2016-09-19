@@ -7,49 +7,23 @@ type join struct {
 	BaseModel  tableModel
 	JoinModel  tableModel
 	Rel        *Relation
-	ApplyQuery func(*Query) *Query
+	ApplyQuery func(*Query) (*Query, error)
 
 	Columns []string
 }
 
 func (j *join) JoinHasOne(q *Query) {
-	var cond types.Q
-	joinTable := j.Rel.JoinTable
-	for i, fk := range j.Rel.FKs {
-		cond = appendSep(cond, " AND ")
-		cond = q.FormatQuery(
-			cond,
-			`?.? = ?.?`,
-			j.Rel.Field.ColName, joinTable.PKs[i].ColName,
-			j.BaseModel.Table().Alias, fk.ColName,
-		)
+	if j.hasColumns() {
+		q.columns = append(q.columns, hasOneColumnsQuery{j})
 	}
-
-	q = q.Join(
-		"LEFT JOIN ? AS ? ON ?",
-		j.JoinModel.Table().Name, j.Rel.Field.ColName, cond,
-	)
-	q.columns = j.appendJoinedColumns(q.columns)
+	q.joins = append(q.joins, hasOneJoinQuery{j})
 }
 
 func (j *join) JoinBelongsTo(q *Query) {
-	baseTable := j.BaseModel.Table()
-	var cond types.Q
-	for i, fk := range j.Rel.FKs {
-		cond = appendSep(cond, " AND ")
-		cond = q.FormatQuery(
-			cond,
-			`?.? = ?.?`,
-			j.Rel.Field.ColName, fk.ColName,
-			baseTable.Alias, baseTable.PKs[i].ColName,
-		)
+	if j.hasColumns() {
+		q.columns = append(q.columns, hasOneColumnsQuery{j})
 	}
-
-	q = q.Join(
-		"LEFT JOIN ? AS ? ON ?",
-		j.JoinModel.Table().Name, j.Rel.Field.ColName, cond,
-	)
-	q.columns = j.appendJoinedColumns(q.columns)
+	q.joins = append(q.joins, belongsToJoinQuery{j})
 }
 
 func (j *join) Select(db DB) error {
@@ -62,7 +36,7 @@ func (j *join) Select(db DB) error {
 	panic("not reached")
 }
 
-func (j *join) selectMany(db DB) error {
+func (j *join) selectMany(db DB) (err error) {
 	root := j.JoinModel.Root()
 	index := j.JoinModel.Index()
 	index = index[:len(index)-1]
@@ -70,10 +44,13 @@ func (j *join) selectMany(db DB) error {
 	manyModel := newManyModel(j)
 	q := NewQuery(db, manyModel)
 	if j.ApplyQuery != nil {
-		q = j.ApplyQuery(q)
+		q, err = j.ApplyQuery(q)
+		if err != nil {
+			return err
+		}
 	}
 
-	q.columns = j.appendColumnsMany(q.columns)
+	q.columns = append(q.columns, manyColumnsQuery{j})
 
 	baseTable := j.BaseModel.Table()
 	cols := columns(j.JoinModel.Table().Alias, "", j.Rel.FKs)
@@ -88,7 +65,7 @@ func (j *join) selectMany(db DB) error {
 		)
 	}
 
-	err := q.Select()
+	err = q.Select()
 	if err != nil {
 		return err
 	}
@@ -96,7 +73,7 @@ func (j *join) selectMany(db DB) error {
 	return nil
 }
 
-func (j *join) selectM2M(db DB) error {
+func (j *join) selectM2M(db DB) (err error) {
 	index := j.JoinModel.Index()
 	index = index[:len(index)-1]
 
@@ -107,16 +84,13 @@ func (j *join) selectM2M(db DB) error {
 	m2mModel := newM2MModel(j)
 	q := NewQuery(db, m2mModel)
 	if j.ApplyQuery != nil {
-		q = j.ApplyQuery(q)
+		q, err = j.ApplyQuery(q)
+		if err != nil {
+			return err
+		}
 	}
 
-	// Select all m2m intermediate table columns.
-	q.columns = appendSep(q.columns, ", ")
-	q.columns = append(q.columns, j.Rel.M2MTableName...)
-	q.columns = append(q.columns, ".*"...)
-
-	q.columns = j.appendColumnsMany(q.columns)
-
+	q.columns = append(q.columns, manyColumnsQuery{j})
 	q = q.Join(
 		"JOIN ? ON (?) IN (?)",
 		j.Rel.M2MTableName,
@@ -132,7 +106,7 @@ func (j *join) selectM2M(db DB) error {
 		)
 	}
 
-	err := q.Select()
+	err = q.Select()
 	if err != nil {
 		return err
 	}
@@ -157,57 +131,6 @@ func appendAlias(b []byte, j *join) []byte {
 	return b
 }
 
-func (j *join) appendJoinedColumns(dst []byte) []byte {
-	alias := j.alias()
-
-	if len(j.Columns) == 0 {
-		for _, f := range j.JoinModel.Table().Fields {
-			dst = appendSep(dst, ", ")
-			dst = append(dst, j.Rel.Field.ColName...)
-			dst = append(dst, '.')
-			dst = append(dst, f.ColName...)
-			dst = append(dst, " AS "...)
-			columnAlias := append(alias, f.SQLName...)
-			dst = types.AppendFieldBytes(dst, columnAlias, 1)
-			alias = columnAlias[:len(alias)]
-		}
-		return dst
-	}
-
-	for _, column := range j.Columns {
-		if column == "_" {
-			continue
-		}
-
-		dst = appendSep(dst, ", ")
-		dst = append(dst, j.Rel.Field.ColName...)
-		dst = append(dst, '.')
-		dst = types.AppendField(dst, column, 1)
-		dst = append(dst, " AS "...)
-		columnAlias := append(alias, column...)
-		dst = types.AppendFieldBytes(dst, append(alias, column...), 1)
-		alias = columnAlias[:len(alias)]
-	}
-	return dst
-}
-
-func (j *join) appendColumnsMany(dst []byte) []byte {
-	if len(j.Columns) == 0 {
-		dst = appendSep(dst, ", ")
-		dst = append(dst, j.JoinModel.Table().Alias...)
-		dst = append(dst, ".*"...)
-		return dst
-	}
-
-	for _, column := range j.Columns {
-		if column == "_" {
-			continue
-		}
-
-		dst = appendSep(dst, ", ")
-		dst = append(dst, j.JoinModel.Table().Alias...)
-		dst = append(dst, '.')
-		dst = types.AppendField(dst, column, 1)
-	}
-	return dst
+func (q *join) hasColumns() bool {
+	return len(q.Columns) != 0 || q.Columns == nil
 }
