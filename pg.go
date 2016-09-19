@@ -30,8 +30,8 @@ func Q(query string, params ...interface{}) orm.FormatAppender {
 
 // F quotes a SQL identifier such as a table or column name replacing any
 // placeholders found in the field.
-func F(field string, params ...interface{}) orm.FormatAppender {
-	return orm.F(field, params...)
+func F(field string) types.ValueAppender {
+	return types.F(field)
 }
 
 // In accepts a slice and returns a wrapper that can be used with PostgreSQL

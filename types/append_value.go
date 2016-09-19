@@ -137,7 +137,7 @@ func appendStructValue(b []byte, v reflect.Value, quote int) []byte {
 func appendJSONValue(b []byte, v reflect.Value, quote int) []byte {
 	bytes, err := json.Marshal(v.Interface())
 	if err != nil {
-		return appendError(b, err)
+		return AppendError(b, err)
 	}
 	return AppendJSONB(b, bytes, quote)
 }
