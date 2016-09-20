@@ -138,6 +138,22 @@ func (errLoader) AfterInsert(_ orm.DB) error {
 	return nil
 }
 
+func (errLoader) BeforeUpdate(_ orm.DB) error {
+	return nil
+}
+
+func (errLoader) AfterUpdate(_ orm.DB) error {
+	return nil
+}
+
+func (errLoader) BeforeDelete(_ orm.DB) error {
+	return nil
+}
+
+func (errLoader) AfterDelete(_ orm.DB) error {
+	return nil
+}
+
 func (m errLoader) ScanColumn(int, string, []byte) error {
 	return errors.New(string(m))
 }

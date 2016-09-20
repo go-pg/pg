@@ -48,3 +48,14 @@ func (err PGError) Error() string {
 		err.Field('S'), err.Field('C'), err.Field('M'), err.Field('a'),
 	)
 }
+
+func AssertOneRow(l int) error {
+	switch {
+	case l == 0:
+		return ErrNoRows
+	case l > 1:
+		return ErrMultiRows
+	default:
+		return nil
+	}
+}

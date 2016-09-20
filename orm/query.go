@@ -219,6 +219,13 @@ func (q *Query) newModel(values []interface{}) (model Model, err error) {
 	return q.model, nil
 }
 
+func (q *Query) query(model Model, query interface{}) (*types.Result, error) {
+	if m, ok := model.(useQueryOne); ok && m.useQueryOne() {
+		return q.db.QueryOne(model, query, q.model)
+	}
+	return q.db.Query(model, query, q.model)
+}
+
 // Select selects the model.
 func (q *Query) Select(values ...interface{}) error {
 	if q.stickyErr != nil {
@@ -228,19 +235,13 @@ func (q *Query) Select(values ...interface{}) error {
 	if q.model != nil {
 		q.addJoins(q.model.GetJoins())
 	}
-	sel := selectQuery{q}
 
 	model, err := q.newModel(values)
 	if err != nil {
 		return err
 	}
 
-	var res *types.Result
-	if m, ok := model.(useQueryOne); ok && m.useQueryOne() {
-		res, err = q.db.QueryOne(model, sel, q.model)
-	} else {
-		res, err = q.db.Query(model, sel, q.model)
-	}
+	res, err := q.query(model, selectQuery{q})
 	if err != nil {
 		return err
 	}
@@ -323,11 +324,9 @@ func (q *Query) Insert(values ...interface{}) (*types.Result, error) {
 		return nil, q.stickyErr
 	}
 
-	var model Model
-	if len(values) > 0 {
-		model = Scan(values...)
-	} else if q.model != nil {
-		model = q.model
+	model, err := q.newModel(values)
+	if err != nil {
+		return nil, err
 	}
 
 	if q.model != nil {
@@ -336,8 +335,7 @@ func (q *Query) Insert(values ...interface{}) (*types.Result, error) {
 		}
 	}
 
-	ins := insertQuery{Query: q}
-	res, err := q.db.Query(model, ins, q.model)
+	res, err := q.db.Query(model, insertQuery{Query: q}, q.model)
 	if err != nil {
 		return nil, err
 	}
@@ -408,7 +406,24 @@ func (q *Query) Update(values ...interface{}) (*types.Result, error) {
 		return nil, err
 	}
 
-	return q.db.Query(model, updateQuery{q}, q.model)
+	if q.model != nil {
+		if err := q.model.BeforeUpdate(q.db); err != nil {
+			return nil, err
+		}
+	}
+
+	res, err := q.db.Query(model, updateQuery{q}, q.model)
+	if err != nil {
+		return nil, err
+	}
+
+	if q.model != nil {
+		if err := q.model.AfterUpdate(q.db); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
 }
 
 // Delete deletes the model.
@@ -416,7 +431,25 @@ func (q *Query) Delete() (*types.Result, error) {
 	if q.stickyErr != nil {
 		return nil, q.stickyErr
 	}
-	return q.db.Exec(deleteQuery{q}, q.model)
+
+	if q.model != nil {
+		if err := q.model.BeforeDelete(q.db); err != nil {
+			return nil, err
+		}
+	}
+
+	res, err := q.db.Query(q.model, deleteQuery{q}, q.model)
+	if err != nil {
+		return nil, err
+	}
+
+	if q.model != nil {
+		if err := q.model.AfterDelete(q.db); err != nil {
+			return nil, err
+		}
+	}
+
+	return res, nil
 }
 
 func (q *Query) FormatQuery(dst []byte, query string, params ...interface{}) []byte {

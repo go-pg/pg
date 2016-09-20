@@ -32,3 +32,19 @@ func (Discard) BeforeInsert(DB) error {
 func (Discard) AfterInsert(DB) error {
 	return nil
 }
+
+func (Discard) BeforeUpdate(DB) error {
+	return nil
+}
+
+func (Discard) AfterUpdate(DB) error {
+	return nil
+}
+
+func (Discard) BeforeDelete(DB) error {
+	return nil
+}
+
+func (Discard) AfterDelete(DB) error {
+	return nil
+}

@@ -88,3 +88,19 @@ func (m *manyModel) BeforeInsert(db DB) error {
 func (m *manyModel) AfterInsert(db DB) error {
 	return nil
 }
+
+func (m *manyModel) BeforeUpdate(db DB) error {
+	return nil
+}
+
+func (m *manyModel) AfterUpdate(db DB) error {
+	return nil
+}
+
+func (m *manyModel) BeforeDelete(db DB) error {
+	return nil
+}
+
+func (m *manyModel) AfterDelete(db DB) error {
+	return nil
+}

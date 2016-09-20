@@ -25,6 +25,12 @@ type Model interface {
 
 	BeforeInsert(DB) error
 	AfterInsert(DB) error
+
+	BeforeUpdate(DB) error
+	AfterUpdate(DB) error
+
+	BeforeDelete(DB) error
+	AfterDelete(DB) error
 }
 
 func NewModel(values ...interface{}) (Model, error) {
