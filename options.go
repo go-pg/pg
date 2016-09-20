@@ -31,6 +31,8 @@ type Options struct {
 	// Maximum number of retries before giving up.
 	// Default is to not retry failed queries.
 	MaxRetries int
+	// Whether to retry queries cancelled because of statement_timeout.
+	RetryStatementTimeout bool
 
 	// Dial timeout for establishing new connections.
 	// Default is 5 seconds.
@@ -76,7 +78,11 @@ func (opt *Options) init() {
 	}
 
 	if opt.PoolTimeout == 0 {
-		opt.PoolTimeout = 5 * time.Second
+		if opt.ReadTimeout != 0 {
+			opt.PoolTimeout = opt.ReadTimeout + time.Second
+		} else {
+			opt.PoolTimeout = 30 * time.Second
+		}
 	}
 
 	if opt.DialTimeout == 0 {

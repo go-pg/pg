@@ -25,8 +25,8 @@ var timers = sync.Pool{
 	},
 }
 
-// PoolStats contains pool state information and accumulated stats.
-type PoolStats struct {
+// Stats contains pool state information and accumulated stats.
+type Stats struct {
 	Requests uint32 // number of times a connection was requested by the pool
 	Hits     uint32 // number of times free connection was found in the pool
 	Timeouts uint32 // number of times a wait timeout occurred
@@ -41,7 +41,7 @@ type Pooler interface {
 	Remove(*Conn, error) error
 	Len() int
 	FreeLen() int
-	Stats() *PoolStats
+	Stats() *Stats
 	Close() error
 	Closed() bool
 }
@@ -64,7 +64,7 @@ type ConnPool struct {
 	freeConnsMu sync.Mutex
 	freeConns   []*Conn
 
-	stats PoolStats
+	stats Stats
 
 	_closed int32 // atomic
 	lastErr atomic.Value
@@ -252,8 +252,8 @@ func (p *ConnPool) FreeLen() int {
 	return l
 }
 
-func (p *ConnPool) Stats() *PoolStats {
-	stats := PoolStats{}
+func (p *ConnPool) Stats() *Stats {
+	stats := Stats{}
 	stats.Requests = atomic.LoadUint32(&p.stats.Requests)
 	stats.Hits = atomic.LoadUint32(&p.stats.Hits)
 	stats.Timeouts = atomic.LoadUint32(&p.stats.Timeouts)

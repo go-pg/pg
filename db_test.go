@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"gopkg.in/pg.v5"
+	"gopkg.in/pg.v5/internal/pool"
 	"gopkg.in/pg.v5/orm"
 )
 
@@ -134,11 +135,74 @@ var _ = Describe("read/write timeout", func() {
 		Expect(err.(net.Error).Timeout()).To(BeTrue())
 	})
 
-	Describe("WithTimeout", func() {
+	Context("WithTimeout", func() {
 		It("slow query passes", func() {
 			_, err := db.WithTimeout(time.Minute).Exec(`SELECT pg_sleep(1)`)
 			Expect(err).NotTo(HaveOccurred())
 		})
+	})
+})
+
+var _ = Describe("statement_timeout", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		opt := pgOptions()
+		opt.Params = map[string]interface{}{
+			"statement_timeout": 100,
+		}
+		opt.MaxRetries = 2
+		db = pg.Connect(opt)
+	})
+
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
+	It("is applied to connection", func() {
+		_, err := db.Exec("SELECT pg_sleep(1)")
+		Expect(err).To(MatchError(`ERROR #57014 canceling statement due to statement timeout (addr="127.0.0.1:5432")`))
+
+		st := db.Pool().Stats()
+		Expect(*st).To(Equal(pool.Stats{
+			Requests:   1,
+			Hits:       0,
+			Timeouts:   0,
+			TotalConns: 1,
+			FreeConns:  1,
+		}))
+	})
+})
+
+var _ = Describe("statement_timeout and RetryStatementTimeout=true", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		opt := pgOptions()
+		opt.Params = map[string]interface{}{
+			"statement_timeout": 100,
+		}
+		opt.MaxRetries = 2
+		opt.RetryStatementTimeout = true
+		db = pg.Connect(opt)
+	})
+
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
+	It("is applied to connection", func() {
+		_, err := db.Exec("SELECT pg_sleep(1)")
+		Expect(err).To(MatchError(`ERROR #57014 canceling statement due to statement timeout (addr="127.0.0.1:5432")`))
+
+		st := db.Pool().Stats()
+		Expect(*st).To(Equal(pool.Stats{
+			Requests:   3,
+			Hits:       2,
+			Timeouts:   0,
+			TotalConns: 1,
+			FreeConns:  1,
+		}))
 	})
 })
 

@@ -51,14 +51,3 @@ func isNetworkError(err error) bool {
 	_, ok := err.(net.Error)
 	return ok
 }
-
-func shouldRetry(err error) bool {
-	if err == nil {
-		return false
-	}
-	// 40001 - serialization_failure
-	if pgerr, ok := err.(Error); ok && pgerr.Field('C') == "40001" {
-		return true
-	}
-	return isNetworkError(err)
-}

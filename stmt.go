@@ -68,7 +68,7 @@ func (stmt *Stmt) Exec(params ...interface{}) (res *types.Result, err error) {
 		if i >= stmt.db.opt.MaxRetries {
 			break
 		}
-		if !shouldRetry(err) {
+		if !stmt.db.shouldRetry(err) {
 			break
 		}
 
@@ -126,7 +126,7 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res *types.Re
 		if i >= stmt.db.opt.MaxRetries {
 			break
 		}
-		if !shouldRetry(err) {
+		if !stmt.db.shouldRetry(err) {
 			break
 		}
 

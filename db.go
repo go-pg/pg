@@ -93,6 +93,23 @@ func (db *DB) freeConn(cn *pool.Conn, err error) error {
 	return db.pool.Remove(cn, err)
 }
 
+func (db *DB) shouldRetry(err error) bool {
+	if err == nil {
+		return false
+	}
+	if pgerr, ok := err.(Error); ok {
+		switch pgerr.Field('C') {
+		case "40001": // serialization_failure
+			return true
+		case "57014": // statement_timeout
+			return db.opt.RetryStatementTimeout
+		default:
+			return false
+		}
+	}
+	return isNetworkError(err)
+}
+
 // Close closes the database client, releasing any open resources.
 //
 // It is rare to Close a DB, as the DB handle is meant to be
@@ -125,7 +142,7 @@ func (db *DB) Exec(query interface{}, params ...interface{}) (res *types.Result,
 		if i >= db.opt.MaxRetries {
 			break
 		}
-		if !shouldRetry(err) {
+		if !db.shouldRetry(err) {
 			break
 		}
 
@@ -167,7 +184,7 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types
 		if i >= db.opt.MaxRetries {
 			break
 		}
-		if !shouldRetry(err) {
+		if !db.shouldRetry(err) {
 			break
 		}
 
