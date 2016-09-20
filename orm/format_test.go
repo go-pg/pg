@@ -74,6 +74,9 @@ var formatTests = []formatTest{
 
 	{q: "?", wanted: "?"},
 	{q: "? ? ?", params: params{"foo", "bar"}, wanted: "'foo' 'bar' ?"},
+	{q: "?0 ?1", params: params{"foo", "bar"}, wanted: "'foo' 'bar'"},
+	{q: "?0 ?1 ?2", params: params{"foo", "bar"}, wanted: "'foo' 'bar' ?2"},
+	{q: "?0 ?1 ?0", params: params{"foo", "bar"}, wanted: "'foo' 'bar' 'foo'"},
 
 	{q: "one ?foo two", wanted: "one ?foo two"},
 	{q: "one ?foo two", params: params{structv}, wanted: "one ?foo two"},

@@ -2,6 +2,7 @@ package orm
 
 import (
 	"bytes"
+	"strconv"
 	"strings"
 
 	"gopkg.in/pg.v5/internal/parser"
@@ -90,10 +91,24 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 		}
 		dst = append(dst, b...)
 
-		if name := string(p.ReadIdentifier()); name != "" {
+		if id, numeric := p.ReadIdentifier(); id != nil {
+			if numeric {
+				idx, err := strconv.Atoi(string(id))
+				if err != nil {
+					goto restore_param
+				}
+
+				if idx >= len(params) {
+					goto restore_param
+				}
+
+				dst = f.appendParam(dst, params[idx])
+				continue
+			}
+
 			if f.paramsMap != nil {
-				if param, ok := f.paramsMap[name]; ok {
-					dst = types.Append(dst, param, 1)
+				if param, ok := f.paramsMap[string(id)]; ok {
+					dst = f.appendParam(dst, param)
 					continue
 				}
 			}
@@ -114,14 +129,14 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 				params = params[:len(params)-1]
 			}
 
-			dst, ok = model.AppendParam(dst, name)
+			dst, ok = model.AppendParam(dst, string(id))
 			if ok {
 				continue
 			}
 
 		restore_param:
 			dst = append(dst, '?')
-			dst = append(dst, name...)
+			dst = append(dst, id...)
 			continue
 		}
 
@@ -141,4 +156,11 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 	}
 
 	return dst
+}
+
+func (f Formatter) appendParam(b []byte, param interface{}) []byte {
+	if fa, ok := param.(FormatAppender); ok {
+		return fa.AppendFormat(b, f)
+	}
+	return types.Append(b, param, 1)
 }

@@ -76,20 +76,26 @@ func (p *Parser) ReadSep(c byte) ([]byte, bool) {
 	return b, true
 }
 
-func (p *Parser) ReadIdentifier() []byte {
-	end := len(p.b)
+func (p *Parser) ReadIdentifier() (b []byte, numeric bool) {
+	pos := len(p.b)
+	numeric = true
 	for i, ch := range p.b {
-		if !(isAlnum(ch) || ch == '_') {
-			end = i
-			break
+		if isNum(ch) {
+			continue
 		}
+		if isAlpha(ch) || ch == '_' {
+			numeric = false
+			continue
+		}
+		pos = i
+		break
 	}
-	if end <= 0 {
-		return nil
+	if pos <= 0 {
+		return nil, false
 	}
-	b := p.b[:end]
-	p.b = p.b[end:]
-	return b
+	b = p.b[:pos]
+	p.b = p.b[pos:]
+	return b, numeric
 }
 
 func (p *Parser) ReadNumber() int {
