@@ -7,7 +7,7 @@ func Delete(db DB, model interface{}) error {
 	if err != nil {
 		return err
 	}
-	return internal.AssertOneRow(res.Affected())
+	return internal.AssertOneRow(res.RowsAffected())
 }
 
 type deleteQuery struct {

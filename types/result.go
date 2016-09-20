@@ -10,11 +10,13 @@ import (
 // A Result summarizes an executed SQL command.
 type Result struct {
 	affected int
+	returned int
 }
 
-func ParseResult(b []byte) *Result {
+func NewResult(b []byte, returned int) *Result {
 	res := Result{
 		affected: -1,
+		returned: returned,
 	}
 	ind := bytes.LastIndexByte(b, ' ')
 	if ind == -1 {
@@ -28,9 +30,14 @@ func ParseResult(b []byte) *Result {
 	return &res
 }
 
-// Affected returns the number of rows affected by SELECT, INSERT, UPDATE, or
-// DELETE queries. It returns -1 when query can't possibly affect any rows,
+// RowsAffected returns the number of rows affected by SELECT, INSERT, UPDATE,
+// or DELETE queries. It returns -1 when query can't possibly affect any rows,
 // e.g. in case of CREATE or SHOW queries.
-func (r Result) Affected() int {
+func (r Result) RowsAffected() int {
 	return r.affected
+}
+
+// RowsReturned returns the number of rows returned by the query.
+func (r Result) RowsReturned() int {
+	return r.returned
 }

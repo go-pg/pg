@@ -246,7 +246,7 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
-	if q.model != nil && res.Affected() > 0 {
+	if res.RowsReturned() > 0 && q.model != nil {
 		if err := selectJoins(q.db, q.model.GetJoins()); err != nil {
 			return err
 		}
@@ -383,7 +383,7 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, err error)
 			}
 			return false, err
 		}
-		if res.Affected() == 1 {
+		if res.RowsAffected() == 1 {
 			return true, nil
 		}
 	}

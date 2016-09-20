@@ -62,7 +62,7 @@ func (t *TxTest) TestCopyFromInTransaction(c *C) {
 	r := strings.NewReader(data)
 	res, err := tx1.CopyFrom(r, "COPY test_copy_from FROM STDIN")
 	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, 4)
+	c.Assert(res.RowsAffected(), Equals, 4)
 
 	var count int
 	_, err = tx1.QueryOne(pg.Scan(&count), "SELECT COUNT(*) FROM test_copy_from")

@@ -456,6 +456,7 @@ func readSimpleQuery(cn *pool.Conn) (res *types.Result, retErr error) {
 		}
 	}
 
+	var rows int
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -468,18 +469,24 @@ func readSimpleQuery(cn *pool.Conn) (res *types.Result, retErr error) {
 			if err != nil {
 				return nil, err
 			}
-			res = types.ParseResult(b)
+			res = types.NewResult(b, rows)
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
 			return res, retErr
-		case rowDescriptionMsg, dataRowMsg:
+		case rowDescriptionMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
+		case dataRowMsg:
+			_, err := cn.ReadN(msgLen)
+			if err != nil {
+				return nil, err
+			}
+			rows++
 		case errorResponseMsg:
 			e, err := readError(cn)
 			if err != nil {
@@ -507,6 +514,7 @@ func readExtQuery(cn *pool.Conn) (res *types.Result, retErr error) {
 		}
 	}
 
+	var rows int
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -524,12 +532,13 @@ func readExtQuery(cn *pool.Conn) (res *types.Result, retErr error) {
 			if err != nil {
 				return nil, err
 			}
+			rows++
 		case commandCompleteMsg: // Response to the EXECUTE message.
 			b, err := cn.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}
-			res = types.ParseResult(b)
+			res = types.NewResult(b, rows)
 		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -638,6 +647,7 @@ func readSimpleQueryData(
 		}
 	}
 
+	var rows int
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -668,12 +678,14 @@ func readSimpleQueryData(
 					setErr(err)
 				}
 			}
+
+			rows++
 		case commandCompleteMsg:
 			b, err := cn.ReadN(msgLen)
 			if err != nil {
 				return nil, nil, err
 			}
-			res = types.ParseResult(b)
+			res = types.NewResult(b, rows)
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -709,6 +721,7 @@ func readExtQueryData(
 		}
 	}
 
+	var rows int
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -739,12 +752,14 @@ func readExtQueryData(
 					setErr(err)
 				}
 			}
+
+			rows++
 		case commandCompleteMsg: // Response to the EXECUTE message.
 			b, err := cn.ReadN(msgLen)
 			if err != nil {
 				return nil, nil, err
 			}
-			res = types.ParseResult(b)
+			res = types.NewResult(b, rows)
 		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -862,7 +877,7 @@ func readCopyData(cn *pool.Conn, w io.Writer) (*types.Result, error) {
 			if err != nil {
 				return nil, err
 			}
-			res = types.ParseResult(b)
+			res = types.NewResult(b, 0)
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			return res, err
@@ -911,7 +926,7 @@ func readReadyForQuery(cn *pool.Conn) (res *types.Result, retErr error) {
 			if err != nil {
 				return nil, err
 			}
-			res = types.ParseResult(b)
+			res = types.NewResult(b, 0)
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
