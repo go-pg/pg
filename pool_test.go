@@ -1,34 +1,12 @@
 package pg_test
 
 import (
-	"testing"
 	"time"
 
 	. "gopkg.in/check.v1"
 
 	"gopkg.in/pg.v5"
 )
-
-func TestStatementTimeout(t *testing.T) {
-	opt := pgOptions()
-	opt.Params = map[string]interface{}{
-		"statement_timeout": 1000,
-	}
-	db := pg.Connect(opt)
-	defer db.Close()
-
-	_, err := db.Exec("SELECT pg_sleep(60)")
-	if err == nil {
-		t.Fatalf("err is nil")
-	}
-	if err.Error() != `ERROR #57014 canceling statement due to statement timeout (addr="127.0.0.1:5432")` {
-		t.Fatalf("got %q", err.Error())
-	}
-
-	if db.Pool().Len() != 1 || db.Pool().FreeLen() != 1 {
-		t.Fatalf("pool is empty")
-	}
-}
 
 var _ = Suite(&PoolTest{})
 
