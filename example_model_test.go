@@ -359,7 +359,7 @@ func ExampleDB_Select_groupBy() {
 	// author 11 has 1 books
 }
 
-func ExampleDB_Select_With() {
+func ExampleDB_Select_with() {
 	authorBooks := db.Model(&Book{}).Where("author_id = ?", 1)
 
 	var books []Book
