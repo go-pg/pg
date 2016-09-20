@@ -121,11 +121,12 @@ var _ = Describe("HookTest", func() {
 
 	It("calls BeforeInsert and AfterInsert", func() {
 		hook := &HookTest{
-			Id: 1,
+			Id:    1,
+			Value: "value",
 		}
 		err := db.Insert(&hook)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.afterQuery).To(Equal(1))
+		Expect(hook.afterQuery).To(Equal(0))
 		Expect(hook.beforeInsert).To(Equal(1))
 		Expect(hook.afterInsert).To(Equal(1))
 	})

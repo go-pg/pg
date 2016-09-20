@@ -150,7 +150,7 @@ func ExampleDB_Insert_onConflictDoNothing() {
 		if err != nil {
 			panic(err)
 		}
-		if res.Affected() > 0 {
+		if res.RowsAffected() > 0 {
 			fmt.Println("created")
 		} else {
 			fmt.Println("did nothing")
@@ -790,7 +790,7 @@ func ExampleDB_Delete_multipleRows() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("deleted", res.Affected())
+	fmt.Println("deleted", res.RowsAffected())
 
 	count, err := db.Model(&Book{}).Count()
 	if err != nil {

@@ -89,7 +89,7 @@ func (stmt *Stmt) ExecOne(params ...interface{}) (*types.Result, error) {
 		return nil, err
 	}
 
-	if err := internal.AssertOneRow(res.Affected()); err != nil {
+	if err := internal.AssertOneRow(res.RowsAffected()); err != nil {
 		return nil, err
 	}
 	return res, nil
@@ -109,7 +109,7 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (*types.Result
 		return nil, err
 	}
 
-	if mod != nil {
+	if res.RowsReturned() > 0 && mod != nil {
 		if err = mod.AfterQuery(stmt.db); err != nil {
 			return res, err
 		}
@@ -152,7 +152,7 @@ func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (*types.Res
 		return nil, err
 	}
 
-	if err := internal.AssertOneRow(res.Affected()); err != nil {
+	if err := internal.AssertOneRow(res.RowsAffected()); err != nil {
 		return nil, err
 	}
 	return res, nil

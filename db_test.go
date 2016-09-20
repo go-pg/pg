@@ -169,11 +169,11 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 		var buf bytes.Buffer
 		res, err := db.CopyTo(&buf, "COPY copy_from TO STDOUT")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Affected()).To(Equal(n))
+		Expect(res.RowsAffected()).To(Equal(n))
 
 		res, err = db.CopyFrom(&buf, "COPY copy_to FROM STDIN")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(res.Affected()).To(Equal(n))
+		Expect(res.RowsAffected()).To(Equal(n))
 
 		var count int
 		_, err = db.QueryOne(pg.Scan(&count), "SELECT count(*) FROM copy_to")

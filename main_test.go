@@ -48,7 +48,7 @@ func (t *DBTest) TearDownTest(c *C) {
 func (t *DBTest) TestQueryZeroRows(c *C) {
 	res, err := t.db.Query(pg.Discard, "SELECT 1 WHERE 1 != 1")
 	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, 0)
+	c.Assert(res.RowsAffected(), Equals, 0)
 }
 
 func (t *DBTest) TestQueryOneErrNoRows(c *C) {
@@ -64,7 +64,7 @@ func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
 func (t *DBTest) TestExecOne(c *C) {
 	res, err := t.db.ExecOne("SELECT 'test_exec_one'")
 	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, 1)
+	c.Assert(res.RowsAffected(), Equals, 1)
 }
 
 func (t *DBTest) TestExecOneErrNoRows(c *C) {
@@ -87,17 +87,17 @@ func (t *DBTest) TestScan(c *C) {
 func (t *DBTest) TestExec(c *C) {
 	res, err := t.db.Exec("CREATE TEMP TABLE test(id serial PRIMARY KEY)")
 	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, -1)
+	c.Assert(res.RowsAffected(), Equals, -1)
 
 	res, err = t.db.Exec("INSERT INTO test VALUES (1)")
 	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, 1)
+	c.Assert(res.RowsAffected(), Equals, 1)
 }
 
 func (t *DBTest) TestStatementExec(c *C) {
 	res, err := t.db.Exec("CREATE TEMP TABLE test(id serial PRIMARY KEY)")
 	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, -1)
+	c.Assert(res.RowsAffected(), Equals, -1)
 
 	stmt, err := t.db.Prepare("INSERT INTO test VALUES($1)")
 	c.Assert(err, IsNil)
@@ -105,7 +105,7 @@ func (t *DBTest) TestStatementExec(c *C) {
 
 	res, err = stmt.Exec(1)
 	c.Assert(err, IsNil)
-	c.Assert(res.Affected(), Equals, 1)
+	c.Assert(res.RowsAffected(), Equals, 1)
 }
 
 func (t *DBTest) TestLargeWriteRead(c *C) {

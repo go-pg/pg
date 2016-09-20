@@ -42,7 +42,7 @@ func ExampleDB_QueryOne() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(res.Affected())
+	fmt.Println(res.RowsAffected())
 	fmt.Println(user)
 	// Output: 1
 	// {admin}
@@ -72,7 +72,7 @@ func ExampleDB_QueryOne_returning_id() {
 
 func ExampleDB_Exec() {
 	res, err := db.Exec(`CREATE TEMP TABLE test()`)
-	fmt.Println(res.Affected(), err)
+	fmt.Println(res.RowsAffected(), err)
 	// Output: -1 <nil>
 }
 

@@ -143,7 +143,7 @@ func (db *DB) ExecOne(query interface{}, params ...interface{}) (*types.Result, 
 		return nil, err
 	}
 
-	if err := internal.AssertOneRow(res.Affected()); err != nil {
+	if err := internal.AssertOneRow(res.RowsAffected()); err != nil {
 		return nil, err
 	}
 	return res, nil
@@ -177,7 +177,7 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types
 		return nil, err
 	}
 
-	if mod != nil {
+	if res.RowsReturned() > 0 && mod != nil {
 		if err = mod.AfterQuery(db); err != nil {
 			return res, err
 		}
@@ -200,7 +200,7 @@ func (db *DB) QueryOne(model, query interface{}, params ...interface{}) (*types.
 		return nil, err
 	}
 
-	if err := internal.AssertOneRow(res.Affected()); err != nil {
+	if err := internal.AssertOneRow(res.RowsAffected()); err != nil {
 		return nil, err
 	}
 	return res, nil

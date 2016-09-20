@@ -147,7 +147,7 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (*types.Result, 
 		return nil, err
 	}
 
-	if err := internal.AssertOneRow(res.Affected()); err != nil {
+	if err := internal.AssertOneRow(res.RowsAffected()); err != nil {
 		return nil, err
 	}
 	return res, nil
@@ -166,7 +166,7 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 		return nil, err
 	}
 
-	if mod != nil {
+	if res.RowsReturned() > 0 && mod != nil {
 		if err = mod.AfterQuery(tx); err != nil {
 			return res, err
 		}
@@ -189,7 +189,7 @@ func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface
 		return nil, err
 	}
 
-	if err := internal.AssertOneRow(res.Affected()); err != nil {
+	if err := internal.AssertOneRow(res.RowsAffected()); err != nil {
 		return nil, err
 	}
 	return res, nil
