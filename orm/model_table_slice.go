@@ -76,6 +76,34 @@ func (m *sliceTableModel) AfterInsert(db DB) error {
 	return callAfterInsertHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
+func (m *sliceTableModel) BeforeUpdate(db DB) error {
+	if !m.table.Has(BeforeUpdateHookFlag) {
+		return nil
+	}
+	return callBeforeUpdateHookSlice(m.slice, m.sliceOfPtr, db)
+}
+
+func (m *sliceTableModel) AfterUpdate(db DB) error {
+	if !m.table.Has(AfterUpdateHookFlag) {
+		return nil
+	}
+	return callAfterUpdateHookSlice(m.slice, m.sliceOfPtr, db)
+}
+
+func (m *sliceTableModel) BeforeDelete(db DB) error {
+	if !m.table.Has(BeforeDeleteHookFlag) {
+		return nil
+	}
+	return callBeforeDeleteHookSlice(m.slice, m.sliceOfPtr, db)
+}
+
+func (m *sliceTableModel) AfterDelete(db DB) error {
+	if !m.table.Has(AfterDeleteHookFlag) {
+		return nil
+	}
+	return callAfterDeleteHookSlice(m.slice, m.sliceOfPtr, db)
+}
+
 func (m *sliceTableModel) nextElem() reflect.Value {
 	if m.slice.Len() < m.slice.Cap() {
 		m.slice.Set(m.slice.Slice(0, m.slice.Len()+1))

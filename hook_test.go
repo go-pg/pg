@@ -9,13 +9,20 @@ import (
 )
 
 type HookTest struct {
-	Id int
+	Id    int
+	Value string
 
 	afterQuery  int
 	afterSelect int
 
 	beforeInsert int
 	afterInsert  int
+
+	beforeUpdate int
+	afterUpdate  int
+
+	beforeDelete int
+	afterDelete  int
 }
 
 func (t *HookTest) AfterQuery(db orm.DB) error {
@@ -38,6 +45,26 @@ func (t *HookTest) AfterInsert(db orm.DB) error {
 	return nil
 }
 
+func (t *HookTest) BeforeUpdate(db orm.DB) error {
+	t.beforeUpdate++
+	return nil
+}
+
+func (t *HookTest) AfterUpdate(db orm.DB) error {
+	t.afterUpdate++
+	return nil
+}
+
+func (t *HookTest) BeforeDelete(db orm.DB) error {
+	t.beforeDelete++
+	return nil
+}
+
+func (t *HookTest) AfterDelete(db orm.DB) error {
+	t.afterDelete++
+	return nil
+}
+
 var _ = Describe("HookTest", func() {
 	var db *pg.DB
 
@@ -45,8 +72,8 @@ var _ = Describe("HookTest", func() {
 		db = pg.Connect(pgOptions())
 
 		qs := []string{
-			"CREATE TEMP TABLE hook_tests (id int)",
-			"INSERT INTO hook_tests VALUES (1)",
+			"CREATE TEMP TABLE hook_tests (id int, value text)",
+			"INSERT INTO hook_tests VALUES (1, '')",
 		}
 		for _, q := range qs {
 			_, err := db.Exec(q)
@@ -98,7 +125,30 @@ var _ = Describe("HookTest", func() {
 		}
 		err := db.Insert(&hook)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(hook.afterQuery).To(Equal(1))
 		Expect(hook.beforeInsert).To(Equal(1))
 		Expect(hook.afterInsert).To(Equal(1))
+	})
+
+	It("calls BeforeUpdate and AfterUpdate", func() {
+		hook := &HookTest{
+			Id: 1,
+		}
+		err := db.Update(&hook)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(hook.afterQuery).To(Equal(0))
+		Expect(hook.beforeUpdate).To(Equal(1))
+		Expect(hook.afterUpdate).To(Equal(1))
+	})
+
+	It("calls BeforeDelete and AfterDelete", func() {
+		hook := &HookTest{
+			Id: 1,
+		}
+		err := db.Delete(&hook)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(hook.afterQuery).To(Equal(0))
+		Expect(hook.beforeDelete).To(Equal(1))
+		Expect(hook.afterDelete).To(Equal(1))
 	})
 })

@@ -1,12 +1,13 @@
 package orm
 
-func Delete(db DB, v interface{}) error {
-	q := NewQuery(db, v)
-	if q.stickyErr != nil {
-		return q.stickyErr
+import "gopkg.in/pg.v5/internal"
+
+func Delete(db DB, model interface{}) error {
+	res, err := NewQuery(db, model).Delete()
+	if err != nil {
+		return err
 	}
-	_, err := db.ExecOne(deleteQuery{q}, q.model)
-	return err
+	return internal.AssertOneRow(res.Affected())
 }
 
 type deleteQuery struct {

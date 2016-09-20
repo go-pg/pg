@@ -138,6 +138,34 @@ func (m *structTableModel) AfterInsert(db DB) error {
 	return callAfterInsertHook(m.strct.Addr(), db)
 }
 
+func (m *structTableModel) BeforeUpdate(db DB) error {
+	if !m.table.Has(BeforeUpdateHookFlag) {
+		return nil
+	}
+	return callBeforeUpdateHook(m.strct.Addr(), db)
+}
+
+func (m *structTableModel) AfterUpdate(db DB) error {
+	if !m.table.Has(AfterUpdateHookFlag) {
+		return nil
+	}
+	return callAfterUpdateHook(m.strct.Addr(), db)
+}
+
+func (m *structTableModel) BeforeDelete(db DB) error {
+	if !m.table.Has(BeforeDeleteHookFlag) {
+		return nil
+	}
+	return callBeforeDeleteHook(m.strct.Addr(), db)
+}
+
+func (m *structTableModel) AfterDelete(db DB) error {
+	if !m.table.Has(AfterDeleteHookFlag) {
+		return nil
+	}
+	return callAfterDeleteHook(m.strct.Addr(), db)
+}
+
 func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) error {
 	ok, err := m.scanColumn(colIdx, colName, b)
 	if ok {

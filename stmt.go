@@ -88,7 +88,11 @@ func (stmt *Stmt) ExecOne(params ...interface{}) (*types.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res)
+
+	if err := internal.AssertOneRow(res.Affected()); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func (stmt *Stmt) query(model interface{}, params ...interface{}) (*types.Result, error) {
@@ -148,7 +152,10 @@ func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (*types.Res
 		return nil, err
 	}
 
-	return assertOneAffected(res)
+	if err := internal.AssertOneRow(res.Affected()); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func (stmt *Stmt) setErr(e error) {

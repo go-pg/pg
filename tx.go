@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 
+	"gopkg.in/pg.v5/internal"
 	"gopkg.in/pg.v5/internal/pool"
 	"gopkg.in/pg.v5/orm"
 	"gopkg.in/pg.v5/types"
@@ -145,7 +146,11 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (*types.Result, 
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res)
+
+	if err := internal.AssertOneRow(res.Affected()); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Query executes a query with the given parameters in a transaction.
@@ -184,7 +189,10 @@ func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface
 		return nil, err
 	}
 
-	return assertOneAffected(res)
+	if err := internal.AssertOneRow(res.Affected()); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Model returns new query for the model.

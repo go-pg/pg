@@ -2,8 +2,11 @@
 
 ## v5
 
- - Create renamed to Insert.
  - All fields are nullable by default. `,null` tag is replaced with `,notnull`.
+ - Create renamed to Insert, BeforeCreate to BeforeInsert, AfterCreate to AfterInsert.
+ - Indexed placeholders support, e.g. `db.Exec("SELECT ?0 + ?0", 1)`.
+ - Named placeholders are evaluated when query is executed.
+ - Added Update and Delete hooks.
 
 ## v4
 

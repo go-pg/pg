@@ -103,6 +103,22 @@ func (Strings) AfterInsert(_ orm.DB) error {
 	return nil
 }
 
+func (Strings) BeforeUpdate(_ orm.DB) error {
+	return nil
+}
+
+func (Strings) AfterUpdate(_ orm.DB) error {
+	return nil
+}
+
+func (Strings) BeforeDelete(_ orm.DB) error {
+	return nil
+}
+
+func (Strings) AfterDelete(_ orm.DB) error {
+	return nil
+}
+
 func (strings *Strings) ScanColumn(colIdx int, _ string, b []byte) error {
 	*strings = append(*strings, string(b))
 	return nil
@@ -149,6 +165,22 @@ func (Ints) BeforeInsert(_ orm.DB) error {
 }
 
 func (Ints) AfterInsert(_ orm.DB) error {
+	return nil
+}
+
+func (Ints) BeforeUpdate(_ orm.DB) error {
+	return nil
+}
+
+func (Ints) AfterUpdate(_ orm.DB) error {
+	return nil
+}
+
+func (Ints) BeforeDelete(_ orm.DB) error {
+	return nil
+}
+
+func (Ints) AfterDelete(_ orm.DB) error {
 	return nil
 }
 
@@ -201,6 +233,22 @@ func (IntSet) BeforeInsert(_ orm.DB) error {
 }
 
 func (IntSet) AfterInsert(_ orm.DB) error {
+	return nil
+}
+
+func (IntSet) BeforeUpdate(_ orm.DB) error {
+	return nil
+}
+
+func (IntSet) AfterUpdate(_ orm.DB) error {
+	return nil
+}
+
+func (IntSet) BeforeDelete(_ orm.DB) error {
+	return nil
+}
+
+func (IntSet) AfterDelete(_ orm.DB) error {
 	return nil
 }
 

@@ -777,7 +777,7 @@ func ExampleDB_Delete() {
 		panic(err)
 	}
 
-	err = db.Delete(&book)
+	err = db.Select(&book)
 	fmt.Println(err)
 	// Output: pg: no rows in result set
 }

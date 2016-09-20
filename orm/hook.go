@@ -7,6 +7,10 @@ const (
 	AfterSelectHookFlag
 	BeforeInsertHookFlag
 	AfterInsertHookFlag
+	BeforeUpdateHookFlag
+	AfterUpdateHookFlag
+	BeforeDeleteHookFlag
+	AfterDeleteHookFlag
 )
 
 func callHookSlice(slice reflect.Value, ptr bool, db DB, hook func(reflect.Value, DB) error) error {
@@ -79,4 +83,60 @@ func callAfterInsertHook(v reflect.Value, db DB) error {
 
 func callAfterInsertHookSlice(slice reflect.Value, ptr bool, db DB) error {
 	return callHookSlice(slice, ptr, db, callAfterInsertHook)
+}
+
+type beforeUpdateHook interface {
+	BeforeUpdate(db DB) error
+}
+
+var beforeUpdateHookType = reflect.TypeOf((*beforeUpdateHook)(nil)).Elem()
+
+func callBeforeUpdateHook(v reflect.Value, db DB) error {
+	return v.Interface().(beforeUpdateHook).BeforeUpdate(db)
+}
+
+func callBeforeUpdateHookSlice(slice reflect.Value, ptr bool, db DB) error {
+	return callHookSlice(slice, ptr, db, callBeforeUpdateHook)
+}
+
+type afterUpdateHook interface {
+	AfterUpdate(db DB) error
+}
+
+var afterUpdateHookType = reflect.TypeOf((*afterUpdateHook)(nil)).Elem()
+
+func callAfterUpdateHook(v reflect.Value, db DB) error {
+	return v.Interface().(afterUpdateHook).AfterUpdate(db)
+}
+
+func callAfterUpdateHookSlice(slice reflect.Value, ptr bool, db DB) error {
+	return callHookSlice(slice, ptr, db, callAfterUpdateHook)
+}
+
+type beforeDeleteHook interface {
+	BeforeDelete(db DB) error
+}
+
+var beforeDeleteHookType = reflect.TypeOf((*beforeDeleteHook)(nil)).Elem()
+
+func callBeforeDeleteHook(v reflect.Value, db DB) error {
+	return v.Interface().(beforeDeleteHook).BeforeDelete(db)
+}
+
+func callBeforeDeleteHookSlice(slice reflect.Value, ptr bool, db DB) error {
+	return callHookSlice(slice, ptr, db, callBeforeDeleteHook)
+}
+
+type afterDeleteHook interface {
+	AfterDelete(db DB) error
+}
+
+var afterDeleteHookType = reflect.TypeOf((*afterDeleteHook)(nil)).Elem()
+
+func callAfterDeleteHook(v reflect.Value, db DB) error {
+	return v.Interface().(afterDeleteHook).AfterDelete(db)
+}
+
+func callAfterDeleteHookSlice(slice reflect.Value, ptr bool, db DB) error {
+	return callHookSlice(slice, ptr, db, callAfterDeleteHook)
 }

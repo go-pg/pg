@@ -37,6 +37,22 @@ func (sliceModel) AfterInsert(_ DB) error {
 	return nil
 }
 
+func (sliceModel) BeforeUpdate(_ DB) error {
+	return nil
+}
+
+func (sliceModel) AfterUpdate(_ DB) error {
+	return nil
+}
+
+func (sliceModel) BeforeDelete(_ DB) error {
+	return nil
+}
+
+func (sliceModel) AfterDelete(_ DB) error {
+	return nil
+}
+
 func (m *sliceModel) ScanColumn(colIdx int, _ string, b []byte) error {
 	v := internal.SliceNextElem(m.slice)
 	return m.scan(v, b)

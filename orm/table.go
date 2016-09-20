@@ -15,7 +15,7 @@ type Table struct {
 	Alias     types.Q
 	ModelName string
 	Type      reflect.Type
-	flags     int8
+	flags     int16
 
 	PKs       []*Field
 	Fields    []*Field
@@ -26,7 +26,7 @@ type Table struct {
 	Relations map[string]*Relation
 }
 
-func (t *Table) Has(flag int8) bool {
+func (t *Table) Has(flag int16) bool {
 	if t == nil {
 		return false
 	}
@@ -123,6 +123,18 @@ func newTable(typ reflect.Type) *Table {
 	}
 	if typ.Implements(afterInsertHookType) {
 		table.flags |= AfterInsertHookFlag
+	}
+	if typ.Implements(beforeUpdateHookType) {
+		table.flags |= BeforeUpdateHookFlag
+	}
+	if typ.Implements(afterUpdateHookType) {
+		table.flags |= AfterUpdateHookFlag
+	}
+	if typ.Implements(beforeDeleteHookType) {
+		table.flags |= BeforeDeleteHookFlag
+	}
+	if typ.Implements(afterDeleteHookType) {
+		table.flags |= AfterDeleteHookFlag
 	}
 
 	if table.Methods == nil {

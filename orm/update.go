@@ -1,14 +1,17 @@
 package orm
 
-import "errors"
+import (
+	"errors"
 
-func Update(db DB, v interface{}) error {
-	q := NewQuery(db, v)
-	if q.stickyErr != nil {
-		return q.stickyErr
+	"gopkg.in/pg.v5/internal"
+)
+
+func Update(db DB, model interface{}) error {
+	res, err := NewQuery(db, model).Update()
+	if err != nil {
+		return err
 	}
-	_, err := db.ExecOne(updateQuery{q}, q.model)
-	return err
+	return internal.AssertOneRow(res.Affected())
 }
 
 type updateQuery struct {

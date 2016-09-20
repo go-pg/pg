@@ -94,6 +94,22 @@ func (m *m2mModel) AfterInsert(db DB) error {
 	return nil
 }
 
+func (m *m2mModel) BeforeUpdate(db DB) error {
+	return nil
+}
+
+func (m *m2mModel) AfterUpdate(db DB) error {
+	return nil
+}
+
+func (m *m2mModel) BeforeDelete(db DB) error {
+	return nil
+}
+
+func (m *m2mModel) AfterDelete(db DB) error {
+	return nil
+}
+
 func (m *m2mModel) ScanColumn(colIdx int, colName string, b []byte) error {
 	ok, err := m.sliceTableModel.scanColumn(colIdx, colName, b)
 	if ok {

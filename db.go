@@ -142,7 +142,11 @@ func (db *DB) ExecOne(query interface{}, params ...interface{}) (*types.Result, 
 	if err != nil {
 		return nil, err
 	}
-	return assertOneAffected(res)
+
+	if err := internal.AssertOneRow(res.Affected()); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Query executes a query that returns rows, typically a SELECT.
@@ -196,7 +200,10 @@ func (db *DB) QueryOne(model, query interface{}, params ...interface{}) (*types.
 		return nil, err
 	}
 
-	return assertOneAffected(res)
+	if err := internal.AssertOneRow(res.Affected()); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 // Listen listens for notifications sent by NOTIFY statement.
@@ -333,24 +340,6 @@ func simpleQueryData(
 	}
 
 	return readSimpleQueryData(cn, model)
-}
-
-func assertOne(l int) error {
-	switch {
-	case l == 0:
-		return ErrNoRows
-	case l > 1:
-		return ErrMultiRows
-	default:
-		return nil
-	}
-}
-
-func assertOneAffected(res *types.Result) (*types.Result, error) {
-	if err := assertOne(res.Affected()); err != nil {
-		return nil, err
-	}
-	return res, nil
 }
 
 func copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (*types.Result, error) {
