@@ -287,7 +287,7 @@ func (p *Params) Sum() int {
 // - all parameters are properly quoted against SQL injections;
 // - null byte is removed;
 // - JSON/JSONB gets `\u0000` escaped as `\\u0000`.
-func ExampleDB_Placeholders() {
+func Example_placeholders() {
 	var num int
 
 	// Simple placeholders.
