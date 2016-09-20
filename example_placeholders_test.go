@@ -18,9 +18,9 @@ func (p *Params) Sum() int {
 // go-pg recognizes placeholders (`?`) in queries and replaces them
 // with parameters when queries are executed. Parameters are escaped
 // before replacing according to PostgreSQL rules. Specifically:
-// - all parameters are properly quoted against SQL injections;
-// - null byte is removed;
-// - JSON/JSONB gets `\u0000` escaped as `\\u0000`.
+//   - all parameters are properly quoted against SQL injections;
+//   - null byte is removed;
+//   - JSON/JSONB gets `\u0000` escaped as `\\u0000`.
 func Example_placeholders() {
 	var num int
 
