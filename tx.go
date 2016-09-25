@@ -220,6 +220,16 @@ func (tx *Tx) Delete(model interface{}) error {
 	return orm.Delete(tx, model)
 }
 
+// CreateTable creates table for the model in db.
+func (tx *Tx) CreateTable(model interface{}, opt *orm.CreateTableOptions) error {
+	_, err := orm.CreateTable(tx, model, opt)
+	return err
+}
+
+func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
+	return tx.db.FormatQuery(dst, query, params...)
+}
+
 func (tx *Tx) begin() error {
 	if noTx {
 		return nil
@@ -249,10 +259,6 @@ func (tx *Tx) Rollback() error {
 	_, err := tx.Exec("ROLLBACK")
 	tx.close(err)
 	return err
-}
-
-func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
-	return tx.db.FormatQuery(dst, query, params...)
 }
 
 func (tx *Tx) close(lastErr error) error {
