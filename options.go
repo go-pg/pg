@@ -14,7 +14,12 @@ type Options struct {
 	// Default is tcp.
 	Network string
 	// TCP host:port or Unix socket depending on Network.
-	Addr     string
+	Addr string
+
+	// Dialer creates new network connection and has priority over
+	// Network and Addr options.
+	Dialer func(network, addr string) (net.Conn, error)
+
 	User     string
 	Password string
 	Database string
@@ -89,6 +94,11 @@ func (opt *Options) init() {
 }
 
 func (opt *Options) getDialer() func() (net.Conn, error) {
+	if opt.Dialer != nil {
+		return func() (net.Conn, error) {
+			return opt.Dialer(opt.Network, opt.Addr)
+		}
+	}
 	return func() (net.Conn, error) {
 		return net.DialTimeout(opt.Network, opt.Addr, opt.DialTimeout)
 	}
