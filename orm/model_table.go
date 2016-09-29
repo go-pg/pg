@@ -19,6 +19,7 @@ type tableModel interface {
 
 	Root() reflect.Value
 	Index() []int
+	ParentIndex() []int
 	Bind(reflect.Value)
 	Value() reflect.Value
 
@@ -70,12 +71,14 @@ func newTableModelValue(v reflect.Value) (tableModel, error) {
 	return nil, fmt.Errorf("pg: Model(unsupported %s)", v.Type())
 }
 
-func newTableModelIndex(root reflect.Value, index []int, table *Table) (tableModel, error) {
+func newTableModelIndex(root reflect.Value, index []int, rel *Relation) (tableModel, error) {
 	typ := typeByIndex(root.Type(), index)
 
 	if typ.Kind() == reflect.Struct {
 		return &structTableModel{
 			table: Tables.Get(typ),
+			rel:   rel,
+
 			root:  root,
 			index: index,
 		}, nil
@@ -87,6 +90,8 @@ func newTableModelIndex(root reflect.Value, index []int, table *Table) (tableMod
 			m := sliceTableModel{
 				structTableModel: structTableModel{
 					table: Tables.Get(structType),
+					rel:   rel,
+
 					root:  root,
 					index: index,
 				},

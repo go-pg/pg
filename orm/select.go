@@ -141,5 +141,6 @@ func (q selectQuery) appendWith(b []byte) ([]byte, error) {
 		}
 		b = append(b, ')')
 	}
+	b = append(b, ' ')
 	return b, nil
 }

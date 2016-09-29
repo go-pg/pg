@@ -173,7 +173,7 @@ func ExampleDB_Model() {
 
 Models are defined using Go structs. Order of the struct fields usually does not matter with the only exception being primary key(s) that must be defined before any other fields. Otherwise table relationships can be recognized incorrectly.
 
-Please *note* that most struct tags in following example are not needed and are included only for demonstration purposes.
+Please *note* that most struct tags in following example have the same values as the defaults and are included only for demonstration purposes.
 
 ```go
 type Genre struct {
@@ -218,6 +218,15 @@ type Book struct {
 	Genres       []Genre       `pg:",many2many:book_genres" gorm:"many2many:book_genres;"` // many to many relation
 	Translations []Translation // has many relation
 	Comments     []Comment     `pg:",polymorphic:Trackable"` // has many polymorphic relation
+}
+
+// BookWithCommentCount is like Book model, but has additional CommentCount
+// field that is used to select data into it. The use of `pg:",override"` tag
+// is essential here and it overrides internal model properties such as table name.
+type BookWithCommentCount struct {
+	Book `pg:",override"`
+
+	CommentCount int
 }
 
 type Translation struct {

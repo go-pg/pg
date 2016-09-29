@@ -9,6 +9,7 @@ import (
 
 type structTableModel struct {
 	table *Table
+	rel   *Relation
 	joins []join
 
 	root  reflect.Value
@@ -83,8 +84,12 @@ func (m *structTableModel) Index() []int {
 	return m.index
 }
 
+func (m *structTableModel) ParentIndex() []int {
+	return m.index[:len(m.index)-len(m.rel.Field.Index)]
+}
+
 func (m *structTableModel) Bind(bind reflect.Value) {
-	m.strct = bind.Field(m.index[len(m.index)-1])
+	m.strct = bind.FieldByIndex(m.rel.Field.Index)
 }
 
 func (m *structTableModel) Value() reflect.Value {
@@ -171,7 +176,7 @@ func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) erro
 	if ok {
 		return err
 	}
-	return fmt.Errorf("pg: can't find column %s in model %s", colName, m.table.Type.Name())
+	return fmt.Errorf("pg: can't find column %s in model %s", colName, m.table.TypeName)
 }
 
 func (m *structTableModel) scanColumn(colIdx int, colName string, b []byte) (bool, error) {
@@ -255,7 +260,7 @@ func (m *structTableModel) join(
 			currJoin.JoinModel = j.JoinModel
 			lastJoin = j
 		} else {
-			model, err := newTableModelIndex(bind, index, rel.JoinTable)
+			model, err := newTableModelIndex(bind, index, rel)
 			if err != nil {
 				return nil
 			}
