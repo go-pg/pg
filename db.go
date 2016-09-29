@@ -67,7 +67,7 @@ func (db *DB) conn() (*pool.Conn, error) {
 }
 
 func (db *DB) initConn(cn *pool.Conn) error {
-	if db.opt.SSL || db.opt.TLSConfig != nil {
+	if db.opt.TLSConfig != nil {
 		if err := enableSSL(cn, db.opt.TLSConfig); err != nil {
 			return err
 		}
@@ -75,10 +75,6 @@ func (db *DB) initConn(cn *pool.Conn) error {
 
 	err := startup(cn, db.opt.User, db.opt.Password, db.opt.Database)
 	if err != nil {
-		return err
-	}
-
-	if err := setParams(cn, db.opt.Params); err != nil {
 		return err
 	}
 
@@ -312,16 +308,6 @@ func (db *DB) CreateTable(model interface{}, opt *orm.CreateTableOptions) error 
 
 func (db *DB) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
 	return orm.Formatter{}.Append(dst, query, params...)
-}
-
-func setParams(cn *pool.Conn, params map[string]interface{}) error {
-	for key, value := range params {
-		_, err := simpleQuery(cn, "SET ? = ?", F(key), value)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (db *DB) cancelRequest(processId, secretKey int32) error {

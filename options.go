@@ -19,14 +19,8 @@ type Options struct {
 	Password string
 	Database string
 
-	// Whether to use secure TCP/IP connections (TLS).
-	// TODO: deprecated in favor of TLSConfig
-	SSL bool
 	// TLS config for secure connections.
 	TLSConfig *tls.Config
-
-	// PostgreSQL run-time configuration parameters to be set on connection.
-	Params map[string]interface{}
 
 	// Maximum number of retries before giving up.
 	// Default is to not retry failed queries.
