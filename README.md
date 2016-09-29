@@ -249,9 +249,16 @@ type Comment struct {
 
 ## Model hooks
 
-Models support optional hooks that accept `orm.DB` interface which value can be either `*pg.DB` or `*pg.Tx`:
+Models support optional hooks that accept `orm.DB` interface which value can be either `*pg.DB` or `*pg.Tx`.
 
 ```
+// AfterQuery is called after the model is loaded from database.
+func (b *Book) AfterQuery(db orm.DB) error {
+    return updateBookCache(b)
+}
+
+// AfterSelect is called after the model and all its relations (e.g. has one)
+// are loaded from database.
 func (b *Book) AfterSelect(db orm.DB) error {
     return updateBookCache(b)
 }
@@ -265,6 +272,22 @@ func (b *Book) BeforeInsert(db orm.DB) error {
 
 func (b *Book) AfterInsert(db orm.DB) error {
     return updateBookCache(b)
+}
+
+func (b *Book) BeforeUpdate(db orm.DB) error {
+   return nil
+}
+
+func (b *Book) AfterUpdate(db orm.DB) error {
+   return nil
+}
+
+func (b *Book) BeforeDelete(db orm.DB) error {
+   return nil
+}
+
+func (b *Book) AfterDelete(db orm.DB) error {
+   return nil
 }
 ```
 
