@@ -38,8 +38,7 @@ func (j *join) Select(db DB) error {
 
 func (j *join) selectMany(db DB) (err error) {
 	root := j.JoinModel.Root()
-	index := j.JoinModel.Index()
-	index = index[:len(index)-1]
+	index := j.JoinModel.ParentIndex()
 
 	manyModel := newManyModel(j)
 	q := NewQuery(db, manyModel)
@@ -61,7 +60,7 @@ func (j *join) selectMany(db DB) (err error) {
 		q = q.Where(
 			`? IN (?, ?)`,
 			types.F(j.Rel.BasePrefix+"type"),
-			baseTable.ModelName, baseTable.Type.Name(),
+			baseTable.ModelName, baseTable.TypeName,
 		)
 	}
 
@@ -74,8 +73,7 @@ func (j *join) selectMany(db DB) (err error) {
 }
 
 func (j *join) selectM2M(db DB) (err error) {
-	index := j.JoinModel.Index()
-	index = index[:len(index)-1]
+	index := j.JoinModel.ParentIndex()
 
 	baseTable := j.BaseModel.Table()
 	m2mCols := columns(j.Rel.M2MTableName, j.Rel.BasePrefix, baseTable.PKs)

@@ -559,6 +559,15 @@ func (b *Book) BeforeInsert(db orm.DB) error {
 	return nil
 }
 
+// BookWithCommentCount is like Book model, but has additional CommentCount
+// field that is used to select data into it. The use of `pg:",override"` tag
+// is essential here and it overrides internal model properties such as table name.
+type BookWithCommentCount struct {
+	Book `pg:",override"`
+
+	CommentCount int
+}
+
 type Translation struct {
 	TableName struct{} `sql:",alias:tr"` // custom table alias
 
@@ -878,6 +887,22 @@ var _ = Describe("ORM", func() {
 				Select()
 			Expect(err).To(Equal(pg.ErrNoRows))
 		})
+
+		It("supports overriding", func() {
+			var book BookWithCommentCount
+			err := db.Model(&book).
+				Column("book.id", "Author").
+				ColumnExpr(`(SELECT COUNT(*) FROM comments WHERE trackable_type = 'Book' AND trackable_id = book.id) AS comment_count`).
+				First()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(book).To(Equal(BookWithCommentCount{
+				Book: Book{
+					Id:     100,
+					Author: &Author{ID: 10, Name: "author 1"},
+				},
+				CommentCount: 2,
+			}))
+		})
 	})
 
 	Describe("slice model", func() {
@@ -1048,6 +1073,35 @@ var _ = Describe("ORM", func() {
 				Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(books).To(BeNil())
+		})
+
+		It("supports overriding", func() {
+			var books []BookWithCommentCount
+			err := db.Model(&books).
+				Column("book.id", "Author").
+				ColumnExpr(`(SELECT COUNT(*) FROM comments WHERE trackable_type = 'Book' AND trackable_id = book.id) AS comment_count`).
+				Order("id ASC").
+				Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(books).To(ConsistOf([]BookWithCommentCount{{
+				Book: Book{
+					Id:     100,
+					Author: &Author{ID: 10, Name: "author 1", Books: nil},
+				},
+				CommentCount: 2,
+			}, {
+				Book: Book{
+					Id:     101,
+					Author: &Author{ID: 10, Name: "author 1", Books: nil},
+				},
+				CommentCount: 0,
+			}, {
+				Book: Book{
+					Id:     102,
+					Author: &Author{ID: 11, Name: "author 2", Books: nil},
+				},
+				CommentCount: 0,
+			}}))
 		})
 	})
 

@@ -11,19 +11,21 @@ import (
 )
 
 type Table struct {
+	Type     reflect.Type
+	TypeName string
+
 	Name      types.Q
 	Alias     types.Q
 	ModelName string
-	Type      reflect.Type
-	flags     int16
 
 	PKs       []*Field
 	Fields    []*Field
 	FieldsMap map[string]*Field
 
-	Methods map[string]*Method
-
+	Methods   map[string]*Method
 	Relations map[string]*Relation
+
+	flags int16
 }
 
 func (t *Table) Has(flag int16) bool {
@@ -35,7 +37,7 @@ func (t *Table) Has(flag int16) bool {
 
 func (t *Table) checkPKs() error {
 	if len(t.PKs) == 0 {
-		return fmt.Errorf("model %s does not have primary keys", t.Type.Name())
+		return fmt.Errorf("model %s does not have primary keys", t.TypeName)
 	}
 	return nil
 }
@@ -73,43 +75,19 @@ func newTable(typ reflect.Type) *Table {
 
 	modelName := Underscore(typ.Name())
 	table = &Table{
+		Type:     typ,
+		TypeName: typ.Name(),
+
 		Name:      types.Q(types.AppendField(nil, inflection.Plural(modelName), 1)),
 		Alias:     types.Q(types.AppendField(nil, modelName, 1)),
 		ModelName: modelName,
-		Type:      typ,
+
 		Fields:    make([]*Field, 0, typ.NumField()),
 		FieldsMap: make(map[string]*Field, typ.NumField()),
 	}
 	Tables.inFlight[typ] = table
 
-	for i := 0; i < typ.NumField(); i++ {
-		f := typ.Field(i)
-
-		if f.Anonymous {
-			embeddedTable := newTable(indirectType(f.Type))
-
-			for _, field := range embeddedTable.Fields {
-				field = field.Copy()
-				field.Index = append(f.Index, field.Index...)
-				if field.Has(PrimaryKeyFlag) {
-					table.PKs = append(table.PKs, field)
-				}
-				table.AddField(field)
-			}
-
-			continue
-		}
-
-		if f.PkgPath != "" && !f.Anonymous {
-			continue
-		}
-
-		field := table.newField(f)
-		if field != nil {
-			table.AddField(field)
-		}
-	}
-
+	table.addFields(typ, nil)
 	typ = reflect.PtrTo(typ)
 
 	if typ.Implements(afterQueryHookType) {
@@ -168,6 +146,36 @@ func newTable(typ reflect.Type) *Table {
 	return table
 }
 
+func (t *Table) addFields(typ reflect.Type, index []int) {
+	for i := 0; i < typ.NumField(); i++ {
+		f := typ.Field(i)
+
+		if f.Anonymous {
+			embeddedTable := newTable(indirectType(f.Type))
+
+			_, pgOpt := parseTag(f.Tag.Get("pg"))
+			if _, ok := pgOpt.Get("override"); ok {
+				t.TypeName = embeddedTable.TypeName
+				t.Name = embeddedTable.Name
+				t.Alias = embeddedTable.Alias
+				t.ModelName = embeddedTable.ModelName
+			}
+
+			t.addFields(embeddedTable.Type, append(index, f.Index...))
+			continue
+		}
+
+		if f.PkgPath != "" {
+			continue
+		}
+
+		field := t.newField(f, index)
+		if field != nil {
+			t.AddField(field)
+		}
+	}
+}
+
 func (t *Table) getField(name string) *Field {
 	for _, f := range t.Fields {
 		if f.GoName == name {
@@ -179,10 +187,10 @@ func (t *Table) getField(name string) *Field {
 	if !ok {
 		return nil
 	}
-	return t.newField(f)
+	return t.newField(f, nil)
 }
 
-func (t *Table) newField(f reflect.StructField) *Field {
+func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	sqlName, sqlOpt := parseTag(f.Tag.Get("sql"))
 
 	if f.Name == "TableName" {
@@ -226,7 +234,7 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		SQLName: sqlName,
 		ColName: types.Q(types.AppendField(nil, sqlName, 1)),
 
-		Index: f.Index,
+		Index: append(index, f.Index...),
 
 		append: appender,
 		scan:   scanner,
@@ -262,13 +270,13 @@ func (t *Table) newField(f reflect.StructField) *Field {
 
 		joinTable := newTable(elemType)
 
-		basePrefix := t.Type.Name()
+		basePrefix := t.TypeName
 		if s, ok := pgOpt.Get("fk:"); ok {
 			basePrefix = s
 		}
 
 		if m2mTable, _ := pgOpt.Get("many2many:"); m2mTable != "" {
-			joinPrefix := joinTable.Type.Name()
+			joinPrefix := joinTable.TypeName
 			if s, ok := pgOpt.Get("joinFK:"); ok {
 				joinPrefix = s
 			}
@@ -396,7 +404,7 @@ func (t *Table) detectHasOne(field *Field, joinTable *Table) bool {
 }
 
 func (t *Table) detectBelongsToOne(field *Field, joinTable *Table) bool {
-	fks := foreignKeys(t, joinTable, t.Type.Name())
+	fks := foreignKeys(t, joinTable, t.TypeName)
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
 			Type:      BelongsToRelation,
