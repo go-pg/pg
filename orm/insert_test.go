@@ -8,7 +8,7 @@ import (
 type InsertTest struct{}
 
 var _ = Describe("Insert", func() {
-	It("supports multiple OnConflict", func() {
+	It("supports ON CONFLICT DO UPDATE", func() {
 		q := NewQuery(nil, &InsertTest{}).
 			OnConflict("(unq1) DO UPDATE").
 			Set("count1 = count1 + 1").
@@ -17,5 +17,16 @@ var _ = Describe("Insert", func() {
 		b, err := insertQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" () VALUES () ON CONFLICT (unq1) DO UPDATE SET count1 = count1 + 1 WHERE (cond1 IS TRUE)`))
+	})
+
+	It("supports ON CONFLICT DO NOTHING", func() {
+		q := NewQuery(nil, &InsertTest{}).
+			OnConflict("(unq1) DO NOTHING").
+			Set("count1 = count1 + 1").
+			Where("cond1 IS TRUE")
+
+		b, err := insertQuery{Query: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" () VALUES () ON CONFLICT (unq1) DO NOTHING`))
 	})
 })
