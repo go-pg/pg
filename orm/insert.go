@@ -85,7 +85,7 @@ func (q insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 }
 
 func onConflictDoUpdate(b []byte) bool {
-	return bytes.LastIndex(b, []byte(" DO UPDATE")) >= 0
+	return bytes.HasSuffix(b, []byte(" DO UPDATE"))
 }
 
 func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
