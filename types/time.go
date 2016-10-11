@@ -35,7 +35,7 @@ func AppendTime(b []byte, tm time.Time, quote int) []byte {
 	if quote == 1 {
 		b = append(b, '\'')
 	}
-	b = append(b, tm.Format(timestamptzFormat)...)
+	b = tm.AppendFormat(b, timestamptzFormat)
 	if quote == 1 {
 		b = append(b, '\'')
 	}
