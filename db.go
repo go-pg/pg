@@ -49,7 +49,7 @@ func (db *DB) WithTimeout(d time.Duration) *DB {
 }
 
 func (db *DB) conn() (*pool.Conn, error) {
-	cn, err := db.pool.Get()
+	cn, _, err := db.pool.Get()
 	if err != nil {
 		return nil, err
 	}
