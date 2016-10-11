@@ -2,23 +2,12 @@ package pg
 
 import (
 	"io"
-	"os"
 
 	"gopkg.in/pg.v5/internal"
 	"gopkg.in/pg.v5/internal/pool"
 	"gopkg.in/pg.v5/orm"
 	"gopkg.in/pg.v5/types"
 )
-
-// When true Tx does not issue BEGIN, COMMIT, and ROLLBACK.
-// Also underlying database connection is immediately returned to the pool.
-// This is primarily useful for running your database tests in transaction.
-// singleTx can be enabled with GO_PG_NO_TX environment variable.
-var noTx bool
-
-func init() {
-	_, noTx = os.LookupEnv("GO_PG_NO_TX")
-}
 
 // Tx is an in-progress database transaction.
 //
@@ -44,7 +33,7 @@ func (db *DB) Begin() (*Tx, error) {
 		db: db,
 	}
 
-	if !noTx {
+	if !db.opt.DisableTx {
 		cn, err := db.conn()
 		if err != nil {
 			return nil, err
@@ -76,19 +65,26 @@ func (db *DB) RunInTransaction(fn func(*Tx) error) error {
 }
 
 func (tx *Tx) conn() (*pool.Conn, error) {
-	if noTx {
-		return tx.db.conn()
+	var cn *pool.Conn
+	if tx.db.opt.DisableTx {
+		var err error
+		cn, err = tx.db.conn()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		cn = tx.cn
+		if cn == nil {
+			return nil, errTxDone
+		}
 	}
-	if tx.cn == nil {
-		return nil, errTxDone
-	}
-	tx.cn.SetReadTimeout(tx.db.opt.ReadTimeout)
-	tx.cn.SetWriteTimeout(tx.db.opt.WriteTimeout)
-	return tx.cn, nil
+	cn.SetReadTimeout(tx.db.opt.ReadTimeout)
+	cn.SetWriteTimeout(tx.db.opt.WriteTimeout)
+	return cn, nil
 }
 
 func (tx *Tx) freeConn(cn *pool.Conn, err error) {
-	if noTx {
+	if tx.db.opt.DisableTx {
 		_ = tx.db.freeConn(cn, err)
 	}
 }
@@ -231,7 +227,7 @@ func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byt
 }
 
 func (tx *Tx) begin() error {
-	if noTx {
+	if tx.db.opt.DisableTx {
 		return nil
 	}
 
@@ -241,7 +237,7 @@ func (tx *Tx) begin() error {
 
 // Commit commits the transaction.
 func (tx *Tx) Commit() error {
-	if noTx {
+	if tx.db.opt.DisableTx {
 		return nil
 	}
 
@@ -252,7 +248,7 @@ func (tx *Tx) Commit() error {
 
 // Rollback aborts the transaction.
 func (tx *Tx) Rollback() error {
-	if noTx {
+	if tx.db.opt.DisableTx {
 		return nil
 	}
 

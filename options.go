@@ -56,6 +56,11 @@ type Options struct {
 	// Frequency of idle checks.
 	// Default is 1 minute.
 	IdleCheckFrequency time.Duration
+
+	// When true Tx does not issue BEGIN, COMMIT, and ROLLBACK.
+	// Also underlying database connection is immediately returned to the pool.
+	// This is primarily useful for running your database tests in transaction.
+	DisableTx bool
 }
 
 func (opt *Options) init() {
