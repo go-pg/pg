@@ -38,6 +38,63 @@ func pgOptions() *pg.Options {
 	}
 }
 
+var _ = Describe("Time", func() {
+	var tests = []struct {
+		str    string
+		wanted time.Time
+	}{
+		{"0001-01-01 00:00:00+00", time.Time{}},
+		{"0000-01-01 00:00:00+00", time.Date(0, time.January, 1, 0, 0, 0, 0, time.UTC)},
+
+		{"2001-02-03", time.Date(2001, time.February, 3, 0, 0, 0, 0, time.UTC)},
+		{"2001-02-03 04:05:06", time.Date(2001, time.February, 3, 4, 5, 6, 0, time.Local)},
+		{"2001-02-03 04:05:06.000001", time.Date(2001, time.February, 3, 4, 5, 6, 1000, time.Local)},
+		{"2001-02-03 04:05:06.00001", time.Date(2001, time.February, 3, 4, 5, 6, 10000, time.Local)},
+		{"2001-02-03 04:05:06.0001", time.Date(2001, time.February, 3, 4, 5, 6, 100000, time.Local)},
+		{"2001-02-03 04:05:06.001", time.Date(2001, time.February, 3, 4, 5, 6, 1000000, time.Local)},
+		{"2001-02-03 04:05:06.01", time.Date(2001, time.February, 3, 4, 5, 6, 10000000, time.Local)},
+		{"2001-02-03 04:05:06.1", time.Date(2001, time.February, 3, 4, 5, 6, 100000000, time.Local)},
+		{"2001-02-03 04:05:06.12", time.Date(2001, time.February, 3, 4, 5, 6, 120000000, time.Local)},
+		{"2001-02-03 04:05:06.123", time.Date(2001, time.February, 3, 4, 5, 6, 123000000, time.Local)},
+		{"2001-02-03 04:05:06.1234", time.Date(2001, time.February, 3, 4, 5, 6, 123400000, time.Local)},
+		{"2001-02-03 04:05:06.12345", time.Date(2001, time.February, 3, 4, 5, 6, 123450000, time.Local)},
+		{"2001-02-03 04:05:06.123456", time.Date(2001, time.February, 3, 4, 5, 6, 123456000, time.Local)},
+		{"2001-02-03 04:05:06.123-07", time.Date(2001, time.February, 3, 4, 5, 6, 123000000, time.FixedZone("", -7*60*60))},
+		{"2001-02-03 04:05:06-07", time.Date(2001, time.February, 3, 4, 5, 6, 0, time.FixedZone("", -7*60*60))},
+		{"2001-02-03 04:05:06-07:42", time.Date(2001, time.February, 3, 4, 5, 6, 0, time.FixedZone("", -(7*60*60+42*60)))},
+		{"2001-02-03 04:05:06-07:30:09", time.Date(2001, time.February, 3, 4, 5, 6, 0, time.FixedZone("", -(7*60*60+30*60+9)))},
+		{"2001-02-03 04:05:06+07", time.Date(2001, time.February, 3, 4, 5, 6, 0, time.FixedZone("", 7*60*60))},
+	}
+
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+	})
+
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
+	It("is formatted correctly", func() {
+		for i, test := range tests {
+			var tm time.Time
+			_, err := db.QueryOne(pg.Scan(&tm), "SELECT ?", test.wanted)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tm.Unix()).To(Equal(test.wanted.Unix()), "#%d str=%q wanted=%q", i, test.str, test.wanted)
+		}
+	})
+
+	It("is parsed correctly", func() {
+		for i, test := range tests {
+			var tm time.Time
+			_, err := db.QueryOne(pg.Scan(&tm), "SELECT ?", test.str)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(tm.Unix()).To(Equal(test.wanted.Unix()), "#%d str=%q wanted=%q", i, test.str, test.wanted)
+		}
+	})
+})
+
 var _ = Describe("Collection", func() {
 	var db *pg.DB
 
