@@ -33,7 +33,7 @@ func (db *DB) Begin() (*Tx, error) {
 		db: db,
 	}
 
-	if !db.opt.DisableTx {
+	if !db.opt.DisableTransaction {
 		cn, err := db.conn()
 		if err != nil {
 			return nil, err
@@ -64,9 +64,25 @@ func (db *DB) RunInTransaction(fn func(*Tx) error) error {
 	return tx.Commit()
 }
 
+// Begin returns the transaction.
+func (tx *Tx) Begin() (*Tx, error) {
+	return tx, nil
+}
+
+// RunInTransaction runs a function in the transaction. If function
+// returns an error transaction is rollbacked, otherwise transaction
+// is committed.
+func (tx *Tx) RunInTransaction(fn func(*Tx) error) error {
+	if err := fn(tx); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
+}
+
 func (tx *Tx) conn() (*pool.Conn, error) {
 	var cn *pool.Conn
-	if tx.db.opt.DisableTx {
+	if tx.db.opt.DisableTransaction {
 		var err error
 		cn, err = tx.db.conn()
 		if err != nil {
@@ -84,7 +100,7 @@ func (tx *Tx) conn() (*pool.Conn, error) {
 }
 
 func (tx *Tx) freeConn(cn *pool.Conn, err error) {
-	if tx.db.opt.DisableTx {
+	if tx.db.opt.DisableTransaction {
 		_ = tx.db.freeConn(cn, err)
 	}
 }
@@ -227,7 +243,7 @@ func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byt
 }
 
 func (tx *Tx) begin() error {
-	if tx.db.opt.DisableTx {
+	if tx.db.opt.DisableTransaction {
 		return nil
 	}
 
@@ -237,7 +253,7 @@ func (tx *Tx) begin() error {
 
 // Commit commits the transaction.
 func (tx *Tx) Commit() error {
-	if tx.db.opt.DisableTx {
+	if tx.db.opt.DisableTransaction {
 		return nil
 	}
 
@@ -248,7 +264,7 @@ func (tx *Tx) Commit() error {
 
 // Rollback aborts the transaction.
 func (tx *Tx) Rollback() error {
-	if tx.db.opt.DisableTx {
+	if tx.db.opt.DisableTransaction {
 		return nil
 	}
 
