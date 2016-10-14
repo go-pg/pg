@@ -633,9 +633,14 @@ func readDataRow(cn *pool.Conn, scanner orm.ColumnScanner, columns [][]byte) (re
 func newModel(mod interface{}) (orm.Model, error) {
 	m, ok := mod.(orm.Model)
 	if ok {
-		return m, nil
+		return m, m.Reset()
 	}
-	return orm.NewModel(mod)
+
+	m, err := orm.NewModel(mod)
+	if err != nil {
+		return nil, err
+	}
+	return m, m.Reset()
 }
 
 func readSimpleQueryData(
@@ -660,7 +665,7 @@ func readSimpleQueryData(
 			if err != nil {
 				return nil, nil, err
 			}
-		case dataRowMsg:
+
 			if model == nil {
 				var err error
 				model, err = newModel(mod)
@@ -669,7 +674,7 @@ func readSimpleQueryData(
 					model = Discard
 				}
 			}
-
+		case dataRowMsg:
 			m := model.NewModel()
 			if err := readDataRow(cn, m, cn.Columns); err != nil {
 				setErr(err)

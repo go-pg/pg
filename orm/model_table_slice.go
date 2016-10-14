@@ -38,11 +38,14 @@ func (m *sliceTableModel) Value() reflect.Value {
 	return m.slice
 }
 
-func (m *sliceTableModel) NewModel() ColumnScanner {
-	if !m.strct.IsValid() {
+func (m *sliceTableModel) Reset() error {
+	if m.slice.IsValid() && m.slice.Len() > 0 {
 		m.slice.Set(m.slice.Slice(0, 0))
 	}
+	return nil
+}
 
+func (m *sliceTableModel) NewModel() ColumnScanner {
 	m.strct = m.nextElem()
 	m.structTableModel.NewModel()
 	return m

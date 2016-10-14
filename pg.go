@@ -79,6 +79,13 @@ type Strings []string
 var _ orm.Model = (*Strings)(nil)
 var _ types.ValueAppender = (*Strings)(nil)
 
+func (strings *Strings) Reset() error {
+	if s := *strings; len(s) > 0 {
+		*strings = s[:0]
+	}
+	return nil
+}
+
 func (strings *Strings) NewModel() orm.ColumnScanner {
 	return strings
 }
@@ -143,6 +150,13 @@ type Ints []int64
 
 var _ orm.Model = (*Ints)(nil)
 var _ types.ValueAppender = (*Ints)(nil)
+
+func (ints *Ints) Reset() error {
+	if s := *ints; len(s) > 0 {
+		*ints = s[:0]
+	}
+	return nil
+}
 
 func (ints *Ints) NewModel() orm.ColumnScanner {
 	return ints
@@ -211,6 +225,13 @@ func (ints Ints) AppendValue(dst []byte, quote int) ([]byte, error) {
 type IntSet map[int64]struct{}
 
 var _ orm.Model = (*IntSet)(nil)
+
+func (set *IntSet) Reset() error {
+	if len(*set) > 0 {
+		*set = make(map[int64]struct{})
+	}
+	return nil
+}
 
 func (set *IntSet) NewModel() orm.ColumnScanner {
 	return set

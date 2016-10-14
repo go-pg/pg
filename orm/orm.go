@@ -11,16 +11,6 @@ type ColumnScanner interface {
 	ScanColumn(colIdx int, colName string, b []byte) error
 }
 
-// Collection is a set of models mapped to database rows.
-type Collection interface {
-	// NewModel returns ColumnScanner that is used to scan columns
-	// from the current row.
-	NewModel() ColumnScanner
-
-	// AddModel adds ColumnScanner to the Collection.
-	AddModel(ColumnScanner) error
-}
-
 type QueryAppender interface {
 	AppendQuery(dst []byte, params ...interface{}) ([]byte, error)
 }

@@ -434,8 +434,6 @@ type OptRecords struct {
 	C []OptRecord
 }
 
-var _ orm.Collection = (*OptRecords)(nil)
-
 func (rs *OptRecords) NewModel() orm.ColumnScanner {
 	rs.C = append(rs.C, OptRecord{})
 	return &rs.C[len(rs.C)-1]
