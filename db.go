@@ -97,6 +97,8 @@ func (db *DB) shouldRetry(err error) bool {
 		switch pgerr.Field('C') {
 		case "40001": // serialization_failure
 			return true
+		case "55000": // attempted to delete invisible tuple
+			return true
 		case "57014": // statement_timeout
 			return db.opt.RetryStatementTimeout
 		default:
