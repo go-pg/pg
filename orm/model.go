@@ -17,8 +17,17 @@ type useQueryOne interface {
 }
 
 type Model interface {
-	Collection
 	ColumnScanner
+
+	// Reset resets model state.
+	Reset() error
+
+	// NewModel returns ColumnScanner that is used to scan columns
+	// from the current row.
+	NewModel() ColumnScanner
+
+	// AddModel adds ColumnScanner to the Collection.
+	AddModel(ColumnScanner) error
 
 	AfterQuery(DB) error
 	AfterSelect(DB) error

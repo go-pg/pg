@@ -95,7 +95,7 @@ var _ = Describe("Time", func() {
 	})
 })
 
-var _ = Describe("Collection", func() {
+var _ = Describe("slice model", func() {
 	var db *pg.DB
 
 	BeforeEach(func() {
@@ -107,59 +107,39 @@ var _ = Describe("Collection", func() {
 	})
 
 	It("supports slice of structs", func() {
-		coll := []struct {
+		type value struct {
 			Id int
-		}{}
-		_, err := db.Query(&coll, `
-			WITH data (id) AS (VALUES (1), (2), (3))
-			SELECT id FROM data
-		`)
+		}
+
+		var slice []value
+		_, err := db.Query(&slice, `SELECT generate_series(1, 3) AS id`)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(coll).To(HaveLen(3))
-		Expect(coll[0].Id).To(Equal(1))
-		Expect(coll[1].Id).To(Equal(2))
-		Expect(coll[2].Id).To(Equal(3))
+		Expect(slice).To(Equal([]value{{1}, {2}, {3}}))
 	})
 
 	It("supports slice of pointers", func() {
-		coll := []*struct {
+		type value struct {
 			Id int
-		}{}
-		_, err := db.Query(&coll, `
-			WITH data (id) AS (VALUES (1), (2), (3))
-			SELECT id FROM data
-		`)
+		}
+
+		var slice []*value
+		_, err := db.Query(&slice, `SELECT generate_series(1, 3) AS id`)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(coll).To(HaveLen(3))
-		Expect(coll[0].Id).To(Equal(1))
-		Expect(coll[1].Id).To(Equal(2))
-		Expect(coll[2].Id).To(Equal(3))
+		Expect(slice).To(Equal([]*value{{1}, {2}, {3}}))
 	})
 
-	It("supports Collection interface", func() {
-		var coll pg.Ints
-		_, err := db.Query(&coll, `
-			WITH data (id) AS (VALUES (1), (2), (3))
-			SELECT id FROM data
-		`)
+	It("supports Ints", func() {
+		var ints pg.Ints
+		_, err := db.Query(&ints, `SELECT generate_series(1, 3)`)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(coll).To(HaveLen(3))
-		Expect(coll[0]).To(Equal(int64(1)))
-		Expect(coll[1]).To(Equal(int64(2)))
-		Expect(coll[2]).To(Equal(int64(3)))
+		Expect(ints).To(Equal(pg.Ints{1, 2, 3}))
 	})
 
-	It("supports slice of values", func() {
+	It("supports slice of ints", func() {
 		var ints []int
-		_, err := db.Query(&ints, `
-			WITH data (id) AS (VALUES (1), (2), (3))
-			SELECT id FROM data
-		`)
+		_, err := db.Query(&ints, `SELECT generate_series(1, 3)`)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(ints).To(HaveLen(3))
-		Expect(ints[0]).To(Equal(1))
-		Expect(ints[1]).To(Equal(2))
-		Expect(ints[2]).To(Equal(3))
+		Expect(ints).To(Equal([]int{1, 2, 3}))
 	})
 
 	It("supports slice of time.Time", func() {
@@ -170,6 +150,20 @@ var _ = Describe("Collection", func() {
 		`)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(times).To(HaveLen(2))
+	})
+
+	It("resets slice", func() {
+		ints := []int{1, 2, 3}
+		_, err := db.Query(&ints, `SELECT 1`)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ints).To(Equal([]int{1}))
+	})
+
+	It("resets slice when there are no results", func() {
+		ints := []int{1, 2, 3}
+		_, err := db.Query(&ints, `SELECT 1 WHERE FALSE`)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ints).To(BeEmpty())
 	})
 })
 

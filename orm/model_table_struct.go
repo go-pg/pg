@@ -106,6 +106,10 @@ func (m *structTableModel) bindChildren() {
 	}
 }
 
+func (structTableModel) Reset() error {
+	return nil
+}
+
 func (m *structTableModel) NewModel() ColumnScanner {
 	m.bindChildren()
 	return m

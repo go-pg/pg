@@ -114,6 +114,10 @@ type errLoader string
 
 var _ orm.Model = errLoader("")
 
+func (errLoader) Reset() error {
+	return nil
+}
+
 func (m errLoader) NewModel() orm.ColumnScanner {
 	return m
 }

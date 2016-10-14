@@ -2,8 +2,11 @@ package orm
 
 type Discard struct{}
 
-var _ Collection = (*Discard)(nil)
-var _ ColumnScanner = (*Discard)(nil)
+var _ Model = (*Discard)(nil)
+
+func (Discard) Reset() error {
+	return nil
+}
 
 func (d Discard) NewModel() ColumnScanner {
 	return d

@@ -6,8 +6,7 @@ type valuesModel struct {
 	values []interface{}
 }
 
-var _ ColumnScanner = valuesModel{}
-var _ Collection = valuesModel{}
+var _ Model = valuesModel{}
 
 func Scan(values ...interface{}) valuesModel {
 	return valuesModel{
@@ -17,6 +16,10 @@ func Scan(values ...interface{}) valuesModel {
 
 func (valuesModel) useQueryOne() bool {
 	return true
+}
+
+func (valuesModel) Reset() error {
+	return nil
 }
 
 func (m valuesModel) NewModel() ColumnScanner {
