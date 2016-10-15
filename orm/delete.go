@@ -15,8 +15,19 @@ type deleteQuery struct {
 
 var _ QueryAppender = (*deleteQuery)(nil)
 
-func (del deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+func (q deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	b = append(b, "DELETE FROM "...)
-	b = del.appendTables(b)
-	return del.appendWhere(b)
+	b = q.appendTables(b)
+
+	b, err := q.appendWhere(b)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(q.returning) > 0 {
+		b = append(b, " RETURNING "...)
+		b = append(b, q.returning...)
+	}
+
+	return b, nil
 }
