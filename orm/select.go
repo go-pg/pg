@@ -34,7 +34,7 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 	b = append(b, "SELECT "...)
 	b = q.appendColumns(b)
 
-	if q.haveTables() {
+	if q.hasTables() {
 		b = append(b, " FROM "...)
 		b = q.appendTables(b)
 	}

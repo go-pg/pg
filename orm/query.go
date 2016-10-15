@@ -481,7 +481,7 @@ func (q *Query) appendTableNameWithAlias(b []byte) []byte {
 	return b
 }
 
-func (q *Query) haveTables() bool {
+func (q *Query) hasTables() bool {
 	return q.model != nil || len(q.tables) > 0
 }
 
