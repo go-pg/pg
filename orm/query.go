@@ -22,7 +22,7 @@ type Query struct {
 
 	tableAlias string
 	with       []withQuery
-	tables     []string
+	tables     []FormatAppender
 	fields     []string
 	columns    []FormatAppender
 	rels       map[string]func(*Query) (*Query, error)
@@ -39,6 +39,13 @@ type Query struct {
 
 func NewQuery(db DB, model ...interface{}) *Query {
 	return (&Query{}).DB(db).Model(model...)
+}
+
+// New returns new Query binded to the current db.
+func (q *Query) New() *Query {
+	return &Query{
+		db: q.db,
+	}
 }
 
 func (q *Query) copy() *Query {
@@ -84,8 +91,13 @@ func (q *Query) With(name string, subq *Query) *Query {
 
 func (q *Query) Table(tables ...string) *Query {
 	for _, table := range tables {
-		q.tables = append(q.tables, table)
+		q.tables = append(q.tables, fieldAppender{table})
 	}
+	return q
+}
+
+func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
+	q.tables = append(q.tables, queryParams{expr, params})
 	return q
 }
 
@@ -95,11 +107,10 @@ func (q *Query) Alias(alias string) *Query {
 }
 
 func (q *Query) Column(columns ...string) *Query {
-loop:
 	for _, column := range columns {
 		if q.model != nil {
 			if j := q.model.Join(column, nil); j != nil {
-				continue loop
+				continue
 			}
 		}
 
@@ -492,11 +503,11 @@ func (q *Query) appendTables(b []byte) []byte {
 			b = append(b, ", "...)
 		}
 	}
-	for i, table := range q.tables {
+	for i, f := range q.tables {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		b = types.AppendField(b, table, 1)
+		b = f.AppendFormat(b, q)
 	}
 	return b
 }
