@@ -20,6 +20,8 @@ type Query struct {
 	model     tableModel
 	stickyErr error
 
+	parent *Query
+
 	tableAlias string
 	with       []withQuery
 	tables     []FormatAppender
@@ -30,6 +32,7 @@ type Query struct {
 	where      []FormatAppender
 	joins      []FormatAppender
 	group      []queryParams
+	having     []queryParams
 	order      []queryParams
 	onConflict FormatAppender
 	returning  []queryParams
@@ -41,16 +44,27 @@ func NewQuery(db DB, model ...interface{}) *Query {
 	return (&Query{}).DB(db).Model(model...)
 }
 
-// New returns new Query binded to the current db.
+// New returns new zero Query binded to the current db.
 func (q *Query) New() *Query {
 	return &Query{
 		db: q.db,
 	}
 }
 
-func (q *Query) copy() *Query {
+// Copy returns copy of the Query.
+func (q *Query) Copy() *Query {
 	cp := *q
 	return &cp
+}
+
+func (q *Query) topLevelQuery() *Query {
+	if q.parent != nil {
+		q.parent.with = q.with
+		q.parent.With(q.parent.tableAlias, q)
+		q.with = nil
+		return q.parent.topLevelQuery()
+	}
+	return q
 }
 
 func (q *Query) err(err error) *Query {
@@ -87,6 +101,11 @@ func (q *Query) Model(model ...interface{}) *Query {
 func (q *Query) With(name string, subq *Query) *Query {
 	q.with = append(q.with, withQuery{name, subq})
 	return q
+}
+
+func (q *Query) WrapWith(name string) *Query {
+	q.parent = q.New().Table(name).Alias(name)
+	return q.parent
 }
 
 func (q *Query) Table(tables ...string) *Query {
@@ -155,6 +174,11 @@ func (q *Query) Group(group string, params ...interface{}) *Query {
 	return q
 }
 
+func (q *Query) Having(having string, params ...interface{}) *Query {
+	q.having = append(q.having, queryParams{having, params})
+	return q
+}
+
 func (q *Query) Order(order string, params ...interface{}) *Query {
 	q.order = append(q.order, queryParams{order, params})
 	return q
@@ -196,7 +220,7 @@ func (q *Query) Count() (int, error) {
 		return 0, q.stickyErr
 	}
 
-	q = q.copy()
+	q = q.Copy()
 	q.columns = append(q.columns, Q("count(*)"))
 	q.order = nil
 	q.limit = 0
@@ -252,7 +276,7 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
-	res, err := q.query(model, selectQuery{q})
+	res, err := q.query(model, selectQuery{q.topLevelQuery()})
 	if err != nil {
 		return err
 	}
