@@ -35,6 +35,11 @@ func (t *Table) Has(flag int16) bool {
 	return t.flags&flag != 0
 }
 
+func (t *Table) HasField(field string) bool {
+	_, err := t.GetField(field)
+	return err == nil
+}
+
 func (t *Table) checkPKs() error {
 	if len(t.PKs) == 0 {
 		return fmt.Errorf("model %s does not have primary keys", t.TypeName)
