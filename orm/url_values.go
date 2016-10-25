@@ -63,7 +63,7 @@ func forAllValues(q *Query, fieldName string, values []string, queryTemplate, qu
 func setOrder(q *Query, urlValues url.Values) *Query {
 	if orders, ok := urlValues["order"]; ok {
 		for _, order := range orders {
-			q = q.Order(order)
+			q = q.OrderExpr(order)
 		}
 	}
 	return q
