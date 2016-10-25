@@ -60,6 +60,18 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 		}
 	}
 
+	if len(q.having) > 0 {
+		b = append(b, " HAVING "...)
+		for i, f := range q.having {
+			if i > 0 {
+				b = append(b, " AND "...)
+			}
+			b = append(b, '(')
+			b = f.AppendFormat(b, q)
+			b = append(b, ')')
+		}
+	}
+
 	if len(q.order) > 0 {
 		b = append(b, " ORDER BY "...)
 		for i, f := range q.order {
