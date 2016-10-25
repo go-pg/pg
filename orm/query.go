@@ -179,7 +179,7 @@ func (q *Query) Having(having string, params ...interface{}) *Query {
 	return q
 }
 
-func (q *Query) Order(order string, params ...interface{}) *Query {
+func (q *Query) OrderExpr(order string, params ...interface{}) *Query {
 	q.order = append(q.order, queryParams{order, params})
 	return q
 }
@@ -237,14 +237,14 @@ func (q *Query) Count() (int, error) {
 // First selects the first row.
 func (q *Query) First() error {
 	b := columns(q.model.Table().Alias, "", q.model.Table().PKs)
-	return q.Order(string(b)).Limit(1).Select()
+	return q.OrderExpr(string(b)).Limit(1).Select()
 }
 
 // Last selects the last row.
 func (q *Query) Last() error {
 	b := columns(q.model.Table().Alias, "", q.model.Table().PKs)
 	b = append(b, " DESC"...)
-	return q.Order(string(b)).Limit(1).Select()
+	return q.OrderExpr(string(b)).Limit(1).Select()
 }
 
 func (q *Query) newModel(values []interface{}) (model Model, err error) {

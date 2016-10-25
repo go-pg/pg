@@ -274,7 +274,7 @@ func ExampleDB_Select_someColumns() {
 	var book Book
 	err := db.Model(&book).
 		Column("book.id", "book.title").
-		Order("book.id ASC").
+		OrderExpr("book.id ASC").
 		Limit(1).
 		Select()
 	if err != nil {
@@ -291,7 +291,7 @@ func ExampleDB_Select_tableAlias() {
 	var book Book
 	err := db.Model(&book).
 		Alias("b").
-		Order("b.id ASC").
+		OrderExpr("b.id ASC").
 		Limit(1).
 		Select()
 	if err != nil {
@@ -309,7 +309,7 @@ func ExampleDB_Select_someColumnsIntoVars() {
 	var title string
 	err := db.Model(&Book{}).
 		Column("book.id", "book.title").
-		Order("book.id ASC").
+		OrderExpr("book.id ASC").
 		Limit(1).
 		Select(&id, &title)
 	if err != nil {
@@ -346,7 +346,7 @@ func ExampleDB_Select_groupBy() {
 		Column("author_id").
 		ColumnExpr("count(*) AS book_count").
 		Group("author_id").
-		Order("book_count DESC").
+		OrderExpr("book_count DESC").
 		Select(&res)
 	if err != nil {
 		panic(err)
@@ -402,7 +402,7 @@ func ExampleDB_Model_selectAndCount() {
 	db := modelDB()
 
 	var books []Book
-	count, err := db.Model(&books).Order("id ASC").Limit(2).SelectAndCount()
+	count, err := db.Model(&books).OrderExpr("id ASC").Limit(2).SelectAndCount()
 	if err != nil {
 		panic(err)
 	}

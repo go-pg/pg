@@ -897,7 +897,7 @@ var _ = Describe("ORM", func() {
 			var books []Book
 			err := db.Model(&books).
 				Column("book.id", "Author", "Editor", "Translations", "Genres").
-				Order("book.id ASC").
+				OrderExpr("book.id ASC").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(books).To(ConsistOf([]Book{{
@@ -951,7 +951,7 @@ var _ = Describe("ORM", func() {
 			err := db.Model(&genres).
 				Column("genre.*", "Subgenres", "Books.id", "Books.Translations").
 				Where("genre.parent_id IS NULL").
-				Order("genre.id").
+				OrderExpr("genre.id").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(genres).To(ConsistOf([]Genre{{
@@ -1067,7 +1067,7 @@ var _ = Describe("ORM", func() {
 			err := db.Model(&books).
 				Column("book.id", "Author").
 				ColumnExpr(`(SELECT COUNT(*) FROM comments WHERE trackable_type = 'Book' AND trackable_id = book.id) AS comment_count`).
-				Order("id ASC").
+				OrderExpr("id ASC").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(books).To(ConsistOf([]BookWithCommentCount{{
@@ -1097,7 +1097,7 @@ var _ = Describe("ORM", func() {
 		err := db.Model(&books).
 			Column("book.id", "Author._").
 			Where("author.id = 10").
-			Order("book.id ASC").
+			OrderExpr("book.id ASC").
 			Select()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(books).To(ConsistOf([]Book{{
