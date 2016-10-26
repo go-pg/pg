@@ -77,10 +77,7 @@ func ExampleDB_Exec() {
 }
 
 func ExampleListener() {
-	ln, err := db.Listen("mychan")
-	if err != nil {
-		panic(err)
-	}
+	ln := db.Listen("mychan")
 
 	wait := make(chan struct{}, 2)
 	go func() {

@@ -21,9 +21,7 @@ var _ = Context("Listener", func() {
 
 		db = pg.Connect(opt)
 
-		var err error
-		ln, err = db.Listen("test_channel")
-		Expect(err).NotTo(HaveOccurred())
+		ln = db.Listen("test_channel")
 	})
 
 	var _ = AfterEach(func() {

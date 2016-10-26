@@ -221,16 +221,13 @@ func (db *DB) QueryOne(model, query interface{}, params ...interface{}) (*types.
 	return res, nil
 }
 
-// Listen listens for notifications sent by NOTIFY statement.
-func (db *DB) Listen(channels ...string) (*Listener, error) {
-	l := &Listener{
+// Listen listens for notifications sent with NOTIFY command.
+func (db *DB) Listen(channels ...string) *Listener {
+	ln := &Listener{
 		db: db,
 	}
-	if err := l.Listen(channels...); err != nil {
-		l.Close()
-		return nil, err
-	}
-	return l, nil
+	_ = ln.Listen(channels...)
+	return ln
 }
 
 // CopyFrom copies data from reader to a table.
