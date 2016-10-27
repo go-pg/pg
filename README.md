@@ -377,16 +377,6 @@ err := db.Model(&book).
     Select()
 // SELECT * FROM "books" WHERE (id > 100) AND (title LIKE 'my%') LIMIT 1
 
-// Select book using WHERE OR.
-err := db.Model(&book).
-    WhereOr(
-        pg.SQL("id > ?", 100),
-        pg.SQL("title LIKE ?", "my%"),
-    ).
-    Limit(1).
-    Select()
-// SELECT * FROM "books" WHERE (id > 100 OR title LIKE 'my%') LIMIT 1
-
 // Select first 20 books.
 err := db.Model(&books).Order("id ASC").Limit(20).Select()
 // SELECT * FROM "books" ORDER BY id ASC LIMIT 20
