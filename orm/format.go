@@ -15,19 +15,19 @@ type FormatAppender interface {
 
 //------------------------------------------------------------------------------
 
-type queryParams struct {
+type queryParamsAppender struct {
 	query  string
 	params []interface{}
 }
 
-var _ FormatAppender = (*queryParams)(nil)
+var _ FormatAppender = (*queryParamsAppender)(nil)
 
 func Q(query string, params ...interface{}) FormatAppender {
-	return queryParams{query, params}
+	return queryParamsAppender{query, params}
 }
 
-func (q queryParams) AppendFormat(dst []byte, f QueryFormatter) []byte {
-	return f.FormatQuery(dst, q.query, q.params...)
+func (q queryParamsAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
+	return f.FormatQuery(b, q.query, q.params...)
 }
 
 //------------------------------------------------------------------------------

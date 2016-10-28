@@ -46,7 +46,7 @@ func (q *Query) CountEstimate(threshold int) (int, error) {
 	}
 
 	q = q.Copy()
-	q.columns = []FormatAppender{queryParams{query: placeholder}}
+	q.columns = []FormatAppender{queryParamsAppender{query: placeholder}}
 	q.order = nil
 	q.limit = 0
 	q.offset = 0

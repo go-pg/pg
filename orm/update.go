@@ -58,8 +58,8 @@ func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 	table := q.model.Table()
 	strct := q.model.Value()
 
-	if len(q.fields) > 0 {
-		for i, fieldName := range q.fields {
+	if fields := q.getFields(); len(fields) > 0 {
+		for i, fieldName := range fields {
 			field, err := table.GetField(fieldName)
 			if err != nil {
 				return nil, err

@@ -14,16 +14,9 @@ type join struct {
 
 func (j *join) JoinHasOne(q *Query) {
 	if j.hasColumns() {
-		q.columns = append(q.columns, hasOneColumnsQuery{j})
+		q.columns = append(q.columns, hasOneQueryColumns{j})
 	}
-	q.joins = append(q.joins, hasOneJoinQuery{j})
-}
-
-func (j *join) JoinBelongsTo(q *Query) {
-	if j.hasColumns() {
-		q.columns = append(q.columns, hasOneColumnsQuery{j})
-	}
-	q.joins = append(q.joins, belongsToJoinQuery{j})
+	q.joins = append(q.joins, hasOneQueryJoin{j})
 }
 
 func (j *join) Select(db DB) error {
@@ -112,20 +105,36 @@ func (j *join) selectM2M(db DB) (err error) {
 	return nil
 }
 
-func (j *join) alias() []byte {
-	var b []byte
-	return appendAlias(b, j)
-}
-
-func appendAlias(b []byte, j *join) []byte {
+func (j *join) hasParent() bool {
 	if j.Parent != nil {
 		switch j.Parent.Rel.Type {
 		case HasOneRelation, BelongsToRelation:
-			b = appendAlias(b, j.Parent)
+			return true
 		}
 	}
+	return false
+}
+
+func (j *join) appendAlias(b []byte) []byte {
+	return appendAlias(b, j, true)
+}
+
+func (j *join) appendBaseAlias(b []byte) []byte {
+	if j.hasParent() {
+		return appendAlias(b, j.Parent, true)
+	}
+	return append(b, j.BaseModel.Table().Alias...)
+}
+
+func appendAlias(b []byte, j *join, topLevel bool) []byte {
+	if j.hasParent() {
+		b = appendAlias(b, j.Parent, topLevel)
+		topLevel = false
+	}
+	if !topLevel {
+		b = append(b, "__"...)
+	}
 	b = append(b, j.Rel.Field.SQLName...)
-	b = append(b, "__"...)
 	return b
 }
 

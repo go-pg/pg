@@ -22,9 +22,7 @@ func (m *sliceTableModel) init(sliceType reflect.Type) {
 	}
 }
 
-func (sliceTableModel) useQueryOne() bool {
-	return false
-}
+func (sliceTableModel) useQueryOne() {}
 
 func (m *sliceTableModel) Join(name string, apply func(*Query) (*Query, error)) *join {
 	return m.join(m.Value(), name, apply)

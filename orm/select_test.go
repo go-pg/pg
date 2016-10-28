@@ -13,6 +13,10 @@ type SelectTest struct {
 var _ = Describe("Select", func() {
 	It("specifies all columns", func() {
 		q := NewQuery(nil, &SelectTest{})
+		if len(q.columns) == 0 {
+			q.columns = append(q.columns, modelColumnsAppender{q})
+		}
+		q.addJoins(q.model.GetJoins())
 
 		b, err := selectQuery{q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
