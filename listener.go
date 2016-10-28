@@ -127,7 +127,6 @@ func (ln *Listener) freeConn(err error) (retErr error) {
 	if !isBadConn(err, true) {
 		return nil
 	}
-	internal.Logf("pg: discarding bad listener connection: %s", err)
 	return ln.closeConn(err)
 }
 
@@ -136,6 +135,10 @@ func (ln *Listener) closeConn(reason error) error {
 
 	ln.mu.Lock()
 	if ln._cn != nil {
+		if !ln.closed {
+			internal.Logf("pg: discarding bad listener connection: %s", reason)
+		}
+
 		firstErr = ln.db.pool.Remove(ln._cn, reason)
 		ln._cn = nil
 	}
