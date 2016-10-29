@@ -24,7 +24,7 @@ func (m *sliceTableModel) init(sliceType reflect.Type) {
 
 func (sliceTableModel) useQueryOne() {}
 
-func (m *sliceTableModel) Join(name string, apply func(*Query) (*Query, error)) *join {
+func (m *sliceTableModel) Join(name string, apply func(*Query) (*Query, error)) (bool, *join) {
 	return m.join(m.Value(), name, apply)
 }
 

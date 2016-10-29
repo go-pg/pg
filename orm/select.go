@@ -39,6 +39,10 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 		b = q.appendTables(b)
 	}
 
+	q.forEachHasOneJoin(func(j *join) {
+		b = append(b, ' ')
+		b = j.appendHasOneJoin(b)
+	})
 	if len(q.joins) > 0 {
 		for _, f := range q.joins {
 			b = append(b, ' ')
@@ -97,15 +101,22 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 
 func (q selectQuery) appendColumns(b []byte) []byte {
 	if len(q.columns) > 0 {
-		return q.appendQueryColumns(b)
+		b = q.appendQueryColumns(b)
+	} else if q.model != nil {
+		b = q.appendModelColumns(b)
+	} else {
+		var ok bool
+		b, ok = q.appendTableAlias(b)
+		if ok {
+			b = append(b, '.')
+		}
+		b = append(b, '*')
 	}
 
-	var ok bool
-	b, ok = q.appendTableAlias(b)
-	if ok {
-		b = append(b, '.')
-	}
-	b = append(b, '*')
+	q.forEachHasOneJoin(func(j *join) {
+		b = j.appendHasOneColumns(b)
+	})
+
 	return b
 }
 
@@ -115,6 +126,21 @@ func (q selectQuery) appendQueryColumns(b []byte) []byte {
 			b = append(b, ", "...)
 		}
 		b = f.AppendFormat(b, q)
+	}
+	return b
+}
+
+func (q selectQuery) appendModelColumns(b []byte) []byte {
+	alias, hasAlias := q.appendTableAlias(nil)
+	for i, f := range q.model.Table().Fields {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		if hasAlias {
+			b = append(b, alias...)
+			b = append(b, '.')
+		}
+		b = append(b, f.ColName...)
 	}
 	return b
 }
@@ -136,25 +162,4 @@ func (q selectQuery) appendWith(b []byte) ([]byte, error) {
 	}
 	b = append(b, ' ')
 	return b, nil
-}
-
-type modelColumnsAppender struct {
-	*Query
-}
-
-var _ FormatAppender = (*modelColumnsAppender)(nil)
-
-func (q modelColumnsAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
-	alias, hasAlias := q.appendTableAlias(nil)
-	for i, f := range q.model.Table().Fields {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-		if hasAlias {
-			b = append(b, alias...)
-			b = append(b, '.')
-		}
-		b = append(b, f.ColName...)
-	}
-	return b
 }

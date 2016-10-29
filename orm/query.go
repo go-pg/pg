@@ -146,7 +146,7 @@ func (q *Query) Alias(alias string) *Query {
 func (q *Query) Column(columns ...string) *Query {
 	for _, column := range columns {
 		if q.model != nil {
-			if j := q.model.Join(column, nil); j != nil {
+			if _, j := q.model.Join(column, nil); j != nil {
 				continue
 			}
 		}
@@ -172,7 +172,7 @@ func (q *Query) getFields() []string {
 }
 
 func (q *Query) Relation(name string, apply func(*Query) (*Query, error)) *Query {
-	if j := q.model.Join(name, apply); j == nil {
+	if _, j := q.model.Join(name, apply); j == nil {
 		return q.err(fmt.Errorf(
 			"model %s does not have relation %s",
 			q.model.Table().TypeName, name,
@@ -316,12 +316,6 @@ func (q *Query) Select(values ...interface{}) error {
 }
 
 func (q *Query) selectQuery() selectQuery {
-	if q.model != nil {
-		if len(q.columns) == 0 {
-			q.columns = append(q.columns, modelColumnsAppender{q})
-		}
-		q.addJoins(q.model.GetJoins())
-	}
 	return selectQuery{q.topLevelQuery()}
 }
 
@@ -355,13 +349,20 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 	return count, err
 }
 
-func (q *Query) addJoins(joins []join) {
+func (q *Query) forEachHasOneJoin(fn func(*join)) {
+	if q.model == nil {
+		return
+	}
+	q._forEachHasOneJoin(q.model.GetJoins(), fn)
+}
+
+func (q *Query) _forEachHasOneJoin(joins []join, fn func(*join)) {
 	for i := range joins {
 		j := &joins[i]
 		switch j.Rel.Type {
 		case HasOneRelation, BelongsToRelation:
-			j.JoinHasOne(q)
-			q.addJoins(j.JoinModel.GetJoins())
+			fn(j)
+			q._forEachHasOneJoin(j.JoinModel.GetJoins(), fn)
 		}
 	}
 }
