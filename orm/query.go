@@ -25,17 +25,15 @@ type Query struct {
 	tableAlias string
 	with       []withQuery
 	tables     []FormatAppender
-	fields     []string
 	columns    []FormatAppender
-	rels       map[string]func(*Query) (*Query, error)
-	set        []queryParams
+	set        []queryParamsAppender
 	where      []FormatAppender
 	joins      []FormatAppender
-	group      []queryParams
-	having     []queryParams
-	order      []queryParams
+	group      []queryParamsAppender
+	having     []queryParamsAppender
+	order      []queryParamsAppender
 	onConflict FormatAppender
-	returning  []queryParams
+	returning  []queryParamsAppender
 	limit      int
 	offset     int
 }
@@ -53,8 +51,28 @@ func (q *Query) New() *Query {
 
 // Copy returns copy of the Query.
 func (q *Query) Copy() *Query {
-	cp := *q
-	return &cp
+	return &Query{
+		db:        q.db,
+		model:     q.model,
+		stickyErr: q.stickyErr,
+
+		parent: q.parent,
+
+		tableAlias: q.tableAlias,
+		with:       q.with[:],
+		tables:     q.tables[:],
+		columns:    q.columns[:],
+		set:        q.set[:],
+		where:      q.where[:],
+		joins:      q.joins[:],
+		group:      q.group[:],
+		having:     q.having[:],
+		order:      q.order[:],
+		onConflict: q.onConflict,
+		returning:  q.returning[:],
+		limit:      q.limit,
+		offset:     q.offset,
+	}
 }
 
 func (q *Query) topLevelQuery() *Query {
@@ -116,7 +134,7 @@ func (q *Query) Table(tables ...string) *Query {
 }
 
 func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
-	q.tables = append(q.tables, queryParams{expr, params})
+	q.tables = append(q.tables, queryParamsAppender{expr, params})
 	return q
 }
 
@@ -128,24 +146,33 @@ func (q *Query) Alias(alias string) *Query {
 func (q *Query) Column(columns ...string) *Query {
 	for _, column := range columns {
 		if q.model != nil {
-			if j := q.model.Join(column, nil); j != nil {
+			if _, j := q.model.Join(column, nil); j != nil {
 				continue
 			}
 		}
 
-		q.fields = append(q.fields, column)
 		q.columns = append(q.columns, fieldAppender{column})
 	}
 	return q
 }
 
 func (q *Query) ColumnExpr(expr string, params ...interface{}) *Query {
-	q.columns = append(q.columns, queryParams{expr, params})
+	q.columns = append(q.columns, queryParamsAppender{expr, params})
 	return q
 }
 
+func (q *Query) getFields() []string {
+	var fields []string
+	for _, col := range q.columns {
+		if f, ok := col.(fieldAppender); ok {
+			fields = append(fields, f.field)
+		}
+	}
+	return fields
+}
+
 func (q *Query) Relation(name string, apply func(*Query) (*Query, error)) *Query {
-	if j := q.model.Join(name, apply); j == nil {
+	if _, j := q.model.Join(name, apply); j == nil {
 		return q.err(fmt.Errorf(
 			"model %s does not have relation %s",
 			q.model.Table().TypeName, name,
@@ -155,32 +182,32 @@ func (q *Query) Relation(name string, apply func(*Query) (*Query, error)) *Query
 }
 
 func (q *Query) Set(set string, params ...interface{}) *Query {
-	q.set = append(q.set, queryParams{set, params})
+	q.set = append(q.set, queryParamsAppender{set, params})
 	return q
 }
 
 func (q *Query) Where(where string, params ...interface{}) *Query {
-	q.where = append(q.where, queryParams{where, params})
+	q.where = append(q.where, queryParamsAppender{where, params})
 	return q
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
-	q.joins = append(q.joins, queryParams{join, params})
+	q.joins = append(q.joins, queryParamsAppender{join, params})
 	return q
 }
 
 func (q *Query) Group(group string, params ...interface{}) *Query {
-	q.group = append(q.group, queryParams{group, params})
+	q.group = append(q.group, queryParamsAppender{group, params})
 	return q
 }
 
 func (q *Query) Having(having string, params ...interface{}) *Query {
-	q.having = append(q.having, queryParams{having, params})
+	q.having = append(q.having, queryParamsAppender{having, params})
 	return q
 }
 
 func (q *Query) OrderExpr(order string, params ...interface{}) *Query {
-	q.order = append(q.order, queryParams{order, params})
+	q.order = append(q.order, queryParamsAppender{order, params})
 	return q
 }
 
@@ -195,12 +222,12 @@ func (q *Query) Offset(n int) *Query {
 }
 
 func (q *Query) OnConflict(s string, params ...interface{}) *Query {
-	q.onConflict = queryParams{s, params}
+	q.onConflict = queryParamsAppender{s, params}
 	return q
 }
 
 func (q *Query) Returning(s string, params ...interface{}) *Query {
-	q.returning = append(q.returning, queryParams{s, params})
+	q.returning = append(q.returning, queryParamsAppender{s, params})
 	return q
 }
 
@@ -221,16 +248,13 @@ func (q *Query) Count() (int, error) {
 	}
 
 	q = q.Copy()
-	q.columns = append(q.columns, Q("count(*)"))
+	q.columns = []FormatAppender{Q("count(*)")}
 	q.order = nil
 	q.limit = 0
 	q.offset = 0
 
-	sel := &selectQuery{
-		Query: q,
-	}
 	var count int
-	_, err := q.db.QueryOne(Scan(&count), sel, q.model)
+	_, err := q.db.QueryOne(Scan(&count), selectQuery{q}, q.model)
 	return count, err
 }
 
@@ -255,7 +279,7 @@ func (q *Query) newModel(values []interface{}) (model Model, err error) {
 }
 
 func (q *Query) query(model Model, query interface{}) (*types.Result, error) {
-	if m, ok := model.(useQueryOne); ok && m.useQueryOne() {
+	if _, ok := model.(useQueryOne); ok {
 		return q.db.QueryOne(model, query, q.model)
 	}
 	return q.db.Query(model, query, q.model)
@@ -267,23 +291,21 @@ func (q *Query) Select(values ...interface{}) error {
 		return q.stickyErr
 	}
 
-	if q.model != nil {
-		q.addJoins(q.model.GetJoins())
-	}
-
 	model, err := q.newModel(values)
 	if err != nil {
 		return err
 	}
 
-	res, err := q.query(model, selectQuery{q.topLevelQuery()})
+	res, err := q.query(model, q.selectQuery())
 	if err != nil {
 		return err
 	}
 
-	if res.RowsReturned() > 0 && q.model != nil {
-		if err := selectJoins(q.db, q.model.GetJoins()); err != nil {
-			return err
+	if res.RowsReturned() > 0 {
+		if q.model != nil {
+			if err := selectJoins(q.db, q.model.GetJoins()); err != nil {
+				return err
+			}
 		}
 		if err := model.AfterSelect(q.db); err != nil {
 			return err
@@ -291,6 +313,10 @@ func (q *Query) Select(values ...interface{}) error {
 	}
 
 	return nil
+}
+
+func (q *Query) selectQuery() selectQuery {
+	return selectQuery{q.topLevelQuery()}
 }
 
 // SelectAndCount runs Select and Count in two separate goroutines,
@@ -323,16 +349,20 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 	return count, err
 }
 
-func (q *Query) addJoins(joins []join) {
+func (q *Query) forEachHasOneJoin(fn func(*join)) {
+	if q.model == nil {
+		return
+	}
+	q._forEachHasOneJoin(q.model.GetJoins(), fn)
+}
+
+func (q *Query) _forEachHasOneJoin(joins []join, fn func(*join)) {
 	for i := range joins {
 		j := &joins[i]
 		switch j.Rel.Type {
-		case HasOneRelation:
-			j.JoinHasOne(q)
-			q.addJoins(j.JoinModel.GetJoins())
-		case BelongsToRelation:
-			j.JoinBelongsTo(q)
-			q.addJoins(j.JoinModel.GetJoins())
+		case HasOneRelation, BelongsToRelation:
+			fn(j)
+			q._forEachHasOneJoin(j.JoinModel.GetJoins(), fn)
 		}
 	}
 }
@@ -551,7 +581,7 @@ func (q *Query) mustAppendWhere(b []byte) ([]byte, error) {
 	}
 
 	b = append(b, " WHERE "...)
-	return pkWhereQuery{q}.AppendFormat(b, nil), nil
+	return wherePKQuery{q}.AppendFormat(b, nil), nil
 }
 
 func (q *Query) appendWhere(b []byte) []byte {
@@ -589,11 +619,11 @@ func (q *Query) appendReturning(b []byte) []byte {
 	return b
 }
 
-type pkWhereQuery struct {
+type wherePKQuery struct {
 	*Query
 }
 
-func (q pkWhereQuery) AppendFormat(b []byte, f QueryFormatter) []byte {
+func (q wherePKQuery) AppendFormat(b []byte, f QueryFormatter) []byte {
 	table := q.model.Table()
 	return appendColumnAndValue(b, q.model.Value(), table, table.PKs)
 }

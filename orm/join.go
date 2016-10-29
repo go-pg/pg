@@ -12,20 +12,6 @@ type join struct {
 	Columns []string
 }
 
-func (j *join) JoinHasOne(q *Query) {
-	if j.hasColumns() {
-		q.columns = append(q.columns, hasOneColumnsQuery{j})
-	}
-	q.joins = append(q.joins, hasOneJoinQuery{j})
-}
-
-func (j *join) JoinBelongsTo(q *Query) {
-	if j.hasColumns() {
-		q.columns = append(q.columns, hasOneColumnsQuery{j})
-	}
-	q.joins = append(q.joins, belongsToJoinQuery{j})
-}
-
 func (j *join) Select(db DB) error {
 	switch j.Rel.Type {
 	case HasManyRelation:
@@ -49,7 +35,7 @@ func (j *join) selectMany(db DB) (err error) {
 		}
 	}
 
-	q.columns = append(q.columns, manyColumnsQuery{j})
+	q.columns = append(q.columns, hasManyColumnsAppender{j})
 
 	baseTable := j.BaseModel.Table()
 	cols := columns(j.JoinModel.Table().Alias, "", j.Rel.FKs)
@@ -88,7 +74,7 @@ func (j *join) selectM2M(db DB) (err error) {
 		}
 	}
 
-	q.columns = append(q.columns, manyColumnsQuery{j})
+	q.columns = append(q.columns, hasManyColumnsAppender{j})
 	q = q.Join(
 		"JOIN ? ON (?) IN (?)",
 		j.Rel.M2MTableName,
@@ -112,23 +98,135 @@ func (j *join) selectM2M(db DB) (err error) {
 	return nil
 }
 
-func (j *join) alias() []byte {
-	var b []byte
-	return appendAlias(b, j)
-}
-
-func appendAlias(b []byte, j *join) []byte {
+func (j *join) hasParent() bool {
 	if j.Parent != nil {
 		switch j.Parent.Rel.Type {
 		case HasOneRelation, BelongsToRelation:
-			b = appendAlias(b, j.Parent)
+			return true
 		}
 	}
+	return false
+}
+
+func (j *join) appendAlias(b []byte) []byte {
+	return appendAlias(b, j, true)
+}
+
+func (j *join) appendBaseAlias(b []byte) []byte {
+	if j.hasParent() {
+		return appendAlias(b, j.Parent, true)
+	}
+	return append(b, j.BaseModel.Table().Alias...)
+}
+
+func appendAlias(b []byte, j *join, topLevel bool) []byte {
+	if j.hasParent() {
+		b = appendAlias(b, j.Parent, topLevel)
+		topLevel = false
+	}
+	if !topLevel {
+		b = append(b, "__"...)
+	}
 	b = append(b, j.Rel.Field.SQLName...)
-	b = append(b, "__"...)
 	return b
 }
 
-func (q *join) hasColumns() bool {
-	return len(q.Columns) != 0 || q.Columns == nil
+func (j *join) appendHasOneColumns(b []byte) []byte {
+	alias := j.appendAlias(nil)
+	prefix := append(alias, "__"...)
+
+	if j.Columns == nil {
+		for _, f := range j.JoinModel.Table().Fields {
+			b = append(b, ", "...)
+			b = append(b, alias...)
+			b = append(b, '.')
+			b = append(b, f.ColName...)
+			b = append(b, " AS "...)
+			columnAlias := append(prefix, f.SQLName...)
+			b = types.AppendFieldBytes(b, columnAlias, 1)
+			prefix = columnAlias[:len(prefix)]
+		}
+		return b
+	}
+
+	for _, column := range j.Columns {
+		b = append(b, ", "...)
+		b = append(b, alias...)
+		b = append(b, '.')
+		b = types.AppendField(b, column, 1)
+		b = append(b, " AS "...)
+		columnAlias := append(prefix, column...)
+		b = types.AppendFieldBytes(b, columnAlias, 1)
+		prefix = columnAlias[:len(prefix)]
+	}
+
+	return b
+}
+
+func (j *join) appendHasOneJoin(b []byte) []byte {
+	b = append(b, "LEFT JOIN "...)
+	b = append(b, j.JoinModel.Table().Name...)
+	b = append(b, " AS "...)
+	b = j.appendAlias(b)
+
+	b = append(b, " ON "...)
+	if j.Rel.Type == HasOneRelation {
+		joinTable := j.Rel.JoinTable
+		for i, fk := range j.Rel.FKs {
+			if i > 0 {
+				b = append(b, " AND "...)
+			}
+			b = j.appendAlias(b)
+			b = append(b, '.')
+			b = append(b, joinTable.PKs[i].ColName...)
+			b = append(b, " = "...)
+			b = j.appendBaseAlias(b)
+			b = append(b, '.')
+			b = append(b, fk.ColName...)
+		}
+	} else {
+		baseTable := j.BaseModel.Table()
+		for i, fk := range j.Rel.FKs {
+			if i > 0 {
+				b = append(b, " AND "...)
+			}
+			b = j.appendAlias(b)
+			b = append(b, '.')
+			b = append(b, fk.ColName...)
+			b = append(b, " = "...)
+			b = j.appendBaseAlias(b)
+			b = append(b, '.')
+			b = append(b, baseTable.PKs[i].ColName...)
+		}
+	}
+
+	return b
+}
+
+type hasManyColumnsAppender struct {
+	*join
+}
+
+func (q hasManyColumnsAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
+	if q.Rel.M2MTableName != "" {
+		b = append(b, q.Rel.M2MTableName...)
+		b = append(b, ".*, "...)
+	}
+
+	if q.Columns == nil {
+		b = append(b, q.JoinModel.Table().Alias...)
+		b = append(b, ".*"...)
+		return b
+	}
+
+	for i, column := range q.Columns {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = append(b, q.JoinModel.Table().Alias...)
+		b = append(b, '.')
+		b = types.AppendField(b, column, 1)
+	}
+
+	return b
 }

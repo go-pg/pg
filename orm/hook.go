@@ -14,7 +14,7 @@ const (
 )
 
 func callHookSlice(slice reflect.Value, ptr bool, db DB, hook func(reflect.Value, DB) error) error {
-	var retErr error
+	var firstErr error
 	for i := 0; i < slice.Len(); i++ {
 		var err error
 		if ptr {
@@ -22,11 +22,11 @@ func callHookSlice(slice reflect.Value, ptr bool, db DB, hook func(reflect.Value
 		} else {
 			err = hook(slice.Index(i).Addr(), db)
 		}
-		if err != nil && retErr == nil {
-			retErr = err
+		if err != nil && firstErr == nil {
+			firstErr = err
 		}
 	}
-	return retErr
+	return firstErr
 }
 
 type afterQueryHook interface {

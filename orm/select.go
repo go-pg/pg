@@ -11,7 +11,7 @@ func Select(db DB, model interface{}) error {
 	if err := q.model.Table().checkPKs(); err != nil {
 		return err
 	}
-	q.where = append(q.where, pkWhereQuery{q})
+	q.where = append(q.where, wherePKQuery{q})
 	return q.Select()
 }
 
@@ -39,6 +39,10 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 		b = q.appendTables(b)
 	}
 
+	q.forEachHasOneJoin(func(j *join) {
+		b = append(b, ' ')
+		b = j.appendHasOneJoin(b)
+	})
 	if len(q.joins) > 0 {
 		for _, f := range q.joins {
 			b = append(b, ' ')
@@ -97,19 +101,22 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 
 func (q selectQuery) appendColumns(b []byte) []byte {
 	if len(q.columns) > 0 {
-		return q.appendQueryColumns(b)
+		b = q.appendQueryColumns(b)
+	} else if q.model != nil {
+		b = q.appendModelColumns(b)
+	} else {
+		var ok bool
+		b, ok = q.appendTableAlias(b)
+		if ok {
+			b = append(b, '.')
+		}
+		b = append(b, '*')
 	}
 
-	if q.model != nil {
-		return q.appendModelColumns(b)
-	}
+	q.forEachHasOneJoin(func(j *join) {
+		b = j.appendHasOneColumns(b)
+	})
 
-	var ok bool
-	b, ok = q.appendTableAlias(b)
-	if ok {
-		b = append(b, '.')
-	}
-	b = append(b, '*')
 	return b
 }
 
@@ -123,9 +130,9 @@ func (q selectQuery) appendQueryColumns(b []byte) []byte {
 	return b
 }
 
-func (sel selectQuery) appendModelColumns(b []byte) []byte {
-	alias, hasAlias := sel.appendTableAlias(nil)
-	for i, f := range sel.model.Table().Fields {
+func (q selectQuery) appendModelColumns(b []byte) []byte {
+	alias, hasAlias := q.appendTableAlias(nil)
+	for i, f := range q.model.Table().Fields {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
