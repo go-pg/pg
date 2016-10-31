@@ -45,7 +45,7 @@ func In(slice interface{}) types.ValueAppender {
 // Array accepts a slice and returns a wrapper for working with PostgreSQL
 // array data type.
 //
-// Note that for struct fields you should use array tag:
+// For struct fields you can use array tag:
 //
 //    Emails  []string `pg:",array"`
 func Array(v interface{}) *types.Array {
@@ -56,7 +56,7 @@ func Array(v interface{}) *types.Array {
 // Supported map types are:
 //   - map[string]string
 //
-// Note that for struct fields you should use hstore tag:
+// For struct fields you can use hstore tag:
 //
 //    Attrs map[string]string `pg:",hstore"`
 func Hstore(v interface{}) *types.Hstore {
