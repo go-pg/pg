@@ -314,7 +314,7 @@ func (p *Params) Sum() int {
 }
 
 // go-pg recognizes placeholders (`?`) in queries and replaces them
-// with parameters when queries are executed. Parameters are escaped
+// with parameters when query is executed. Parameters are escaped
 // before replacing according to PostgreSQL rules. Specifically:
 // - all parameters are properly quoted against SQL injections;
 // - null byte is removed;

@@ -124,7 +124,7 @@ func (db *DB) Close() error {
 }
 
 // Exec executes a query ignoring returned rows. The params are for any
-// placeholder parameters in the query.
+// placeholders in the query.
 func (db *DB) Exec(query interface{}, params ...interface{}) (res *types.Result, err error) {
 	for i := 0; ; i++ {
 		var cn *pool.Conn
@@ -165,7 +165,7 @@ func (db *DB) ExecOne(query interface{}, params ...interface{}) (*types.Result, 
 }
 
 // Query executes a query that returns rows, typically a SELECT.
-// The params are for any placeholder parameters in the query.
+// The params are for any placeholders in the query.
 func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types.Result, err error) {
 	var mod orm.Model
 	for i := 0; i < 3; i++ {

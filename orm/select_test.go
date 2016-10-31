@@ -11,19 +11,45 @@ type SelectTest struct {
 }
 
 var _ = Describe("Select", func() {
-	It("specifies all columns", func() {
-		q := NewQuery(nil, &SelectTest{})
-
-		b, err := selectQuery{q}.AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test"`))
-	})
-
 	It("works without db", func() {
 		q := NewQuery(nil).Where("hello = ?", "world")
 
 		b, err := selectQuery{q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal("SELECT * WHERE (hello = 'world')"))
+	})
+
+	It("sets all columns", func() {
+		q := NewQuery(nil, &SelectTest{})
+
+		b, err := selectQuery{q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test"`))
+	})
+})
+
+type orderTest struct {
+	order string
+	query string
+}
+
+var _ = Describe("Select Order", func() {
+	orderTests := []orderTest{
+		{"id", `"id"`},
+		{"id asc", `"id" asc`},
+		{"id desc", `"id" desc`},
+		{"id ASC", `"id" ASC`},
+		{"id DESC", `"id" DESC`},
+		{"id ASC NULLS FIRST", `"id ASC NULLS FIRST"`},
+	}
+
+	It("sets order", func() {
+		for _, test := range orderTests {
+			q := NewQuery(nil).Order(test.order)
+
+			b, err := selectQuery{q}.AppendQuery(nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(b)).To(Equal(`SELECT * ORDER BY ` + test.query))
+		}
 	})
 })

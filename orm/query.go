@@ -3,6 +3,7 @@ package orm
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -31,7 +32,7 @@ type Query struct {
 	joins      []FormatAppender
 	group      []queryParamsAppender
 	having     []queryParamsAppender
-	order      []queryParamsAppender
+	order      []FormatAppender
 	onConflict FormatAppender
 	returning  []queryParamsAppender
 	limit      int
@@ -143,6 +144,8 @@ func (q *Query) Alias(alias string) *Query {
 	return q
 }
 
+// Column adds column to the Query quoting it according to PostgreSQL rules.
+// ColumnExpr can be used to bypass quoting restriction.
 func (q *Query) Column(columns ...string) *Query {
 	for _, column := range columns {
 		if q.model != nil {
@@ -156,6 +159,7 @@ func (q *Query) Column(columns ...string) *Query {
 	return q
 }
 
+// ColumnExpr adds column expression to the Query.
 func (q *Query) ColumnExpr(expr string, params ...interface{}) *Query {
 	q.columns = append(q.columns, queryParamsAppender{expr, params})
 	return q
@@ -206,6 +210,32 @@ func (q *Query) Having(having string, params ...interface{}) *Query {
 	return q
 }
 
+// Order adds sort order to the Query quoting column name.
+// OrderExpr can be used to bypass quoting restriction.
+func (q *Query) Order(orders ...string) *Query {
+loop:
+	for _, order := range orders {
+		ind := strings.LastIndex(order, " ")
+		if ind != -1 {
+			field := order[:ind]
+			sort := order[ind+1:]
+			switch internal.ToUpper(sort) {
+			case "ASC", "DESC":
+				q.order = append(q.order, queryParamsAppender{
+					query:  "? ?",
+					params: []interface{}{types.F(field), types.Q(sort)},
+				})
+				continue loop
+			}
+		}
+
+		q.order = append(q.order, fieldAppender{order})
+		continue
+	}
+	return q
+}
+
+// Order adds sort order to the Query.
 func (q *Query) OrderExpr(order string, params ...interface{}) *Query {
 	q.order = append(q.order, queryParamsAppender{order, params})
 	return q
