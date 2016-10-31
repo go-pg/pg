@@ -27,7 +27,6 @@ before_install:
   - sudo -u postgres psql -c "CREATE EXTENSION hstore"
 
 install:
-  - go get gopkg.in/bsm/ratelimit.v1
   - go get github.com/jinzhu/inflection
   - go get gopkg.in/check.v1
   - go get github.com/onsi/ginkgo
