@@ -2,13 +2,10 @@ package pool
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"gopkg.in/bsm/ratelimit.v1"
 
 	"gopkg.in/pg.v5/internal"
 )
@@ -16,7 +13,7 @@ import (
 var (
 	ErrClosed      = errors.New("pg: database is closed")
 	ErrPoolTimeout = errors.New("pg: connection pool timeout")
-	errConnStale   = errors.New("connection is stale")
+	errConnStale   = errors.New("pg: connection is stale")
 )
 
 var timers = sync.Pool{
@@ -49,9 +46,8 @@ type Pooler interface {
 type dialer func() (net.Conn, error)
 
 type ConnPool struct {
-	_dial       dialer
-	DialLimiter *ratelimit.RateLimiter
-	OnClose     func(*Conn) error
+	_dial   dialer
+	OnClose func(*Conn) error
 
 	poolTimeout time.Duration
 	idleTimeout time.Duration
@@ -74,8 +70,7 @@ var _ Pooler = (*ConnPool)(nil)
 
 func NewConnPool(dial dialer, poolSize int, poolTimeout, idleTimeout, idleCheckFrequency time.Duration) *ConnPool {
 	p := &ConnPool{
-		_dial:       dial,
-		DialLimiter: ratelimit.New(3*poolSize, time.Second),
+		_dial: dial,
 
 		poolTimeout: poolTimeout,
 		idleTimeout: idleTimeout,
@@ -91,17 +86,8 @@ func NewConnPool(dial dialer, poolSize int, poolTimeout, idleTimeout, idleCheckF
 }
 
 func (p *ConnPool) dial() (net.Conn, error) {
-	if p.DialLimiter != nil && p.DialLimiter.Limit() {
-		err := fmt.Errorf(
-			"pg: you open connections too fast (last_error=%q)",
-			p.loadLastErr(),
-		)
-		return nil, err
-	}
-
 	cn, err := p._dial()
 	if err != nil {
-		p.storeLastErr(err.Error())
 		return nil, err
 	}
 	return cn, nil
@@ -291,7 +277,6 @@ func (p *ConnPool) Close() (retErr error) {
 }
 
 func (p *ConnPool) closeConn(cn *Conn, reason error) error {
-	p.storeLastErr(reason.Error())
 	if p.OnClose != nil {
 		_ = p.OnClose(cn)
 	}
@@ -353,17 +338,6 @@ func (p *ConnPool) reaper(frequency time.Duration) {
 			n, s.TotalConns, s.FreeConns, s.Requests, s.Hits, s.Timeouts,
 		)
 	}
-}
-
-func (p *ConnPool) storeLastErr(err string) {
-	p.lastErr.Store(err)
-}
-
-func (p *ConnPool) loadLastErr() string {
-	if v := p.lastErr.Load(); v != nil {
-		return v.(string)
-	}
-	return ""
 }
 
 //------------------------------------------------------------------------------
