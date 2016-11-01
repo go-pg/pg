@@ -72,7 +72,7 @@ var _ = Describe("URLValues", func() {
 			q := NewQuery(nil, &SelectTest{})
 			q = q.Apply(URLValues(req.URL.Query()))
 
-			b, err := q.selectQuery().AppendQuery(nil)
+			b, err := selectQuery{q}.AppendQuery(nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(b)).To(Equal(urlValuesTest.query))
 		}
@@ -104,7 +104,7 @@ var _ = Describe("Pager", func() {
 			q := NewQuery(nil, &SelectTest{})
 			q = q.Apply(Pager(req.URL.Query()))
 
-			b, err := q.selectQuery().AppendQuery(nil)
+			b, err := selectQuery{q}.AppendQuery(nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(b)).To(Equal(urlValuesTest.query))
 		}
