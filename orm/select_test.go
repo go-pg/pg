@@ -14,7 +14,7 @@ var _ = Describe("Select", func() {
 	It("works without db", func() {
 		q := NewQuery(nil).Where("hello = ?", "world")
 
-		b, err := selectQuery{q}.AppendQuery(nil)
+		b, err := q.selectQuery().AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal("SELECT * WHERE (hello = 'world')"))
 	})
@@ -22,9 +22,25 @@ var _ = Describe("Select", func() {
 	It("sets all columns", func() {
 		q := NewQuery(nil, &SelectTest{})
 
-		b, err := selectQuery{q}.AppendQuery(nil)
+		b, err := q.selectQuery().AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test"`))
+	})
+
+	It("supports WrapWith", func() {
+		q := NewQuery(nil, &SelectTest{}).
+			Where("cond1")
+		topq := q.WrapWith("wrapper").
+			Table("wrapper").
+			Where("cond2")
+
+		b, err := q.selectQuery().AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
+
+		b, err = topq.selectQuery().AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
 	})
 })
 
