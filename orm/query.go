@@ -78,9 +78,6 @@ func (q *Query) Copy() *Query {
 
 func (q *Query) topLevelQuery() *Query {
 	if q.parent != nil {
-		q.parent.with = q.with
-		q.parent.With(q.parent.tableAlias, q)
-		q.with = nil
 		return q.parent.topLevelQuery()
 	}
 	return q
@@ -123,8 +120,14 @@ func (q *Query) With(name string, subq *Query) *Query {
 }
 
 func (q *Query) WrapWith(name string) *Query {
-	q.parent = q.New().Table(name).Alias(name)
-	return q.parent
+	topq := q.New()
+	q.parent = topq
+
+	topq.with = q.with
+	q.with = nil
+	topq = topq.With(name, q)
+
+	return topq
 }
 
 func (q *Query) Table(tables ...string) *Query {
