@@ -21,8 +21,6 @@ type Query struct {
 	model     tableModel
 	stickyErr error
 
-	parent *Query
-
 	tableAlias string
 	with       []withQuery
 	tables     []FormatAppender
@@ -57,8 +55,6 @@ func (q *Query) Copy() *Query {
 		model:     q.model,
 		stickyErr: q.stickyErr,
 
-		parent: q.parent,
-
 		tableAlias: q.tableAlias,
 		with:       q.with[:],
 		tables:     q.tables[:],
@@ -74,13 +70,6 @@ func (q *Query) Copy() *Query {
 		limit:      q.limit,
 		offset:     q.offset,
 	}
-}
-
-func (q *Query) topLevelQuery() *Query {
-	if q.parent != nil {
-		return q.parent.topLevelQuery()
-	}
-	return q
 }
 
 func (q *Query) err(err error) *Query {
@@ -121,12 +110,9 @@ func (q *Query) With(name string, subq *Query) *Query {
 
 func (q *Query) WrapWith(name string) *Query {
 	topq := q.New()
-	q.parent = topq
-
 	topq.with = q.with
 	q.with = nil
 	topq = topq.With(name, q)
-
 	return topq
 }
 
@@ -329,7 +315,7 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
-	res, err := q.query(model, q.selectQuery())
+	res, err := q.query(model, selectQuery{q})
 	if err != nil {
 		return err
 	}
@@ -346,10 +332,6 @@ func (q *Query) Select(values ...interface{}) error {
 	}
 
 	return nil
-}
-
-func (q *Query) selectQuery() selectQuery {
-	return selectQuery{q.topLevelQuery()}
 }
 
 // SelectAndCount runs Select and Count in two separate goroutines,
