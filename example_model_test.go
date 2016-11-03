@@ -374,6 +374,20 @@ func ExampleDB_Select_with() {
 	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
 }
 
+func ExampleDB_Select_wrapWith() {
+	var books []Book
+	err := db.Model(&books).
+		Where("author_id = ?", 1).
+		WrapWith("author_books").
+		Table("author_books").
+		Select(&books)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(books)
+	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
+}
+
 func ExampleDB_Model_count() {
 	db := modelDB()
 

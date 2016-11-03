@@ -20,6 +20,7 @@ Supports:
 - Scanning variables using [ORM](https://godoc.org/gopkg.in/pg.v5#example-DB-Select-SomeColumnsIntoVars) and [SQL](https://godoc.org/gopkg.in/pg.v5#example-Scan).
 - [SelectOrInsert](https://godoc.org/gopkg.in/pg.v5#example-DB-Insert-SelectOrInsert) using on-conflict.
 - [INSERT ... ON CONFLICT DO UPDATE](https://godoc.org/gopkg.in/pg.v5#example-DB-Insert-OnConflictDoUpdate) using ORM.
+- Common table expressions using [WITH](https://godoc.org/gopkg.in/pg.v5#example-DB-Select-With) and [WrapWith](https://godoc.org/gopkg.in/pg.v5#example-DB-Select-WrapWith).
 - [CountEstimate](https://godoc.org/gopkg.in/pg.v5#example-DB-Model-CountEstimate) using `EXPLAIN` to get [estimated number of matching rows](https://wiki.postgresql.org/wiki/Count_estimate).
 - [HasOne](https://godoc.org/gopkg.in/pg.v5#example-DB-Model-HasOne), [BelongsTo](https://godoc.org/gopkg.in/pg.v5#example-DB-Model-BelongsTo), [HasMany](https://godoc.org/gopkg.in/pg.v5#example-DB-Model-HasMany) and [ManyToMany](https://godoc.org/gopkg.in/pg.v5#example-DB-Model-ManyToMany).
 - [Migrations](https://github.com/go-pg/migrations).
@@ -421,6 +422,15 @@ err := db.Model(&Book{}).ColumnExpr("array_agg(id)").Select(pg.Array(&ids))
 authorBooks := db.Model(&Book{}).Where("author_id = ?", 1)
 err := db.Model(nil).
     With("author_books", authorBooks).
+    Table("author_books").
+    Select(&books)
+// WITH "author_books" AS (SELECT "book".* FROM "books" AS "book" WHERE (author_id = 1))
+// SELECT * FROM "author_books"
+
+// Same query using WrapWith.
+err := db.Model(&books).
+    Where("author_id = ?", 1).
+    WrapWith("author_books").
     Table("author_books").
     Select(&books)
 // WITH "author_books" AS (SELECT "book".* FROM "books" AS "book" WHERE (author_id = 1))
