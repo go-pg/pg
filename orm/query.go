@@ -28,7 +28,7 @@ type Query struct {
 	set        []queryParamsAppender
 	where      []FormatAppender
 	joins      []FormatAppender
-	group      []queryParamsAppender
+	group      []FormatAppender
 	having     []queryParamsAppender
 	order      []FormatAppender
 	onConflict FormatAppender
@@ -191,7 +191,14 @@ func (q *Query) Join(join string, params ...interface{}) *Query {
 	return q
 }
 
-func (q *Query) Group(group string, params ...interface{}) *Query {
+func (q *Query) Group(columns ...string) *Query {
+	for _, column := range columns {
+		q.group = append(q.group, fieldAppender{column})
+	}
+	return q
+}
+
+func (q *Query) GroupExpr(group string, params ...interface{}) *Query {
 	q.group = append(q.group, queryParamsAppender{group, params})
 	return q
 }

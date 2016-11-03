@@ -9,7 +9,8 @@
  - Indexed placeholders support, e.g. `db.Exec("SELECT ?0 + ?0", 1)`.
  - Named placeholders are evaluated when query is executed.
  - Added Update and Delete hooks.
- - Order reworked to quote column names. OrderExpr added to bypass Order quoting restriction.
+ - Order reworked to quote column names. OrderExpr added to bypass Order quoting restrictions.
+ - Group reworked to quote column names. GroupExpr added to bypass Group quoting restrictions.
 
 ## v4
 
