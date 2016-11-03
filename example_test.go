@@ -78,20 +78,20 @@ func ExampleDB_Exec() {
 
 func ExampleListener() {
 	ln := db.Listen("mychan")
+	defer ln.Close()
 
-	wait := make(chan struct{}, 2)
+	ch := ln.Channel()
+
 	go func() {
-		wait <- struct{}{}
-		channel, payload, err := ln.Receive()
-		fmt.Printf("%s %q %v", channel, payload, err)
-		wait <- struct{}{}
+		_, err := db.Exec("NOTIFY mychan, ?", "hello world")
+		if err != nil {
+			panic(err)
+		}
 	}()
 
-	<-wait
-	db.Exec("NOTIFY mychan, ?", "hello world")
-	<-wait
-
-	// Output: mychan "hello world" <nil>
+	notif := <-ch
+	fmt.Println(notif)
+	// Output: &{mychan hello world}
 }
 
 func txExample() *pg.DB {
