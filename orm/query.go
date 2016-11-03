@@ -108,6 +108,8 @@ func (q *Query) With(name string, subq *Query) *Query {
 	return q
 }
 
+// WrapWith creates new Query and adds current query as common table expression
+// with the given name.
 func (q *Query) WrapWith(name string) *Query {
 	topq := q.New()
 	topq.with = q.with
