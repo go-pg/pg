@@ -440,32 +440,45 @@ err := db.Model(&books).
 ### Reusing queries
 
 ```go
-// pager retrieves page number from the req and sets query LIMIT and OFFSET.
-func pager(req *http.Request) func(*orm.Query) *orm.Query {
-    const pageSize = 20
-    return func(q *orm.Query) *orm.Query {
-        q = q.Limit(pageSize)
-        param := req.URL.Query().Get("page")
-        if param == "" {
-            return q
-        }
-        page, err := strconv.Atoi(param)
-        if err != nil {
-            // Set the query error.
-            return q.Err(err)
-        }
-        return q.Offset((page - 1) * pageSize)
-    }
+// Pager sets LIMIT and OFFSET from the URL values:
+//   - ?limit=10 - sets q.Limit(10), max limit is 1000.
+//   - ?page=5 - sets q.Offset((page - 1) * limit), max offset is 1000000.
+func Pager(urlValues url.Values, defaultLimit int) func(*Query) (*Query, error) {
+	return func(q *Query) (*Query, error) {
+		const maxLimit = 1000
+		const maxOffset = 1e6
+
+		limit, err := intParam(urlValues, "limit")
+		if err != nil {
+			return nil, err
+		}
+		if limit < 1 {
+			limit = defaultLimit
+		} else if limit > maxLimit {
+			return nil, fmt.Errorf("limit can't bigger than %d", maxLimit)
+		}
+		if limit > 0 {
+			q = q.Limit(limit)
+		}
+
+		page, err := intParam(urlValues, "page")
+		if err != nil {
+			return nil, err
+		}
+		if page > 0 {
+			offset := (page - 1) * limit
+			if offset > maxOffset {
+				return nil, fmt.Errorf("offset can't bigger than %d", maxOffset)
+			}
+			q = q.Offset(offset)
+		}
+
+		return q, nil
+	}
 }
 
 var books []Book
-err := db.Model(&books).Apply(pager(req)).Select()
-// SELECT * FROM "books" LIMIT 20
-
-// OR using DB and model late binding
-
-query := pg.Model().Apply(pager(req))
-err := query.DB(db).Model(&books).Select()
+err := db.Model(&books).Apply(orm.Pager(req.URL.Query())).Select()
 // SELECT * FROM "books" LIMIT 20
 ```
 
