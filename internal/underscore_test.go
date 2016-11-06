@@ -1,9 +1,9 @@
-package orm_test
+package internal_test
 
 import (
 	"testing"
 
-	"gopkg.in/pg.v5/orm"
+	"gopkg.in/pg.v5/internal"
 )
 
 func TestUnderscore(t *testing.T) {
@@ -16,7 +16,7 @@ func TestUnderscore(t *testing.T) {
 		{"MegaColumn_id", "mega_column_id"},
 	}
 	for _, v := range tests {
-		if got := orm.Underscore(v.s); got != v.wanted {
+		if got := internal.Underscore(v.s); got != v.wanted {
 			t.Errorf("got %q, wanted %q", got, v.wanted)
 		}
 	}

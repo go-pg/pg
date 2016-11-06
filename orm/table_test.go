@@ -3,10 +3,10 @@ package orm_test
 import (
 	"reflect"
 
+	"gopkg.in/pg.v5/orm"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"gopkg.in/pg.v5/orm"
 )
 
 type A struct {
@@ -21,7 +21,7 @@ type B struct {
 	A
 }
 
-var _ = Describe("Model embedding", func() {
+var _ = Describe("embedded Model", func() {
 	var strct reflect.Value
 	var table *orm.Table
 
@@ -115,5 +115,36 @@ var _ = Describe("struct field", func() {
 
 		_, ok := table.FieldsMap["struct_field"]
 		Expect(ok).To(BeTrue())
+	})
+})
+
+type f struct {
+	Id int
+	G  *g
+}
+
+type g struct {
+	Id  int
+	FId int
+	F   *f
+}
+
+var _ = Describe("unexported types", func() {
+	It("work with belongs to relation", func() {
+		strct := reflect.ValueOf(f{})
+		table := orm.Tables.Get(strct.Type())
+
+		rel, ok := table.Relations["G"]
+		Expect(ok).To(BeTrue())
+		Expect(rel.Type).To(Equal(orm.BelongsToRelation))
+	})
+
+	It("work with has one relation", func() {
+		strct := reflect.ValueOf(g{})
+		table := orm.Tables.Get(strct.Type())
+
+		rel, ok := table.Relations["F"]
+		Expect(ok).To(BeTrue())
+		Expect(rel.Type).To(Equal(orm.HasOneRelation))
 	})
 })
