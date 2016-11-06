@@ -5,9 +5,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/jinzhu/inflection"
-
+	"gopkg.in/pg.v5/internal"
 	"gopkg.in/pg.v5/types"
+
+	"github.com/jinzhu/inflection"
 )
 
 type Table struct {
@@ -78,10 +79,10 @@ func newTable(typ reflect.Type) *Table {
 		return table
 	}
 
-	modelName := Underscore(typ.Name())
+	modelName := internal.Underscore(typ.Name())
 	table = &Table{
 		Type:     typ,
-		TypeName: typ.Name(),
+		TypeName: internal.ToExported(typ.Name()),
 
 		Name:      types.Q(types.AppendField(nil, inflection.Plural(modelName), 1)),
 		Alias:     types.Q(types.AppendField(nil, modelName, 1)),
@@ -210,7 +211,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	skip := sqlName == "-"
 	if skip || sqlName == "" {
-		sqlName = Underscore(f.Name)
+		sqlName = internal.Underscore(f.Name)
 	}
 
 	if field, ok := t.FieldsMap[sqlName]; ok {
@@ -291,8 +292,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 				Field:        &field,
 				JoinTable:    joinTable,
 				M2MTableName: types.Q(m2mTable),
-				BasePrefix:   Underscore(basePrefix + "_"),
-				JoinPrefix:   Underscore(joinPrefix + "_"),
+				BasePrefix:   internal.Underscore(basePrefix + "_"),
+				JoinPrefix:   internal.Underscore(joinPrefix + "_"),
 			})
 			return nil
 		}
@@ -311,7 +312,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 				Field:       &field,
 				FKs:         fks,
 				JoinTable:   joinTable,
-				BasePrefix:  Underscore(basePrefix + "_"),
+				BasePrefix:  internal.Underscore(basePrefix + "_"),
 			})
 			return nil
 		}
