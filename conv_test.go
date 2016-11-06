@@ -288,7 +288,7 @@ func conversionTests() []conversionTest {
 		{src: nil, dst: pg.Array(new([][]string)), pgtype: "text[][]", wantnil: true},
 		{src: pg.Array([][]string(nil)), dst: pg.Array(new([]string)), pgtype: "text[][]", wantnil: true},
 		{src: pg.Array([][]string{}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
-		{src: pg.Array([][]string{{"one", "two"}, {"three"}}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
+		{src: pg.Array([][]string{{"one", "two"}, {"three", "four"}}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
 		{src: pg.Array([][]string{{`'"\{}`}}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
 
 		{src: nil, dst: pg.Hstore(map[string]string(nil)), pgtype: "hstore", wanterr: "pg: Scan(non-pointer map[string]string)"},
@@ -400,7 +400,6 @@ func TestConversion(t *testing.T) {
 		err := db.Model().ColumnExpr("(?) AS dst", test.src).Select(scanner)
 		test.Assert(t, err)
 	}
-	return
 
 	for i, test := range conversionTests() {
 		test.i = i
