@@ -38,6 +38,13 @@ var _ = Describe("Select", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
 	})
+
+	It("works with multiple groups", func() {
+		q := NewQuery(nil).Group("one").Group("two")
+		b, err := selectQuery{q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT * GROUP BY "one", "two"`))
+	})
 })
 
 type orderTest struct {
