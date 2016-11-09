@@ -58,9 +58,7 @@ func (q *Query) CountEstimate(threshold int) (int, error) {
 	q.limit = 0
 	q.offset = 0
 
-	sel := selectQuery{
-		Query: q,
-	}
+	sel := selectQuery{Query: q}
 	query, err := sel.AppendQuery(nil)
 	if err != nil {
 		return 0, err

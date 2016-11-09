@@ -44,8 +44,9 @@ func (db *DB) WithTimeout(d time.Duration) *DB {
 	newopt.ReadTimeout = d
 	newopt.WriteTimeout = d
 	return &DB{
-		opt:  &newopt,
-		pool: db.pool,
+		opt:   &newopt,
+		pool:  db.pool,
+		fmter: db.fmter,
 	}
 }
 
