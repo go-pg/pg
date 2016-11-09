@@ -43,7 +43,7 @@ func (ln *Listener) conn(readTimeout time.Duration) (*pool.Conn, error) {
 		ln._cn = cn
 
 		if len(ln.channels) > 0 {
-			if err := listen(cn, ln.channels...); err != nil {
+			if err := ln.listen(cn, ln.channels...); err != nil {
 				return nil, err
 			}
 		}
@@ -81,7 +81,7 @@ func (ln *Listener) Listen(channels ...string) error {
 		return err
 	}
 
-	if err := listen(cn, channels...); err != nil {
+	if err := ln.listen(cn, channels...); err != nil {
 		if err != nil {
 			ln.freeConn(err)
 		}
@@ -92,9 +92,9 @@ func (ln *Listener) Listen(channels ...string) error {
 	return nil
 }
 
-func listen(cn *pool.Conn, channels ...string) error {
+func (ln *Listener) listen(cn *pool.Conn, channels ...string) error {
 	for _, channel := range channels {
-		if err := writeQueryMsg(cn.Wr, "LISTEN ?", F(channel)); err != nil {
+		if err := writeQueryMsg(cn.Wr, ln.db, "LISTEN ?", F(channel)); err != nil {
 			return err
 		}
 	}

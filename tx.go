@@ -145,7 +145,7 @@ func (tx *Tx) Exec(query interface{}, params ...interface{}) (*types.Result, err
 		return nil, err
 	}
 
-	res, err := simpleQuery(cn, query, params...)
+	res, err := tx.db.simpleQuery(cn, query, params...)
 	tx.freeConn(cn, err)
 	return res, err
 }
@@ -172,7 +172,7 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 		return nil, err
 	}
 
-	res, mod, err := simpleQueryData(cn, model, query, params...)
+	res, mod, err := tx.db.simpleQueryData(cn, model, query, params...)
 	tx.freeConn(cn, err)
 	if err != nil {
 		return nil, err
@@ -296,7 +296,7 @@ func (tx *Tx) CopyFrom(r io.Reader, query string, params ...interface{}) (*types
 		return nil, err
 	}
 
-	res, err := copyFrom(cn, r, query, params...)
+	res, err := tx.db.copyFrom(cn, r, query, params...)
 	tx.freeConn(cn, err)
 	return res, err
 }

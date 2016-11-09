@@ -26,8 +26,9 @@ func Connect(opt *Options) *DB {
 // underlying connections. It's safe for concurrent use by multiple
 // goroutines.
 type DB struct {
-	opt  *Options
-	pool *pool.ConnPool
+	opt   *Options
+	pool  *pool.ConnPool
+	fmter orm.Formatter
 }
 
 var _ orm.DB = (*DB)(nil)
@@ -46,6 +47,17 @@ func (db *DB) WithTimeout(d time.Duration) *DB {
 		opt:  &newopt,
 		pool: db.pool,
 	}
+}
+
+// WithParam returns a DB that replaces the param in queries.
+func (db *DB) WithParam(param string, value interface{}) *DB {
+	cp := DB{
+		opt:   db.opt,
+		pool:  db.pool,
+		fmter: db.fmter.Copy(),
+	}
+	cp.fmter.SetParam(param, value)
+	return &cp
 }
 
 func (db *DB) conn() (*pool.Conn, error) {
@@ -134,7 +146,7 @@ func (db *DB) Exec(query interface{}, params ...interface{}) (res *types.Result,
 			return nil, err
 		}
 
-		res, err = simpleQuery(cn, query, params...)
+		res, err = db.simpleQuery(cn, query, params...)
 		db.freeConn(cn, err)
 
 		if i >= db.opt.MaxRetries {
@@ -176,7 +188,7 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res *types
 			return nil, err
 		}
 
-		res, mod, err = simpleQueryData(cn, model, query, params...)
+		res, mod, err = db.simpleQueryData(cn, model, query, params...)
 		db.freeConn(cn, err)
 
 		if i >= db.opt.MaxRetries {
@@ -237,7 +249,7 @@ func (db *DB) CopyFrom(reader io.Reader, query interface{}, params ...interface{
 		return nil, err
 	}
 
-	res, err := copyFrom(cn, reader, query, params...)
+	res, err := db.copyFrom(cn, reader, query, params...)
 	db.freeConn(cn, err)
 	return res, err
 }
@@ -249,7 +261,7 @@ func (db *DB) CopyTo(writer io.Writer, query interface{}, params ...interface{})
 		return nil, err
 	}
 
-	if err := writeQueryMsg(cn.Wr, query, params...); err != nil {
+	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
 		db.pool.Put(cn)
 		return nil, err
 	}
@@ -306,7 +318,7 @@ func (db *DB) CreateTable(model interface{}, opt *orm.CreateTableOptions) error 
 }
 
 func (db *DB) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
-	return orm.Formatter{}.Append(dst, query, params...)
+	return db.fmter.Append(dst, query, params...)
 }
 
 func (db *DB) cancelRequest(processId, secretKey int32) error {
@@ -324,8 +336,10 @@ func (db *DB) cancelRequest(processId, secretKey int32) error {
 	return nil
 }
 
-func simpleQuery(cn *pool.Conn, query interface{}, params ...interface{}) (*types.Result, error) {
-	if err := writeQueryMsg(cn.Wr, query, params...); err != nil {
+func (db *DB) simpleQuery(
+	cn *pool.Conn, query interface{}, params ...interface{},
+) (*types.Result, error) {
+	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
 		return nil, err
 	}
 
@@ -336,10 +350,10 @@ func simpleQuery(cn *pool.Conn, query interface{}, params ...interface{}) (*type
 	return readSimpleQuery(cn)
 }
 
-func simpleQueryData(
+func (db *DB) simpleQueryData(
 	cn *pool.Conn, model, query interface{}, params ...interface{},
 ) (*types.Result, orm.Model, error) {
-	if err := writeQueryMsg(cn.Wr, query, params...); err != nil {
+	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
 		return nil, nil, err
 	}
 
@@ -350,8 +364,8 @@ func simpleQueryData(
 	return readSimpleQueryData(cn, model)
 }
 
-func copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (*types.Result, error) {
-	if err := writeQueryMsg(cn.Wr, query, params...); err != nil {
+func (db *DB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (*types.Result, error) {
+	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
 		return nil, err
 	}
 
