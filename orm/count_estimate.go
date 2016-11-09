@@ -8,11 +8,11 @@ import (
 )
 
 // Placeholder that is replaced with count(*).
-const placeholder = "2147483647"
+const placeholder = `'_go_pg_placeholder'`
 
 // https://wiki.postgresql.org/wiki/Count_estimate
 var pgCountEstimateFunc = fmt.Sprintf(`
-CREATE OR REPLACE FUNCTION _go_pg_count_estimate(query text, threshold int)
+CREATE OR REPLACE FUNCTION _go_pg_count_estimate_v2(query text, threshold int)
 RETURNS int AS $$
 DECLARE
   rec record;
@@ -22,13 +22,20 @@ BEGIN
     nrows := substring(rec."QUERY PLAN" FROM ' rows=(\d+)');
     EXIT WHEN nrows IS NOT NULL;
   END LOOP;
+
   -- Return the estimation if there are too many rows.
   IF nrows > threshold THEN
     RETURN nrows;
   END IF;
+
   -- Otherwise execute real count query.
-  query := replace(query, 'SELECT %s', 'SELECT count(*)');
+  query := replace(query, 'SELECT '%s'', 'SELECT count(*)');
   EXECUTE query INTO nrows;
+
+  IF nrows IS NULL THEN
+    nrows := 0;
+  END IF;
+
   RETURN nrows;
 END;
 $$ LANGUAGE plpgsql;
@@ -63,11 +70,12 @@ func (q *Query) CountEstimate(threshold int) (int, error) {
 		var count int
 		_, err = q.db.QueryOne(
 			Scan(&count),
-			"SELECT _go_pg_count_estimate(?, ?)",
+			"SELECT _go_pg_count_estimate_v2(?, ?)",
 			string(query), threshold,
 		)
 		if err != nil {
 			if pgerr, ok := err.(internal.PGError); ok && pgerr.Field('C') == "42883" {
+				// undefined_function
 				if err := q.createCountEstimateFunc(); err != nil {
 					return 0, err
 				}
@@ -77,7 +85,7 @@ func (q *Query) CountEstimate(threshold int) (int, error) {
 		return count, err
 	}
 
-	panic("not reached")
+	return 0, err
 }
 
 func (q *Query) createCountEstimateFunc() error {

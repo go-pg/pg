@@ -254,6 +254,48 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 	})
 })
 
+var _ = Describe("CountEstimate", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+	})
+
+	It("works", func() {
+		count, err := db.Model().
+			TableExpr("generate_series(1, 10)").
+			CountEstimate(1000)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(count).To(Equal(10))
+	})
+
+	It("works when there are no results", func() {
+		count, err := db.Model().
+			TableExpr("generate_series(1, 0)").
+			CountEstimate(1000)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(count).To(Equal(0))
+	})
+
+	It("works with GROUP", func() {
+		count, err := db.Model().
+			TableExpr("generate_series(1, 10)").
+			Group("generate_series").
+			CountEstimate(1000)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(count).To(Equal(1))
+	})
+
+	It("works with GROUP when there are no results", func() {
+		count, err := db.Model().
+			TableExpr("generate_series(1, 0)").
+			Group("generate_series").
+			CountEstimate(1000)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(count).To(Equal(0))
+	})
+})
+
 var _ = Describe("DB nulls", func() {
 	var db *pg.DB
 
