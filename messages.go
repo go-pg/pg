@@ -247,9 +247,9 @@ func writeCancelRequestMsg(buf *pool.Buffer, processId, secretKey int32) {
 	buf.FinishMessage()
 }
 
-func writeQueryMsg(buf *pool.Buffer, query interface{}, params ...interface{}) error {
+func writeQueryMsg(buf *pool.Buffer, fmter orm.QueryFormatter, query interface{}, params ...interface{}) error {
 	buf.StartMessage(queryMsg)
-	bytes, err := appendQuery(buf.Bytes, query, params...)
+	bytes, err := appendQuery(buf.Bytes, fmter, query, params...)
 	if err != nil {
 		buf.Reset()
 		return err
@@ -263,12 +263,12 @@ func writeQueryMsg(buf *pool.Buffer, query interface{}, params ...interface{}) e
 	return nil
 }
 
-func appendQuery(dst []byte, query interface{}, params ...interface{}) ([]byte, error) {
+func appendQuery(dst []byte, fmter orm.QueryFormatter, query interface{}, params ...interface{}) ([]byte, error) {
 	switch query := query.(type) {
 	case orm.QueryAppender:
 		return query.AppendQuery(dst, params...)
 	case string:
-		return orm.Formatter{}.Append(dst, query, params...), nil
+		return fmter.FormatQuery(dst, query, params...), nil
 	default:
 		return nil, fmt.Errorf("pg: can't append %T", query)
 	}

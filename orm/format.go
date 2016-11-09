@@ -45,25 +45,33 @@ func (a fieldAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 //------------------------------------------------------------------------------
 
 type Formatter struct {
-	paramsMap map[string]interface{}
+	namedParams map[string]interface{}
 }
 
-func (f *Formatter) SetParam(key string, value interface{}) {
-	if f.paramsMap == nil {
-		f.paramsMap = make(map[string]interface{})
+func (f *Formatter) Copy() Formatter {
+	var cp Formatter
+	for param, value := range f.namedParams {
+		cp.SetParam(param, value)
 	}
-	f.paramsMap[key] = value
+	return cp
+}
+
+func (f *Formatter) SetParam(param string, value interface{}) {
+	if f.namedParams == nil {
+		f.namedParams = make(map[string]interface{})
+	}
+	f.namedParams[param] = value
 }
 
 func (f Formatter) Append(dst []byte, src string, params ...interface{}) []byte {
-	if (params == nil && f.paramsMap == nil) || strings.IndexByte(src, '?') == -1 {
+	if (params == nil && f.namedParams == nil) || strings.IndexByte(src, '?') == -1 {
 		return append(dst, src...)
 	}
 	return f.append(dst, parser.NewString(src), params)
 }
 
 func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
-	if (params == nil && f.paramsMap == nil) || bytes.IndexByte(src, '?') == -1 {
+	if (params == nil && f.namedParams == nil) || bytes.IndexByte(src, '?') == -1 {
 		return append(dst, src...)
 	}
 	return f.append(dst, parser.New(src), params)
@@ -106,8 +114,8 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 				continue
 			}
 
-			if f.paramsMap != nil {
-				if param, ok := f.paramsMap[string(id)]; ok {
+			if f.namedParams != nil {
+				if param, ok := f.namedParams[string(id)]; ok {
 					dst = f.appendParam(dst, param)
 					continue
 				}
