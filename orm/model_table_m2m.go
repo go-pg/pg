@@ -10,10 +10,9 @@ type m2mModel struct {
 	baseTable *Table
 	rel       *Relation
 
-	buf        []byte
-	zeroStruct reflect.Value
-	dstValues  map[string][]reflect.Value
-	columns    map[string]string
+	buf       []byte
+	dstValues map[string][]reflect.Value
+	columns   map[string]string
 }
 
 var _ tableModel = (*m2mModel)(nil)
@@ -32,7 +31,6 @@ func newM2MModel(join *join) *m2mModel {
 	}
 	if !m.sliceOfPtr {
 		m.strct = reflect.New(m.table.Type).Elem()
-		m.zeroStruct = reflect.Zero(m.table.Type)
 	}
 	return m
 }
@@ -41,7 +39,7 @@ func (m *m2mModel) NewModel() ColumnScanner {
 	if m.sliceOfPtr {
 		m.strct = reflect.New(m.table.Type).Elem()
 	} else {
-		m.strct.Set(m.zeroStruct)
+		m.strct.Set(m.table.zeroStruct)
 	}
 	m.structTableModel.NewModel()
 	return m

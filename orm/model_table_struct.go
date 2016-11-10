@@ -88,12 +88,30 @@ func (m *structTableModel) ParentIndex() []int {
 	return m.index[:len(m.index)-len(m.rel.Field.Index)]
 }
 
+func (m *structTableModel) Value() reflect.Value {
+	return m.strct
+}
+
 func (m *structTableModel) Bind(bind reflect.Value) {
 	m.strct = bind.FieldByIndex(m.rel.Field.Index)
 }
 
-func (m *structTableModel) Value() reflect.Value {
-	return m.strct
+func (m *structTableModel) initStruct(bindChildren bool) {
+	if m.strct.Kind() == reflect.Interface {
+		m.strct = m.strct.Elem()
+	}
+	if m.strct.Kind() == reflect.Ptr {
+		if m.strct.IsNil() {
+			m.strct.Set(reflect.New(m.strct.Type().Elem()))
+			m.strct = m.strct.Elem()
+			bindChildren = true
+		} else {
+			m.strct = m.strct.Elem()
+		}
+	}
+	if bindChildren {
+		m.bindChildren()
+	}
 }
 
 func (m *structTableModel) bindChildren() {
@@ -111,7 +129,7 @@ func (structTableModel) Reset() error {
 }
 
 func (m *structTableModel) NewModel() ColumnScanner {
-	m.bindChildren()
+	m.initStruct(true)
 	return m
 }
 
@@ -195,23 +213,12 @@ func (m *structTableModel) scanColumn(colIdx int, colName string, b []byte) (boo
 	}
 
 	field, ok := m.table.FieldsMap[colName]
-	if ok {
-		if m.strct.Kind() == reflect.Interface {
-			m.strct = m.strct.Elem()
-		}
-		if m.strct.Kind() == reflect.Ptr {
-			if m.strct.IsNil() {
-				m.strct.Set(reflect.New(m.strct.Type().Elem()))
-				m.strct = m.strct.Elem()
-				m.bindChildren()
-			} else {
-				m.strct = m.strct.Elem()
-			}
-		}
-		return true, field.ScanValue(m.strct, b)
+	if !ok {
+		return false, nil
 	}
 
-	return false, nil
+	m.initStruct(false)
+	return true, field.ScanValue(m.strct, b)
 }
 
 func (m *structTableModel) GetJoin(name string) *join {
