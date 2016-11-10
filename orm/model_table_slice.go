@@ -7,7 +7,6 @@ type sliceTableModel struct {
 
 	slice      reflect.Value
 	sliceOfPtr bool
-	zeroElem   reflect.Value
 }
 
 var _ tableModel = (*sliceTableModel)(nil)
@@ -16,9 +15,6 @@ func (m *sliceTableModel) init(sliceType reflect.Type) {
 	switch sliceType.Elem().Kind() {
 	case reflect.Ptr, reflect.Interface:
 		m.sliceOfPtr = true
-	}
-	if !m.sliceOfPtr {
-		m.zeroElem = reflect.Zero(m.table.Type)
 	}
 }
 
@@ -45,7 +41,7 @@ func (m *sliceTableModel) Reset() error {
 
 func (m *sliceTableModel) NewModel() ColumnScanner {
 	m.strct = m.nextElem()
-	m.structTableModel.NewModel()
+	m.bindChildren()
 	return m
 }
 
@@ -108,15 +104,24 @@ func (m *sliceTableModel) AfterDelete(db DB) error {
 func (m *sliceTableModel) nextElem() reflect.Value {
 	if m.slice.Len() < m.slice.Cap() {
 		m.slice.Set(m.slice.Slice(0, m.slice.Len()+1))
-		return m.slice.Index(m.slice.Len() - 1)
+		elem := m.slice.Index(m.slice.Len() - 1)
+		if m.sliceOfPtr {
+			if elem.IsNil() {
+				elem.Set(reflect.New(elem.Type().Elem()))
+			}
+			return elem.Elem()
+		} else {
+			return elem
+		}
 	}
 
 	if m.sliceOfPtr {
 		elem := reflect.New(m.table.Type)
 		m.slice.Set(reflect.Append(m.slice, elem))
 		return elem.Elem()
-	}
 
-	m.slice.Set(reflect.Append(m.slice, m.zeroElem))
-	return m.slice.Index(m.slice.Len() - 1)
+	} else {
+		m.slice.Set(reflect.Append(m.slice, m.table.zeroStruct))
+		return m.slice.Index(m.slice.Len() - 1)
+	}
 }

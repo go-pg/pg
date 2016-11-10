@@ -12,9 +12,10 @@ import (
 )
 
 type Table struct {
-	Type     reflect.Type
-	TypeName string
+	Type       reflect.Type
+	zeroStruct reflect.Value
 
+	TypeName  string
 	Name      types.Q
 	Alias     types.Q
 	ModelName string
@@ -81,9 +82,10 @@ func newTable(typ reflect.Type) *Table {
 
 	modelName := internal.Underscore(typ.Name())
 	table = &Table{
-		Type:     typ,
-		TypeName: internal.ToExported(typ.Name()),
+		Type:       typ,
+		zeroStruct: reflect.Zero(typ),
 
+		TypeName:  internal.ToExported(typ.Name()),
 		Name:      types.Q(types.AppendField(nil, inflection.Plural(modelName), 1)),
 		Alias:     types.Q(types.AppendField(nil, modelName, 1)),
 		ModelName: modelName,

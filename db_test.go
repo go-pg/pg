@@ -311,7 +311,7 @@ var _ = Describe("DB nulls", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	Describe("Insert struct with sql.NullInt64", func() {
+	Describe("sql.NullInt64", func() {
 		type Test struct {
 			Id    int
 			Value sql.NullInt64
@@ -942,7 +942,7 @@ var _ = Describe("ORM", func() {
 				OrderExpr("book.id ASC").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(books).To(ConsistOf([]Book{{
+			Expect(books).To(Equal([]Book{{
 				Id:        100,
 				Title:     "",
 				AuthorID:  0,
@@ -996,7 +996,7 @@ var _ = Describe("ORM", func() {
 				OrderExpr("genre.id").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(genres).To(ConsistOf([]Genre{{
+			Expect(genres).To(Equal([]Genre{{
 				Id:     1,
 				Name:   "genre 1",
 				Rating: 0,
@@ -1064,7 +1064,7 @@ var _ = Describe("ORM", func() {
 				Column("tr.*", "Book.id", "Book.Author", "Book.Editor").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(translations).To(ConsistOf([]Translation{{
+			Expect(translations).To(Equal([]Translation{{
 				Id:     1000,
 				BookId: 100,
 				Book: &Book{
@@ -1112,7 +1112,7 @@ var _ = Describe("ORM", func() {
 				OrderExpr("id ASC").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(books).To(ConsistOf([]BookWithCommentCount{{
+			Expect(books).To(Equal([]BookWithCommentCount{{
 				Book: Book{
 					Id:     100,
 					Author: &Author{ID: 10, Name: "author 1", Books: nil},
@@ -1134,6 +1134,59 @@ var _ = Describe("ORM", func() {
 		})
 	})
 
+	Describe("slice of ptrs model", func() {
+		It("supports HasOne, HasMany, HasMany2Many", func() {
+			var books []*Book
+			err := db.Model(&books).
+				Column("book.id", "Author", "Editor", "Translations", "Genres").
+				OrderExpr("book.id ASC").
+				Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(books).To(HaveLen(3))
+		})
+
+		It("supports HasMany2Many, HasMany2Many -> HasMany", func() {
+			var genres []*Genre
+			err := db.Model(&genres).
+				Column("genre.*", "Subgenres", "Books.id", "Books.Translations").
+				Where("genre.parent_id IS NULL").
+				OrderExpr("genre.id").
+				Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(genres).To(HaveLen(2))
+		})
+
+		It("supports HasOne -> HasOne", func() {
+			var translations []*Translation
+			err := db.Model(&translations).
+				Column("tr.*", "Book.id", "Book.Author", "Book.Editor").
+				Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(translations).To(HaveLen(3))
+		})
+
+		It("works when there are no results", func() {
+			var books []*Book
+			err := db.Model(&books).
+				Column("book.*", "Author", "Genres", "Comments").
+				Where("1 = 2").
+				Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(books).To(BeNil())
+		})
+
+		It("supports overriding", func() {
+			var books []*BookWithCommentCount
+			err := db.Model(&books).
+				Column("book.id", "Author").
+				ColumnExpr(`(SELECT COUNT(*) FROM comments WHERE trackable_type = 'Book' AND trackable_id = book.id) AS comment_count`).
+				OrderExpr("id ASC").
+				Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(books).To(HaveLen(3))
+		})
+	})
+
 	It("filters by HasOne", func() {
 		var books []Book
 		err := db.Model(&books).
@@ -1142,7 +1195,7 @@ var _ = Describe("ORM", func() {
 			OrderExpr("book.id ASC").
 			Select()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(books).To(ConsistOf([]Book{{
+		Expect(books).To(Equal([]Book{{
 			Id:           100,
 			Title:        "",
 			AuthorID:     0,
