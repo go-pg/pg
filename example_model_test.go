@@ -285,23 +285,6 @@ func ExampleDB_Select_someColumns() {
 	// Output: Book<Id=1 Title="book 1">
 }
 
-func ExampleDB_Select_tableAlias() {
-	db := modelDB()
-
-	var book Book
-	err := db.Model(&book).
-		Alias("b").
-		OrderExpr("b.id ASC").
-		Limit(1).
-		Select()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(book)
-	// Output: Book<Id=1 Title="book 1">
-}
-
 func ExampleDB_Select_someColumnsIntoVars() {
 	db := modelDB()
 

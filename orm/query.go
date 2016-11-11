@@ -21,7 +21,6 @@ type Query struct {
 	model     tableModel
 	stickyErr error
 
-	tableAlias string
 	with       []withQuery
 	tables     []FormatAppender
 	columns    []FormatAppender
@@ -55,7 +54,6 @@ func (q *Query) Copy() *Query {
 		model:     q.model,
 		stickyErr: q.stickyErr,
 
-		tableAlias: q.tableAlias,
 		with:       q.with[:],
 		tables:     q.tables[:],
 		columns:    q.columns[:],
@@ -103,13 +101,14 @@ func (q *Query) Model(model ...interface{}) *Query {
 	return q
 }
 
+// With adds subq as common table expression with the given name.
 func (q *Query) With(name string, subq *Query) *Query {
 	q.with = append(q.with, withQuery{name, subq})
 	return q
 }
 
-// WrapWith creates new Query and adds current query as common table expression
-// with the given name.
+// WrapWith creates new Query and adds to it current query as
+// common table expression with the given name.
 func (q *Query) WrapWith(name string) *Query {
 	topq := q.New()
 	topq.with = q.with
@@ -127,11 +126,6 @@ func (q *Query) Table(tables ...string) *Query {
 
 func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
 	q.tables = append(q.tables, queryParamsAppender{expr, params})
-	return q
-}
-
-func (q *Query) Alias(alias string) *Query {
-	q.tableAlias = alias
 	return q
 }
 
@@ -549,16 +543,6 @@ func (q *Query) FormatQuery(dst []byte, query string, params ...interface{}) []b
 	return Formatter{}.Append(dst, query, params...)
 }
 
-func (q *Query) appendTableAlias(b []byte) ([]byte, bool) {
-	if q.tableAlias != "" {
-		return types.AppendField(b, q.tableAlias, 1), true
-	}
-	if q.model != nil {
-		return append(b, q.model.Table().Alias...), true
-	}
-	return b, false
-}
-
 func (q *Query) appendTableName(b []byte) []byte {
 	return q.FormatQuery(b, string(q.model.Table().Name))
 }
@@ -566,7 +550,7 @@ func (q *Query) appendTableName(b []byte) []byte {
 func (q *Query) appendTableNameWithAlias(b []byte) []byte {
 	b = q.appendTableName(b)
 	b = append(b, " AS "...)
-	b, _ = q.appendTableAlias(b)
+	b = append(b, q.model.Table().Alias...)
 	return b
 }
 
