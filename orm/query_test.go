@@ -9,7 +9,7 @@ import (
 
 func TestQuerySize(t *testing.T) {
 	size := int(unsafe.Sizeof(orm.Query{}))
-	wanted := 336
+	wanted := 320
 	if size != wanted {
 		t.Fatalf("got %d, wanted %d", size, wanted)
 	}

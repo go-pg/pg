@@ -105,11 +105,6 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 	} else if q.model != nil {
 		b = q.appendModelColumns(b)
 	} else {
-		var ok bool
-		b, ok = q.appendTableAlias(b)
-		if ok {
-			b = append(b, '.')
-		}
 		b = append(b, '*')
 	}
 
@@ -131,15 +126,12 @@ func (q selectQuery) appendQueryColumns(b []byte) []byte {
 }
 
 func (q selectQuery) appendModelColumns(b []byte) []byte {
-	alias, hasAlias := q.appendTableAlias(nil)
 	for i, f := range q.model.Table().Fields {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		if hasAlias {
-			b = append(b, alias...)
-			b = append(b, '.')
-		}
+		b = append(b, q.model.Table().Alias...)
+		b = append(b, '.')
 		b = append(b, f.ColName...)
 	}
 	return b
