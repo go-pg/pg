@@ -40,10 +40,11 @@ func NewQuery(db DB, model ...interface{}) *Query {
 	return (&Query{}).DB(db).Model(model...)
 }
 
-// New returns new zero Query binded to the current db.
+// New returns new Query binded to the current db and model.
 func (q *Query) New() *Query {
 	return &Query{
-		db: q.db,
+		db:    q.db,
+		model: q.model,
 	}
 }
 
@@ -96,7 +97,10 @@ func (q *Query) Model(model ...interface{}) *Query {
 		q.model, err = newTableModel(&model)
 	}
 	if err != nil {
-		q = q.err(err)
+		return q.err(err)
+	}
+	if q.model != nil {
+		q.tables = append(q.tables, modelTableNameFA{q.model})
 	}
 	return q
 }
@@ -293,20 +297,6 @@ func (q *Query) Last() error {
 	return q.OrderExpr(string(b)).Limit(1).Select()
 }
 
-func (q *Query) newModel(values []interface{}) (model Model, err error) {
-	if len(values) > 0 {
-		return NewModel(values...)
-	}
-	return q.model, nil
-}
-
-func (q *Query) query(model Model, query interface{}) (*types.Result, error) {
-	if _, ok := model.(useQueryOne); ok {
-		return q.db.QueryOne(model, query, q.model)
-	}
-	return q.db.Query(model, query, q.model)
-}
-
 // Select selects the model.
 func (q *Query) Select(values ...interface{}) error {
 	if q.stickyErr != nil {
@@ -335,6 +325,20 @@ func (q *Query) Select(values ...interface{}) error {
 	}
 
 	return nil
+}
+
+func (q *Query) newModel(values []interface{}) (model Model, err error) {
+	if len(values) > 0 {
+		return NewModel(values...)
+	}
+	return q.model, nil
+}
+
+func (q *Query) query(model Model, query interface{}) (*types.Result, error) {
+	if _, ok := model.(useQueryOne); ok {
+		return q.db.QueryOne(model, query, q.model)
+	}
+	return q.db.Query(model, query, q.model)
 }
 
 // SelectAndCount runs Select and Count in two separate goroutines,
@@ -554,17 +558,7 @@ func (q *Query) appendTableNameWithAlias(b []byte) []byte {
 	return b
 }
 
-func (q *Query) hasTables() bool {
-	return q.model != nil || len(q.tables) > 0
-}
-
 func (q *Query) appendTables(b []byte) []byte {
-	if q.model != nil {
-		b = q.appendTableNameWithAlias(b)
-		if len(q.tables) > 0 {
-			b = append(b, ", "...)
-		}
-	}
 	for i, f := range q.tables {
 		if i > 0 {
 			b = append(b, ", "...)
@@ -626,6 +620,23 @@ func (q *Query) appendReturning(b []byte) []byte {
 	}
 	return b
 }
+
+//------------------------------------------------------------------------------
+
+type modelTableNameFA struct {
+	model tableModel
+}
+
+var _ FormatAppender = (*modelTableNameFA)(nil)
+
+func (q modelTableNameFA) AppendFormat(b []byte, f QueryFormatter) []byte {
+	b = f.FormatQuery(b, string(q.model.Table().Name))
+	b = append(b, " AS "...)
+	b = append(b, q.model.Table().Alias...)
+	return b
+}
+
+//------------------------------------------------------------------------------
 
 type wherePKQuery struct {
 	*Query
