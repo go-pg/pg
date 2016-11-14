@@ -270,6 +270,12 @@ func (db *DB) Create(model ...interface{}) error {
 	return orm.Create(db, model...)
 }
 
+// CreateTable creates table for the model in db.
+func (db *DB) CreateTable(model interface{}) error {
+	_, err := orm.CreateTable(db, model)
+	return err
+}
+
 // Update updates the model by primary key.
 func (db *DB) Update(model interface{}) error {
 	return orm.Update(db, model)

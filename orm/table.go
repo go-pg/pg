@@ -233,6 +233,8 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		field.flags |= ForeignKeyFlag
 	}
 
+	field.SQLType = sqlType(f, sqlOpt, &field)
+
 	if !skip && types.IsSQLScanner(f.Type) {
 		return &field
 	}
@@ -314,6 +316,45 @@ func (t *Table) newField(f reflect.StructField) *Field {
 		return nil
 	}
 	return &field
+}
+
+func sqlType(f reflect.StructField, sqlOpt tagOptions, field *Field) string {
+	if v, ok := sqlOpt.Get("type:"); ok {
+		return v
+	}
+
+	if f.Type == timeType {
+		return "timestamptz"
+	}
+
+	switch f.Type.Kind() {
+	case reflect.Int8, reflect.Int16, reflect.Uint8:
+		if field.Has(PrimaryKeyFlag) {
+			return "serial"
+		}
+
+		return "smallint"
+	case reflect.Int32, reflect.Uint16:
+		if field.Has(PrimaryKeyFlag) {
+			return "serial"
+		}
+
+		return "integer"
+	case reflect.Int64, reflect.Int, reflect.Uint32:
+		if field.Has(PrimaryKeyFlag) {
+			return "bigserial"
+		}
+
+		return "bigint"
+	case reflect.Uint, reflect.Uint64, reflect.Float32, reflect.Float64:
+		return "decimal"
+	case reflect.Bool:
+		return "boolean"
+	case reflect.String:
+		return "text"
+	default:
+		return f.Type.Kind().String()
+	}
 }
 
 func foreignKeys(base, join *Table, prefix string) []*Field {
