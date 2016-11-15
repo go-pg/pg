@@ -104,6 +104,10 @@ var _ = Describe("Time", func() {
 })
 
 var _ = Describe("slice model", func() {
+	type value struct {
+		Id int
+	}
+
 	var db *pg.DB
 
 	BeforeEach(func() {
@@ -114,11 +118,28 @@ var _ = Describe("slice model", func() {
 		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
-	It("supports slice of structs", func() {
-		type value struct {
-			Id int
-		}
+	It("does not error when there are no rows", func() {
+		var ints []int
+		_, err := db.Query(&ints, "SELECT generate_series(1, 0)")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ints).To(BeZero())
+	})
 
+	It("does not error when there are no rows", func() {
+		var slice []value
+		_, err := db.Query(&slice, "SELECT generate_series(1, 0)")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(slice).To(BeZero())
+	})
+
+	It("does not error when there are no rows", func() {
+		var slice []*value
+		_, err := db.Query(&slice, "SELECT generate_series(1, 0)")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(slice).To(BeZero())
+	})
+
+	It("supports slice of structs", func() {
 		var slice []value
 		_, err := db.Query(&slice, `SELECT generate_series(1, 3) AS id`)
 		Expect(err).NotTo(HaveOccurred())
@@ -126,10 +147,6 @@ var _ = Describe("slice model", func() {
 	})
 
 	It("supports slice of pointers", func() {
-		type value struct {
-			Id int
-		}
-
 		var slice []*value
 		_, err := db.Query(&slice, `SELECT generate_series(1, 3) AS id`)
 		Expect(err).NotTo(HaveOccurred())
