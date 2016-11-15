@@ -2,6 +2,7 @@ package orm
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -46,6 +47,13 @@ func (a fieldAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 
 type Formatter struct {
 	namedParams map[string]interface{}
+}
+
+func (f Formatter) String() string {
+	if len(f.namedParams) == 0 {
+		return ""
+	}
+	return fmt.Sprintf(" %s", f.namedParams)
 }
 
 func (f *Formatter) Copy() Formatter {
