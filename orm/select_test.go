@@ -27,7 +27,16 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal(`SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test"`))
 	})
 
-	It("supports WrapWith", func() {
+	It("supports multiple groups", func() {
+		q := NewQuery(nil).Group("one").Group("two")
+		b, err := selectQuery{q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT * GROUP BY "one", "two"`))
+	})
+})
+
+var _ = Describe("With", func() {
+	It("WrapWith wraps query in CTE", func() {
 		q := NewQuery(nil, &SelectTest{}).
 			Where("cond1").
 			WrapWith("wrapper").
@@ -39,11 +48,14 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
 	})
 
-	It("works with multiple groups", func() {
-		q := NewQuery(nil).Group("one").Group("two")
-		b, err := selectQuery{q}.AppendQuery(nil)
+	It("generates nested CTE", func() {
+		q1 := NewQuery(nil).Table("q1")
+		q2 := NewQuery(nil).With("q1", q1).Table("q2", "q1")
+		q3 := NewQuery(nil).With("q2", q2).Table("q3", "q2")
+
+		b, err := selectQuery{q3}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`SELECT * GROUP BY "one", "two"`))
+		Expect(string(b)).To(Equal(`WITH "q2" AS (WITH "q1" AS (SELECT * FROM "q1") SELECT * FROM "q2", "q1") SELECT * FROM "q3", "q2"`))
 	})
 })
 
