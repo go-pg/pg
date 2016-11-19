@@ -6,8 +6,14 @@ import (
 )
 
 type SelectTest struct {
-	Id   int
-	Name string
+	Id      int
+	Name    string
+	HasMany []SelectHasManyTest
+}
+
+type SelectHasManyTest struct {
+	Id           int
+	SelectTestId int
 }
 
 var _ = Describe("Select", func() {
@@ -19,7 +25,7 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal("SELECT * WHERE (hello = 'world')"))
 	})
 
-	It("sets all columns", func() {
+	It("specifies all columns", func() {
 		q := NewQuery(nil, &SelectTest{})
 
 		b, err := selectQuery{q}.AppendQuery(nil)
@@ -27,7 +33,27 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal(`SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test"`))
 	})
 
-	It("supports WrapWith", func() {
+	It("specifies all columns for has many", func() {
+		q := NewQuery(nil, &SelectTest{Id: 1}).Column("HasMany")
+
+		q, err := q.model.GetJoin("HasMany").manyQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		b, err := selectQuery{q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT "select_has_many_test"."id", "select_has_many_test"."select_test_id" FROM "select_has_many_tests" AS "select_has_many_test" WHERE (("select_has_many_test"."select_test_id") IN ((1)))`))
+	})
+
+	It("supports multiple groups", func() {
+		q := NewQuery(nil).Group("one").Group("two")
+		b, err := selectQuery{q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT * GROUP BY "one", "two"`))
+	})
+})
+
+var _ = Describe("With", func() {
+	It("WrapWith wraps query in CTE", func() {
 		q := NewQuery(nil, &SelectTest{}).
 			Where("cond1").
 			WrapWith("wrapper").
@@ -39,11 +65,14 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
 	})
 
-	It("works with multiple groups", func() {
-		q := NewQuery(nil).Group("one").Group("two")
-		b, err := selectQuery{q}.AppendQuery(nil)
+	It("generates nested CTE", func() {
+		q1 := NewQuery(nil).Table("q1")
+		q2 := NewQuery(nil).With("q1", q1).Table("q2", "q1")
+		q3 := NewQuery(nil).With("q2", q2).Table("q3", "q2")
+
+		b, err := selectQuery{q3}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`SELECT * GROUP BY "one", "two"`))
+		Expect(string(b)).To(Equal(`WITH "q2" AS (WITH "q1" AS (SELECT * FROM "q1") SELECT * FROM "q2", "q1") SELECT * FROM "q3", "q2"`))
 	})
 })
 
