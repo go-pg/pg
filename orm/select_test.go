@@ -6,8 +6,14 @@ import (
 )
 
 type SelectTest struct {
-	Id   int
-	Name string
+	Id      int
+	Name    string
+	HasMany []SelectHasManyTest
+}
+
+type SelectHasManyTest struct {
+	Id           int
+	SelectTestId int
 }
 
 var _ = Describe("Select", func() {
@@ -19,12 +25,23 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal("SELECT * WHERE (hello = 'world')"))
 	})
 
-	It("sets all columns", func() {
+	It("specifies all columns", func() {
 		q := NewQuery(nil, &SelectTest{})
 
 		b, err := selectQuery{q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test"`))
+	})
+
+	It("specifies all columns for has many", func() {
+		q := NewQuery(nil, &SelectTest{Id: 1}).Column("HasMany")
+
+		q, err := q.model.GetJoin("HasMany").manyQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		b, err := selectQuery{q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT "select_has_many_test"."id", "select_has_many_test"."select_test_id" FROM "select_has_many_tests" AS "select_has_many_test" WHERE (("select_has_many_test"."select_test_id") IN ((1)))`))
 	})
 
 	It("supports multiple groups", func() {

@@ -22,16 +22,31 @@ func (j *join) Select(db DB) error {
 	panic("not reached")
 }
 
-func (j *join) selectMany(db DB) (err error) {
+func (j *join) selectMany(db DB) error {
+	q, err := j.manyQuery(db)
+	if err != nil {
+		return err
+	}
+
+	err = q.Select()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (j *join) manyQuery(db DB) (*Query, error) {
 	root := j.JoinModel.Root()
 	index := j.JoinModel.ParentIndex()
 
 	manyModel := newManyModel(j)
 	q := NewQuery(db, manyModel)
 	if j.ApplyQuery != nil {
+		var err error
 		q, err = j.ApplyQuery(q)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -50,6 +65,15 @@ func (j *join) selectMany(db DB) (err error) {
 		)
 	}
 
+	return q, nil
+}
+
+func (j *join) selectM2M(db DB) error {
+	q, err := j.m2mQuery(db)
+	if err != nil {
+		return err
+	}
+
 	err = q.Select()
 	if err != nil {
 		return err
@@ -58,7 +82,7 @@ func (j *join) selectMany(db DB) (err error) {
 	return nil
 }
 
-func (j *join) selectM2M(db DB) (err error) {
+func (j *join) m2mQuery(db DB) (*Query, error) {
 	index := j.JoinModel.ParentIndex()
 
 	baseTable := j.BaseModel.Table()
@@ -68,9 +92,10 @@ func (j *join) selectM2M(db DB) (err error) {
 	m2mModel := newM2MModel(j)
 	q := NewQuery(db, m2mModel)
 	if j.ApplyQuery != nil {
+		var err error
 		q, err = j.ApplyQuery(q)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
@@ -90,12 +115,7 @@ func (j *join) selectM2M(db DB) (err error) {
 		)
 	}
 
-	err = q.Select()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return q, nil
 }
 
 func (j *join) hasParent() bool {
@@ -213,9 +233,17 @@ func (q hasManyColumnsAppender) AppendFormat(b []byte, f QueryFormatter) []byte 
 		b = append(b, ".*, "...)
 	}
 
+	joinTable := q.JoinModel.Table()
+
 	if q.Columns == nil {
-		b = append(b, q.JoinModel.Table().Alias...)
-		b = append(b, ".*"...)
+		for i, f := range joinTable.Fields {
+			if i > 0 {
+				b = append(b, ", "...)
+			}
+			b = append(b, joinTable.Alias...)
+			b = append(b, '.')
+			b = append(b, f.ColName...)
+		}
 		return b
 	}
 
@@ -223,7 +251,7 @@ func (q hasManyColumnsAppender) AppendFormat(b []byte, f QueryFormatter) []byte 
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		b = append(b, q.JoinModel.Table().Alias...)
+		b = append(b, joinTable.Alias...)
 		b = append(b, '.')
 		b = types.AppendField(b, column, 1)
 	}
