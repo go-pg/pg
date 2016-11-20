@@ -172,9 +172,9 @@ func ExampleDB_Model() {
 
 ## Model definition
 
-Models are defined using Go structs. Order of the struct fields usually does not matter with the only exception being primary key(s) that must be defined before any other fields. Otherwise table relationships can be recognized incorrectly.
+Models are defined using Go structs which are mapped to PostgreSQL tables. Exported struct fields are mapped to table columns. Table name and alias are automatically derived from struct name by underscoring it; table name is also pluralized (struct `Genre` -> table `genres AS genre`). Default table name can be overrided using `TableName` field. Column name is derived from struct field name by underscoring it (field `ParentId` -> column `parent_id`). Default column name can be overrided using `sql` tag. Order of struct fields does not matter with the only exception being primary keys that must be defined before any other fields. Otherwise table relationships can be recognized incorrectly.
 
-Please *note* that most struct tags in following example have the same values as the defaults and are included only for demonstration purposes.
+Please *note* that most struct tags in the following example have the same values as the defaults and are included only for demonstration purposes.
 
 ```go
 type Genre struct {
