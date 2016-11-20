@@ -24,21 +24,21 @@ func (p *Params) Sum() int {
 func Example_placeholders() {
 	var num int
 
-	// Simple placeholders.
+	// Simple params.
 	_, err := db.Query(pg.Scan(&num), "SELECT ?", 42)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(num)
+	fmt.Println("simple:", num)
 
-	// Indexed placeholders.
+	// Indexed params.
 	_, err = db.Query(pg.Scan(&num), "SELECT ?0 + ?0", 1)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(num)
+	fmt.Println("indexed:", num)
 
-	// Named placeholders.
+	// Named params.
 	params := &Params{
 		X: 1,
 		Y: 1,
@@ -47,9 +47,17 @@ func Example_placeholders() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(num)
+	fmt.Println("named:", num)
 
-	// Output: 42
-	// 2
-	// 4
+	// Global params.
+	_, err = db.WithParam("z", 1).Query(pg.Scan(&num), "SELECT ?x + ?y + ?z", &params)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("global:", num)
+
+	// Output: simple: 42
+	// indexed: 2
+	// named: 4
+	// global: 3
 }
