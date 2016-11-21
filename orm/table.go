@@ -44,7 +44,7 @@ func (t *Table) HasField(field string) bool {
 
 func (t *Table) checkPKs() error {
 	if len(t.PKs) == 0 {
-		return fmt.Errorf("model %s does not have primary keys", t.TypeName)
+		return fmt.Errorf("model=%s does not have primary keys", t.Type.Name())
 	}
 	return nil
 }
@@ -57,7 +57,7 @@ func (t *Table) AddField(field *Field) {
 func (t *Table) GetField(fieldName string) (*Field, error) {
 	field, ok := t.FieldsMap[fieldName]
 	if !ok {
-		return nil, fmt.Errorf("can't find column %s in table %s", fieldName, t.Name)
+		return nil, fmt.Errorf("can't find column=%s in table=%s", fieldName, t.Name)
 	}
 	return field, nil
 }

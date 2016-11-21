@@ -1,6 +1,10 @@
 package orm
 
-import "gopkg.in/pg.v5/types"
+import (
+	"fmt"
+
+	"gopkg.in/pg.v5/types"
+)
 
 type valuesModel struct {
 	values []interface{}
@@ -62,6 +66,9 @@ func (valuesModel) AfterDelete(_ DB) error {
 	return nil
 }
 
-func (m valuesModel) ScanColumn(colIdx int, _ string, b []byte) error {
+func (m valuesModel) ScanColumn(colIdx int, colName string, b []byte) error {
+	if colIdx >= len(m.values) {
+		return fmt.Errorf("pg: no Scan value for column index=%d name=%s", colIdx, colName)
+	}
 	return types.Scan(m.values[colIdx], b)
 }
