@@ -497,7 +497,7 @@ var _ = Describe("DB.Update", func() {
 		type Test struct{}
 		var test Test
 		err := db.Update(&test)
-		Expect(err).To(MatchError(`model Test does not have primary keys`))
+		Expect(err).To(MatchError(`model=Test does not have primary keys`))
 	})
 })
 
@@ -522,11 +522,11 @@ var _ = Describe("DB.Delete", func() {
 		type Test struct{}
 		var test Test
 		err := db.Delete(&test)
-		Expect(err).To(MatchError(`model Test does not have primary keys`))
+		Expect(err).To(MatchError(`model=Test does not have primary keys`))
 	})
 })
 
-var _ = Describe("scanning unknown column", func() {
+var _ = Describe("errors", func() {
 	var db *pg.DB
 
 	BeforeEach(func() {
@@ -538,15 +538,22 @@ var _ = Describe("scanning unknown column", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("returns an error", func() {
+	It("unknown column error", func() {
 		type Test struct {
 			Col1 int
 		}
 
 		var test Test
 		_, err := db.QueryOne(&test, "SELECT 1 AS col1, 2 AS col2")
-		Expect(err).To(MatchError(`pg: can't find column col2 in model Test`))
+		Expect(err).To(MatchError("pg: can't find column=col2 in model=Test"))
 		Expect(test.Col1).To(Equal(1))
+	})
+
+	It("Scan error", func() {
+		var n1 int
+		_, err := db.QueryOne(pg.Scan(&n1), "SELECT 1, 2")
+		Expect(err).To(MatchError("pg: no Scan value for column index=1 name=?column?"))
+		Expect(n1).To(Equal(1))
 	})
 })
 
