@@ -35,7 +35,7 @@ type DB struct {
 var _ orm.DB = (*DB)(nil)
 
 func (db *DB) String() string {
-	return fmt.Sprintf("DB<Addr=%s%s>", db.opt.Addr, db.fmter)
+	return fmt.Sprintf("DB<Addr=%q%s>", db.opt.Addr, db.fmter)
 }
 
 // Options returns read-only Options that were used to connect to the DB.

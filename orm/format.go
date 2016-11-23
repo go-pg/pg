@@ -3,6 +3,7 @@ package orm
 import (
 	"bytes"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -53,7 +54,18 @@ func (f Formatter) String() string {
 	if len(f.namedParams) == 0 {
 		return ""
 	}
-	return fmt.Sprintf(" %s", f.namedParams)
+
+	var keys []string
+	for k, _ := range f.namedParams {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	var ss []string
+	for _, k := range keys {
+		ss = append(ss, fmt.Sprintf("%s=%v", k, f.namedParams[k]))
+	}
+	return " " + strings.Join(ss, " ")
 }
 
 func (f *Formatter) Copy() Formatter {
