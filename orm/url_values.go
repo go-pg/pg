@@ -82,7 +82,7 @@ func Pager(urlValues url.Values, defaultLimit int) func(*Query) (*Query, error) 
 		if limit < 1 {
 			limit = defaultLimit
 		} else if limit > maxLimit {
-			return nil, fmt.Errorf("limit can't bigger than %d", maxLimit)
+			return nil, fmt.Errorf("limit=%d is bigger than %d", limit, maxLimit)
 		}
 		if limit > 0 {
 			q = q.Limit(limit)
@@ -95,7 +95,7 @@ func Pager(urlValues url.Values, defaultLimit int) func(*Query) (*Query, error) 
 		if page > 0 {
 			offset := (page - 1) * limit
 			if offset > maxOffset {
-				return nil, fmt.Errorf("offset can't bigger than %d", maxOffset)
+				return nil, fmt.Errorf("offset=%d can't bigger than %d", offset, maxOffset)
 			}
 			q = q.Offset(offset)
 		}
@@ -104,15 +104,15 @@ func Pager(urlValues url.Values, defaultLimit int) func(*Query) (*Query, error) 
 	}
 }
 
-func intParam(urlValues url.Values, fieldName string) (int, error) {
-	values, ok := urlValues[fieldName]
+func intParam(urlValues url.Values, paramName string) (int, error) {
+	values, ok := urlValues[paramName]
 	if !ok {
 		return 0, nil
 	}
 
 	value, err := strconv.Atoi(values[0])
 	if err != nil {
-		return 0, fmt.Errorf("%s is invalid: %s (%s)", fieldName, values[0], err)
+		return 0, fmt.Errorf("param=%s value=%s is invalid: %s", paramName, values[0], err)
 	}
 
 	return value, nil

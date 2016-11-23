@@ -169,8 +169,8 @@ func (q *Query) getFields() []string {
 func (q *Query) Relation(name string, apply func(*Query) (*Query, error)) *Query {
 	if _, j := q.model.Join(name, apply); j == nil {
 		return q.err(fmt.Errorf(
-			"model %s does not have relation %s",
-			q.model.Table().TypeName, name,
+			"model=%s does not have relation=%s",
+			q.model.Table().Type.Name(), name,
 		))
 	}
 	return q
