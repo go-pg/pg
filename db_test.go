@@ -40,7 +40,13 @@ func pgOptions() *pg.Options {
 
 func TestDBString(t *testing.T) {
 	db := pg.Connect(pgOptions())
-	wanted := "DB<Addr=localhost:5432>"
+	wanted := `DB<Addr="localhost:5432">`
+	if db.String() != wanted {
+		t.Fatalf("got %q, wanted %q", db.String(), wanted)
+	}
+
+	db = db.WithParam("param1", "value1").WithParam("param2", 2)
+	wanted = `DB<Addr="localhost:5432" param1=value1 param2=2>`
 	if db.String() != wanted {
 		t.Fatalf("got %q, wanted %q", db.String(), wanted)
 	}
