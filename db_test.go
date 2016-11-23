@@ -308,7 +308,7 @@ var _ = Describe("CountEstimate", func() {
 			Group("generate_series").
 			CountEstimate(1000)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(count).To(Equal(1))
+		Expect(count).To(Equal(10))
 	})
 
 	It("works with GROUP when there are no results", func() {

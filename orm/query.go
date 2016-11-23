@@ -275,15 +275,23 @@ func (q *Query) Count() (int, error) {
 		return 0, q.stickyErr
 	}
 
-	q = q.Copy()
-	q.columns = []FormatAppender{Q("count(*)")}
-	q.order = nil
-	q.limit = 0
-	q.offset = 0
-
 	var count int
-	_, err := q.db.QueryOne(Scan(&count), selectQuery{q}, q.model)
+	_, err := q.db.QueryOne(Scan(&count), q.countSelectQuery("count(*)"), q.model)
 	return count, err
+}
+
+func (q *Query) countSelectQuery(query string) selectQuery {
+	return selectQuery{
+		Query: q.countQuery(),
+		count: queryParamsAppender{query: query},
+	}
+}
+
+func (q *Query) countQuery() *Query {
+	if len(q.group) > 0 {
+		return q.Copy().WrapWith("wrapper").Table("wrapper")
+	}
+	return q
 }
 
 // First selects the first row.
@@ -310,7 +318,7 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
-	res, err := q.query(model, selectQuery{q})
+	res, err := q.query(model, selectQuery{Query: q})
 	if err != nil {
 		return err
 	}
