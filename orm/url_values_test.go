@@ -7,13 +7,18 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+type URLValuesModel struct {
+	Id   int
+	Name string
+}
+
 type urlValuesTest struct {
 	url   string
 	query string
 }
 
 var _ = Describe("URLValues", func() {
-	query := `SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test"`
+	query := `SELECT "url_values_model"."id", "url_values_model"."name" FROM "url_values_models" AS "url_values_model"`
 	urlValuesTests := []urlValuesTest{
 		{
 			url:   "http://localhost:8000/test?id__gt=1",
@@ -69,10 +74,10 @@ var _ = Describe("URLValues", func() {
 		for _, urlValuesTest := range urlValuesTests {
 			req, _ := http.NewRequest("GET", urlValuesTest.url, nil)
 
-			q := NewQuery(nil, &SelectTest{})
+			q := NewQuery(nil, &URLValuesModel{})
 			q = q.Apply(URLValues(req.URL.Query()))
 
-			b, err := selectQuery{q}.AppendQuery(nil)
+			b, err := selectQuery{Query: q}.AppendQuery(nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(b)).To(Equal(urlValuesTest.query))
 		}
@@ -80,7 +85,7 @@ var _ = Describe("URLValues", func() {
 })
 
 var _ = Describe("Pager", func() {
-	query := `SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test"`
+	query := `SELECT "url_values_model"."id", "url_values_model"."name" FROM "url_values_models" AS "url_values_model"`
 	urlValuesTests := []urlValuesTest{
 		{
 			url:   "http://localhost:8000/test?limit=10",
@@ -101,10 +106,10 @@ var _ = Describe("Pager", func() {
 		for _, urlValuesTest := range urlValuesTests {
 			req, _ := http.NewRequest("GET", urlValuesTest.url, nil)
 
-			q := NewQuery(nil, &SelectTest{})
+			q := NewQuery(nil, &URLValuesModel{})
 			q = q.Apply(Pager(req.URL.Query(), 100))
 
-			b, err := selectQuery{q}.AppendQuery(nil)
+			b, err := selectQuery{Query: q}.AppendQuery(nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(b)).To(Equal(urlValuesTest.query))
 		}

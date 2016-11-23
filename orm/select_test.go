@@ -5,64 +5,90 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type SelectTest struct {
-	Id      int
-	Name    string
-	HasMany []SelectHasManyTest
+type SelectModel struct {
+	Id       int
+	Name     string
+	HasOne   *HasOneModel
+	HasOneId int
+	HasMany  []HasManyModel
 }
 
-type SelectHasManyTest struct {
-	Id           int
-	SelectTestId int
+type HasOneModel struct {
+	Id int
+}
+
+type HasManyModel struct {
+	Id            int
+	SelectModelId int
 }
 
 var _ = Describe("Select", func() {
 	It("works without db", func() {
 		q := NewQuery(nil).Where("hello = ?", "world")
 
-		b, err := selectQuery{q}.AppendQuery(nil)
+		b, err := selectQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal("SELECT * WHERE (hello = 'world')"))
 	})
 
 	It("specifies all columns", func() {
-		q := NewQuery(nil, &SelectTest{})
+		q := NewQuery(nil, &SelectModel{})
 
-		b, err := selectQuery{q}.AppendQuery(nil)
+		b, err := selectQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test"`))
+		Expect(string(b)).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
+	})
+
+	It("specifies all columns for has one", func() {
+		q := NewQuery(nil, &SelectModel{Id: 1}).Column("HasOne")
+
+		b, err := selectQuery{Query: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id", has_one."id" AS "has_one__id" FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS has_one ON has_one."id" = "select_model"."has_one_id"`))
+
+		b, err = q.countSelectQuery("count(*)").AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT count(*) FROM "select_models" AS "select_model"`))
 	})
 
 	It("specifies all columns for has many", func() {
-		q := NewQuery(nil, &SelectTest{Id: 1}).Column("HasMany")
+		q := NewQuery(nil, &SelectModel{Id: 1}).Column("HasMany")
 
 		q, err := q.model.GetJoin("HasMany").manyQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 
-		b, err := selectQuery{q}.AppendQuery(nil)
+		b, err := selectQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`SELECT "select_has_many_test"."id", "select_has_many_test"."select_test_id" FROM "select_has_many_tests" AS "select_has_many_test" WHERE (("select_has_many_test"."select_test_id") IN ((1)))`))
+		Expect(string(b)).To(Equal(`SELECT "has_many_model"."id", "has_many_model"."select_model_id" FROM "has_many_models" AS "has_many_model" WHERE (("has_many_model"."select_model_id") IN ((1)))`))
+
+		b, err = q.countSelectQuery("count(*)").AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT count(*) FROM "has_many_models" AS "has_many_model" WHERE (("has_many_model"."select_model_id") IN ((1)))`))
 	})
 
 	It("supports multiple groups", func() {
 		q := NewQuery(nil).Group("one").Group("two")
-		b, err := selectQuery{q}.AppendQuery(nil)
+		b, err := selectQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT * GROUP BY "one", "two"`))
+
+		b, err = q.countSelectQuery("count(*)").AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT * GROUP BY "one", "two") SELECT count(*) FROM "wrapper"`))
 	})
 })
 
 var _ = Describe("With", func() {
 	It("WrapWith wraps query in CTE", func() {
-		q := NewQuery(nil, &SelectTest{}).
+		q := NewQuery(nil, &SelectModel{}).
 			Where("cond1").
 			WrapWith("wrapper").
 			Table("wrapper").
 			Where("cond2")
 
-		b, err := selectQuery{q}.AppendQuery(nil)
+		b, err := selectQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "select_test"."id", "select_test"."name" FROM "select_tests" AS "select_test" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
+		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
 	})
 
 	It("generates nested CTE", func() {
@@ -70,7 +96,7 @@ var _ = Describe("With", func() {
 		q2 := NewQuery(nil).With("q1", q1).Table("q2", "q1")
 		q3 := NewQuery(nil).With("q2", q2).Table("q3", "q2")
 
-		b, err := selectQuery{q3}.AppendQuery(nil)
+		b, err := selectQuery{Query: q3}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`WITH "q2" AS (WITH "q1" AS (SELECT * FROM "q1") SELECT * FROM "q2", "q1") SELECT * FROM "q3", "q2"`))
 	})
@@ -95,7 +121,7 @@ var _ = Describe("Select Order", func() {
 		for _, test := range orderTests {
 			q := NewQuery(nil).Order(test.order)
 
-			b, err := selectQuery{q}.AppendQuery(nil)
+			b, err := selectQuery{Query: q}.AppendQuery(nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(b)).To(Equal(`SELECT * ORDER BY ` + test.query))
 		}

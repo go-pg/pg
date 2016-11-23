@@ -52,14 +52,7 @@ func (q *Query) CountEstimate(threshold int) (int, error) {
 		return 0, q.stickyErr
 	}
 
-	q = q.Copy()
-	q.columns = []FormatAppender{queryParamsAppender{query: placeholder}}
-	q.order = nil
-	q.limit = 0
-	q.offset = 0
-
-	sel := selectQuery{Query: q}
-	query, err := sel.AppendQuery(nil)
+	query, err := q.countSelectQuery(placeholder).AppendQuery(nil)
 	if err != nil {
 		return 0, err
 	}

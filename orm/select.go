@@ -17,6 +17,7 @@ func Select(db DB, model interface{}) error {
 
 type selectQuery struct {
 	*Query
+	count FormatAppender
 }
 
 var _ QueryAppender = (*selectQuery)(nil)
@@ -32,17 +33,23 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 	}
 
 	b = append(b, "SELECT "...)
-	b = q.appendColumns(b)
+	if q.count != nil {
+		b = q.count.AppendFormat(b, q)
+	} else {
+		b = q.appendColumns(b)
+	}
 
 	if q.hasTables() {
 		b = append(b, " FROM "...)
 		b = q.appendTables(b)
 	}
 
-	q.forEachHasOneJoin(func(j *join) {
-		b = append(b, ' ')
-		b = j.appendHasOneJoin(b)
-	})
+	if q.count == nil {
+		q.forEachHasOneJoin(func(j *join) {
+			b = append(b, ' ')
+			b = j.appendHasOneJoin(b)
+		})
+	}
 	if len(q.joins) > 0 {
 		for _, f := range q.joins {
 			b = append(b, ' ')
@@ -76,24 +83,26 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 		}
 	}
 
-	if len(q.order) > 0 {
-		b = append(b, " ORDER BY "...)
-		for i, f := range q.order {
-			if i > 0 {
-				b = append(b, ", "...)
+	if q.count == nil {
+		if len(q.order) > 0 {
+			b = append(b, " ORDER BY "...)
+			for i, f := range q.order {
+				if i > 0 {
+					b = append(b, ", "...)
+				}
+				b = f.AppendFormat(b, q)
 			}
-			b = f.AppendFormat(b, q)
 		}
-	}
 
-	if q.limit != 0 {
-		b = append(b, " LIMIT "...)
-		b = strconv.AppendInt(b, int64(q.limit), 10)
-	}
+		if q.limit != 0 {
+			b = append(b, " LIMIT "...)
+			b = strconv.AppendInt(b, int64(q.limit), 10)
+		}
 
-	if q.offset != 0 {
-		b = append(b, " OFFSET "...)
-		b = strconv.AppendInt(b, int64(q.offset), 10)
+		if q.offset != 0 {
+			b = append(b, " OFFSET "...)
+			b = strconv.AppendInt(b, int64(q.offset), 10)
+		}
 	}
 
 	return b, nil
@@ -146,7 +155,7 @@ func (q selectQuery) appendWith(b []byte) ([]byte, error) {
 		}
 		b = types.AppendField(b, withq.name, 1)
 		b = append(b, " AS ("...)
-		b, err = selectQuery{withq.query}.AppendQuery(b)
+		b, err = selectQuery{Query: withq.query}.AppendQuery(b)
 		if err != nil {
 			return nil, err
 		}
