@@ -7,7 +7,9 @@ import (
 	"gopkg.in/pg.v5/types"
 )
 
-type CreateTableOptions struct{}
+type CreateTableOptions struct {
+	Temp bool
+}
 
 func CreateTable(db DB, model interface{}, opt *CreateTableOptions) (*types.Result, error) {
 	return db.Exec(createTableQuery{model: model, opt: opt})
@@ -30,7 +32,11 @@ func (c createTableQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, 
 
 	table := Tables.Get(typ)
 
-	b = append(b, "CREATE TABLE "...)
+	b = append(b, "CREATE "...)
+	if c.opt != nil && c.opt.Temp {
+		b = append(b, "TEMP "...)
+	}
+	b = append(b, "TABLE "...)
 	b = append(b, table.Name...)
 	b = append(b, " ("...)
 
@@ -38,6 +44,12 @@ func (c createTableQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, 
 		b = append(b, field.SQLName...)
 		b = append(b, " "...)
 		b = append(b, field.SQLType...)
+		if field.Has(NotNullFlag) {
+			b = append(b, " NOT NULL"...)
+		}
+		if field.Has(UniqueFlag) {
+			b = append(b, " UNIQUE"...)
+		}
 
 		if i != len(table.Fields)-1 {
 			b = append(b, ", "...)

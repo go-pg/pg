@@ -254,6 +254,10 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	if _, ok := sqlOpt.Get("notnull"); ok {
 		field.flags |= NotNullFlag
 	}
+	if _, ok := sqlOpt.Get("unique"); ok {
+		field.flags |= UniqueFlag
+	}
+
 	if len(t.PKs) == 0 && (field.SQLName == "id" || field.SQLName == "uuid") {
 		field.flags |= PrimaryKeyFlag
 		t.PKs = append(t.PKs, &field)

@@ -232,7 +232,9 @@ func (tx *Tx) Delete(model interface{}) error {
 	return orm.Delete(tx, model)
 }
 
-// CreateTable creates table for the model in db.
+// CreateTable creates table for the model. It recognizes following field tags:
+//   - notnull - sets NOT NULL constraint.
+//   - unique - sets UNIQUE constraint.
 func (tx *Tx) CreateTable(model interface{}, opt *orm.CreateTableOptions) error {
 	_, err := orm.CreateTable(tx, model, opt)
 	return err
