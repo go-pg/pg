@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"gopkg.in/pg.v5"
+	"gopkg.in/pg.v5/orm"
 )
 
 var db *pg.DB
@@ -178,8 +179,40 @@ func ExampleDB_Prepare() {
 
 	var s1, s2 string
 	_, err = stmt.QueryOne(pg.Scan(&s1, &s2), "foo", "bar")
-	fmt.Println(s1, s2, err)
-	// Output: foo bar <nil>
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(s1, s2)
+	// Output: foo bar
+}
+
+func ExampleDB_CreateTable() {
+	type Model struct {
+		Id   int
+		Name string
+	}
+
+	err := db.CreateTable(&Model{}, &orm.CreateTableOptions{
+		Temp: true, // create temp table
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	var info []struct {
+		ColumnName string
+		DataType   string
+	}
+	_, err = db.Query(&info, `
+		SELECT column_name, data_type
+		FROM information_schema.columns
+		WHERE table_name = 'models'
+	`)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(info)
+	// Output: [{id bigint} {name text}]
 }
 
 func ExampleInts() {

@@ -317,7 +317,9 @@ func (db *DB) Delete(model interface{}) error {
 	return orm.Delete(db, model)
 }
 
-// CreateTable creates table for the model in db.
+// CreateTable creates table for the model. It recognizes following field tags:
+//   - notnull - sets NOT NULL constraint.
+//   - unique - sets UNIQUE constraint.
 func (db *DB) CreateTable(model interface{}, opt *orm.CreateTableOptions) error {
 	_, err := orm.CreateTable(db, model, opt)
 	return err

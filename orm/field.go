@@ -10,6 +10,7 @@ const (
 	PrimaryKeyFlag = 1 << iota
 	ForeignKeyFlag
 	NotNullFlag
+	UniqueFlag
 )
 
 type Field struct {

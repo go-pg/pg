@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type CreateTableTest struct {
+type CreateTableModel struct {
 	Id      int
 	Int8    int8
 	Uint8   uint8
@@ -22,22 +22,24 @@ type CreateTableTest struct {
 	String  string
 	Varchar string `sql:",type:varchar(500)"`
 	Time    time.Time
+	NotNull int `sql:",notnull"`
+	Unique  int `sql:",unique"`
 }
 
-type CreateTableWithoutPKTest struct {
+type CreateTableWithoutPKModel struct {
 	String string
 }
 
 var _ = Describe("CreateTable", func() {
 	It("creates new table", func() {
-		b, err := createTableQuery{model: CreateTableTest{}}.AppendQuery(nil)
+		b, err := createTableQuery{model: CreateTableModel{}}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_tests" (id bigserial, int8 smallint, uint8 smallint, int16 smallint, uint16 integer, int32 integer, uint32 bigint, int64 bigint, uint64 decimal, float32 real, float64 double precision, string text, varchar varchar(500), time timestamptz, PRIMARY KEY (id))`))
+		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_models" (id bigserial, int8 smallint, uint8 smallint, int16 smallint, uint16 integer, int32 integer, uint32 bigint, int64 bigint, uint64 decimal, float32 real, float64 double precision, string text, varchar varchar(500), time timestamptz, not_null bigint NOT NULL, unique bigint UNIQUE, PRIMARY KEY (id))`))
 	})
 
 	It("creates new table without primary key", func() {
-		b, err := createTableQuery{model: CreateTableWithoutPKTest{}}.AppendQuery(nil)
+		b, err := createTableQuery{model: CreateTableWithoutPKModel{}}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_without_pk_tests" (string text)`))
+		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_without_pk_models" (string text)`))
 	})
 })
