@@ -173,10 +173,6 @@ func (t *Table) addFields(typ reflect.Type, index []int) {
 			continue
 		}
 
-		if f.PkgPath != "" {
-			continue
-		}
-
 		field := t.newField(f, index)
 		if field != nil {
 			t.AddField(field)
@@ -201,13 +197,18 @@ func (t *Table) getField(name string) *Field {
 func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	sqlName, sqlOpt := parseTag(f.Tag.Get("sql"))
 
-	if f.Name == "TableName" {
+	switch f.Name {
+	case "tableName", "TableName":
 		if sqlName != "" {
 			t.Name = types.Q(sqlName)
 		}
 		if alias, ok := sqlOpt.Get("alias:"); ok {
 			t.Alias = types.Q(alias)
 		}
+		return nil
+	}
+
+	if f.PkgPath != "" {
 		return nil
 	}
 

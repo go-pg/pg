@@ -6,7 +6,7 @@ import (
 )
 
 type JoinTest struct {
-	TableName struct{} `sql:"JoinTest,alias:JoinTest"`
+	tableName struct{} `sql:"JoinTest,alias:JoinTest"`
 
 	Id int
 
@@ -17,7 +17,7 @@ type JoinTest struct {
 }
 
 type HasOne struct {
-	TableName struct{} `sql:"HasOne,alias:HasOne"`
+	tableName struct{} `sql:"HasOne,alias:HasOne"`
 
 	Id int
 
@@ -26,7 +26,7 @@ type HasOne struct {
 }
 
 type BelongsTo struct {
-	TableName struct{} `sql:"BelongsTo,alias:BelongsTo"`
+	tableName struct{} `sql:"BelongsTo,alias:BelongsTo"`
 
 	Id         int
 	JoinTestId int
