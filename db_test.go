@@ -564,9 +564,9 @@ var _ = Describe("errors", func() {
 })
 
 type Genre struct {
-	// TableName is an optional field that specifies custom table name and alias.
+	// tableName is an optional field that specifies custom table name and alias.
 	// By default go-pg generates table name and alias from struct name.
-	TableName struct{} `sql:"genres,alias:genre"` // default values are the same
+	tableName struct{} `sql:"genres,alias:genre"` // default values are the same
 
 	Id     int // Id is automatically detected as primary key
 	Name   string
@@ -593,7 +593,7 @@ func (a Author) String() string {
 }
 
 type BookGenre struct {
-	TableName struct{} `sql:",alias:bg"` // custom table alias
+	tableName struct{} `sql:",alias:bg"` // custom table alias
 
 	BookId  int `sql:",pk"` // pk tag is used to mark field as primary key
 	GenreId int `sql:",pk"`
@@ -636,7 +636,7 @@ type BookWithCommentCount struct {
 }
 
 type Translation struct {
-	TableName struct{} `sql:",alias:tr"` // custom table alias
+	tableName struct{} `sql:",alias:tr"` // custom table alias
 
 	Id     int
 	BookId int

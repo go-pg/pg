@@ -18,7 +18,7 @@ func (e ValuerError) Value() (driver.Value, error) {
 }
 
 type StructFormatter struct {
-	TableName struct{} `sql:"my_name,alias:my_alias" json:"-"`
+	tableName struct{} `sql:"my_name,alias:my_alias" json:"-"`
 
 	String  string
 	NotNull string `sql:",notnull"`

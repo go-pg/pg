@@ -172,15 +172,15 @@ func ExampleDB_Model() {
 
 ## Model definition
 
-Models are defined using Go structs which are mapped to PostgreSQL tables. Exported struct fields are mapped to table columns. Table name and alias are automatically derived from struct name by underscoring it; table name is also pluralized (struct `Genre` -> table `genres AS genre`). Default table name can be overrided using `TableName` field. Column name is derived from struct field name by underscoring it (field `ParentId` -> column `parent_id`). Default column name can be overrided using `sql` tag. Order of struct fields does not matter with the only exception being primary keys that must be defined before any other fields. Otherwise table relationships can be recognized incorrectly.
+Models are defined using Go structs which are mapped to PostgreSQL tables. Exported struct fields are mapped to table columns. Table name and alias are automatically derived from struct name by underscoring it; table name is also pluralized (struct `Genre` -> table `genres AS genre`). Default table name can be overrided using `tableName` field. Column name is derived from struct field name by underscoring it (field `ParentId` -> column `parent_id`). Default column name can be overrided using `sql` tag. Order of struct fields does not matter with the only exception being primary keys that must be defined before any other fields. Otherwise table relationships can be recognized incorrectly.
 
 Please *note* that most struct tags in the following example have the same values as the defaults and are included only for demonstration purposes.
 
 ```go
 type Genre struct {
-	// TableName is an optional field that specifies custom table name and alias.
-	// By default go-pg generates table name and alias from the struct name.
-	TableName struct{} `sql:"genres,alias:genre"` // default name and alias are the same
+	// tableName is an optional field that specifies custom table name and alias.
+	// By default go-pg generates table name and alias from struct name.
+	tableName struct{} `sql:"genres,alias:genre"` // default values are the same
 
 	Id     int // Id is automatically detected as primary key
 	Name   string
@@ -188,18 +188,26 @@ type Genre struct {
 
 	Books []Book `pg:",many2many:book_genres"` // many to many relation
 
-	ParentId  int     `sql:",null"`
+	ParentId  int
 	Subgenres []Genre `pg:",fk:Parent"` // fk specifies prefix for foreign key (ParentId)
+}
+
+func (g Genre) String() string {
+	return fmt.Sprintf("Genre<Id=%d Name=%q>", g.Id, g.Name)
 }
 
 type Author struct {
 	ID    int // both "Id" and "ID" are detected as primary key
 	Name  string
-	Books []Book // has many relation
+	Books []*Book // has many relation
+}
+
+func (a Author) String() string {
+	return fmt.Sprintf("Author<ID=%d Name=%q>", a.ID, a.Name)
 }
 
 type BookGenre struct {
-	TableName struct{} `sql:",alias:bg"` // custom table alias
+	tableName struct{} `sql:",alias:bg"` // custom table alias
 
 	BookId  int `sql:",pk"` // pk tag is used to mark field as primary key
 	GenreId int `sql:",pk"`
@@ -213,12 +221,23 @@ type Book struct {
 	AuthorID  int
 	Author    *Author // has one relation
 	EditorID  int
-	Editor    *Author   // has one relation
-	CreatedAt time.Time `sql:",null"`
+	Editor    *Author // has one relation
+	CreatedAt time.Time
 
 	Genres       []Genre       `pg:",many2many:book_genres" gorm:"many2many:book_genres;"` // many to many relation
 	Translations []Translation // has many relation
 	Comments     []Comment     `pg:",polymorphic:Trackable"` // has many polymorphic relation
+}
+
+func (b Book) String() string {
+	return fmt.Sprintf("Book<Id=%d Title=%q>", b.Id, b.Title)
+}
+
+func (b *Book) BeforeInsert(db orm.DB) error {
+	if b.CreatedAt.IsZero() {
+		b.CreatedAt = time.Now()
+	}
+	return nil
 }
 
 // BookWithCommentCount is like Book model, but has additional CommentCount
@@ -231,7 +250,7 @@ type BookWithCommentCount struct {
 }
 
 type Translation struct {
-	TableName struct{} `sql:",alias:tr"` // custom table alias
+	tableName struct{} `sql:",alias:tr"` // custom table alias
 
 	Id     int
 	BookId int
@@ -242,8 +261,8 @@ type Translation struct {
 }
 
 type Comment struct {
-	TrackableId   int    `sql:",pk"` // Book.Id or Translation.Id
-	TrackableType string `sql:",pk"` // "Book" or "Translation"
+	TrackableId   int    // Book.Id or Translation.Id
+	TrackableType string // "Book" or "Translation"
 	Text          string
 }
 ```
