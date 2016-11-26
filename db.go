@@ -1,4 +1,4 @@
-package pg // import "gopkg.in/pg.v5"
+package pg
 
 import (
 	"fmt"

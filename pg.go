@@ -1,4 +1,4 @@
-package pg
+package pg // import "gopkg.in/pg.v5"
 
 import (
 	"log"
