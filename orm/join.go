@@ -129,12 +129,27 @@ func (j *join) hasParent() bool {
 }
 
 func (j *join) appendAlias(b []byte) []byte {
-	return appendAlias(b, j, true)
+	b = append(b, '"')
+	b = appendAlias(b, j, true)
+	b = append(b, '"')
+	return b
+}
+
+func (j *join) appendAliasColumn(b []byte, column string) []byte {
+	b = append(b, '"')
+	b = appendAlias(b, j, true)
+	b = append(b, "__"...)
+	b = types.AppendField(b, column, 2)
+	b = append(b, '"')
+	return b
 }
 
 func (j *join) appendBaseAlias(b []byte) []byte {
 	if j.hasParent() {
-		return appendAlias(b, j.Parent, true)
+		b = append(b, '"')
+		b = appendAlias(b, j.Parent, true)
+		b = append(b, '"')
+		return b
 	}
 	return append(b, j.BaseModel.Table().Alias...)
 }
@@ -152,32 +167,25 @@ func appendAlias(b []byte, j *join, topLevel bool) []byte {
 }
 
 func (j *join) appendHasOneColumns(b []byte) []byte {
-	alias := j.appendAlias(nil)
-	prefix := append(alias, "__"...)
-
 	if j.Columns == nil {
 		for _, f := range j.JoinModel.Table().Fields {
 			b = append(b, ", "...)
-			b = append(b, alias...)
+			b = j.appendAlias(b)
 			b = append(b, '.')
 			b = append(b, f.ColName...)
 			b = append(b, " AS "...)
-			columnAlias := append(prefix, f.SQLName...)
-			b = types.AppendFieldBytes(b, columnAlias, 1)
-			prefix = columnAlias[:len(prefix)]
+			b = j.appendAliasColumn(b, f.SQLName)
 		}
 		return b
 	}
 
 	for _, column := range j.Columns {
 		b = append(b, ", "...)
-		b = append(b, alias...)
+		b = j.appendAlias(b)
 		b = append(b, '.')
 		b = types.AppendField(b, column, 1)
 		b = append(b, " AS "...)
-		columnAlias := append(prefix, column...)
-		b = types.AppendFieldBytes(b, columnAlias, 1)
-		prefix = columnAlias[:len(prefix)]
+		b = j.appendAliasColumn(b, column)
 	}
 
 	return b
