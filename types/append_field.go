@@ -40,7 +40,7 @@ func appendField(b []byte, p *parser.Parser, quote int) []byte {
 			b = append(b, '"')
 			quoted = true
 		}
-		if quote == 1 && c == '"' {
+		if c == '"' {
 			b = append(b, '"', '"')
 		} else {
 			b = append(b, c)
