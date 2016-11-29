@@ -85,6 +85,9 @@ func (q *Query) err(err error) *Query {
 
 func (q *Query) DB(db DB) *Query {
 	q.db = db
+	for _, with := range q.with {
+		with.query.db = db
+	}
 	return q
 }
 
