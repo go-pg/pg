@@ -44,12 +44,10 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 		b = q.appendTables(b)
 	}
 
-	if q.count == nil {
-		q.forEachHasOneJoin(func(j *join) {
-			b = append(b, ' ')
-			b = j.appendHasOneJoin(b)
-		})
-	}
+	q.forEachHasOneJoin(func(j *join) {
+		b = append(b, ' ')
+		b = j.appendHasOneJoin(b)
+	})
 	if len(q.joins) > 0 {
 		for _, f := range q.joins {
 			b = append(b, ' ')
