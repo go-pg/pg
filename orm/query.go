@@ -53,14 +53,13 @@ func (q *Query) New() *Query {
 
 // Copy returns copy of the Query.
 func (q *Query) Copy() *Query {
-	return &Query{
+	copy := &Query{
 		db:        q.db,
 		stickyErr: q.stickyErr,
 
 		model:       q.model,
 		ignoreModel: q.ignoreModel,
 
-		with:       q.with[:],
 		tables:     q.tables[:],
 		columns:    q.columns[:],
 		set:        q.set[:],
@@ -74,6 +73,10 @@ func (q *Query) Copy() *Query {
 		limit:      q.limit,
 		offset:     q.offset,
 	}
+	for _, with := range q.with {
+		copy = copy.With(with.name, with.query.Copy())
+	}
+	return copy
 }
 
 func (q *Query) err(err error) *Query {
