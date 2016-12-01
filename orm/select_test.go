@@ -48,7 +48,7 @@ var _ = Describe("Select", func() {
 
 		b, err = q.countSelectQuery("count(*)").AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`SELECT count(*) FROM "select_models" AS "select_model"`))
+		Expect(string(b)).To(Equal(`SELECT count(*) FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
 	})
 
 	It("specifies all columns for has many", func() {
