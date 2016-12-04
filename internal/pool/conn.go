@@ -14,11 +14,13 @@ var noDeadline = time.Time{}
 
 type Conn struct {
 	NetConn net.Conn
-	Rd      *bufio.Reader // read buffer
-	Wr      *Buffer       // write buffer
 
-	Buf     []byte   // reusable
-	Columns [][]byte // reusable
+	Buf []byte // read/write buffer
+
+	Rd      *bufio.Reader
+	Columns [][]byte
+
+	Wr *Buffer
 
 	Inited bool
 	UsedAt time.Time
@@ -26,19 +28,22 @@ type Conn struct {
 	ProcessId int32
 	SecretKey int32
 
-	_id int64
+	_lastId int64
 }
 
 func NewConn(netConn net.Conn) *Conn {
 	cn := &Conn{
-		NetConn: netConn,
-		Buf:     make([]byte, 0, 8192),
-
+		Buf:    make([]byte, 0, 8192),
 		UsedAt: time.Now(),
 	}
-	cn.Rd = bufio.NewReader(cn)
-	cn.Wr = NewBuffer(cn, cn.Buf)
+	cn.SetNetConn(netConn)
 	return cn
+}
+
+func (cn *Conn) SetNetConn(netConn net.Conn) {
+	cn.NetConn = netConn
+	cn.Rd = bufio.NewReader(cn.NetConn)
+	cn.Wr = NewBuffer(cn.NetConn, cn.Buf)
 }
 
 func (cn *Conn) IsStale(timeout time.Duration) bool {
@@ -46,34 +51,22 @@ func (cn *Conn) IsStale(timeout time.Duration) bool {
 }
 
 func (cn *Conn) NextId() string {
-	cn._id++
-	return strconv.FormatInt(cn._id, 10)
+	cn._lastId++
+	return strconv.FormatInt(cn._lastId, 10)
 }
 
-func (cn *Conn) SetReadTimeout(dur time.Duration) {
+func (cn *Conn) SetReadWriteTimeout(rt, wt time.Duration) {
 	cn.UsedAt = time.Now()
-	if dur == 0 {
+	if rt > 0 {
+		cn.NetConn.SetReadDeadline(cn.UsedAt.Add(rt))
+	} else {
 		cn.NetConn.SetReadDeadline(noDeadline)
-	} else {
-		cn.NetConn.SetReadDeadline(cn.UsedAt.Add(dur))
 	}
-}
-
-func (cn *Conn) SetWriteTimeout(dur time.Duration) {
-	cn.UsedAt = time.Now()
-	if dur == 0 {
+	if wt > 0 {
+		cn.NetConn.SetWriteDeadline(cn.UsedAt.Add(wt))
+	} else {
 		cn.NetConn.SetWriteDeadline(noDeadline)
-	} else {
-		cn.NetConn.SetWriteDeadline(cn.UsedAt.Add(dur))
 	}
-}
-
-func (cn *Conn) Read(b []byte) (int, error) {
-	return cn.NetConn.Read(b)
-}
-
-func (cn *Conn) Write(b []byte) (int, error) {
-	return cn.NetConn.Write(b)
 }
 
 func (cn *Conn) ReadN(n int) ([]byte, error) {

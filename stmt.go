@@ -44,8 +44,8 @@ func (stmt *Stmt) conn() (*pool.Conn, error) {
 		}
 		return nil, errStmtClosed
 	}
-	stmt._cn.SetReadTimeout(stmt.db.opt.ReadTimeout)
-	stmt._cn.SetWriteTimeout(stmt.db.opt.WriteTimeout)
+
+	stmt._cn.SetReadWriteTimeout(stmt.db.opt.ReadTimeout, stmt.db.opt.WriteTimeout)
 	return stmt._cn, nil
 }
 

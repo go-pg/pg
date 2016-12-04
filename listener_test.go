@@ -124,7 +124,7 @@ var _ = Context("Listener", func() {
 	It("reconnects on listen error", func() {
 		cn := ln.CurrentConn()
 		Expect(cn).NotTo(BeNil())
-		cn.NetConn = &badConn{}
+		cn.SetNetConn(&badConn{})
 
 		err := ln.Listen("test_channel2")
 		Expect(err).Should(MatchError("bad connection"))
@@ -136,7 +136,7 @@ var _ = Context("Listener", func() {
 	It("reconnects on receive error", func() {
 		cn := ln.CurrentConn()
 		Expect(cn).NotTo(BeNil())
-		cn.NetConn = &badConn{}
+		cn.SetNetConn(&badConn{})
 
 		_, _, err := ln.ReceiveTimeout(time.Second)
 		Expect(err).Should(MatchError("bad connection"))
