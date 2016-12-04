@@ -16,13 +16,14 @@ before_install:
   - sudo apt-get -y remove --purge postgresql-9.2
   - sudo apt-get -y remove --purge postgresql-9.3
   - sudo apt-get -y remove --purge postgresql-9.4
+  - sudo apt-get -y remove --purge postgresql-9.5
   - sudo apt-get -y autoremove
   - sudo apt-key adv --keyserver keys.gnupg.net --recv-keys 7FCC7D46ACCC4CF8
-  - sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main 9.5" >> /etc/apt/sources.list.d/postgresql.list'
+  - sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ precise-pgdg main 9.6" >> /etc/apt/sources.list.d/postgresql.list'
   - sudo apt-get update
-  - sudo apt-get -y install postgresql-9.5
-  - sudo sh -c 'echo "local all postgres trust" > /etc/postgresql/9.5/main/pg_hba.conf'
-  - sudo sh -c 'echo -n "host all all 0.0.0.0/0 trust" >> /etc/postgresql/9.5/main/pg_hba.conf'
+  - sudo apt-get -y install postgresql-9.6
+  - sudo sh -c 'echo "local all postgres trust" > /etc/postgresql/9.6/main/pg_hba.conf'
+  - sudo sh -c 'echo -n "host all all 0.0.0.0/0 trust" >> /etc/postgresql/9.6/main/pg_hba.conf'
   - sudo /etc/init.d/postgresql restart
   - sudo -u postgres psql -c "CREATE EXTENSION hstore"
 
