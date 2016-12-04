@@ -145,6 +145,11 @@ func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
 // ColumnExpr can be used to bypass quoting restriction.
 func (q *Query) Column(columns ...string) *Query {
 	for _, column := range columns {
+		if column == "_" {
+			q.columns = make([]FormatAppender, 0)
+			continue
+		}
+
 		if q.model != nil {
 			if _, j := q.model.Join(column, nil); j != nil {
 				continue

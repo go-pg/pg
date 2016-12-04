@@ -453,19 +453,27 @@ func ExampleDB_Model_applyFunc() {
 }
 
 func ExampleDB_Model_hasOne() {
-	type Item struct {
-		Id int
+	type Profile struct {
+		Id   int
+		Lang string
+	}
 
-		Sub   *Item
-		SubId int
+	// User has one profile.
+	type User struct {
+		Id        int
+		Name      string
+		ProfileId int
+		Profile   *Profile
 	}
 
 	db := connect()
 	defer db.Close()
 
 	qs := []string{
-		"CREATE TEMP TABLE items (id int, sub_id int)",
-		"INSERT INTO items VALUES (1, NULL), (2, 1), (3, NULL), (4, 2)",
+		"CREATE TEMP TABLE users (id int, name text, profile_id int)",
+		"CREATE TEMP TABLE profiles (id int, lang text)",
+		"INSERT INTO users VALUES (1, 'user 1', 1), (2, 'user 2', 2)",
+		"INSERT INTO profiles VALUES (1, 'en'), (2, 'ru')",
 	}
 	for _, q := range qs {
 		_, err := db.Exec(q)
@@ -474,28 +482,30 @@ func ExampleDB_Model_hasOne() {
 		}
 	}
 
-	// Select items and join subitem with following query:
+	// Select users joining their profiles with following query:
 	//
-	// SELECT "item".*, "sub"."id" AS "sub__id", "sub"."sub_id" AS "sub__sub_id"
-	// FROM "items" AS "item"
-	// LEFT JOIN "items" AS "sub" ON "sub"."id" = item."sub_id"
-	// WHERE (item.sub_id IS NOT NULL)
+	// SELECT
+	//   "user".*,
+	//   "profile"."id" AS "profile__id",
+	//   "profile"."lang" AS "profile__lang",
+	//   "profile"."user_id" AS "profile__user_id"
+	// FROM "users" AS "user"
+	// LEFT JOIN "profiles" AS "profile" ON "profile"."user_id" = "user"."id"
 
-	var items []Item
-	err := db.Model(&items).
-		Column("item.*", "Sub").
-		Where("item.sub_id IS NOT NULL").
+	var users []User
+	err := db.Model(&users).
+		Column("user.*", "Profile").
 		Select()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Printf("%d items\n", len(items))
-	fmt.Printf("item %d, subitem %d\n", items[0].Id, items[0].Sub.Id)
-	fmt.Printf("item %d, subitem %d\n", items[1].Id, items[1].Sub.Id)
-	// Output: 2 items
-	// item 2, subitem 1
-	// item 4, subitem 2
+	fmt.Println(len(users), "results")
+	fmt.Println(users[0].Id, users[0].Name, users[0].Profile)
+	fmt.Println(users[1].Id, users[1].Name, users[1].Profile)
+	// Output: 2 results
+	// 1 user 1 &{1 en}
+	// 2 user 2 &{2 ru}
 }
 
 func ExampleDB_Model_belongsTo() {
@@ -533,10 +543,9 @@ func ExampleDB_Model_belongsTo() {
 	// SELECT
 	//   "user".*,
 	//   "profile"."id" AS "profile__id",
-	//   "profile"."lang" AS "profile__lang",
-	//   "profile"."user_id" AS "profile__user_id"
+	//   "profile"."lang" AS "profile__lang"
 	// FROM "users" AS "user"
-	// LEFT JOIN "profiles" AS "profile" ON "profile"."user_id" = "user"."id"
+	// LEFT JOIN "profiles" AS "profile" ON "profile"."id" = "user"."profile_id"
 
 	var users []User
 	err := db.Model(&users).
