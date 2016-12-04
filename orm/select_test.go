@@ -39,6 +39,14 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
 	})
 
+	It("omits columns", func() {
+		q := NewQuery(nil, &SelectModel{}).Column("_")
+
+		b, err := selectQuery{Query: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT  FROM "select_models" AS "select_model"`))
+	})
+
 	It("specifies all columns for has one", func() {
 		q := NewQuery(nil, &SelectModel{Id: 1}).Column("HasOne")
 

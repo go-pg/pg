@@ -107,18 +107,16 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 }
 
 func (q selectQuery) appendColumns(b []byte) []byte {
-	if len(q.columns) > 0 {
+	if q.columns != nil {
 		b = q.appendQueryColumns(b)
 	} else if q.hasModel() {
 		b = q.appendModelColumns(b)
 	} else {
 		b = append(b, '*')
 	}
-
 	q.forEachHasOneJoin(func(j *join) {
 		b = j.appendHasOneColumns(b)
 	})
-
 	return b
 }
 

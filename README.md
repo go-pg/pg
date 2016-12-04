@@ -39,6 +39,7 @@ Examples: http://godoc.org/gopkg.in/pg.v5#pkg-examples.
 * [Writing queries](#writing-queries)
   * [Placeholders](#placeholders)
   * [Select](#select)
+  * [Column names](#column-names)
   * [Reusing queries](#reusing-queries)
   * [Insert](#insert)
   * [Update](#update)
@@ -387,16 +388,19 @@ func Example_placeholders() {
 ```go
 // Select book by primary key.
 err := db.Select(&book)
-// SELECT * FROM "books" WHERE id = 1
+// SELECT "book"."id", "book"."title", "book"."text"
+// FROM "books" WHERE id = 1
 
 // Select only book title and text.
 err := db.Model(&book).Column("title", "text").Where("id = ?", 1).Select()
-// SELECT "title", "text" FROM "books" WHERE id = 1
+// SELECT "title", "text"
+// FROM "books" WHERE id = 1
 
 // Select only book title and text into variables.
 var title, text string
 err := db.Model(&Book{}).Column("title", "text").Where("id = ?", 1).Select(&title, &text)
-// SELECT "title", "text" FROM "books" WHERE id = 1
+// SELECT "title", "text"
+// FROM "books" WHERE id = 1
 
 // Select book using WHERE.
 err := db.Model(&book).
@@ -404,26 +408,35 @@ err := db.Model(&book).
     Where("title LIKE ?", "my%").
     Limit(1).
     Select()
-// SELECT * FROM "books" WHERE (id > 100) AND (title LIKE 'my%') LIMIT 1
+// SELECT "book"."id", "book"."title", "book"."text"
+// FROM "books"
+// WHERE (id > 100) AND (title LIKE 'my%')
+// LIMIT 1
 
 // Select first 20 books.
 err := db.Model(&books).Order("id ASC").Limit(20).Select()
-// SELECT * FROM "books" ORDER BY id ASC LIMIT 20
+// SELECT "book"."id", "book"."title", "book"."text"
+// FROM "books"
+// ORDER BY id ASC LIMIT 20
 
 // Count books.
 count, err := db.Model(&Book{}).Count()
-// SELECT COUNT(*) FROM "books"
+// SELECT count(*) FROM "books"
 
 // Select 20 books and count all books.
 count, err := db.Model(&books).Limit(20).SelectAndCount()
-// SELECT * FROM "books" LIMIT 20
-// SELECT COUNT(*) FROM "books"
+// SELECT "book"."id", "book"."title", "book"."text"
+// FROM "books" LIMIT 20
+//
+// SELECT count(*) FROM "books"
 
 // Select 20 books and count estimated number of books.
 count, err := db.Model(&books).Limit(20).SelectAndCountEstimate(100000)
-// SELECT * FROM "books" LIMIT 20
+// SELECT "book"."id", "book"."title", "book"."text"
+// FROM "books" LIMIT 20
+//
 // EXPLAIN SELECT 2147483647 FROM "books"
-// SELECT COUNT(*) FROM "books"
+// SELECT count(*) FROM "books"
 
 // Select author id and number of books.
 var res []struct {
@@ -452,7 +465,10 @@ err := db.Model(nil).
     With("author_books", authorBooks).
     Table("author_books").
     Select(&books)
-// WITH "author_books" AS (SELECT "book".* FROM "books" AS "book" WHERE (author_id = 1))
+// WITH "author_books" AS (
+//   SELECT "book"."id", "book"."title", "book"."text"
+//   FROM "books" AS "book" WHERE (author_id = 1)
+// )
 // SELECT * FROM "author_books"
 
 // Same query using WrapWith.
@@ -461,8 +477,45 @@ err := db.Model(&books).
     WrapWith("author_books").
     Table("author_books").
     Select(&books)
-// WITH "author_books" AS (SELECT "book".* FROM "books" AS "book" WHERE (author_id = 1))
+// WITH "author_books" AS (
+//   SELECT "book"."id", "book"."title", "book"."text"
+//   FROM "books" AS "book" WHERE (author_id = 1)
+// )
 // SELECT * FROM "author_books"
+```
+
+### Column names
+
+```go
+// Select book and associated author.
+err := db.Model(&book).Column("Author").Select()
+// SELECT
+//   "book"."id", "book"."title", "book"."text",
+//   "author"."id" AS "author__id", "author"."name" AS "author__name"
+// FROM "books"
+// LEFT JOIN "users" AS "author" ON "author"."id" = "book"."author_id"
+// WHERE id = 1
+
+// Select book id and associated author id.
+err := db.Model(&book).Column("book.id", "Author.id").Select()
+// SELECT "book"."id", "author"."id" AS "author__id"
+// FROM "books"
+// LEFT JOIN "users" AS "author" ON "author"."id" = "book"."author_id"
+// WHERE id = 1
+
+// Select book and join author without selecting it.
+err := db.Model(&book).Column("Author._").Select()
+// SELECT "book"."id"
+// FROM "books"
+// LEFT JOIN "users" AS "author" ON "author"."id" = "book"."author_id"
+// WHERE id = 1
+
+// Join and select book author without selecting book.
+err := db.Model(&book).Column("_", "Author").Select()
+// SELECT "author"."id" AS "author__id", "author"."name" AS "author__name"
+// FROM "books"
+// LEFT JOIN "users" AS "author" ON "author"."id" = "book"."author_id"
+// WHERE id = 1
 ```
 
 ### Reusing queries
@@ -578,25 +631,61 @@ res, err := db.Model(&book).Where("title = ?title").Delete()
 
 ### Has one
 
-Following example selects all items and their subitems using LEFT JOIN and `sub_id` column.
+Following examples selects users joining their profiles:
 
 ```go
-type Item struct {
-    Id int
-
-    Sub   *Item
-    SubId int
+type Profile struct {
+    Id   int
+    Lang string
 }
 
-var items []Item
-err := db.Model(&items).
-    Column("item.*", "Sub").
-    Where("item.sub_id IS NOT NULL").
+// User has one profile.
+type User struct {
+    Id        int
+    Name      string
+    ProfileId int
+    Profile   *Profile
+}
+
+db := connect()
+defer db.Close()
+
+qs := []string{
+    "CREATE TEMP TABLE users (id int, name text, profile_id int)",
+    "CREATE TEMP TABLE profiles (id int, lang text)",
+    "INSERT INTO users VALUES (1, 'user 1', 1), (2, 'user 2', 2)",
+    "INSERT INTO profiles VALUES (1, 'en'), (2, 'ru')",
+}
+for _, q := range qs {
+    _, err := db.Exec(q)
+    if err != nil {
+        panic(err)
+    }
+}
+
+// Select users joining their profiles with following query:
+//
+// SELECT
+//   "user".*,
+//   "profile"."id" AS "profile__id",
+//   "profile"."lang" AS "profile__lang"
+// FROM "users" AS "user"
+// LEFT JOIN "profiles" AS "profile" ON "profile"."id" = "user"."profile_id"
+
+var users []User
+err := db.Model(&users).
+    Column("user.*", "Profile").
     Select()
-// SELECT "item".*, "sub"."id" AS "sub__id", "sub"."sub_id" AS "sub__sub_id"
-// FROM "items" AS "item"
-// LEFT JOIN "items" AS "sub" ON "sub"."id" = item."sub_id"
-// WHERE (item.sub_id IS NOT NULL)
+if err != nil {
+    panic(err)
+}
+
+fmt.Println(len(users), "results")
+fmt.Println(users[0].Id, users[0].Name, users[0].Profile)
+fmt.Println(users[1].Id, users[1].Name, users[1].Profile)
+// Output: 2 results
+// 1 user 1 &{1 en}
+// 2 user 2 &{2 ru}
 ```
 
 ### Belongs to
@@ -801,9 +890,9 @@ Please go through [examples](http://godoc.org/gopkg.in/pg.v5#pkg-examples) to ge
     ```
 
     ```sql
-     SELECT "book".* FROM "books" AS "book" LIMIT 100
-     SELECT "translation".* FROM "translations" AS "translation"
-     WHERE ("translation"."book_id") IN ((100), (101), ... (199));
+    SELECT "book".* FROM "books" AS "book" LIMIT 100
+    SELECT "translation".* FROM "translations" AS "translation"
+    WHERE ("translation"."book_id") IN ((100), (101), ... (199));
     ```
 
     GORM:
