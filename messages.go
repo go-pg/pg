@@ -1010,7 +1010,7 @@ var terminateMessage = []byte{terminateMsg, 0, 0, 0, 4}
 
 func terminateConn(cn *pool.Conn) error {
 	// Don't use cn.Buf because it is racy with user code.
-	_, err := cn.Write(terminateMessage)
+	_, err := cn.NetConn.Write(terminateMessage)
 	return err
 }
 

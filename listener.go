@@ -49,8 +49,7 @@ func (ln *Listener) conn(readTimeout time.Duration) (*pool.Conn, error) {
 		}
 	}
 
-	ln._cn.SetReadTimeout(readTimeout)
-	ln._cn.SetWriteTimeout(ln.db.opt.WriteTimeout)
+	ln._cn.SetReadWriteTimeout(readTimeout, ln.db.opt.WriteTimeout)
 	return ln._cn, nil
 }
 
