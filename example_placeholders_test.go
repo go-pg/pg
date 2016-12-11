@@ -43,14 +43,14 @@ func Example_placeholders() {
 		X: 1,
 		Y: 1,
 	}
-	_, err = db.Query(pg.Scan(&num), "SELECT ?x + ?y + ?Sum", &params)
+	_, err = db.Query(pg.Scan(&num), "SELECT ?x + ?y + ?Sum", params)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("named:", num)
 
 	// Global params.
-	_, err = db.WithParam("z", 1).Query(pg.Scan(&num), "SELECT ?x + ?y + ?z", &params)
+	_, err = db.WithParam("z", 1).Query(pg.Scan(&num), "SELECT ?x + ?y + ?z", params)
 	if err != nil {
 		panic(err)
 	}

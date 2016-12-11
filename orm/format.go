@@ -103,8 +103,17 @@ func (f Formatter) FormatQuery(dst []byte, query string, params ...interface{}) 
 
 func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []byte {
 	var paramsIndex int
+	var namedParams *tableParams
+	var namedParamsInit bool
 	var model tableModel
-	var modelErr error
+
+	if len(params) > 0 {
+		var ok bool
+		model, ok = params[len(params)-1].(tableModel)
+		if ok {
+			params = params[:len(params)-1]
+		}
+	}
 
 	for p.Valid() {
 		b, ok := p.ReadSep('?')
@@ -141,10 +150,18 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 				}
 			}
 
-			if len(params) > 0 && modelErr == nil && model == nil {
-				model, modelErr = newTableModel(params[len(params)-1])
-				if modelErr == nil {
+			if !namedParamsInit && len(params) > 0 {
+				namedParams, ok = newTableParams(params[len(params)-1])
+				if ok {
 					params = params[:len(params)-1]
+				}
+				namedParamsInit = true
+			}
+
+			if namedParams != nil {
+				dst, ok = namedParams.AppendParam(dst, id)
+				if ok {
+					continue
 				}
 			}
 

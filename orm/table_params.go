@@ -1,0 +1,29 @@
+package orm
+
+import "reflect"
+
+type tableParams struct {
+	table *Table
+	strct reflect.Value
+}
+
+func newTableParams(strct interface{}) (*tableParams, bool) {
+	v := reflect.ValueOf(strct)
+	if !v.IsValid() {
+		return nil, false
+	}
+
+	v = reflect.Indirect(v)
+	if v.Kind() != reflect.Struct {
+		return nil, false
+	}
+
+	return &tableParams{
+		table: Tables.Get(v.Type()),
+		strct: v,
+	}, true
+}
+
+func (m tableParams) AppendParam(dst []byte, name string) ([]byte, bool) {
+	return m.table.AppendParam(dst, m.strct, name)
+}
