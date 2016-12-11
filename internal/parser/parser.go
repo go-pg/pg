@@ -76,7 +76,7 @@ func (p *Parser) ReadSep(c byte) ([]byte, bool) {
 	return b, true
 }
 
-func (p *Parser) ReadIdentifier() (b []byte, numeric bool) {
+func (p *Parser) ReadIdentifier() (s string, numeric bool) {
 	pos := len(p.b)
 	numeric = true
 	for i, ch := range p.b {
@@ -91,11 +91,11 @@ func (p *Parser) ReadIdentifier() (b []byte, numeric bool) {
 		break
 	}
 	if pos <= 0 {
-		return nil, false
+		return "", false
 	}
-	b = p.b[:pos]
+	b := p.b[:pos]
 	p.b = p.b[pos:]
-	return b, numeric
+	return internal.BytesToString(b), numeric
 }
 
 func (p *Parser) ReadNumber() int {

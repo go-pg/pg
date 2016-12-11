@@ -119,9 +119,9 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 		}
 		dst = append(dst, b...)
 
-		if id, numeric := p.ReadIdentifier(); id != nil {
+		if id, numeric := p.ReadIdentifier(); id != "" {
 			if numeric {
-				idx, err := strconv.Atoi(string(id))
+				idx, err := strconv.Atoi(id)
 				if err != nil {
 					goto restore_param
 				}
@@ -135,31 +135,24 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 			}
 
 			if f.namedParams != nil {
-				if param, ok := f.namedParams[string(id)]; ok {
+				if param, ok := f.namedParams[id]; ok {
 					dst = f.appendParam(dst, param)
 					continue
 				}
 			}
 
-			if modelErr != nil {
-				goto restore_param
-			}
-
-			if model == nil {
-				if len(params) == 0 {
-					goto restore_param
-				}
-
+			if len(params) > 0 && modelErr == nil && model == nil {
 				model, modelErr = newTableModel(params[len(params)-1])
-				if modelErr != nil {
-					goto restore_param
+				if modelErr == nil {
+					params = params[:len(params)-1]
 				}
-				params = params[:len(params)-1]
 			}
 
-			dst, ok = model.AppendParam(dst, string(id))
-			if ok {
-				continue
+			if model != nil {
+				dst, ok = model.AppendParam(dst, id)
+				if ok {
+					continue
+				}
 			}
 
 		restore_param:
