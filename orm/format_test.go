@@ -66,7 +66,6 @@ var (
 		Iface:  "iface_value",
 	}
 	embeddedStructv = &EmbeddedStructFormatter{structv}
-	structsv        = &[]StructFormatter{{}}
 )
 
 var formatTests = []formatTest{
@@ -82,8 +81,6 @@ var formatTests = []formatTest{
 	{q: "one ?foo two", params: params{structv}, wanted: "one ?foo two"},
 	{q: "one ?MethodWithArgs two", params: params{structv}, wanted: "one ?MethodWithArgs two"},
 	{q: "one ?MethodWithCompositeReturn two", params: params{structv}, wanted: "one ?MethodWithCompositeReturn two"},
-	{q: "?TableAlias", params: params{structv}, wanted: `my_alias`},
-	{q: "?TableAlias", params: params{structsv}, wanted: `my_alias`},
 
 	{q: "?", params: params{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
 	{q: "?", params: params{orm.Q("query")}, wanted: "query"},

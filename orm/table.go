@@ -62,6 +62,20 @@ func (t *Table) GetField(fieldName string) (*Field, error) {
 	return field, nil
 }
 
+func (t *Table) AppendParam(dst []byte, strct reflect.Value, name string) ([]byte, bool) {
+	if field, ok := t.FieldsMap[name]; ok {
+		dst = field.AppendValue(dst, strct, 1)
+		return dst, true
+	}
+
+	if method, ok := t.Methods[name]; ok {
+		dst = method.AppendValue(dst, strct.Addr(), 1)
+		return dst, true
+	}
+
+	return dst, false
+}
+
 func (t *Table) addRelation(rel *Relation) {
 	if t.Relations == nil {
 		t.Relations = make(map[string]*Relation)

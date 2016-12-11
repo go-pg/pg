@@ -35,8 +35,8 @@ func newStructTableModelValue(v reflect.Value) (*structTableModel, error) {
 	if !v.IsValid() {
 		return nil, errors.New("pg: Model(nil)")
 	}
-	v = reflect.Indirect(v)
 
+	v = reflect.Indirect(v)
 	if v.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("pg: Model(unsupported %s)", v.Type())
 	}
@@ -57,13 +57,8 @@ func (m *structTableModel) Table() *Table {
 }
 
 func (m *structTableModel) AppendParam(dst []byte, name string) ([]byte, bool) {
-	if field, ok := m.table.FieldsMap[name]; ok {
-		dst = field.AppendValue(dst, m.strct, 1)
-		return dst, true
-	}
-
-	if method, ok := m.table.Methods[name]; ok {
-		dst = method.AppendValue(dst, m.strct.Addr(), 1)
+	dst, ok := m.table.AppendParam(dst, m.strct, name)
+	if ok {
 		return dst, true
 	}
 
