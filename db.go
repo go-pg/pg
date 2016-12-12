@@ -66,6 +66,11 @@ func (db *DB) WithParam(param string, value interface{}) *DB {
 	return &cp
 }
 
+// Allow custom namedParams
+func (db *DB) SetParam(key string, value interface{}) {
+	db.fmter.SetParam(key, value)
+}
+
 func (db *DB) conn() (*pool.Conn, error) {
 	cn, _, err := db.pool.Get()
 	if err != nil {

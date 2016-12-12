@@ -302,3 +302,8 @@ func (tx *Tx) CopyFrom(r io.Reader, query string, params ...interface{}) (*types
 	tx.freeConn(cn, err)
 	return res, err
 }
+
+// Allow custom namedParams
+func (tx *Tx) SetParam(key string, value interface{}) {
+	tx.db.fmter.SetParam(key, value)
+}
