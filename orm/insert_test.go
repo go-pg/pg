@@ -7,6 +7,11 @@ import (
 
 type InsertTest struct{}
 
+type EmbeddedInsertTest struct {
+	tableName struct{} `sql:"my_name"`
+	InsertTest
+}
+
 var _ = Describe("Insert", func() {
 	It("supports ON CONFLICT DO UPDATE", func() {
 		q := NewQuery(nil, &InsertTest{}).
@@ -28,5 +33,13 @@ var _ = Describe("Insert", func() {
 		b, err := insertQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" () VALUES () ON CONFLICT (unq1) DO NOTHING`))
+	})
+
+	It("supports custom table name on embedded struct", func() {
+		q := NewQuery(nil, &EmbeddedInsertTest{})
+
+		b, err := insertQuery{Query: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO my_name () VALUES ()`))
 	})
 })
