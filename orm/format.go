@@ -68,7 +68,7 @@ func (f Formatter) String() string {
 	return " " + strings.Join(ss, " ")
 }
 
-func (f *Formatter) Copy() Formatter {
+func (f Formatter) Copy() Formatter {
 	var cp Formatter
 	for param, value := range f.namedParams {
 		cp.SetParam(param, value)
@@ -81,6 +81,12 @@ func (f *Formatter) SetParam(param string, value interface{}) {
 		f.namedParams = make(map[string]interface{})
 	}
 	f.namedParams[param] = value
+}
+
+func (f *Formatter) WithParam(param string, value interface{}) Formatter {
+	cp := f.Copy()
+	cp.SetParam(param, value)
+	return cp
 }
 
 func (f Formatter) Append(dst []byte, src string, params ...interface{}) []byte {

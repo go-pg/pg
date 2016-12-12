@@ -55,15 +55,13 @@ func (db *DB) WithTimeout(d time.Duration) *DB {
 	}
 }
 
-// WithParam returns a DB that replaces the param in queries.
+// WithParam returns a DB that replaces the param with the value in queries.
 func (db *DB) WithParam(param string, value interface{}) *DB {
-	cp := DB{
+	return &DB{
 		opt:   db.opt,
 		pool:  db.pool,
-		fmter: db.fmter.Copy(),
+		fmter: db.fmter.WithParam(param, value),
 	}
-	cp.fmter.SetParam(param, value)
-	return &cp
 }
 
 func (db *DB) conn() (*pool.Conn, error) {
