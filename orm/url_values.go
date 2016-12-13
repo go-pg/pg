@@ -36,6 +36,10 @@ func addOperator(q *Query, fieldName, operator string, values []string) *Query {
 		q = forEachValue(q, fieldName, values, "? < ?")
 	case "lte":
 		q = forEachValue(q, fieldName, values, "? <= ?")
+	case "ieq":
+		q = forEachValue(q, fieldName, values, "? ILIKE ?")
+	case "match":
+		q = forEachValue(q, fieldName, values, "? SIMILAR TO ?")
 	case "exclude":
 		q = forAllValues(q, fieldName, values, "? != ?", "? NOT IN (?)")
 	case "", "include":
@@ -62,7 +66,9 @@ func forAllValues(q *Query, fieldName string, values []string, queryTemplate, qu
 
 func setOrder(q *Query, urlValues url.Values) *Query {
 	for _, order := range urlValues["order"] {
-		q = q.Order(order)
+		if order != "" {
+			q = q.Order(order)
+		}
 	}
 	return q
 }
