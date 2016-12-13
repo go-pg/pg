@@ -49,6 +49,14 @@ var _ = Describe("URLValues", func() {
 			query: query + ` WHERE ("name" = 'Mike')`,
 		},
 		{
+			url:   "http://localhost:8000/test?name__ieq=mik_",
+			query: query + ` WHERE ("name" ILIKE 'mik_')`,
+		},
+		{
+			url:   "http://localhost:8000/test?name__match=(m|p).*",
+			query: query + ` WHERE ("name" SIMILAR TO '(m|p).*')`,
+		},
+		{
 			url:   "http://localhost:8000/test?name__include=Peter&name__include=Mike",
 			query: query + ` WHERE ("name" IN ('Peter','Mike'))`,
 		},
