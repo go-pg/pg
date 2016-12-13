@@ -362,7 +362,7 @@ func (q *Query) query(model Model, query interface{}) (*types.Result, error) {
 	return q.db.Query(model, query, q.model)
 }
 
-// SelectAndCount runs Select and Count in two separate goroutines,
+// SelectAndCount runs Select and Count in two goroutines,
 // waits for them to finish and returns the result.
 func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 	if q.stickyErr != nil {

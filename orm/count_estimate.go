@@ -84,9 +84,9 @@ func (q *Query) createCountEstimateFunc() error {
 	return err
 }
 
-// SelectAndCountEstimate runs Select and CountEstimate in two separate goroutines,
+// SelectAndCountEstimate runs Select and CountEstimate in two goroutines,
 // waits for them to finish and returns the result.
-func (q *Query) SelectAndCountEstimate(threshold int) (count int, err error) {
+func (q *Query) SelectAndCountEstimate(threshold int, values ...interface{}) (count int, err error) {
 	if q.stickyErr != nil {
 		return 0, q.stickyErr
 	}
@@ -96,7 +96,7 @@ func (q *Query) SelectAndCountEstimate(threshold int) (count int, err error) {
 
 	go func() {
 		defer wg.Done()
-		if e := q.Select(); e != nil {
+		if e := q.Select(values...); e != nil {
 			err = e
 		}
 	}()
