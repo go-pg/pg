@@ -213,6 +213,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	switch f.Name {
 	case "tableName", "TableName":
+		if index != nil {
+			return nil
+		}
 		if sqlName != "" {
 			t.Name = types.Q(sqlName)
 		}
