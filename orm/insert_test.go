@@ -7,9 +7,17 @@ import (
 
 type InsertTest struct{}
 
+type EmbeddingTest struct {
+	tableName struct{} `sql:"name"`
+}
+
 type EmbeddedInsertTest struct {
 	tableName struct{} `sql:"my_name"`
-	InsertTest
+	EmbeddingTest
+}
+
+type OverrideInsertTest struct {
+	EmbeddingTest `pg:",override"`
 }
 
 var _ = Describe("Insert", func() {
@@ -41,5 +49,13 @@ var _ = Describe("Insert", func() {
 		b, err := insertQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO my_name () VALUES ()`))
+	})
+
+	It("supports override table name with embedded struct", func() {
+		q := NewQuery(nil, &OverrideInsertTest{})
+
+		b, err := insertQuery{Query: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO name () VALUES ()`))
 	})
 })
