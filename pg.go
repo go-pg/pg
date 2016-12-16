@@ -1,7 +1,6 @@
 package pg // import "gopkg.in/pg.v5"
 
 import (
-	"log"
 	"strconv"
 
 	"gopkg.in/pg.v5/internal"
@@ -63,12 +62,12 @@ func Hstore(v interface{}) *types.Hstore {
 	return types.NewHstore(v)
 }
 
-func SetLogger(logger *log.Logger) {
+func SetLogger(logger internal.IErrorLogger) {
 	internal.Logger = logger
 }
 
 // SetQueryLogger sets a logger that will be used to log generated queries.
-func SetQueryLogger(logger *log.Logger) {
+func SetQueryLogger(logger internal.IQueryLogger) {
 	internal.QueryLogger = logger
 }
 
