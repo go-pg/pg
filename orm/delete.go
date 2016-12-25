@@ -17,10 +17,24 @@ type deleteQuery struct {
 var _ QueryAppender = (*deleteQuery)(nil)
 
 func (q deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
-	b = append(b, "DELETE FROM "...)
-	b = q.appendTables(b)
+	var err error
 
-	b, err := q.mustAppendWhere(b)
+	if len(q.with) > 0 {
+		b, err = q.appendWith(b)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	b = append(b, "DELETE FROM "...)
+	b = q.appendFirstTable(b)
+
+	if q.hasOtherTables() {
+		b = append(b, " USING "...)
+		b = q.appendOtherTables(b)
+	}
+
+	b, err = q.mustAppendWhere(b)
 	if err != nil {
 		return nil, err
 	}

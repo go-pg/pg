@@ -23,12 +23,24 @@ var _ QueryAppender = (*updateQuery)(nil)
 func (q updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
 	var err error
 
+	if len(q.with) > 0 {
+		b, err = q.appendWith(b)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	b = append(b, "UPDATE "...)
-	b = q.appendTables(b)
+	b = q.appendFirstTable(b)
 
 	b, err = q.mustAppendSet(b)
 	if err != nil {
 		return nil, err
+	}
+
+	if q.hasOtherTables() {
+		b = append(b, " FROM "...)
+		b = q.appendOtherTables(b)
 	}
 
 	b, err = q.mustAppendWhere(b)
