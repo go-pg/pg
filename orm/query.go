@@ -603,6 +603,37 @@ func (q *Query) appendTables(b []byte) []byte {
 	return b
 }
 
+func (q *Query) appendFirstTable(b []byte) []byte {
+	if q.hasModel() {
+		return q.appendTableNameWithAlias(b)
+	}
+	if len(q.tables) > 0 {
+		b = q.tables[0].AppendFormat(b, q)
+	}
+	return b
+}
+
+func (q *Query) hasOtherTables() bool {
+	if q.hasModel() {
+		return len(q.tables) > 0
+	}
+	return len(q.tables) > 1
+}
+
+func (q *Query) appendOtherTables(b []byte) []byte {
+	tables := q.tables
+	if !q.hasModel() {
+		tables = tables[1:]
+	}
+	for i, f := range tables {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = f.AppendFormat(b, q)
+	}
+	return b
+}
+
 func (q *Query) mustAppendWhere(b []byte) ([]byte, error) {
 	if len(q.where) > 0 {
 		b = q.appendWhere(b)
@@ -654,6 +685,25 @@ func (q *Query) appendReturning(b []byte) []byte {
 		b = f.AppendFormat(b, q)
 	}
 	return b
+}
+
+func (q *Query) appendWith(b []byte) ([]byte, error) {
+	var err error
+	b = append(b, "WITH "...)
+	for i, withq := range q.with {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = types.AppendField(b, withq.name, 1)
+		b = append(b, " AS ("...)
+		b, err = selectQuery{Query: withq.query}.AppendQuery(b)
+		if err != nil {
+			return nil, err
+		}
+		b = append(b, ')')
+	}
+	b = append(b, ' ')
+	return b, nil
 }
 
 type wherePKQuery struct {

@@ -1,10 +1,6 @@
 package orm
 
-import (
-	"strconv"
-
-	"gopkg.in/pg.v5/types"
-)
+import "strconv"
 
 func Select(db DB, model interface{}) error {
 	q := NewQuery(db, model)
@@ -140,23 +136,4 @@ func (q selectQuery) appendModelColumns(b []byte) []byte {
 		b = append(b, f.ColName...)
 	}
 	return b
-}
-
-func (q selectQuery) appendWith(b []byte) ([]byte, error) {
-	var err error
-	b = append(b, "WITH "...)
-	for i, withq := range q.with {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-		b = types.AppendField(b, withq.name, 1)
-		b = append(b, " AS ("...)
-		b, err = selectQuery{Query: withq.query}.AppendQuery(b)
-		if err != nil {
-			return nil, err
-		}
-		b = append(b, ')')
-	}
-	b = append(b, ' ')
-	return b, nil
 }
