@@ -22,8 +22,8 @@ type Conn struct {
 
 	Wr *WriteBuffer
 
-	Inited bool
-	UsedAt time.Time
+	InitedAt time.Time
+	UsedAt   time.Time
 
 	ProcessId int32
 	SecretKey int32
@@ -44,10 +44,6 @@ func (cn *Conn) SetNetConn(netConn net.Conn) {
 	cn.NetConn = netConn
 	cn.Rd = bufio.NewReader(cn.NetConn)
 	cn.Wr = NewWriteBuffer(cn.NetConn, cn.Buf)
-}
-
-func (cn *Conn) IsStale(timeout time.Duration) bool {
-	return timeout > 0 && time.Since(cn.UsedAt) > timeout
 }
 
 func (cn *Conn) NextId() string {

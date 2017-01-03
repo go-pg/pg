@@ -15,8 +15,13 @@ var _ = Describe("ConnPool", func() {
 	var connPool *pool.ConnPool
 
 	BeforeEach(func() {
-		connPool = pool.NewConnPool(
-			dummyDialer, 10, time.Hour, time.Millisecond, time.Millisecond)
+		connPool = pool.NewConnPool(&pool.Options{
+			Dial:               dummyDialer,
+			PoolSize:           10,
+			PoolTimeout:        time.Hour,
+			IdleTimeout:        time.Millisecond,
+			IdleCheckFrequency: time.Millisecond,
+		})
 	})
 
 	AfterEach(func() {
@@ -79,111 +84,130 @@ var _ = Describe("ConnPool", func() {
 
 var _ = Describe("conns reaper", func() {
 	const idleTimeout = time.Minute
+	const maxAge = time.Hour
 
 	var connPool *pool.ConnPool
-	var conns, idleConns, closedConns []*pool.Conn
+	var conns, staleConns, closedConns []*pool.Conn
 
-	BeforeEach(func() {
-		connPool = pool.NewConnPool(
-			dummyDialer, 10, time.Second, idleTimeout, time.Hour)
+	assert := func(typ string) {
+		BeforeEach(func() {
+			closedConns = nil
+			connPool = pool.NewConnPool(&pool.Options{
+				Dial:               dummyDialer,
+				PoolSize:           10,
+				PoolTimeout:        time.Second,
+				IdleTimeout:        idleTimeout,
+				MaxAge:             maxAge,
+				IdleCheckFrequency: time.Hour,
+				OnClose: func(cn *pool.Conn) error {
+					closedConns = append(closedConns, cn)
+					return nil
+				},
+			})
 
-		closedConns = nil
-		connPool.OnClose = func(cn *pool.Conn) error {
-			closedConns = append(closedConns, cn)
-			return nil
-		}
+			conns = nil
 
-		conns = nil
-
-		// add stale connections
-		idleConns = nil
-		for i := 0; i < 3; i++ {
-			cn, _, err := connPool.Get()
-			Expect(err).NotTo(HaveOccurred())
-			cn.UsedAt = time.Now().Add(-2 * idleTimeout)
-			conns = append(conns, cn)
-			idleConns = append(idleConns, cn)
-		}
-
-		// add fresh connections
-		for i := 0; i < 3; i++ {
-			cn, _, err := connPool.Get()
-			Expect(err).NotTo(HaveOccurred())
-			conns = append(conns, cn)
-		}
-
-		for _, cn := range conns {
-			Expect(connPool.Put(cn)).NotTo(HaveOccurred())
-		}
-
-		Expect(connPool.Len()).To(Equal(6))
-		Expect(connPool.FreeLen()).To(Equal(6))
-
-		n, err := connPool.ReapStaleConns()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(n).To(Equal(3))
-	})
-
-	AfterEach(func() {
-		_ = connPool.Close()
-		Expect(connPool.Len()).To(Equal(0))
-		Expect(connPool.FreeLen()).To(Equal(0))
-		Expect(len(closedConns)).To(Equal(len(conns)))
-		Expect(closedConns).To(ConsistOf(conns))
-	})
-
-	It("reaps stale connections", func() {
-		Expect(connPool.Len()).To(Equal(3))
-		Expect(connPool.FreeLen()).To(Equal(3))
-	})
-
-	It("does not reap fresh connections", func() {
-		n, err := connPool.ReapStaleConns()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(n).To(Equal(0))
-	})
-
-	It("stale connections are closed", func() {
-		Expect(len(closedConns)).To(Equal(len(idleConns)))
-		Expect(closedConns).To(ConsistOf(idleConns))
-	})
-
-	It("pool is functional", func() {
-		for j := 0; j < 3; j++ {
-			var freeCns []*pool.Conn
+			// add stale connections
+			staleConns = nil
 			for i := 0; i < 3; i++ {
 				cn, _, err := connPool.Get()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(cn).NotTo(BeNil())
-				freeCns = append(freeCns, cn)
+				switch typ {
+				case "idle":
+					cn.UsedAt = time.Now().Add(-2 * idleTimeout)
+				case "aged":
+					cn.InitedAt = time.Now().Add(-2 * maxAge)
+				}
+				conns = append(conns, cn)
+				staleConns = append(staleConns, cn)
 			}
 
-			Expect(connPool.Len()).To(Equal(3))
-			Expect(connPool.FreeLen()).To(Equal(0))
-
-			cn, _, err := connPool.Get()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(cn).NotTo(BeNil())
-			conns = append(conns, cn)
-
-			Expect(connPool.Len()).To(Equal(4))
-			Expect(connPool.FreeLen()).To(Equal(0))
-
-			err = connPool.Remove(cn, errors.New("test"))
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(connPool.Len()).To(Equal(3))
-			Expect(connPool.FreeLen()).To(Equal(0))
-
-			for _, cn := range freeCns {
-				err := connPool.Put(cn)
+			// add fresh connections
+			for i := 0; i < 3; i++ {
+				cn, _, err := connPool.Get()
 				Expect(err).NotTo(HaveOccurred())
+				conns = append(conns, cn)
 			}
 
+			for _, cn := range conns {
+				if cn.InitedAt.IsZero() {
+					cn.InitedAt = time.Now()
+				}
+				Expect(connPool.Put(cn)).NotTo(HaveOccurred())
+			}
+
+			Expect(connPool.Len()).To(Equal(6))
+			Expect(connPool.FreeLen()).To(Equal(6))
+
+			n, err := connPool.ReapStaleConns()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(n).To(Equal(3))
+		})
+
+		AfterEach(func() {
+			_ = connPool.Close()
+			Expect(connPool.Len()).To(Equal(0))
+			Expect(connPool.FreeLen()).To(Equal(0))
+			Expect(len(closedConns)).To(Equal(len(conns)))
+			Expect(closedConns).To(ConsistOf(conns))
+		})
+
+		It("reaps stale connections", func() {
 			Expect(connPool.Len()).To(Equal(3))
 			Expect(connPool.FreeLen()).To(Equal(3))
-		}
-	})
+		})
+
+		It("does not reap fresh connections", func() {
+			n, err := connPool.ReapStaleConns()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(n).To(Equal(0))
+		})
+
+		It("stale connections are closed", func() {
+			Expect(len(closedConns)).To(Equal(len(staleConns)))
+			Expect(closedConns).To(ConsistOf(staleConns))
+		})
+
+		It("pool is functional", func() {
+			for j := 0; j < 3; j++ {
+				var freeCns []*pool.Conn
+				for i := 0; i < 3; i++ {
+					cn, _, err := connPool.Get()
+					Expect(err).NotTo(HaveOccurred())
+					Expect(cn).NotTo(BeNil())
+					freeCns = append(freeCns, cn)
+				}
+
+				Expect(connPool.Len()).To(Equal(3))
+				Expect(connPool.FreeLen()).To(Equal(0))
+
+				cn, _, err := connPool.Get()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(cn).NotTo(BeNil())
+				conns = append(conns, cn)
+
+				Expect(connPool.Len()).To(Equal(4))
+				Expect(connPool.FreeLen()).To(Equal(0))
+
+				err = connPool.Remove(cn, errors.New("test"))
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(connPool.Len()).To(Equal(3))
+				Expect(connPool.FreeLen()).To(Equal(0))
+
+				for _, cn := range freeCns {
+					err := connPool.Put(cn)
+					Expect(err).NotTo(HaveOccurred())
+				}
+
+				Expect(connPool.Len()).To(Equal(3))
+				Expect(connPool.FreeLen()).To(Equal(3))
+			}
+		})
+	}
+
+	assert("idle")
+	assert("aged")
 })
 
 var _ = Describe("race", func() {
@@ -203,8 +227,13 @@ var _ = Describe("race", func() {
 	})
 
 	It("does not happen on Get, Put, and Remove", func() {
-		connPool = pool.NewConnPool(
-			dummyDialer, 10, time.Minute, time.Millisecond, time.Millisecond)
+		connPool = pool.NewConnPool(&pool.Options{
+			Dial:               dummyDialer,
+			PoolSize:           10,
+			PoolTimeout:        time.Minute,
+			IdleTimeout:        time.Millisecond,
+			IdleCheckFrequency: time.Millisecond,
+		})
 
 		perform(C, func(id int) {
 			for i := 0; i < N; i++ {
@@ -226,8 +255,13 @@ var _ = Describe("race", func() {
 	})
 
 	It("does not happen on Get and PopFree", func() {
-		connPool = pool.NewConnPool(
-			dummyDialer, 10, time.Minute, time.Second, time.Millisecond)
+		connPool = pool.NewConnPool(&pool.Options{
+			Dial:               dummyDialer,
+			PoolSize:           10,
+			PoolTimeout:        time.Minute,
+			IdleTimeout:        time.Second,
+			IdleCheckFrequency: time.Millisecond,
+		})
 
 		perform(C, func(id int) {
 			for i := 0; i < N; i++ {

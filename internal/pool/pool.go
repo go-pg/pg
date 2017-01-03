@@ -43,14 +43,19 @@ type Pooler interface {
 	Closed() bool
 }
 
-type dialer func() (net.Conn, error)
-
-type ConnPool struct {
-	_dial   dialer
+type Options struct {
+	Dial    func() (net.Conn, error)
 	OnClose func(*Conn) error
 
-	poolTimeout time.Duration
-	idleTimeout time.Duration
+	PoolSize           int
+	PoolTimeout        time.Duration
+	IdleTimeout        time.Duration
+	IdleCheckFrequency time.Duration
+	MaxAge             time.Duration
+}
+
+type ConnPool struct {
+	opt *Options
 
 	queue chan struct{}
 
@@ -63,30 +68,28 @@ type ConnPool struct {
 	stats Stats
 
 	_closed int32 // atomic
-	lastErr atomic.Value
 }
 
 var _ Pooler = (*ConnPool)(nil)
 
-func NewConnPool(dial dialer, poolSize int, poolTimeout, idleTimeout, idleCheckFrequency time.Duration) *ConnPool {
+func NewConnPool(opt *Options) *ConnPool {
 	p := &ConnPool{
-		_dial: dial,
+		opt: opt,
 
-		poolTimeout: poolTimeout,
-		idleTimeout: idleTimeout,
+		queue:     make(chan struct{}, opt.PoolSize),
+		conns:     make([]*Conn, 0, opt.PoolSize),
+		freeConns: make([]*Conn, 0, opt.PoolSize),
+	}
 
-		queue:     make(chan struct{}, poolSize),
-		conns:     make([]*Conn, 0, poolSize),
-		freeConns: make([]*Conn, 0, poolSize),
+	if opt.IdleTimeout > 0 && opt.IdleCheckFrequency > 0 {
+		go p.reaper(opt.IdleCheckFrequency)
 	}
-	if idleTimeout > 0 && idleCheckFrequency > 0 {
-		go p.reaper(idleCheckFrequency)
-	}
+
 	return p
 }
 
 func (p *ConnPool) dial() (net.Conn, error) {
-	cn, err := p._dial()
+	cn, err := p.opt.Dial()
 	if err != nil {
 		return nil, err
 	}
@@ -101,9 +104,25 @@ func (p *ConnPool) NewConn() (*Conn, error) {
 	return NewConn(netConn), nil
 }
 
+func (p *ConnPool) isStaleConn(cn *Conn) bool {
+	if p.opt.IdleTimeout == 0 && p.opt.MaxAge == 0 {
+		return false
+	}
+
+	now := time.Now()
+	if p.opt.IdleTimeout > 0 && now.Sub(cn.UsedAt) >= p.opt.IdleTimeout {
+		return true
+	}
+	if p.opt.MaxAge > 0 && now.Sub(cn.InitedAt) >= p.opt.MaxAge {
+		return true
+	}
+
+	return false
+}
+
 func (p *ConnPool) PopFree() *Conn {
 	timer := timers.Get().(*time.Timer)
-	if !timer.Reset(p.poolTimeout) {
+	if !timer.Reset(p.opt.PoolTimeout) {
 		<-timer.C
 	}
 
@@ -146,7 +165,7 @@ func (p *ConnPool) Get() (*Conn, bool, error) {
 	atomic.AddUint32(&p.stats.Requests, 1)
 
 	timer := timers.Get().(*time.Timer)
-	if !timer.Reset(p.poolTimeout) {
+	if !timer.Reset(p.opt.PoolTimeout) {
 		<-timer.C
 	}
 
@@ -168,7 +187,7 @@ func (p *ConnPool) Get() (*Conn, bool, error) {
 			break
 		}
 
-		if cn.IsStale(p.idleTimeout) {
+		if p.isStaleConn(cn) {
 			p.remove(cn, errConnStale)
 			continue
 		}
@@ -277,8 +296,8 @@ func (p *ConnPool) Close() (retErr error) {
 }
 
 func (p *ConnPool) closeConn(cn *Conn, reason error) error {
-	if p.OnClose != nil {
-		_ = p.OnClose(cn)
+	if p.opt.OnClose != nil {
+		_ = p.opt.OnClose(cn)
 	}
 	return cn.Close()
 }
@@ -289,7 +308,7 @@ func (p *ConnPool) reapStaleConn() bool {
 	}
 
 	cn := p.freeConns[0]
-	if !cn.IsStale(p.idleTimeout) {
+	if !p.isStaleConn(cn) {
 		return false
 	}
 

@@ -34,6 +34,7 @@ func pgOptions() *pg.Options {
 		PoolSize:           10,
 		PoolTimeout:        30 * time.Second,
 		IdleTimeout:        10 * time.Second,
+		MaxAge:             10 * time.Second,
 		IdleCheckFrequency: 100 * time.Millisecond,
 	}
 }
