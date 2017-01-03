@@ -211,7 +211,7 @@ func md5s(s string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func writeStartupMsg(buf *pool.Buffer, user, database string) {
+func writeStartupMsg(buf *pool.WriteBuffer, user, database string) {
 	buf.StartMessage(0)
 	buf.WriteInt32(196608)
 	buf.WriteString("user")
@@ -222,24 +222,24 @@ func writeStartupMsg(buf *pool.Buffer, user, database string) {
 	buf.FinishMessage()
 }
 
-func writeSSLMsg(buf *pool.Buffer) {
+func writeSSLMsg(buf *pool.WriteBuffer) {
 	buf.StartMessage(0)
 	buf.WriteInt32(80877103)
 	buf.FinishMessage()
 }
 
-func writePasswordMsg(buf *pool.Buffer, password string) {
+func writePasswordMsg(buf *pool.WriteBuffer, password string) {
 	buf.StartMessage(passwordMessageMsg)
 	buf.WriteString(password)
 	buf.FinishMessage()
 }
 
-func writeFlushMsg(buf *pool.Buffer) {
+func writeFlushMsg(buf *pool.WriteBuffer) {
 	buf.StartMessage(flushMsg)
 	buf.FinishMessage()
 }
 
-func writeCancelRequestMsg(buf *pool.Buffer, processId, secretKey int32) {
+func writeCancelRequestMsg(buf *pool.WriteBuffer, processId, secretKey int32) {
 	buf.StartMessage(0)
 	buf.WriteInt32(80877102)
 	buf.WriteInt32(processId)
@@ -247,7 +247,7 @@ func writeCancelRequestMsg(buf *pool.Buffer, processId, secretKey int32) {
 	buf.FinishMessage()
 }
 
-func writeQueryMsg(buf *pool.Buffer, fmter orm.QueryFormatter, query interface{}, params ...interface{}) error {
+func writeQueryMsg(buf *pool.WriteBuffer, fmter orm.QueryFormatter, query interface{}, params ...interface{}) error {
 	buf.StartMessage(queryMsg)
 	bytes, err := appendQuery(buf.Bytes, fmter, query, params...)
 	if err != nil {
@@ -274,12 +274,12 @@ func appendQuery(dst []byte, fmter orm.QueryFormatter, query interface{}, params
 	}
 }
 
-func writeSyncMsg(buf *pool.Buffer) {
+func writeSyncMsg(buf *pool.WriteBuffer) {
 	buf.StartMessage(syncMsg)
 	buf.FinishMessage()
 }
 
-func writeParseDescribeSyncMsg(buf *pool.Buffer, name, q string) {
+func writeParseDescribeSyncMsg(buf *pool.WriteBuffer, name, q string) {
 	buf.StartMessage(parseMsg)
 	buf.WriteString(name)
 	buf.WriteString(q)
@@ -346,7 +346,7 @@ func readParseDescribeSync(cn *pool.Conn) ([][]byte, error) {
 }
 
 // Writes BIND, EXECUTE and SYNC messages.
-func writeBindExecuteMsg(buf *pool.Buffer, name string, params ...interface{}) error {
+func writeBindExecuteMsg(buf *pool.WriteBuffer, name string, params ...interface{}) error {
 	const paramLenWidth = 4
 
 	buf.StartMessage(bindMsg)
@@ -412,7 +412,7 @@ func readBindMsg(cn *pool.Conn) error {
 	}
 }
 
-func writeCloseMsg(buf *pool.Buffer, name string) {
+func writeCloseMsg(buf *pool.WriteBuffer, name string) {
 	buf.StartMessage(closeMsg)
 	buf.WriteByte('S')
 	buf.WriteString(name)
@@ -906,14 +906,14 @@ func readCopyData(cn *pool.Conn, w io.Writer) (*types.Result, error) {
 	}
 }
 
-func writeCopyData(buf *pool.Buffer, r io.Reader) (int64, error) {
+func writeCopyData(buf *pool.WriteBuffer, r io.Reader) (int64, error) {
 	buf.StartMessage(copyDataMsg)
 	n, err := buf.ReadFrom(r)
 	buf.FinishMessage()
 	return n, err
 }
 
-func writeCopyDone(buf *pool.Buffer) {
+func writeCopyDone(buf *pool.WriteBuffer) {
 	buf.StartMessage(copyDoneMsg)
 	buf.FinishMessage()
 }

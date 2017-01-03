@@ -20,7 +20,7 @@ type Conn struct {
 	Rd      *bufio.Reader
 	Columns [][]byte
 
-	Wr *Buffer
+	Wr *WriteBuffer
 
 	Inited bool
 	UsedAt time.Time
@@ -43,7 +43,7 @@ func NewConn(netConn net.Conn) *Conn {
 func (cn *Conn) SetNetConn(netConn net.Conn) {
 	cn.NetConn = netConn
 	cn.Rd = bufio.NewReader(cn.NetConn)
-	cn.Wr = NewBuffer(cn.NetConn, cn.Buf)
+	cn.Wr = NewWriteBuffer(cn.NetConn, cn.Buf)
 }
 
 func (cn *Conn) IsStale(timeout time.Duration) bool {
