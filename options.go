@@ -46,13 +46,17 @@ type Options struct {
 	// Maximum number of socket connections.
 	// Default is 20 connections.
 	PoolSize int
-	// Amount of time client waits for free connection if all
+	// Time for which client waits for free connection if all
 	// connections are busy before returning an error.
 	// Default is 5 seconds.
 	PoolTimeout time.Duration
-	// Amount of time after which client closes idle connections.
+	// Time after which client closes idle connections.
 	// Default is to not close idle connections.
 	IdleTimeout time.Duration
+	// Connection age at which client retires (closes) the connection.
+	// Primarily useful with proxies like HAProxy.
+	// Default is to not close aged connections.
+	MaxAge time.Duration
 	// Frequency of idle checks.
 	// Default is 1 minute.
 	IdleCheckFrequency time.Duration

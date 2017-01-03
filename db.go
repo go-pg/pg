@@ -70,11 +70,12 @@ func (db *DB) conn() (*pool.Conn, error) {
 		return nil, err
 	}
 
-	if !cn.Inited {
+	if cn.InitedAt.IsZero() {
 		if err := db.initConn(cn); err != nil {
 			_ = db.pool.Remove(cn, err)
 			return nil, err
 		}
+		cn.InitedAt = time.Now()
 	}
 
 	cn.SetReadWriteTimeout(db.opt.ReadTimeout, db.opt.WriteTimeout)
@@ -93,7 +94,6 @@ func (db *DB) initConn(cn *pool.Conn) error {
 		return err
 	}
 
-	cn.Inited = true
 	return nil
 }
 

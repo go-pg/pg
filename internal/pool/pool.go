@@ -104,6 +104,22 @@ func (p *ConnPool) NewConn() (*Conn, error) {
 	return NewConn(netConn), nil
 }
 
+func (p *ConnPool) isStaleConn(cn *Conn) bool {
+	if p.opt.IdleTimeout == 0 && p.opt.MaxAge == 0 {
+		return false
+	}
+
+	now := time.Now()
+	if p.opt.IdleTimeout > 0 && now.Sub(cn.UsedAt) >= p.opt.IdleTimeout {
+		return true
+	}
+	if p.opt.MaxAge > 0 && now.Sub(cn.InitedAt) >= p.opt.MaxAge {
+		return true
+	}
+
+	return false
+}
+
 func (p *ConnPool) PopFree() *Conn {
 	timer := timers.Get().(*time.Timer)
 	if !timer.Reset(p.opt.PoolTimeout) {
@@ -171,7 +187,7 @@ func (p *ConnPool) Get() (*Conn, bool, error) {
 			break
 		}
 
-		if cn.IsStale(p.opt.IdleTimeout) {
+		if p.isStaleConn(cn) {
 			p.remove(cn, errConnStale)
 			continue
 		}
@@ -292,7 +308,7 @@ func (p *ConnPool) reapStaleConn() bool {
 	}
 
 	cn := p.freeConns[0]
-	if !cn.IsStale(p.opt.IdleTimeout) {
+	if !p.isStaleConn(cn) {
 		return false
 	}
 
