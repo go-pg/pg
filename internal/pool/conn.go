@@ -47,7 +47,7 @@ func (cn *Conn) SetNetConn(netConn net.Conn) {
 }
 
 func (cn *Conn) IsStale(timeout time.Duration) bool {
-	return timeout > 0 && time.Since(cn.UsedAt) > timeout
+	return timeout > 0 && time.Since(cn.UsedAt) >= timeout
 }
 
 func (cn *Conn) NextId() string {

@@ -111,15 +111,14 @@ func (opt *Options) getDialer() func() (net.Conn, error) {
 }
 
 func newConnPool(opt *Options) *pool.ConnPool {
-	p := pool.NewConnPool(
-		opt.getDialer(),
-		opt.PoolSize,
-		opt.PoolTimeout,
-		opt.IdleTimeout,
-		opt.IdleCheckFrequency,
-	)
-	p.OnClose = func(cn *pool.Conn) error {
-		return terminateConn(cn)
-	}
-	return p
+	return pool.NewConnPool(&pool.Options{
+		Dial:               opt.getDialer(),
+		PoolSize:           opt.PoolSize,
+		PoolTimeout:        opt.PoolTimeout,
+		IdleTimeout:        opt.IdleTimeout,
+		IdleCheckFrequency: opt.IdleCheckFrequency,
+		OnClose: func(cn *pool.Conn) error {
+			return terminateConn(cn)
+		},
+	})
 }
