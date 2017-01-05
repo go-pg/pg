@@ -3,9 +3,9 @@ package pg_test
 import (
 	"strings"
 
-	. "gopkg.in/check.v1"
-
 	"gopkg.in/pg.v5"
+
+	. "gopkg.in/check.v1"
 )
 
 var _ = Suite(&TxTest{})

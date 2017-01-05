@@ -9,15 +9,20 @@ type InsertTest struct{}
 
 type EmbeddingTest struct {
 	tableName struct{} `sql:"name"`
+
+	Id    int
+	Field int
 }
 
 type EmbeddedInsertTest struct {
 	tableName struct{} `sql:"my_name"`
 	EmbeddingTest
+	Field2 int
 }
 
 type OverrideInsertTest struct {
 	EmbeddingTest `pg:",override"`
+	Field2        int
 }
 
 var _ = Describe("Insert", func() {
@@ -48,7 +53,7 @@ var _ = Describe("Insert", func() {
 
 		b, err := insertQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`INSERT INTO my_name () VALUES ()`))
+		Expect(string(b)).To(Equal(`INSERT INTO my_name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
 	})
 
 	It("supports override table name with embedded struct", func() {
@@ -56,6 +61,6 @@ var _ = Describe("Insert", func() {
 
 		b, err := insertQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`INSERT INTO name () VALUES ()`))
+		Expect(string(b)).To(Equal(`INSERT INTO name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
 	})
 })

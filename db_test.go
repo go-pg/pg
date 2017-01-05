@@ -8,11 +8,11 @@ import (
 	"testing"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"gopkg.in/pg.v5"
 	"gopkg.in/pg.v5/orm"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 func init() {
@@ -959,7 +959,7 @@ var _ = Describe("ORM", func() {
 		It("supports overriding", func() {
 			var book BookWithCommentCount
 			err := db.Model(&book).
-				Column("book.id", "Author").
+				Column("book.id", "Author", "Genres").
 				ColumnExpr(`(SELECT COUNT(*) FROM comments WHERE trackable_type = 'Book' AND trackable_id = book.id) AS comment_count`).
 				First()
 			Expect(err).NotTo(HaveOccurred())
@@ -967,6 +967,10 @@ var _ = Describe("ORM", func() {
 				Book: Book{
 					Id:     100,
 					Author: &Author{ID: 10, Name: "author 1"},
+					Genres: []Genre{
+						{Id: 1, Name: "genre 1", Rating: 999},
+						{Id: 2, Name: "genre 2", Rating: 9999},
+					},
 				},
 				CommentCount: 2,
 			}))
@@ -1146,7 +1150,7 @@ var _ = Describe("ORM", func() {
 		It("supports overriding", func() {
 			var books []BookWithCommentCount
 			err := db.Model(&books).
-				Column("book.id", "Author").
+				Column("book.id", "Author", "Genres").
 				ColumnExpr(`(SELECT COUNT(*) FROM comments WHERE trackable_type = 'Book' AND trackable_id = book.id) AS comment_count`).
 				OrderExpr("id ASC").
 				Select()
@@ -1155,12 +1159,19 @@ var _ = Describe("ORM", func() {
 				Book: Book{
 					Id:     100,
 					Author: &Author{ID: 10, Name: "author 1", Books: nil},
+					Genres: []Genre{
+						{Id: 1, Name: "genre 1", Rating: 999},
+						{Id: 2, Name: "genre 2", Rating: 9999},
+					},
 				},
 				CommentCount: 2,
 			}, {
 				Book: Book{
 					Id:     101,
 					Author: &Author{ID: 10, Name: "author 1", Books: nil},
+					Genres: []Genre{
+						{Id: 1, Name: "genre 1", Rating: 99999},
+					},
 				},
 				CommentCount: 0,
 			}, {

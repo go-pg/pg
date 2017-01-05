@@ -3,10 +3,10 @@ package pg_test
 import (
 	"errors"
 
-	. "gopkg.in/check.v1"
-
 	"gopkg.in/pg.v5"
 	"gopkg.in/pg.v5/orm"
+
+	. "gopkg.in/check.v1"
 )
 
 type LoaderTest struct {

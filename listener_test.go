@@ -4,10 +4,10 @@ import (
 	"net"
 	"time"
 
+	"gopkg.in/pg.v5"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"gopkg.in/pg.v5"
 )
 
 var _ = Context("Listener", func() {

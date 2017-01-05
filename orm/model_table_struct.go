@@ -56,6 +56,10 @@ func (m *structTableModel) Table() *Table {
 	return m.table
 }
 
+func (m *structTableModel) Relation() *Relation {
+	return m.rel
+}
+
 func (m *structTableModel) AppendParam(dst []byte, name string) ([]byte, bool) {
 	dst, ok := m.table.AppendParam(dst, m.strct, name)
 	if ok {
