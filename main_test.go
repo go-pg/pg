@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
+	"gopkg.in/pg.v5"
+
 	. "github.com/onsi/ginkgo"
 	. "gopkg.in/check.v1"
-
-	"gopkg.in/pg.v5"
 )
 
 func TestUnixSocket(t *testing.T) {

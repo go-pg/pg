@@ -10,6 +10,7 @@ type tableModel interface {
 	Model
 
 	Table() *Table
+	Relation() *Relation
 	AppendParam([]byte, string) ([]byte, bool)
 
 	Join(string, func(*Query) (*Query, error)) (bool, *join)

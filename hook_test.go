@@ -1,11 +1,11 @@
 package pg_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
 	"gopkg.in/pg.v5"
 	"gopkg.in/pg.v5/orm"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 )
 
 type HookTest struct {

@@ -111,12 +111,12 @@ func values(v reflect.Value, index []int, fields []*Field) []byte {
 	return b
 }
 
-func dstValues(root reflect.Value, path []int, fields []*Field) map[string][]reflect.Value {
+func dstValues(model tableModel, fields []*Field) map[string][]reflect.Value {
 	mp := make(map[string][]reflect.Value)
 	var id []byte
-	walk(root, path[:len(path)-1], func(v reflect.Value) {
+	walk(model.Root(), model.ParentIndex(), func(v reflect.Value) {
 		id = modelId(id[:0], v, fields)
-		mp[string(id)] = append(mp[string(id)], v.Field(path[len(path)-1]))
+		mp[string(id)] = append(mp[string(id)], v.FieldByIndex(model.Relation().Field.Index))
 	})
 	return mp
 }

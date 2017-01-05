@@ -3,10 +3,10 @@ package pg_test
 import (
 	"testing"
 
+	"gopkg.in/pg.v5"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-
-	"gopkg.in/pg.v5"
 )
 
 var _ = Describe("DB race", func() {
