@@ -26,8 +26,8 @@ type Query struct {
 	with       []withQuery
 	tables     []FormatAppender
 	columns    []FormatAppender
-	set        []queryParamsAppender
-	where      []FormatAppender
+	set        []FormatAppender
+	where      []sepFormatAppender
 	joins      []FormatAppender
 	group      []FormatAppender
 	having     []queryParamsAppender
@@ -193,7 +193,12 @@ func (q *Query) Set(set string, params ...interface{}) *Query {
 }
 
 func (q *Query) Where(where string, params ...interface{}) *Query {
-	q.where = append(q.where, queryParamsAppender{where, params})
+	q.where = append(q.where, &whereAppender{"AND", where, params})
+	return q
+}
+
+func (q *Query) WhereOr(where string, params ...interface{}) *Query {
+	q.where = append(q.where, &whereAppender{"OR", where, params})
 	return q
 }
 
@@ -656,11 +661,11 @@ func (q *Query) appendWhere(b []byte) []byte {
 	b = append(b, " WHERE "...)
 	for i, f := range q.where {
 		if i > 0 {
-			b = append(b, " AND "...)
+			b = append(b, ' ')
+			b = f.AppendSep(b)
+			b = append(b, ' ')
 		}
-		b = append(b, '(')
 		b = f.AppendFormat(b, q)
-		b = append(b, ')')
 	}
 	return b
 }
@@ -706,8 +711,14 @@ func (q *Query) appendWith(b []byte) ([]byte, error) {
 	return b, nil
 }
 
+//------------------------------------------------------------------------------
+
 type wherePKQuery struct {
 	*Query
+}
+
+func (wherePKQuery) AppendSep(b []byte) []byte {
+	return append(b, "AND"...)
 }
 
 func (q wherePKQuery) AppendFormat(b []byte, f QueryFormatter) []byte {

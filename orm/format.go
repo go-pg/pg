@@ -15,6 +15,11 @@ type FormatAppender interface {
 	AppendFormat([]byte, QueryFormatter) []byte
 }
 
+type sepFormatAppender interface {
+	FormatAppender
+	AppendSep([]byte) []byte
+}
+
 //------------------------------------------------------------------------------
 
 type queryParamsAppender struct {
@@ -30,6 +35,27 @@ func Q(query string, params ...interface{}) FormatAppender {
 
 func (q queryParamsAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 	return f.FormatQuery(b, q.query, q.params...)
+}
+
+//------------------------------------------------------------------------------
+
+type whereAppender struct {
+	conj   string
+	query  string
+	params []interface{}
+}
+
+var _ FormatAppender = (*whereAppender)(nil)
+
+func (q whereAppender) AppendSep(b []byte) []byte {
+	return append(b, q.conj...)
+}
+
+func (q whereAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
+	b = append(b, '(')
+	b = f.FormatQuery(b, q.query, q.params...)
+	b = append(b, ')')
+	return b
 }
 
 //------------------------------------------------------------------------------
