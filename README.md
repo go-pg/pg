@@ -402,7 +402,7 @@ err := db.Model(&Book{}).Column("title", "text").Where("id = ?", 1).Select(&titl
 // SELECT "title", "text"
 // FROM "books" WHERE id = 1
 
-// Select book using WHERE.
+// Select book using WHERE ... AND ...
 err := db.Model(&book).
     Where("id > ?", 100).
     Where("title LIKE ?", "my%").
@@ -411,6 +411,17 @@ err := db.Model(&book).
 // SELECT "book"."id", "book"."title", "book"."text"
 // FROM "books"
 // WHERE (id > 100) AND (title LIKE 'my%')
+// LIMIT 1
+
+// Select book using WHERE ... OR ...
+err := db.Model(&book).
+    Where("id > ?", 100).
+    WhereOr("title LIKE ?", "my%").
+    Limit(1).
+    Select()
+// SELECT "book"."id", "book"."title", "book"."text"
+// FROM "books"
+// WHERE (id > 100) OR (title LIKE 'my%')
 // LIMIT 1
 
 // Select first 20 books.

@@ -84,6 +84,13 @@ var _ = Describe("Select", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT * GROUP BY "one", "two") SELECT count(*) FROM "wrapper"`))
 	})
+
+	It("WhereOr", func() {
+		q := NewQuery(nil).Where("1 = 1").WhereOr("1 = 2")
+		b, err := selectQuery{Query: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT * WHERE (1 = 1) OR (1 = 2)`))
+	})
 })
 
 var _ = Describe("With", func() {
