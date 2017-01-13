@@ -109,7 +109,7 @@ func enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
 		return err
 	}
 
-	b := make([]byte, 1)
+	b := cn.Buf[:1]
 	_, err := io.ReadFull(cn.NetConn, b)
 	if err != nil {
 		return err
@@ -118,13 +118,7 @@ func enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
 		return errSSLNotSupported
 	}
 
-	if tlsConf == nil {
-		tlsConf = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-	}
-	cn.NetConn = tls.Client(cn.NetConn, tlsConf)
-
+	cn.SetNetConn(tls.Client(cn.NetConn, tlsConf))
 	return nil
 }
 

@@ -82,7 +82,7 @@ func (buf *WriteBuffer) WriteByte(c byte) {
 
 func (buf *WriteBuffer) Flush() error {
 	_, err := buf.w.Write(buf.Bytes)
-	buf.Bytes = buf.Bytes[:0]
+	buf.Reset()
 	return err
 }
 

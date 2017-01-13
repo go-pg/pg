@@ -20,6 +20,7 @@ func TestUnixSocket(t *testing.T) {
 	opt := pgOptions()
 	opt.Network = "unix"
 	opt.Addr = "/var/run/postgresql/.s.PGSQL.5432"
+	opt.TLSConfig = nil
 	db := pg.Connect(opt)
 	defer db.Close()
 
