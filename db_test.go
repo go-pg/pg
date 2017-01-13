@@ -2,6 +2,7 @@ package pg_test
 
 import (
 	"bytes"
+	"crypto/tls"
 	"database/sql"
 	"fmt"
 	"net"
@@ -26,11 +27,17 @@ func TestGinkgo(t *testing.T) {
 
 func pgOptions() *pg.Options {
 	return &pg.Options{
-		User:               "postgres",
-		Database:           "postgres",
-		DialTimeout:        30 * time.Second,
-		ReadTimeout:        10 * time.Second,
-		WriteTimeout:       10 * time.Second,
+		User:     "postgres",
+		Database: "postgres",
+
+		TLSConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
+
+		DialTimeout:  30 * time.Second,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+
 		PoolSize:           10,
 		PoolTimeout:        30 * time.Second,
 		IdleTimeout:        10 * time.Second,

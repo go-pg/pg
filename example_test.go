@@ -17,18 +17,29 @@ func init() {
 }
 
 func connect() *pg.DB {
-	return pg.Connect(&pg.Options{
-		User: "postgres",
-	})
+	return pg.Connect(pgOptions())
 }
 
 func ExampleConnect() {
 	db := pg.Connect(&pg.Options{
-		User: "postgres",
+		User:     "postgres",
+		Password: "",
+		Database: "postgres",
 	})
-	err := db.Close()
-	fmt.Println(err)
-	// Output: <nil>
+
+	var n int
+	_, err := db.QueryOne(pg.Scan(&n), "SELECT 1")
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(n)
+
+	err = db.Close()
+	if err != nil {
+		panic(err)
+	}
+
+	// Output: 1
 }
 
 func ExampleDB_QueryOne() {
