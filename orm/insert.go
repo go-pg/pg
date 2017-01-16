@@ -93,7 +93,7 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) [
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		if q.omitEmpty(f, v) {
+		if f.OmitEmpty(v) {
 			b = append(b, "DEFAULT"...)
 			q.addReturningField(f)
 		} else {
@@ -101,17 +101,6 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) [
 		}
 	}
 	return b
-}
-
-func (insertQuery) omitEmpty(f *Field, v reflect.Value) bool {
-	omit := f.Has(PrimaryKeyFlag)
-	if !omit && v.Kind() == reflect.Struct {
-		omit = f.OmitEmpty(v)
-	}
-	if !omit {
-		return false
-	}
-	return f.IsEmpty(v)
 }
 
 func (ins *insertQuery) addReturningField(field *Field) {
