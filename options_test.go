@@ -164,8 +164,13 @@ func TestParseURL(t *testing.T) {
 			if o.Database != c.database {
 				t.Errorf("got %q, want %q", o.Database, c.database)
 			}
-			if o.TLSConfig == nil && c.tls {
-				t.Error("got nil TLSConfig, expected a TLSConfig")
+
+			if c.tls {
+				if o.TLSConfig == nil {
+					t.Error("got nil TLSConfig, expected a TLSConfig")
+				} else if !o.TLSConfig.InsecureSkipVerify {
+					t.Error("must set InsecureSkipVerify to true in TLSConfig, got false")
+				}
 			}
 		})
 	}

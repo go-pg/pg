@@ -154,14 +154,14 @@ func ParseURL(sURL string) (*Options, error) {
 		case "allow":
 			fallthrough
 		case "prefer":
-			options.TLSConfig = &tls.Config{}
+			options.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 		case "disable":
 			options.TLSConfig = nil
 		default:
 			return nil, errors.New(fmt.Sprintf("pg: sslmode '%v' is not supported", sslMode[0]))
 		}
 	} else {
-		options.TLSConfig = &tls.Config{}
+		options.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	}
 
 	delete(query, "sslmode")
