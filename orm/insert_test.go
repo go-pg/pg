@@ -25,6 +25,13 @@ type OverrideInsertTest struct {
 	Field2        int
 }
 
+type InsertNullTest struct {
+	F1 int
+	F2 int `sql:",notnull"`
+	F3 int `sql:",pk"`
+	F4 int `sql:",pk,notnull"`
+}
+
 var _ = Describe("Insert", func() {
 	It("supports ON CONFLICT DO UPDATE", func() {
 		q := NewQuery(nil, &InsertTest{}).
@@ -62,5 +69,13 @@ var _ = Describe("Insert", func() {
 		b, err := insertQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
+	})
+
+	It("supports notnull", func() {
+		q := NewQuery(nil, &InsertNullTest{})
+
+		b, err := insertQuery{Query: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_null_tests" ("f1", "f2", "f3", "f4") VALUES (DEFAULT, 0, DEFAULT, 0) RETURNING "f1", "f3"`))
 	})
 })
