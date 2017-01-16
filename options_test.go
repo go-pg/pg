@@ -119,7 +119,7 @@ func TestParseURL(t *testing.T) {
 		{
 			"postgres://somewhere.at.amazonaws.com:5432/postgres",
 			"somewhere.at.amazonaws.com:5432",
-			"",
+			"postgres",
 			"",
 			"postgres",
 			true,
@@ -128,7 +128,7 @@ func TestParseURL(t *testing.T) {
 		{
 			"http://google.com/test",
 			"google.com:5432",
-			"",
+			"postgres",
 			"",
 			"test",
 			true,
@@ -145,7 +145,7 @@ func TestParseURL(t *testing.T) {
 			}
 			if c.err != nil && err != nil {
 				if c.err.Error() != err.Error() {
-					t.Fatalf("got %q, want %q", err, c.err)
+					t.Fatalf("expected error %q, want %q", err, c.err)
 				}
 				return
 			}
@@ -153,16 +153,16 @@ func TestParseURL(t *testing.T) {
 				t.Errorf("expected error %q, got nothing", c.err)
 			}
 			if o.Addr != c.addr {
-				t.Errorf("got %q, want %q", o.Addr, c.addr)
+				t.Errorf("addr: got %q, want %q", o.Addr, c.addr)
 			}
 			if o.User != c.user {
-				t.Errorf("got %q, want %q", o.User, c.user)
+				t.Errorf("user: got %q, want %q", o.User, c.user)
 			}
 			if o.Password != c.password {
-				t.Errorf("got %q, want %q", o.Password, c.password)
+				t.Errorf("password: got %q, want %q", o.Password, c.password)
 			}
 			if o.Database != c.database {
-				t.Errorf("got %q, want %q", o.Database, c.database)
+				t.Errorf("database: got %q, want %q", o.Database, c.database)
 			}
 
 			if c.tls {

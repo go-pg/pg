@@ -136,6 +136,10 @@ func ParseURL(sURL string) (*Options, error) {
 		}
 	}
 
+	if options.User == "" {
+		options.User = "postgres"
+	}
+
 	// database
 	if len(strings.Trim(parsedUrl.Path, "/")) > 0 {
 		options.Database = parsedUrl.Path[1:]
