@@ -3,7 +3,12 @@ package pg
 import (
 	"crypto/tls"
 	"net"
+	"net/url"
 	"time"
+
+	"errors"
+	"fmt"
+	"strings"
 
 	"gopkg.in/pg.v5/internal/pool"
 )
@@ -101,6 +106,70 @@ func (opt *Options) init() {
 	if opt.IdleCheckFrequency == 0 {
 		opt.IdleCheckFrequency = time.Minute
 	}
+}
+
+func ParseURL(sURL string) (*Options, error) {
+	parsedUrl, err := url.Parse(sURL)
+	if err != nil {
+		return nil, err
+	}
+
+	// scheme
+	if parsedUrl.Scheme != "postgres" {
+		return nil, errors.New("pg: invalid scheme: " + parsedUrl.Scheme)
+	}
+
+	// host and port
+	options := &Options{
+		Addr: parsedUrl.Host,
+	}
+	if !strings.Contains(options.Addr, ":") {
+		options.Addr = options.Addr + ":5432"
+	}
+
+	// username and password
+	if parsedUrl.User != nil {
+		options.User = parsedUrl.User.Username()
+
+		if password, ok := parsedUrl.User.Password(); ok {
+			options.Password = password
+		}
+	}
+
+	// database
+	if len(strings.Trim(parsedUrl.Path, "/")) > 0 {
+		options.Database = parsedUrl.Path[1:]
+	} else {
+		return nil, errors.New("pg: database name not provided")
+	}
+
+	// ssl mode
+	query, err := url.ParseQuery(parsedUrl.RawQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	if sslMode, ok := query["sslmode"]; ok && len(sslMode) > 0 {
+		switch sslMode[0] {
+		case "allow":
+			fallthrough
+		case "prefer":
+			options.TLSConfig = &tls.Config{}
+		case "disable":
+			options.TLSConfig = nil
+		default:
+			return nil, errors.New(fmt.Sprintf("pg: sslmode '%v' is not supported", sslMode[0]))
+		}
+	} else {
+		options.TLSConfig = &tls.Config{}
+	}
+
+	delete(query, "sslmode")
+	if len(query) > 0 {
+		return nil, errors.New("pg: options other than 'sslmode' are not supported")
+	}
+
+	return options, nil
 }
 
 func (opt *Options) getDialer() func() (net.Conn, error) {
