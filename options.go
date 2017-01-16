@@ -2,13 +2,12 @@ package pg
 
 import (
 	"crypto/tls"
-	"net"
-	"net/url"
-	"time"
-
 	"errors"
 	"fmt"
+	"net"
+	"net/url"
 	"strings"
+	"time"
 
 	"gopkg.in/pg.v5/internal/pool"
 )
@@ -108,6 +107,7 @@ func (opt *Options) init() {
 	}
 }
 
+// ParseURL parses an URL into options that can be used to connect to PostgreSQL.
 func ParseURL(sURL string) (*Options, error) {
 	parsedUrl, err := url.Parse(sURL)
 	if err != nil {
