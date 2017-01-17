@@ -1,6 +1,8 @@
 package orm
 
 import (
+	"gopkg.in/pg.v5/types"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -30,6 +32,10 @@ type InsertNullTest struct {
 	F2 int `sql:",notnull"`
 	F3 int `sql:",pk"`
 	F4 int `sql:",pk,notnull"`
+}
+
+type InsertQTest struct {
+	Geo types.Q
 }
 
 var _ = Describe("Insert", func() {
@@ -77,5 +83,15 @@ var _ = Describe("Insert", func() {
 		b, err := insertQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO "insert_null_tests" ("f1", "f2", "f3", "f4") VALUES (DEFAULT, 0, DEFAULT, 0) RETURNING "f1", "f3"`))
+	})
+
+	It("inserts types.Q", func() {
+		q := NewQuery(nil, &InsertQTest{
+			Geo: types.Q("ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))')"),
+		})
+
+		b, err := insertQuery{Query: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_q_tests" ("geo") VALUES (ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))'))`))
 	})
 })
