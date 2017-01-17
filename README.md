@@ -273,7 +273,7 @@ type Comment struct {
 
 Models support optional hooks that accept `orm.DB` interface which value can be either `*pg.DB` or `*pg.Tx`.
 
-```
+```go
 // AfterQuery is called after the model is loaded from database.
 func (b *Book) AfterQuery(db orm.DB) error {
     return updateBookCache(b)
@@ -317,7 +317,7 @@ func (b *Book) AfterDelete(db orm.DB) error {
 
 ### Placeholders
 
-```
+```go
 package pg_test
 
 import (
@@ -820,7 +820,6 @@ fmt.Println(user.Id, user.Name, user.Profiles[0], user.Profiles[1])
 Following example selects one item and all subitems using itermediary `item_to_items` table.
 
 ```go
-
 type Item struct {
     Id    int
     Items []Item `pg:",many2many:item_to_items,joinFK:Sub"`
