@@ -27,7 +27,7 @@ type Field struct {
 	append types.AppenderFunc
 	scan   types.ScannerFunc
 
-	isEmpty isEmptyFunc
+	isEmpty func(reflect.Value) bool
 }
 
 func (f *Field) Copy() *Field {

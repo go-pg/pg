@@ -8,9 +8,7 @@ type isZeroer interface {
 	IsZero() bool
 }
 
-type isEmptyFunc func(reflect.Value) bool
-
-func isEmptier(typ reflect.Type) isEmptyFunc {
+func isEmptyFunc(typ reflect.Type) func(reflect.Value) bool {
 	if typ.Implements(isZeroerType) {
 		return isEmptyZero
 	}
