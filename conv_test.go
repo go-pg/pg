@@ -304,6 +304,7 @@ func conversionTests() []conversionTest {
 		{src: &sql.NullBool{}, dst: new(sql.NullBool), pgtype: "bool"},
 		{src: &sql.NullBool{Valid: true}, dst: new(sql.NullBool), pgtype: "bool"},
 		{src: &sql.NullBool{Valid: true, Bool: true}, dst: new(sql.NullBool), pgtype: "bool"},
+		{src: 1, dst: new(bool), wanted: true},
 
 		{src: &sql.NullString{}, dst: new(sql.NullString), pgtype: "text"},
 		{src: &sql.NullString{Valid: true}, dst: new(sql.NullString), pgtype: "text"},
