@@ -146,7 +146,9 @@ func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
 func (q *Query) Column(columns ...string) *Query {
 	for _, column := range columns {
 		if column == "_" {
-			q.columns = make([]FormatAppender, 0)
+			if q.columns == nil {
+				q.columns = make([]FormatAppender, 0)
+			}
 			continue
 		}
 
@@ -397,22 +399,24 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 	return count, err
 }
 
-func (q *Query) forEachHasOneJoin(fn func(*join)) {
+func (q *Query) forEachHasOneJoin(fn func(int, *join)) {
 	if q.model == nil {
 		return
 	}
-	q._forEachHasOneJoin(q.model.GetJoins(), fn)
+	q._forEachHasOneJoin(fn, 0, q.model.GetJoins())
 }
 
-func (q *Query) _forEachHasOneJoin(joins []join, fn func(*join)) {
+func (q *Query) _forEachHasOneJoin(fn func(int, *join), n int, joins []join) int {
 	for i := range joins {
 		j := &joins[i]
 		switch j.Rel.Type {
 		case HasOneRelation, BelongsToRelation:
-			fn(j)
-			q._forEachHasOneJoin(j.JoinModel.GetJoins(), fn)
+			fn(n, j)
+			n++
+			n = q._forEachHasOneJoin(fn, n, j.JoinModel.GetJoins())
 		}
 	}
+	return n
 }
 
 func selectJoins(db DB, joins []join) error {
