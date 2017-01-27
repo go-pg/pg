@@ -27,20 +27,6 @@ func (s Story) String() string {
 	return fmt.Sprintf("Story<%d %s %s>", s.Id, s.Title, s.Author)
 }
 
-func createSchema(db *pg.DB) error {
-	queries := []string{
-		`CREATE TEMP TABLE users (id serial, name text, emails jsonb)`,
-		`CREATE TEMP TABLE stories (id serial, title text, author_id bigint)`,
-	}
-	for _, q := range queries {
-		_, err := db.Exec(q)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func ExampleDB_Model() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
@@ -107,4 +93,18 @@ func ExampleDB_Model() {
 	// Output: User<1 admin [admin1@admin admin2@admin]>
 	// [User<1 admin [admin1@admin admin2@admin]> User<2 root [root1@root root2@root]>]
 	// Story<1 Cool story User<1 admin [admin1@admin admin2@admin]>>
+}
+
+func createSchema(db *pg.DB) error {
+	queries := []string{
+		`CREATE TEMP TABLE users (id serial, name text, emails jsonb)`,
+		`CREATE TEMP TABLE stories (id serial, title text, author_id bigint)`,
+	}
+	for _, q := range queries {
+		_, err := db.Exec(q)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
