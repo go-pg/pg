@@ -399,24 +399,22 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 	return count, err
 }
 
-func (q *Query) forEachHasOneJoin(fn func(int, *join)) {
+func (q *Query) forEachHasOneJoin(fn func(*join)) {
 	if q.model == nil {
 		return
 	}
-	q._forEachHasOneJoin(fn, 0, q.model.GetJoins())
+	q._forEachHasOneJoin(fn, q.model.GetJoins())
 }
 
-func (q *Query) _forEachHasOneJoin(fn func(int, *join), n int, joins []join) int {
+func (q *Query) _forEachHasOneJoin(fn func(*join), joins []join) {
 	for i := range joins {
 		j := &joins[i]
 		switch j.Rel.Type {
 		case HasOneRelation, BelongsToRelation:
-			fn(n, j)
-			n++
-			n = q._forEachHasOneJoin(fn, n, j.JoinModel.GetJoins())
+			fn(j)
+			q._forEachHasOneJoin(fn, j.JoinModel.GetJoins())
 		}
 	}
-	return n
 }
 
 func selectJoins(db DB, joins []join) error {

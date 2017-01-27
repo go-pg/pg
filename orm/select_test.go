@@ -39,12 +39,20 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
 	})
 
-	It("omits columns", func() {
+	It("omits columns in main query", func() {
 		q := NewQuery(nil, &SelectModel{}).Column("_", "HasOne")
 
 		b, err := selectQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT "has_one"."id" AS "has_one__id" FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
+	})
+
+	It("omits columns in join query", func() {
+		q := NewQuery(nil, &SelectModel{}).Column("HasOne._")
+
+		b, err := selectQuery{Query: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
 	})
 
 	It("specifies all columns for has one", func() {
