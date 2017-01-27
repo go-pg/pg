@@ -40,7 +40,7 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 		b = q.appendTables(b)
 	}
 
-	q.forEachHasOneJoin(func(i int, j *join) {
+	q.forEachHasOneJoin(func(j *join) {
 		b = append(b, ' ')
 		b = j.appendHasOneJoin(b)
 	})
@@ -103,6 +103,8 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 }
 
 func (q selectQuery) appendColumns(b []byte) []byte {
+	start := len(b)
+
 	if q.columns != nil {
 		b = q.appendQueryColumns(b)
 	} else if q.hasModel() {
@@ -111,11 +113,17 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 		b = append(b, '*')
 	}
 
-	q.forEachHasOneJoin(func(i int, j *join) {
-		if !(i == 0 && q.columns != nil && len(q.columns) == 0) {
+	q.forEachHasOneJoin(func(j *join) {
+		if len(b) != start {
 			b = append(b, ", "...)
+			start = len(b)
 		}
+
 		b = j.appendHasOneColumns(b)
+
+		if len(b) == start {
+			b = b[:len(b)-2]
+		}
 	})
 
 	return b
