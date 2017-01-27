@@ -358,6 +358,10 @@ func ExampleDB_Select_with() {
 }
 
 func ExampleDB_Select_wrapWith() {
+	// WITH author_books AS (
+	//     SELECT * books WHERE author_id = 1
+	// )
+	// SELECT * FROM author_books
 	var books []Book
 	err := db.Model(&books).
 		Where("author_id = ?", 1).
@@ -720,8 +724,8 @@ func ExampleDB_Update_someColumns() {
 
 	book := Book{
 		Id:       1,
-		Title:    "updated book 1",
-		AuthorID: 2, // this column will not be updated
+		Title:    "updated book 1", // only this column is going to be updated
+		AuthorID: 2,
 	}
 	_, err := db.Model(&book).Column("title").Returning("*").Update()
 	if err != nil {
