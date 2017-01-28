@@ -28,8 +28,8 @@ type Listener struct {
 }
 
 func (ln *Listener) conn(readTimeout time.Duration) (*pool.Conn, error) {
-	defer ln.mu.Unlock()
 	ln.mu.Lock()
+	defer ln.mu.Unlock()
 
 	if ln.closed {
 		return nil, errListenerClosed
@@ -133,6 +133,7 @@ func (ln *Listener) closeConn(reason error) error {
 	var firstErr error
 
 	ln.mu.Lock()
+
 	if ln._cn != nil {
 		if !ln.closed {
 			internal.Logf("pg: discarding bad listener connection: %s", reason)
@@ -141,6 +142,7 @@ func (ln *Listener) closeConn(reason error) error {
 		firstErr = ln.db.pool.Remove(ln._cn, reason)
 		ln._cn = nil
 	}
+
 	ln.mu.Unlock()
 
 	return firstErr
