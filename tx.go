@@ -56,12 +56,7 @@ func (db *DB) RunInTransaction(fn func(*Tx) error) error {
 	if err != nil {
 		return err
 	}
-
-	if err := fn(tx); err != nil {
-		tx.Rollback()
-		return err
-	}
-	return tx.Commit()
+	return tx.RunInTransaction(fn)
 }
 
 // Begin returns the transaction.
