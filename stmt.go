@@ -50,8 +50,8 @@ func (stmt *Stmt) conn() (*pool.Conn, error) {
 }
 
 func (stmt *Stmt) exec(params ...interface{}) (*types.Result, error) {
-	defer stmt.mu.Unlock()
 	stmt.mu.Lock()
+	defer stmt.mu.Unlock()
 
 	cn, err := stmt.conn()
 	if err != nil {
@@ -96,8 +96,8 @@ func (stmt *Stmt) ExecOne(params ...interface{}) (*types.Result, error) {
 }
 
 func (stmt *Stmt) query(model interface{}, params ...interface{}) (*types.Result, error) {
-	defer stmt.mu.Unlock()
 	stmt.mu.Lock()
+	defer stmt.mu.Unlock()
 
 	cn, err := stmt.conn()
 	if err != nil {
@@ -166,8 +166,8 @@ func (stmt *Stmt) setErr(e error) {
 
 // Close closes the statement.
 func (stmt *Stmt) Close() error {
-	defer stmt.mu.Unlock()
 	stmt.mu.Lock()
+	defer stmt.mu.Unlock()
 
 	if stmt._cn == nil {
 		return errStmtClosed
