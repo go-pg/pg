@@ -418,6 +418,8 @@ func sqlType(field *Field, sqlOpt tagOptions) string {
 		return "boolean"
 	case reflect.String:
 		return "text"
+	case reflect.Map, reflect.Slice, reflect.Struct:
+		return "jsonb"
 	default:
 		return field.Type.Kind().String()
 	}
