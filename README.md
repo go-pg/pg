@@ -41,6 +41,7 @@ import (
    "fmt"
 
    "gopkg.in/pg.v5"
+   "gopkg.in/pg.v5/orm"
 )
 
 type User struct {
@@ -133,12 +134,10 @@ func ExampleDB_Model() {
 }
 
 func createSchema(db *pg.DB) error {
-   queries := []string{
-      `CREATE TEMP TABLE users (id serial, name text, emails jsonb)`,
-      `CREATE TEMP TABLE stories (id serial, title text, author_id bigint)`,
-   }
-   for _, q := range queries {
-      _, err := db.Exec(q)
+   for _, model := range []interface{}{&User{}, &Story{}} {
+      err := db.CreateTable(model, &orm.CreateTableOptions{
+         Temp: true,
+      })
       if err != nil {
          return err
       }
