@@ -13,6 +13,40 @@ const (
 	AfterDeleteHookFlag
 )
 
+type hookStubs struct{}
+
+func (hookStubs) AfterQuery(_ DB) error {
+	return nil
+}
+
+func (hookStubs) AfterSelect(_ DB) error {
+	return nil
+}
+
+func (hookStubs) BeforeInsert(_ DB) error {
+	return nil
+}
+
+func (hookStubs) AfterInsert(_ DB) error {
+	return nil
+}
+
+func (hookStubs) BeforeUpdate(_ DB) error {
+	return nil
+}
+
+func (hookStubs) AfterUpdate(_ DB) error {
+	return nil
+}
+
+func (hookStubs) BeforeDelete(_ DB) error {
+	return nil
+}
+
+func (hookStubs) AfterDelete(_ DB) error {
+	return nil
+}
+
 func callHookSlice(slice reflect.Value, ptr bool, db DB, hook func(reflect.Value, DB) error) error {
 	var firstErr error
 	for i := 0; i < slice.Len(); i++ {
