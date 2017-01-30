@@ -7,6 +7,7 @@ import (
 )
 
 type sliceModel struct {
+	hookStubs
 	slice reflect.Value
 	scan  func(reflect.Value, []byte) error
 }
@@ -25,38 +26,6 @@ func (m *sliceModel) NewModel() ColumnScanner {
 }
 
 func (sliceModel) AddModel(_ ColumnScanner) error {
-	return nil
-}
-
-func (sliceModel) AfterQuery(_ DB) error {
-	return nil
-}
-
-func (sliceModel) AfterSelect(_ DB) error {
-	return nil
-}
-
-func (sliceModel) BeforeInsert(_ DB) error {
-	return nil
-}
-
-func (sliceModel) AfterInsert(_ DB) error {
-	return nil
-}
-
-func (sliceModel) BeforeUpdate(_ DB) error {
-	return nil
-}
-
-func (sliceModel) AfterUpdate(_ DB) error {
-	return nil
-}
-
-func (sliceModel) BeforeDelete(_ DB) error {
-	return nil
-}
-
-func (sliceModel) AfterDelete(_ DB) error {
 	return nil
 }
 

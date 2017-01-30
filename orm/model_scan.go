@@ -7,6 +7,7 @@ import (
 )
 
 type valuesModel struct {
+	hookStubs
 	values []interface{}
 }
 
@@ -31,38 +32,6 @@ func (m valuesModel) NewModel() ColumnScanner {
 }
 
 func (valuesModel) AddModel(_ ColumnScanner) error {
-	return nil
-}
-
-func (valuesModel) AfterQuery(_ DB) error {
-	return nil
-}
-
-func (valuesModel) AfterSelect(_ DB) error {
-	return nil
-}
-
-func (valuesModel) BeforeInsert(_ DB) error {
-	return nil
-}
-
-func (valuesModel) AfterInsert(_ DB) error {
-	return nil
-}
-
-func (valuesModel) BeforeUpdate(_ DB) error {
-	return nil
-}
-
-func (valuesModel) AfterUpdate(_ DB) error {
-	return nil
-}
-
-func (valuesModel) BeforeDelete(_ DB) error {
-	return nil
-}
-
-func (valuesModel) AfterDelete(_ DB) error {
 	return nil
 }
 
