@@ -13,10 +13,9 @@ import (
 var noDeadline = time.Time{}
 
 type Conn struct {
-	NetConn net.Conn
+	netConn net.Conn
 
-	Buf []byte // read/write buffer
-
+	buf     []byte // read buffer
 	Rd      *bufio.Reader
 	Columns [][]byte
 
@@ -33,17 +32,26 @@ type Conn struct {
 
 func NewConn(netConn net.Conn) *Conn {
 	cn := &Conn{
-		Buf:    make([]byte, 0, 8192),
+		buf:    make([]byte, 0, 512),
+		Rd:     bufio.NewReader(netConn),
+		Wr:     NewWriteBuffer(),
 		UsedAt: time.Now(),
 	}
 	cn.SetNetConn(netConn)
 	return cn
 }
 
+func (cn *Conn) RemoteAddr() net.Addr {
+	return cn.netConn.RemoteAddr()
+}
+
 func (cn *Conn) SetNetConn(netConn net.Conn) {
-	cn.NetConn = netConn
-	cn.Rd = bufio.NewReader(cn.NetConn)
-	cn.Wr = NewWriteBuffer(cn.NetConn, cn.Buf)
+	cn.netConn = netConn
+	cn.Rd.Reset(netConn)
+}
+
+func (cn *Conn) NetConn() net.Conn {
+	return cn.netConn
 }
 
 func (cn *Conn) NextId() string {
@@ -54,30 +62,36 @@ func (cn *Conn) NextId() string {
 func (cn *Conn) SetReadWriteTimeout(rt, wt time.Duration) {
 	cn.UsedAt = time.Now()
 	if rt > 0 {
-		cn.NetConn.SetReadDeadline(cn.UsedAt.Add(rt))
+		cn.netConn.SetReadDeadline(cn.UsedAt.Add(rt))
 	} else {
-		cn.NetConn.SetReadDeadline(noDeadline)
+		cn.netConn.SetReadDeadline(noDeadline)
 	}
 	if wt > 0 {
-		cn.NetConn.SetWriteDeadline(cn.UsedAt.Add(wt))
+		cn.netConn.SetWriteDeadline(cn.UsedAt.Add(wt))
 	} else {
-		cn.NetConn.SetWriteDeadline(noDeadline)
+		cn.netConn.SetWriteDeadline(noDeadline)
 	}
 }
 
 func (cn *Conn) ReadN(n int) ([]byte, error) {
-	if d := n - cap(cn.Buf); d > 0 {
-		cn.Buf = cn.Buf[:cap(cn.Buf)]
-		cn.Buf = append(cn.Buf, make([]byte, d)...)
+	if d := n - cap(cn.buf); d > 0 {
+		cn.buf = cn.buf[:cap(cn.buf)]
+		cn.buf = append(cn.buf, make([]byte, d)...)
 	} else {
-		cn.Buf = cn.Buf[:n]
+		cn.buf = cn.buf[:n]
 	}
-	_, err := io.ReadFull(cn.Rd, cn.Buf)
-	return cn.Buf, err
+	_, err := io.ReadFull(cn.Rd, cn.buf)
+	return cn.buf, err
+}
+
+func (cn *Conn) FlushWriter() error {
+	_, err := cn.netConn.Write(cn.Wr.Bytes)
+	cn.Wr.Reset()
+	return err
 }
 
 func (cn *Conn) Close() error {
-	return cn.NetConn.Close()
+	return cn.netConn.Close()
 }
 
 func (cn *Conn) CheckHealth() error {
@@ -86,6 +100,5 @@ func (cn *Conn) CheckHealth() error {
 		err := fmt.Errorf("connection has unread data:\n%s", hex.Dump(b))
 		return err
 	}
-
 	return nil
 }

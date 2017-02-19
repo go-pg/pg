@@ -53,7 +53,7 @@ func (t *PoolTest) TestCloseClosesAllConnections(c *C) {
 	go func() {
 		wait <- struct{}{}
 		_, _, err := ln.Receive()
-		c.Assert(err, ErrorMatches, `^(.*use of closed network connection|EOF)$`)
+		c.Assert(err, ErrorMatches, `^(.*use of closed (file or )?network connection|EOF)$`)
 		wait <- struct{}{}
 	}()
 

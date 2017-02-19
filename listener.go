@@ -97,7 +97,7 @@ func (ln *Listener) listen(cn *pool.Conn, channels ...string) error {
 			return err
 		}
 	}
-	return cn.Wr.Flush()
+	return cn.FlushWriter()
 }
 
 // Receive indefinitely waits for a notification.
