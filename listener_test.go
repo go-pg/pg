@@ -86,7 +86,10 @@ var _ = Context("Listener", func() {
 			wait <- struct{}{}
 			_, _, err := ln.Receive()
 
-			Expect(err.Error()).Should(MatchRegexp(`^(.*use of closed network connection|EOF)$`))
+			Expect(err.Error()).To(SatisfyAny(
+				Equal("EOF"),
+				MatchRegexp(`use of closed (file or )?network connection$`),
+			))
 			wait <- struct{}{}
 		}()
 

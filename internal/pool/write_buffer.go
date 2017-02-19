@@ -6,16 +6,14 @@ import (
 )
 
 type WriteBuffer struct {
-	w     io.Writer
 	Bytes []byte
 
 	msgStart, paramStart int
 }
 
-func NewWriteBuffer(w io.Writer, b []byte) *WriteBuffer {
+func NewWriteBuffer() *WriteBuffer {
 	return &WriteBuffer{
-		w:     w,
-		Bytes: b,
+		Bytes: make([]byte, 0, 4096),
 	}
 }
 
@@ -78,12 +76,6 @@ func (buf *WriteBuffer) WriteBytes(b []byte) {
 
 func (buf *WriteBuffer) WriteByte(c byte) {
 	buf.Bytes = append(buf.Bytes, c)
-}
-
-func (buf *WriteBuffer) Flush() error {
-	_, err := buf.w.Write(buf.Bytes)
-	buf.Reset()
-	return err
 }
 
 func (buf *WriteBuffer) Reset() {

@@ -59,7 +59,7 @@ const (
 
 func startup(cn *pool.Conn, user, password, database string) error {
 	writeStartupMsg(cn.Wr, user, database)
-	if err := cn.Wr.Flush(); err != nil {
+	if err := cn.FlushWriter(); err != nil {
 		return err
 	}
 
@@ -105,20 +105,19 @@ func startup(cn *pool.Conn, user, password, database string) error {
 
 func enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
 	writeSSLMsg(cn.Wr)
-	if err := cn.Wr.Flush(); err != nil {
+	if err := cn.FlushWriter(); err != nil {
 		return err
 	}
 
-	b := cn.Buf[:1]
-	_, err := io.ReadFull(cn.NetConn, b)
+	c, err := cn.Rd.ReadByte()
 	if err != nil {
 		return err
 	}
-	if b[0] != 'S' {
+	if c != 'S' {
 		return errSSLNotSupported
 	}
 
-	cn.SetNetConn(tls.Client(cn.NetConn, tlsConf))
+	cn.SetNetConn(tls.Client(cn.NetConn(), tlsConf))
 	return nil
 }
 
@@ -132,7 +131,7 @@ func authenticate(cn *pool.Conn, user, password string) error {
 		return nil
 	case 3:
 		writePasswordMsg(cn.Wr, password)
-		if err := cn.Wr.Flush(); err != nil {
+		if err := cn.FlushWriter(); err != nil {
 			return err
 		}
 
@@ -167,7 +166,7 @@ func authenticate(cn *pool.Conn, user, password string) error {
 
 		secret := "md5" + md5s(md5s(password+user)+string(b))
 		writePasswordMsg(cn.Wr, secret)
-		if err := cn.Wr.Flush(); err != nil {
+		if err := cn.FlushWriter(); err != nil {
 			return err
 		}
 
@@ -1004,7 +1003,7 @@ var terminateMessage = []byte{terminateMsg, 0, 0, 0, 4}
 
 func terminateConn(cn *pool.Conn) error {
 	// Don't use cn.Buf because it is racy with user code.
-	_, err := cn.NetConn.Write(terminateMessage)
+	_, err := cn.NetConn().Write(terminateMessage)
 	return err
 }
 
@@ -1050,7 +1049,7 @@ func readBytes(cn *pool.Conn, b []byte) ([]byte, error) {
 
 func readError(cn *pool.Conn) (error, error) {
 	m := map[byte]string{
-		'a': cn.NetConn.RemoteAddr().String(),
+		'a': cn.RemoteAddr().String(),
 	}
 	for {
 		c, err := cn.Rd.ReadByte()
