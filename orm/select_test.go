@@ -100,6 +100,7 @@ var _ = Describe("Count", func() {
 
 	It("removes LIMIT, OFFSET, and ORDER from CTE", func() {
 		q := NewQuery(nil).
+			Column("col1", "col2").
 			Order("order").
 			Limit(1).
 			Offset(2).
@@ -108,7 +109,7 @@ var _ = Describe("Count", func() {
 
 		b, err := q.countSelectQuery("count(*)").AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT 1) SELECT count(*) FROM "wrapper"`))
+		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "col1", "col2") SELECT count(*) FROM "wrapper"`))
 	})
 
 	It("uses CTE when query contains GROUP BY", func() {
@@ -116,7 +117,7 @@ var _ = Describe("Count", func() {
 
 		b, err := q.countQuery().countSelectQuery("count(*)").AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT 1 GROUP BY "one") SELECT count(*) FROM "wrapper"`))
+		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT * GROUP BY "one") SELECT count(*) FROM "wrapper"`))
 	})
 
 	It("includes has one joins", func() {

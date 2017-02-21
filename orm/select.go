@@ -13,7 +13,7 @@ func Select(db DB, model interface{}) error {
 
 type selectQuery struct {
 	*Query
-	count FormatAppender
+	count string
 }
 
 var _ QueryAppender = (*selectQuery)(nil)
@@ -29,8 +29,8 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 	}
 
 	b = append(b, "SELECT "...)
-	if q.count != nil {
-		b = q.count.AppendFormat(b, q)
+	if q.count != "" && q.count != "*" {
+		b = append(b, q.count...)
 	} else {
 		b = q.appendColumns(b)
 	}
@@ -77,7 +77,7 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 		}
 	}
 
-	if q.count == nil {
+	if q.count == "" {
 		if len(q.order) > 0 {
 			b = append(b, " ORDER BY "...)
 			for i, f := range q.order {

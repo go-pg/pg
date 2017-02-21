@@ -309,10 +309,10 @@ func (q *Query) countQuery() *Query {
 	return q
 }
 
-func (q *Query) countSelectQuery(query string) selectQuery {
+func (q *Query) countSelectQuery(column string) selectQuery {
 	return selectQuery{
 		Query: q,
-		count: queryParamsAppender{query: query},
+		count: column,
 	}
 }
 
@@ -698,7 +698,7 @@ func (q *Query) appendReturning(b []byte) []byte {
 	return b
 }
 
-func (q *Query) appendWith(b []byte, count FormatAppender) ([]byte, error) {
+func (q *Query) appendWith(b []byte, count string) ([]byte, error) {
 	var err error
 	b = append(b, "WITH "...)
 	for i, with := range q.with {
@@ -708,8 +708,8 @@ func (q *Query) appendWith(b []byte, count FormatAppender) ([]byte, error) {
 		b = types.AppendField(b, with.name, 1)
 		b = append(b, " AS ("...)
 
-		if count != nil {
-			b, err = with.query.countSelectQuery("1").AppendQuery(b)
+		if count != "" {
+			b, err = with.query.countSelectQuery("*").AppendQuery(b)
 		} else {
 			b, err = selectQuery{Query: with.query}.AppendQuery(b)
 		}
