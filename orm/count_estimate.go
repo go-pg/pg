@@ -52,7 +52,7 @@ func (q *Query) CountEstimate(threshold int) (int, error) {
 		return 0, q.stickyErr
 	}
 
-	query, err := q.countSelectQuery(placeholder).AppendQuery(nil)
+	query, err := q.countQuery().countSelectQuery(placeholder).AppendQuery(nil)
 	if err != nil {
 		return 0, err
 	}

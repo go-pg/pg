@@ -22,7 +22,7 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 	var err error
 
 	if len(q.with) > 0 {
-		b, err = q.appendWith(b)
+		b, err = q.appendWith(b, q.count)
 		if err != nil {
 			return nil, err
 		}

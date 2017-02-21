@@ -61,10 +61,6 @@ var _ = Describe("Select", func() {
 		b, err := selectQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id", "has_one"."id" AS "has_one__id" FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
-
-		b, err = q.countSelectQuery("count(*)").AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`SELECT count(*) FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
 	})
 
 	It("specifies all columns for has many", func() {
@@ -76,10 +72,6 @@ var _ = Describe("Select", func() {
 		b, err := selectQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT "has_many_model"."id", "has_many_model"."select_model_id" FROM "has_many_models" AS "has_many_model" WHERE (("has_many_model"."select_model_id") IN ((1)))`))
-
-		b, err = q.countSelectQuery("count(*)").AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`SELECT count(*) FROM "has_many_models" AS "has_many_model" WHERE (("has_many_model"."select_model_id") IN ((1)))`))
 	})
 
 	It("supports multiple groups", func() {
@@ -87,10 +79,6 @@ var _ = Describe("Select", func() {
 		b, err := selectQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT * GROUP BY "one", "two"`))
-
-		b, err = q.countSelectQuery("count(*)").AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT * GROUP BY "one", "two") SELECT count(*) FROM "wrapper"`))
 	})
 
 	It("WhereOr", func() {
@@ -98,6 +86,45 @@ var _ = Describe("Select", func() {
 		b, err := selectQuery{Query: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT * WHERE (1 = 1) OR (1 = 2)`))
+	})
+})
+
+var _ = Describe("Count", func() {
+	It("removes LIMIT, OFFSET, and ORDER", func() {
+		q := NewQuery(nil).Order("order").Limit(1).Offset(2)
+
+		b, err := q.countSelectQuery("count(*)").AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT count(*)`))
+	})
+
+	It("removes LIMIT, OFFSET, and ORDER from CTE", func() {
+		q := NewQuery(nil).
+			Order("order").
+			Limit(1).
+			Offset(2).
+			WrapWith("wrapper").
+			Table("wrapper")
+
+		b, err := q.countSelectQuery("count(*)").AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT 1) SELECT count(*) FROM "wrapper"`))
+	})
+
+	It("uses CTE when query contains GROUP BY", func() {
+		q := NewQuery(nil).Group("one")
+
+		b, err := q.countQuery().countSelectQuery("count(*)").AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT 1 GROUP BY "one") SELECT count(*) FROM "wrapper"`))
+	})
+
+	It("includes has one joins", func() {
+		q := NewQuery(nil, &SelectModel{Id: 1}).Column("HasOne")
+
+		b, err := q.countSelectQuery("count(*)").AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT count(*) FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
 	})
 })
 

@@ -24,7 +24,7 @@ func (q updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 	var err error
 
 	if len(q.with) > 0 {
-		b, err = q.appendWith(b)
+		b, err = q.appendWith(b, nil)
 		if err != nil {
 			return nil, err
 		}
