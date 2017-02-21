@@ -122,11 +122,11 @@ func (q *Query) With(name string, subq *Query) *Query {
 // WrapWith creates new Query and adds to it current query as
 // common table expression with the given name.
 func (q *Query) WrapWith(name string) *Query {
-	topq := q.New()
-	topq.with = q.with
+	wrapper := q.New()
+	wrapper.with = q.with
 	q.with = nil
-	topq = topq.With(name, q)
-	return topq
+	wrapper = wrapper.With(name, q)
+	return wrapper
 }
 
 func (q *Query) Table(tables ...string) *Query {
@@ -294,15 +294,12 @@ func (q *Query) Count() (int, error) {
 	}
 
 	var count int
-	_, err := q.db.QueryOne(Scan(&count), q.countSelectQuery("count(*)"), q.model)
+	_, err := q.db.QueryOne(
+		Scan(&count),
+		q.countQuery().countSelectQuery("count(*)"),
+		q.model,
+	)
 	return count, err
-}
-
-func (q *Query) countSelectQuery(query string) selectQuery {
-	return selectQuery{
-		Query: q.countQuery(),
-		count: queryParamsAppender{query: query},
-	}
 }
 
 func (q *Query) countQuery() *Query {
@@ -310,6 +307,13 @@ func (q *Query) countQuery() *Query {
 		return q.Copy().WrapWith("wrapper").Table("wrapper")
 	}
 	return q
+}
+
+func (q *Query) countSelectQuery(query string) selectQuery {
+	return selectQuery{
+		Query: q,
+		count: queryParamsAppender{query: query},
+	}
 }
 
 // First selects the first row.
@@ -694,19 +698,25 @@ func (q *Query) appendReturning(b []byte) []byte {
 	return b
 }
 
-func (q *Query) appendWith(b []byte) ([]byte, error) {
+func (q *Query) appendWith(b []byte, count FormatAppender) ([]byte, error) {
 	var err error
 	b = append(b, "WITH "...)
-	for i, withq := range q.with {
+	for i, with := range q.with {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		b = types.AppendField(b, withq.name, 1)
+		b = types.AppendField(b, with.name, 1)
 		b = append(b, " AS ("...)
-		b, err = selectQuery{Query: withq.query}.AppendQuery(b)
+
+		if count != nil {
+			b, err = with.query.countSelectQuery("1").AppendQuery(b)
+		} else {
+			b, err = selectQuery{Query: with.query}.AppendQuery(b)
+		}
 		if err != nil {
 			return nil, err
 		}
+
 		b = append(b, ')')
 	}
 	b = append(b, ' ')
