@@ -232,6 +232,22 @@ func ExampleDB_Select() {
 	// Output: Book<Id=1 Title="book 1">
 }
 
+func ExampleDB_Select_whereIn() {
+	db := modelDB()
+
+	var ids = []interface{}{}
+	for _, author := range authors {
+		ids = append(ids, author.ID)
+	}
+
+	var book []Book
+	if err := db.Model(&book).WhereIn("author_id", ids...).Select(); err != nil {
+		return nil, err
+	}
+	fmt.Println(book[0])
+	// Output: Book<Id=1 Title="book 1">
+}
+
 func ExampleDB_Select_firstRow() {
 	db := modelDB()
 
