@@ -303,6 +303,18 @@ func ExampleDB_Select_someColumnsIntoVars() {
 	// Output: 1 book 1
 }
 
+func ExampleDB_Select_whereIn() {
+	db := modelDB()
+
+	var books []Book
+	err := db.Model(&books).WhereIn("id IN (?)", 1, 2).Select()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(books)
+	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
+}
+
 func ExampleDB_Select_sqlExpression() {
 	db := modelDB()
 
@@ -375,6 +387,34 @@ func ExampleDB_Select_wrapWith() {
 	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
 }
 
+func ExampleDB_Select_applyFunc() {
+	db := modelDB()
+
+	var authorId int
+	var editorId int
+
+	filter := func(q *orm.Query) (*orm.Query, error) {
+		if authorId != 0 {
+			q = q.Where("author_id = ?", authorId)
+		}
+		if editorId != 0 {
+			q = q.Where("editor_id = ?", editorId)
+		}
+		return q, nil
+	}
+
+	var books []Book
+	authorId = 1
+	err := db.Model(&books).
+		Apply(filter).
+		Select()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(books)
+	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
+}
+
 func ExampleDB_Model_count() {
 	db := modelDB()
 
@@ -426,34 +466,6 @@ func ExampleDB_Model_nullEmptyValue() {
 	}
 	fmt.Println(str.Valid)
 	// Output: false
-}
-
-func ExampleDB_Model_applyFunc() {
-	db := modelDB()
-
-	var authorId int
-	var editorId int
-
-	filter := func(q *orm.Query) (*orm.Query, error) {
-		if authorId != 0 {
-			q = q.Where("author_id = ?", authorId)
-		}
-		if editorId != 0 {
-			q = q.Where("editor_id = ?", editorId)
-		}
-		return q, nil
-	}
-
-	var books []Book
-	authorId = 1
-	err := db.Model(&books).
-		Apply(filter).
-		Select()
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(books)
-	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
 }
 
 func ExampleDB_Model_hasOne() {

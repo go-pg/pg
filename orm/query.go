@@ -204,6 +204,13 @@ func (q *Query) WhereOr(where string, params ...interface{}) *Query {
 	return q
 }
 
+// WhereIn is a shortcut for Where and pg.In to work with IN operator:
+//
+//    WhereIn("id IN (?)", 1, 2, 3)
+func (q *Query) WhereIn(where string, params ...interface{}) *Query {
+	return q.Where(where, types.In(params))
+}
+
 func (q *Query) Join(join string, params ...interface{}) *Query {
 	q.joins = append(q.joins, queryParamsAppender{join, params})
 	return q
