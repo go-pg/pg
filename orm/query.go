@@ -199,6 +199,10 @@ func (q *Query) Where(where string, params ...interface{}) *Query {
 	return q
 }
 
+func (q *Query) WhereIn(where string, params ...interface{}) *Query {
+	return q.Where(where, types.In(params))
+}
+
 func (q *Query) WhereOr(where string, params ...interface{}) *Query {
 	q.where = append(q.where, &whereAppender{"OR", where, params})
 	return q
