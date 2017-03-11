@@ -31,6 +31,16 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal("SELECT * WHERE (hello = 'world')"))
 	})
 
+	It("works with Copy", func() {
+		q1 := NewQuery(nil).Where("1 = 1").Where("2 = 2").Where("3 = 3")
+		q2 := q1.Copy().Where("q2 = ?", "v2")
+		q1 = q1.Where("q1 = ?", "v1")
+
+		b, err := selectQuery{Query: q2}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal("SELECT * WHERE (1 = 1) AND (2 = 2) AND (3 = 3) AND (q2 = 'v2')"))
+	})
+
 	It("specifies all columns", func() {
 		q := NewQuery(nil, &SelectModel{})
 

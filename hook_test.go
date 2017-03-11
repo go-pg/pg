@@ -1,11 +1,11 @@
 package pg_test
 
 import (
-	"github.com/go-pg/pg"
-	"github.com/go-pg/pg/orm"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/orm"
 )
 
 type HookTest struct {
@@ -151,5 +151,36 @@ var _ = Describe("HookTest", func() {
 		Expect(hook.afterQuery).To(Equal(0))
 		Expect(hook.beforeDelete).To(Equal(1))
 		Expect(hook.afterDelete).To(Equal(1))
+	})
+})
+
+var _ = Describe("OnQueryProcessed", func() {
+	var db *pg.DB
+	var count int
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+		db.OnQueryProcessed(func(ormDB orm.DB, event *pg.QueryProcessedEvent) {
+			Expect(ormDB).To(Equal(db))
+			Expect(event.StartTime).NotTo(BeZero())
+			Expect(event.Query).To(Equal("SELECT ?"))
+			Expect(event.Params).To(Equal([]interface{}{1}))
+			Expect(event.Result).NotTo(BeNil())
+			Expect(event.Error).NotTo(HaveOccurred())
+			count++
+		})
+		count = 0
+	})
+
+	It("is called for Query", func() {
+		_, err := db.Query(pg.Discard, "SELECT ?", 1)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(count).To(Equal(1))
+	})
+
+	It("is called for Exec", func() {
+		_, err := db.Exec("SELECT ?", 1)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(count).To(Equal(1))
 	})
 })

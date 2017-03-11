@@ -2,6 +2,7 @@ package pg
 
 import (
 	"io"
+	"time"
 
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/pool"
@@ -139,8 +140,11 @@ func (tx *Tx) Exec(query interface{}, params ...interface{}) (orm.Result, error)
 		return nil, err
 	}
 
+	start := time.Now()
 	res, err := tx.db.simpleQuery(cn, query, params...)
 	tx.freeConn(cn, err)
+	tx.db.queryProcessed(tx, start, query, params, res, err)
+
 	return res, err
 }
 
@@ -166,8 +170,11 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 		return nil, err
 	}
 
+	start := time.Now()
 	res, err := tx.db.simpleQueryData(cn, model, query, params...)
 	tx.freeConn(cn, err)
+	tx.db.queryProcessed(tx, start, query, params, res, err)
+
 	if err != nil {
 		return nil, err
 	}
