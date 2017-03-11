@@ -29,6 +29,8 @@ type DB struct {
 	opt   *Options
 	pool  *pool.ConnPool
 	fmter orm.Formatter
+
+	queryProcessedHooks []queryProcessedHook
 }
 
 var _ orm.DB = (*DB)(nil)
@@ -47,10 +49,13 @@ func (db *DB) WithTimeout(d time.Duration) *DB {
 	newopt := *db.opt
 	newopt.ReadTimeout = d
 	newopt.WriteTimeout = d
+
 	return &DB{
 		opt:   &newopt,
 		pool:  db.pool,
 		fmter: db.fmter,
+
+		queryProcessedHooks: db.queryProcessedHooks[:len(db.queryProcessedHooks):len(db.queryProcessedHooks)],
 	}
 }
 
@@ -60,6 +65,8 @@ func (db *DB) WithParam(param string, value interface{}) *DB {
 		opt:   db.opt,
 		pool:  db.pool,
 		fmter: db.fmter.WithParam(param, value),
+
+		queryProcessedHooks: db.queryProcessedHooks[:len(db.queryProcessedHooks):len(db.queryProcessedHooks)],
 	}
 }
 
@@ -149,8 +156,10 @@ func (db *DB) Exec(query interface{}, params ...interface{}) (res orm.Result, er
 			return nil, err
 		}
 
+		start := time.Now()
 		res, err = db.simpleQuery(cn, query, params...)
 		db.freeConn(cn, err)
+		db.queryProcessed(db, start, query, params, res, err)
 
 		if i >= db.opt.MaxRetries {
 			break
@@ -190,8 +199,10 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res orm.Re
 			return nil, err
 		}
 
+		start := time.Now()
 		res, err = db.simpleQueryData(cn, model, query, params...)
 		db.freeConn(cn, err)
+		db.queryProcessed(db, start, query, params, res, err)
 
 		if i >= db.opt.MaxRetries {
 			break
@@ -219,12 +230,7 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res orm.Re
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (db *DB) QueryOne(model, query interface{}, params ...interface{}) (orm.Result, error) {
-	mod, err := orm.NewModel(model)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := db.Query(mod, query, params...)
+	res, err := db.Query(model, query, params...)
 	if err != nil {
 		return nil, err
 	}
