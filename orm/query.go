@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/pg.v5/internal"
-	"gopkg.in/pg.v5/types"
+	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/types"
 )
 
 type withQuery struct {
@@ -373,7 +373,7 @@ func (q *Query) newModel(values ...interface{}) (Model, error) {
 	return q.model, nil
 }
 
-func (q *Query) query(model Model, query interface{}) (*types.Result, error) {
+func (q *Query) query(model Model, query interface{}) (Result, error) {
 	if _, ok := model.(useQueryOne); ok {
 		return q.db.QueryOne(model, query, q.model)
 	}
@@ -445,7 +445,7 @@ func selectJoins(db DB, joins []join) error {
 }
 
 // Insert inserts the model.
-func (q *Query) Insert(values ...interface{}) (*types.Result, error) {
+func (q *Query) Insert(values ...interface{}) (Result, error) {
 	if q.stickyErr != nil {
 		return nil, q.stickyErr
 	}
@@ -522,7 +522,7 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, err error)
 }
 
 // Update updates the model.
-func (q *Query) Update(values ...interface{}) (*types.Result, error) {
+func (q *Query) Update(values ...interface{}) (Result, error) {
 	if q.stickyErr != nil {
 		return nil, q.stickyErr
 	}
@@ -553,7 +553,7 @@ func (q *Query) Update(values ...interface{}) (*types.Result, error) {
 }
 
 // Delete deletes the model.
-func (q *Query) Delete() (*types.Result, error) {
+func (q *Query) Delete() (Result, error) {
 	if q.stickyErr != nil {
 		return nil, q.stickyErr
 	}

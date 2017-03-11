@@ -1,6 +1,6 @@
 package orm
 
-import "gopkg.in/pg.v5/types"
+import "github.com/go-pg/pg/types"
 
 const (
 	HasOneRelation = 1 << iota

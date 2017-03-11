@@ -3,8 +3,8 @@ package pg_test
 import (
 	"fmt"
 
-	"gopkg.in/pg.v5"
-	"gopkg.in/pg.v5/orm"
+	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/orm"
 )
 
 type User struct {

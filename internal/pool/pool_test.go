@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"gopkg.in/pg.v5/internal/pool"
+	"github.com/go-pg/pg/internal/pool"
 )
 
 var _ = Describe("ConnPool", func() {

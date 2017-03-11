@@ -4,7 +4,7 @@ import (
 	"testing"
 	"unsafe"
 
-	"gopkg.in/pg.v5/orm"
+	"github.com/go-pg/pg/orm"
 )
 
 func TestQuerySize(t *testing.T) {

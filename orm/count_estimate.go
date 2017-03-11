@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"gopkg.in/pg.v5/internal"
+	"github.com/go-pg/pg/internal"
 )
 
 // Placeholder that is replaced with count(*).

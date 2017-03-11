@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/pg.v5/internal/pool"
+	"github.com/go-pg/pg/internal/pool"
 )
 
 // Database connection options.

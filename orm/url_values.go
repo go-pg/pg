@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/pg.v5/types"
+	"github.com/go-pg/pg/types"
 )
 
 func URLValues(urlValues url.Values) func(*Query) (*Query, error) {

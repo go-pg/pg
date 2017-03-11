@@ -3,7 +3,7 @@ package pg_test
 import (
 	"strings"
 
-	"gopkg.in/pg.v5"
+	"github.com/go-pg/pg"
 
 	. "gopkg.in/check.v1"
 )

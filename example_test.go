@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/pg.v5"
-	"gopkg.in/pg.v5/orm"
+	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/orm"
 )
 
 var db *pg.DB

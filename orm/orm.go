@@ -1,7 +1,5 @@
 package orm
 
-import "gopkg.in/pg.v5/types"
-
 // ColumnScanner is used to scan column values.
 type ColumnScanner interface {
 	// Scan assigns a column value from a row.
@@ -27,10 +25,10 @@ type DB interface {
 	Update(model interface{}) error
 	Delete(model interface{}) error
 
-	Exec(query interface{}, params ...interface{}) (*types.Result, error)
-	ExecOne(query interface{}, params ...interface{}) (*types.Result, error)
-	Query(coll, query interface{}, params ...interface{}) (*types.Result, error)
-	QueryOne(model, query interface{}, params ...interface{}) (*types.Result, error)
+	Exec(query interface{}, params ...interface{}) (Result, error)
+	ExecOne(query interface{}, params ...interface{}) (Result, error)
+	Query(coll, query interface{}, params ...interface{}) (Result, error)
+	QueryOne(model, query interface{}, params ...interface{}) (Result, error)
 
 	QueryFormatter
 }

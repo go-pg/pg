@@ -1,6 +1,6 @@
 package orm
 
-import "gopkg.in/pg.v5/internal"
+import "github.com/go-pg/pg/internal"
 
 func Delete(db DB, model interface{}) error {
 	res, err := NewQuery(db, model).Delete()

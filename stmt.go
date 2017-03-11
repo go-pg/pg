@@ -4,10 +4,9 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/pg.v5/internal"
-	"gopkg.in/pg.v5/internal/pool"
-	"gopkg.in/pg.v5/orm"
-	"gopkg.in/pg.v5/types"
+	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/internal/pool"
+	"github.com/go-pg/pg/orm"
 )
 
 // Stmt is a prepared statement. Stmt is safe for concurrent use by
@@ -49,7 +48,7 @@ func (stmt *Stmt) conn() (*pool.Conn, error) {
 	return stmt._cn, nil
 }
 
-func (stmt *Stmt) exec(params ...interface{}) (*types.Result, error) {
+func (stmt *Stmt) exec(params ...interface{}) (orm.Result, error) {
 	stmt.mu.Lock()
 	defer stmt.mu.Unlock()
 
@@ -61,7 +60,7 @@ func (stmt *Stmt) exec(params ...interface{}) (*types.Result, error) {
 }
 
 // Exec executes a prepared statement with the given parameters.
-func (stmt *Stmt) Exec(params ...interface{}) (res *types.Result, err error) {
+func (stmt *Stmt) Exec(params ...interface{}) (res orm.Result, err error) {
 	for i := 0; i < 3; i++ {
 		res, err = stmt.exec(params...)
 
@@ -83,7 +82,7 @@ func (stmt *Stmt) Exec(params ...interface{}) (res *types.Result, err error) {
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (stmt *Stmt) ExecOne(params ...interface{}) (*types.Result, error) {
+func (stmt *Stmt) ExecOne(params ...interface{}) (orm.Result, error) {
 	res, err := stmt.Exec(params...)
 	if err != nil {
 		return nil, err
@@ -95,7 +94,7 @@ func (stmt *Stmt) ExecOne(params ...interface{}) (*types.Result, error) {
 	return res, nil
 }
 
-func (stmt *Stmt) query(model interface{}, params ...interface{}) (*types.Result, error) {
+func (stmt *Stmt) query(model interface{}, params ...interface{}) (orm.Result, error) {
 	stmt.mu.Lock()
 	defer stmt.mu.Unlock()
 
@@ -104,12 +103,12 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (*types.Result
 		return nil, err
 	}
 
-	res, mod, err := extQueryData(cn, stmt.name, model, stmt.columns, params...)
+	res, err := extQueryData(cn, stmt.name, model, stmt.columns, params...)
 	if err != nil {
 		return nil, err
 	}
 
-	if res.RowsReturned() > 0 && mod != nil {
+	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
 		if err = mod.AfterQuery(stmt.db); err != nil {
 			return res, err
 		}
@@ -119,7 +118,7 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (*types.Result
 }
 
 // Query executes a prepared query statement with the given parameters.
-func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res *types.Result, err error) {
+func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res orm.Result, err error) {
 	for i := 0; i < 3; i++ {
 		res, err = stmt.query(model, params...)
 
@@ -141,7 +140,7 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res *types.Re
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (*types.Result, error) {
+func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (orm.Result, error) {
 	mod, err := orm.NewModel(model)
 	if err != nil {
 		return nil, err
@@ -205,7 +204,7 @@ func prepare(db *DB, cn *pool.Conn, q string) (*Stmt, error) {
 	return stmt, nil
 }
 
-func extQuery(cn *pool.Conn, name string, params ...interface{}) (*types.Result, error) {
+func extQuery(cn *pool.Conn, name string, params ...interface{}) (orm.Result, error) {
 	if err := writeBindExecuteMsg(cn.Wr, name, params...); err != nil {
 		return nil, err
 	}
@@ -217,12 +216,12 @@ func extQuery(cn *pool.Conn, name string, params ...interface{}) (*types.Result,
 
 func extQueryData(
 	cn *pool.Conn, name string, model interface{}, columns [][]byte, params ...interface{},
-) (*types.Result, orm.Model, error) {
+) (orm.Result, error) {
 	if err := writeBindExecuteMsg(cn.Wr, name, params...); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := cn.FlushWriter(); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	return readExtQueryData(cn, model, columns)
 }

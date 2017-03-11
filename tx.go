@@ -3,10 +3,9 @@ package pg
 import (
 	"io"
 
-	"gopkg.in/pg.v5/internal"
-	"gopkg.in/pg.v5/internal/pool"
-	"gopkg.in/pg.v5/orm"
-	"gopkg.in/pg.v5/types"
+	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/internal/pool"
+	"github.com/go-pg/pg/orm"
 )
 
 // Tx is an in-progress database transaction.
@@ -134,7 +133,7 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 }
 
 // Exec executes a query with the given parameters in a transaction.
-func (tx *Tx) Exec(query interface{}, params ...interface{}) (*types.Result, error) {
+func (tx *Tx) Exec(query interface{}, params ...interface{}) (orm.Result, error) {
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err
@@ -148,7 +147,7 @@ func (tx *Tx) Exec(query interface{}, params ...interface{}) (*types.Result, err
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (*types.Result, error) {
+func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (orm.Result, error) {
 	res, err := tx.Exec(query, params...)
 	if err != nil {
 		return nil, err
@@ -161,19 +160,19 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (*types.Result, 
 }
 
 // Query executes a query with the given parameters in a transaction.
-func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (*types.Result, error) {
+func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (orm.Result, error) {
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	res, mod, err := tx.db.simpleQueryData(cn, model, query, params...)
+	res, err := tx.db.simpleQueryData(cn, model, query, params...)
 	tx.freeConn(cn, err)
 	if err != nil {
 		return nil, err
 	}
 
-	if res.RowsReturned() > 0 && mod != nil {
+	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
 		if err = mod.AfterQuery(tx); err != nil {
 			return res, err
 		}
@@ -185,7 +184,7 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (*types.Result, error) {
+func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (orm.Result, error) {
 	mod, err := orm.NewModel(model)
 	if err != nil {
 		return nil, err
@@ -287,7 +286,7 @@ func (tx *Tx) close(lastErr error) error {
 }
 
 // CopyFrom copies data from reader to a table.
-func (tx *Tx) CopyFrom(r io.Reader, query string, params ...interface{}) (*types.Result, error) {
+func (tx *Tx) CopyFrom(r io.Reader, query string, params ...interface{}) (orm.Result, error) {
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err

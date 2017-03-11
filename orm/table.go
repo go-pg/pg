@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"strings"
 
-	"gopkg.in/pg.v5/internal"
-	"gopkg.in/pg.v5/types"
+	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/types"
 
 	"github.com/jinzhu/inflection"
 )

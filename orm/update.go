@@ -3,7 +3,7 @@ package orm
 import (
 	"errors"
 
-	"gopkg.in/pg.v5/internal"
+	"github.com/go-pg/pg/internal"
 )
 
 func Update(db DB, model interface{}) error {

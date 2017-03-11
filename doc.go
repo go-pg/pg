@@ -1,4 +1,4 @@
 /*
-Package gopkg.in/pg.v5 implements a PostgreSQL client.
+Package github.com/go-pg/pg implements a PostgreSQL client.
 */
 package pg

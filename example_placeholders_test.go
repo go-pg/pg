@@ -3,7 +3,7 @@ package pg_test
 import (
 	"fmt"
 
-	"gopkg.in/pg.v5"
+	"github.com/go-pg/pg"
 )
 
 type Params struct {

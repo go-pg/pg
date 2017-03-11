@@ -3,15 +3,13 @@ package orm
 import (
 	"fmt"
 	"reflect"
-
-	"gopkg.in/pg.v5/types"
 )
 
 type CreateTableOptions struct {
 	Temp bool
 }
 
-func CreateTable(db DB, model interface{}, opt *CreateTableOptions) (*types.Result, error) {
+func CreateTable(db DB, model interface{}, opt *CreateTableOptions) (Result, error) {
 	return db.Exec(createTableQuery{model: model, opt: opt})
 }
 

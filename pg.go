@@ -1,12 +1,12 @@
-package pg // import "gopkg.in/pg.v5"
+package pg
 
 import (
 	"log"
 	"strconv"
 
-	"gopkg.in/pg.v5/internal"
-	"gopkg.in/pg.v5/orm"
-	"gopkg.in/pg.v5/types"
+	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/orm"
+	"github.com/go-pg/pg/types"
 )
 
 // Discard is used with Query and QueryOne to discard rows.

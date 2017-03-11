@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"gopkg.in/pg.v5/internal/parser"
-	"gopkg.in/pg.v5/types"
+	"github.com/go-pg/pg/internal/parser"
+	"github.com/go-pg/pg/types"
 )
 
 type FormatAppender interface {

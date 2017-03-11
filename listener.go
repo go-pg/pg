@@ -4,8 +4,8 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/pg.v5/internal"
-	"gopkg.in/pg.v5/internal/pool"
+	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/internal/pool"
 )
 
 // A notification received with LISTEN command.

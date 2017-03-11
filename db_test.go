@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"gopkg.in/pg.v5"
-	"gopkg.in/pg.v5/orm"
+	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/orm"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

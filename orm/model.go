@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	"gopkg.in/pg.v5/types"
+	"github.com/go-pg/pg/types"
 )
 
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()

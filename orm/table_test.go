@@ -3,7 +3,7 @@ package orm_test
 import (
 	"reflect"
 
-	"gopkg.in/pg.v5/orm"
+	"github.com/go-pg/pg/orm"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
