@@ -2,16 +2,23 @@ package internal
 
 import (
 	"fmt"
-	"log"
 	"path/filepath"
 	"runtime"
 	"strings"
 )
 
 var (
-	Logger      *log.Logger
-	QueryLogger *log.Logger
+	Logger      IErrorLogger
+	QueryLogger IQueryLogger
 )
+
+type IErrorLogger interface {
+	Output(calldepth int, s string) error
+}
+
+type IQueryLogger interface {
+	Printf(format string, v ...interface{})
+}
 
 func Logf(s string, args ...interface{}) {
 	if Logger == nil {
