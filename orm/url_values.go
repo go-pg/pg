@@ -9,7 +9,17 @@ import (
 	"github.com/go-pg/pg/types"
 )
 
-func URLValues(urlValues url.Values) func(*Query) (*Query, error) {
+// URLFilters is used with Query.Apply to add WHERE clauses from the URL values:
+//   - ?foo=bar - Where(`"foo" = 'bar'`)
+//   - ?foo=hello&foo=world - Where(`"foo" IN ('hello','world')`)
+//   - ?foo__exclude=bar - Where(`"foo" != 'bar'`)
+//   - ?foo__ieq=bar - Where(`"foo" ILIKE 'bar'`)
+//   - ?foo__match=bar - Where(`"foo" SIMILAR TO 'bar'`)
+//   - ?foo__gt=42 - Where(`"foo" > 42`)
+//   - ?foo__gte=42 - Where(`"foo" >= 42`)
+//   - ?foo__lt=42 - Where(`"foo" < 42`)
+//   - ?foo__lte=42 - Where(`"foo" <= 42`)
+func URLFilters(urlValues url.Values) func(*Query) (*Query, error) {
 	return func(q *Query) (*Query, error) {
 		for fieldName, values := range urlValues {
 			var operation string
@@ -21,8 +31,7 @@ func URLValues(urlValues url.Values) func(*Query) (*Query, error) {
 				q = addOperator(q, fieldName, operation, values)
 			}
 		}
-
-		return setOrder(q, urlValues), nil
+		return q, nil
 	}
 }
 
@@ -64,50 +73,73 @@ func forAllValues(q *Query, fieldName string, values []string, queryTemplate, qu
 	return q
 }
 
-func setOrder(q *Query, urlValues url.Values) *Query {
-	for _, order := range urlValues["order"] {
-		if order != "" {
-			q = q.Order(order)
-		}
-	}
-	return q
+type Pager struct {
+	limit int
+	page  int
+
+	stickyErr error
 }
 
-// Pager sets LIMIT and OFFSET from the URL values:
+func NewPager(values url.Values, defaultLimit int) *Pager {
+	limit, err := intParam(values, "limit")
+	if err != nil {
+		return &Pager{stickyErr: err}
+	}
+	if limit <= 0 {
+		limit = defaultLimit
+	}
+
+	page, err := intParam(values, "page")
+	if err != nil {
+		return &Pager{stickyErr: err}
+	}
+
+	return &Pager{
+		limit: limit,
+		page:  page,
+	}
+}
+
+func (p *Pager) Limit() int {
+	return p.limit
+}
+
+func (p *Pager) Page() int {
+	return p.page
+}
+
+func (p *Pager) Offset() int {
+	if p.page > 0 {
+		return (p.page - 1) * p.limit
+	}
+	return 0
+}
+
+func (p *Pager) Paginate(q *Query) (*Query, error) {
+	const maxLimit = 1000
+	const maxOffset = 1000000
+
+	if p.stickyErr != nil {
+		return nil, p.stickyErr
+	}
+
+	if p.limit > maxLimit {
+		return nil, fmt.Errorf("limit=%d is bigger than %d", p.limit, maxLimit)
+	}
+	q = q.Limit(p.limit)
+
+	if offset := p.Offset(); offset > 0 {
+		q = q.Offset(offset)
+	}
+
+	return q, nil
+}
+
+// Pagination is used with Query.Apply to set LIMIT and OFFSET from the URL values:
 //   - ?limit=10 - sets q.Limit(10), max limit is 1000.
 //   - ?page=5 - sets q.Offset((page - 1) * limit), max offset is 1000000.
-func Pager(urlValues url.Values, defaultLimit int) func(*Query) (*Query, error) {
-	return func(q *Query) (*Query, error) {
-		const maxLimit = 1000
-		const maxOffset = 1e6
-
-		limit, err := intParam(urlValues, "limit")
-		if err != nil {
-			return nil, err
-		}
-		if limit < 1 {
-			limit = defaultLimit
-		} else if limit > maxLimit {
-			return nil, fmt.Errorf("limit=%d is bigger than %d", limit, maxLimit)
-		}
-		if limit > 0 {
-			q = q.Limit(limit)
-		}
-
-		page, err := intParam(urlValues, "page")
-		if err != nil {
-			return nil, err
-		}
-		if page > 0 {
-			offset := (page - 1) * limit
-			if offset > maxOffset {
-				return nil, fmt.Errorf("offset=%d can't bigger than %d", offset, maxOffset)
-			}
-			q = q.Offset(offset)
-		}
-
-		return q, nil
-	}
+func Pagination(values url.Values, defaultLimit int) func(*Query) (*Query, error) {
+	return NewPager(values, defaultLimit).Paginate
 }
 
 func intParam(urlValues url.Values, paramName string) (int, error) {
