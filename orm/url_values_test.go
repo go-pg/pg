@@ -65,14 +65,6 @@ var _ = Describe("URLValues", func() {
 			query: query + ` WHERE ("name" IN ('Mike','Peter'))`,
 		},
 		{
-			url:   "http://localhost:8000/test?order=name DESC",
-			query: query + ` ORDER BY "name" DESC`,
-		},
-		{
-			url:   "http://localhost:8000/test?order=id ASC&order=name DESC",
-			query: query + ` ORDER BY "id" ASC, "name" DESC`,
-		},
-		{
 			url:   "http://localhost:8000/test?invalid_field=1",
 			query: query,
 		},
@@ -83,7 +75,7 @@ var _ = Describe("URLValues", func() {
 			req, _ := http.NewRequest("GET", urlValuesTest.url, nil)
 
 			q := NewQuery(nil, &URLValuesModel{})
-			q = q.Apply(URLValues(req.URL.Query()))
+			q = q.Apply(URLFilters(req.URL.Query()))
 
 			b, err := selectQuery{Query: q}.AppendQuery(nil)
 			Expect(err).NotTo(HaveOccurred())
@@ -115,7 +107,7 @@ var _ = Describe("Pager", func() {
 			req, _ := http.NewRequest("GET", urlValuesTest.url, nil)
 
 			q := NewQuery(nil, &URLValuesModel{})
-			q = q.Apply(Pager(req.URL.Query(), 100))
+			q = q.Apply(Pagination(req.URL.Query(), 100))
 
 			b, err := selectQuery{Query: q}.AppendQuery(nil)
 			Expect(err).NotTo(HaveOccurred())
