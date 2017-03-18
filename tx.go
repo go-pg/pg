@@ -68,6 +68,12 @@ func (tx *Tx) Begin() (*Tx, error) {
 // returns an error transaction is rollbacked, otherwise transaction
 // is committed.
 func (tx *Tx) RunInTransaction(fn func(*Tx) error) error {
+	defer func() {
+		if err := recover(); err != nil {
+			tx.Rollback()
+			panic(err)
+		}
+	}()
 	if err := fn(tx); err != nil {
 		tx.Rollback()
 		return err
