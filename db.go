@@ -191,7 +191,7 @@ func (db *DB) ExecOne(query interface{}, params ...interface{}) (orm.Result, err
 // Query executes a query that returns rows, typically a SELECT.
 // The params are for any placeholders in the query.
 func (db *DB) Query(model, query interface{}, params ...interface{}) (res orm.Result, err error) {
-	for i := 0; i < 3; i++ {
+	for i := 0; ; i++ {
 		var cn *pool.Conn
 
 		cn, err = db.conn()
