@@ -148,12 +148,16 @@ func (db *DB) Close() error {
 // Exec executes a query ignoring returned rows. The params are for any
 // placeholders in the query.
 func (db *DB) Exec(query interface{}, params ...interface{}) (res orm.Result, err error) {
-	for i := 0; ; i++ {
+	for i := 0; i <= db.opt.MaxRetries; i++ {
 		var cn *pool.Conn
+
+		if i >= 1 {
+			time.Sleep(internal.RetryBackoff(i - 1))
+		}
 
 		cn, err = db.conn()
 		if err != nil {
-			return nil, err
+			continue
 		}
 
 		start := time.Now()
@@ -161,14 +165,9 @@ func (db *DB) Exec(query interface{}, params ...interface{}) (res orm.Result, er
 		db.freeConn(cn, err)
 		db.queryProcessed(db, start, query, params, res, err)
 
-		if i >= db.opt.MaxRetries {
-			break
-		}
 		if !db.shouldRetry(err) {
 			break
 		}
-
-		time.Sleep(internal.RetryBackoff << uint(i))
 	}
 	return res, err
 }
@@ -191,12 +190,16 @@ func (db *DB) ExecOne(query interface{}, params ...interface{}) (orm.Result, err
 // Query executes a query that returns rows, typically a SELECT.
 // The params are for any placeholders in the query.
 func (db *DB) Query(model, query interface{}, params ...interface{}) (res orm.Result, err error) {
-	for i := 0; ; i++ {
+	for i := 0; i <= db.opt.MaxRetries; i++ {
 		var cn *pool.Conn
+
+		if i >= 1 {
+			time.Sleep(internal.RetryBackoff(i - 1))
+		}
 
 		cn, err = db.conn()
 		if err != nil {
-			return nil, err
+			continue
 		}
 
 		start := time.Now()
@@ -204,14 +207,9 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res orm.Re
 		db.freeConn(cn, err)
 		db.queryProcessed(db, start, query, params, res, err)
 
-		if i >= db.opt.MaxRetries {
-			break
-		}
 		if !db.shouldRetry(err) {
 			break
 		}
-
-		time.Sleep(internal.RetryBackoff << uint(i))
 	}
 	if err != nil {
 		return nil, err

@@ -95,15 +95,52 @@ var formatTests = []formatTest{
 	{q: "?string", params: params{structv}, wanted: `'string_value'`},
 	{q: "?iface", params: params{structv}, wanted: `'iface_value'`},
 	{q: "?string", params: params{&StructFormatter{}}, wanted: `NULL`},
-	{q: "? ?string ?", params: params{"one", "two", structv}, wanted: "'one' 'string_value' 'two'"},
-	{q: "?string ?Method", params: params{structv}, wanted: "'string_value' 'method_value'"},
-	{q: "?string ?Method ?Method2", params: params{embeddedStructv}, wanted: "'string_value' 'method_value' 'method_value2'"},
+	{
+		q:      "? ?string ?",
+		params: params{"one", "two", structv},
+		wanted: "'one' 'string_value' 'two'",
+	},
+	{
+		q:      "?string ?Method",
+		params: params{structv},
+		wanted: "'string_value' 'method_value'",
+	},
+	{
+		q:      "?string ?Method ?Method2",
+		params: params{embeddedStructv},
+		wanted: "'string_value' 'method_value' 'method_value2'",
+	},
 
-	{q: "?string", params: params{structv}, paramsMap: paramsMap{"string": "my_value"}, wanted: "'my_value'"},
-	{q: "?", params: params{types.Q("?string")}, paramsMap: paramsMap{"string": "my_value"}, wanted: "?string"},
-	{q: "?", params: params{types.F("?string")}, paramsMap: paramsMap{"string": types.Q("my_value")}, wanted: `"?string"`},
-	{q: "?", params: params{orm.Q("?string")}, paramsMap: paramsMap{"string": "my_value"}, wanted: "'my_value'"},
-	{q: "?MethodParam", params: params{structv}, paramsMap: paramsMap{"string": "my_value"}, wanted: "?string"},
+	{
+		q:         "?string",
+		params:    params{structv},
+		paramsMap: paramsMap{"string": "my_value"},
+		wanted:    "'my_value'",
+	},
+	{
+		q:         "?",
+		params:    params{types.Q("?string")},
+		paramsMap: paramsMap{"string": "my_value"},
+		wanted:    "?string",
+	},
+	{
+		q:         "?",
+		params:    params{types.F("?string")},
+		paramsMap: paramsMap{"string": types.Q("my_value")},
+		wanted:    `"?string"`,
+	},
+	{
+		q:         "?",
+		params:    params{orm.Q("?string")},
+		paramsMap: paramsMap{"string": "my_value"},
+		wanted:    "'my_value'",
+	},
+	{
+		q:         "?MethodParam",
+		params:    params{structv},
+		paramsMap: paramsMap{"string": "my_value"},
+		wanted:    "?string",
+	},
 }
 
 func TestFormatQuery(t *testing.T) {
