@@ -61,19 +61,18 @@ func (stmt *Stmt) exec(params ...interface{}) (orm.Result, error) {
 
 // Exec executes a prepared statement with the given parameters.
 func (stmt *Stmt) Exec(params ...interface{}) (res orm.Result, err error) {
-	for i := 0; ; i++ {
+	for i := 0; i <= stmt.db.opt.MaxRetries; i++ {
+		if i >= 1 {
+			time.Sleep(internal.RetryBackoff(i - 1))
+		}
+
 		start := time.Now()
 		res, err = stmt.exec(params...)
 		stmt.db.queryProcessed(stmt.db, start, stmt.q, params, res, err)
 
-		if i >= stmt.db.opt.MaxRetries {
-			break
-		}
 		if !stmt.db.shouldRetry(err) {
 			break
 		}
-
-		time.Sleep(internal.RetryBackoff << uint(i))
 	}
 	if err != nil {
 		stmt.setErr(err)
@@ -121,19 +120,18 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (orm.Result, e
 
 // Query executes a prepared query statement with the given parameters.
 func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res orm.Result, err error) {
-	for i := 0; ; i++ {
+	for i := 0; i <= stmt.db.opt.MaxRetries; i++ {
+		if i >= 1 {
+			time.Sleep(internal.RetryBackoff(i - 1))
+		}
+
 		start := time.Now()
 		res, err = stmt.query(model, params...)
 		stmt.db.queryProcessed(stmt.db, start, stmt.q, params, res, err)
 
-		if i >= stmt.db.opt.MaxRetries {
-			break
-		}
 		if !stmt.db.shouldRetry(err) {
 			break
 		}
-
-		time.Sleep(internal.RetryBackoff << uint(i))
 	}
 	if err != nil {
 		stmt.setErr(err)
