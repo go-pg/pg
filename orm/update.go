@@ -15,62 +15,76 @@ func Update(db DB, model interface{}) error {
 }
 
 type updateQuery struct {
-	*Query
+	q *Query
 }
 
 var _ QueryAppender = (*updateQuery)(nil)
 
+func (q updateQuery) Copy() QueryAppender {
+	return updateQuery{
+		q: q.q.Copy(),
+	}
+}
+
+func (q updateQuery) Query() *Query {
+	return q.q
+}
+
 func (q updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	if q.q.stickyErr != nil {
+		return nil, q.q.stickyErr
+	}
+
 	var err error
 
-	if len(q.with) > 0 {
-		b, err = q.appendWith(b, "")
+	if len(q.q.with) > 0 {
+		b, err = q.q.appendWith(b, "")
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	b = append(b, "UPDATE "...)
-	b = q.appendFirstTable(b)
+	b = q.q.appendFirstTable(b)
 
 	b, err = q.mustAppendSet(b)
 	if err != nil {
 		return nil, err
 	}
 
-	if q.hasOtherTables() {
+	if q.q.hasOtherTables() {
 		b = append(b, " FROM "...)
-		b = q.appendOtherTables(b)
+		b = q.q.appendOtherTables(b)
 	}
 
-	b, err = q.mustAppendWhere(b)
+	b, err = q.q.mustAppendWhere(b)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(q.returning) > 0 {
-		b = q.appendReturning(b)
+	if len(q.q.returning) > 0 {
+		b = q.q.appendReturning(b)
 	}
 
 	return b, nil
 }
 
 func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
-	if len(q.set) > 0 {
-		b = q.appendSet(b)
+	if len(q.q.set) > 0 {
+		b = q.q.appendSet(b)
 		return b, nil
 	}
 
-	if q.model == nil {
+	if q.q.model == nil {
 		return nil, errors.New("pg: Model(nil)")
 	}
 
 	b = append(b, " SET "...)
 
-	table := q.model.Table()
-	strct := q.model.Value()
+	table := q.q.model.Table()
+	strct := q.q.model.Value()
 
-	if fields := q.getFields(); len(fields) > 0 {
+	if fields := q.q.getFields(); len(fields) > 0 {
 		for i, fieldName := range fields {
 			field, err := table.GetField(fieldName)
 			if err != nil {

@@ -1,37 +1,40 @@
 package orm
 
-import (
-	"fmt"
-	"reflect"
-)
+import "errors"
 
 type CreateTableOptions struct {
 	Temp bool
 }
 
 func CreateTable(db DB, model interface{}, opt *CreateTableOptions) (Result, error) {
-	return db.Exec(createTableQuery{model: model, opt: opt})
+	return NewQuery(db, model).CreateTable(opt)
 }
 
 type createTableQuery struct {
-	model interface{}
-	opt   *CreateTableOptions
+	q   *Query
+	opt *CreateTableOptions
 }
 
-func (c createTableQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
-	typ := reflect.TypeOf(c.model)
-	switch typ.Kind() {
-	case reflect.Ptr:
-		typ = typ.Elem()
+func (q createTableQuery) Copy() QueryAppender {
+	return q
+}
+
+func (q createTableQuery) Query() *Query {
+	return q.q
+}
+
+func (q createTableQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	if q.q.stickyErr != nil {
+		return nil, q.q.stickyErr
 	}
-	if typ.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("pg: Model(unsupported %s)", typ)
+	if q.q.model == nil {
+		return nil, errors.New("pg: Model(nil)")
 	}
 
-	table := Tables.Get(typ)
+	table := q.q.model.Table()
 
 	b = append(b, "CREATE "...)
-	if c.opt != nil && c.opt.Temp {
+	if q.opt != nil && q.opt.Temp {
 		b = append(b, "TEMP "...)
 	}
 	b = append(b, "TABLE "...)

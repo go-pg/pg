@@ -40,13 +40,17 @@ type CreateTableWithoutPKModel struct {
 
 var _ = Describe("CreateTable", func() {
 	It("creates new table", func() {
-		b, err := createTableQuery{model: CreateTableModel{}}.AppendQuery(nil)
+		q := NewQuery(nil, &CreateTableModel{})
+
+		b, err := createTableQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_models" (id bigserial, int8 smallint, uint8 smallint, int16 smallint, uint16 integer, int32 integer, uint32 bigint, int64 bigint, uint64 decimal, float32 real, float64 double precision, string text, varchar varchar(500), time timestamptz, not_null bigint NOT NULL, unique bigint UNIQUE, null_bool boolean, null_float64 double precision, null_int64 bigint, null_string text, slice jsonb, map jsonb, struct jsonb, PRIMARY KEY (id))`))
 	})
 
 	It("creates new table without primary key", func() {
-		b, err := createTableQuery{model: CreateTableWithoutPKModel{}}.AppendQuery(nil)
+		q := NewQuery(nil, &CreateTableWithoutPKModel{})
+
+		b, err := createTableQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_without_pk_models" (string text)`))
 	})

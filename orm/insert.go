@@ -12,25 +12,38 @@ func Insert(db DB, v ...interface{}) error {
 }
 
 type insertQuery struct {
-	*Query
+	q               *Query
 	returningFields []*Field
 }
 
 var _ QueryAppender = (*insertQuery)(nil)
 
+func (q insertQuery) Copy() QueryAppender {
+	return insertQuery{
+		q: q.q.Copy(),
+	}
+}
+
+func (q insertQuery) Query() *Query {
+	return q.q
+}
+
 func (q insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
-	if q.model == nil {
+	if q.q.stickyErr != nil {
+		return nil, q.q.stickyErr
+	}
+	if q.q.model == nil {
 		return nil, errors.New("pg: Model(nil)")
 	}
 
-	table := q.model.Table()
-	value := q.model.Value()
+	table := q.q.model.Table()
+	value := q.q.model.Value()
 
 	b = append(b, "INSERT INTO "...)
-	if q.onConflict != nil {
-		b = q.appendTableNameWithAlias(b)
+	if q.q.onConflict != nil {
+		b = q.q.appendTableNameWithAlias(b)
 	} else {
-		b = q.appendTableName(b)
+		b = q.q.appendTableName(b)
 	}
 	b = append(b, " ("...)
 
@@ -60,23 +73,23 @@ func (q insertQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 	}
 	b = append(b, ')')
 
-	if q.onConflict != nil {
+	if q.q.onConflict != nil {
 		b = append(b, " ON CONFLICT "...)
-		b = q.onConflict.AppendFormat(b, q)
+		b = q.q.onConflict.AppendFormat(b, q.q)
 
 		if onConflictDoUpdate(b) {
-			if len(q.set) > 0 {
-				b = q.appendSet(b)
+			if len(q.q.set) > 0 {
+				b = q.q.appendSet(b)
 			}
 
-			if len(q.where) > 0 {
-				b = q.appendWhere(b)
+			if len(q.q.where) > 0 {
+				b = q.q.appendWhere(b)
 			}
 		}
 	}
 
-	if len(q.returning) > 0 {
-		b = q.appendReturning(b)
+	if len(q.q.returning) > 0 {
+		b = q.q.appendReturning(b)
 	} else if len(q.returningFields) > 0 {
 		b = q.appendReturningFields(b, q.returningFields)
 	}

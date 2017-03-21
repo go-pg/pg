@@ -318,7 +318,7 @@ func (q *Query) countQuery() *Query {
 
 func (q *Query) countSelectQuery(column string) selectQuery {
 	return selectQuery{
-		Query: q,
+		q:     q,
 		count: column,
 	}
 }
@@ -347,7 +347,7 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
-	res, err := q.query(model, selectQuery{Query: q})
+	res, err := q.query(model, selectQuery{q: q})
 	if err != nil {
 		return err
 	}
@@ -461,7 +461,7 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 		}
 	}
 
-	res, err := q.db.Query(model, insertQuery{Query: q}, q.model)
+	res, err := q.db.Query(model, insertQuery{q: q}, q.model)
 	if err != nil {
 		return nil, err
 	}
@@ -576,6 +576,16 @@ func (q *Query) Delete() (Result, error) {
 	}
 
 	return res, nil
+}
+
+func (q *Query) CreateTable(opt *CreateTableOptions) (Result, error) {
+	if q.stickyErr != nil {
+		return nil, q.stickyErr
+	}
+	return q.db.Exec(createTableQuery{
+		q:   q,
+		opt: opt,
+	})
 }
 
 func (q *Query) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
@@ -718,7 +728,7 @@ func (q *Query) appendWith(b []byte, count string) ([]byte, error) {
 		if count != "" {
 			b, err = with.query.countSelectQuery("*").AppendQuery(b)
 		} else {
-			b, err = selectQuery{Query: with.query}.AppendQuery(b)
+			b, err = selectQuery{q: with.query}.AppendQuery(b)
 		}
 		if err != nil {
 			return nil, err
