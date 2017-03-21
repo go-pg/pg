@@ -18,7 +18,7 @@ type queryProcessedHook func(orm.DB, *QueryProcessedEvent)
 
 // OnQueryProcessed calls the fn with QueryProcessedEvent
 // when query is processed.
-func (db *DB) OnQueryProcessed(fn queryProcessedHook) {
+func (db *DB) OnQueryProcessed(fn func(orm.DB, *QueryProcessedEvent)) {
 	db.queryProcessedHooks = append(db.queryProcessedHooks, fn)
 }
 
