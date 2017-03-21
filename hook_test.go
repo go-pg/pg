@@ -160,27 +160,71 @@ var _ = Describe("OnQueryProcessed", func() {
 
 	BeforeEach(func() {
 		db = pg.Connect(pgOptions())
-		db.OnQueryProcessed(func(ormDB orm.DB, event *pg.QueryProcessedEvent) {
-			Expect(ormDB).To(Equal(db))
-			Expect(event.StartTime).NotTo(BeZero())
-			Expect(event.Query).To(Equal("SELECT ?"))
-			Expect(event.Params).To(Equal([]interface{}{1}))
-			Expect(event.Result).NotTo(BeNil())
-			Expect(event.Error).NotTo(HaveOccurred())
-			count++
-		})
 		count = 0
 	})
 
-	It("is called for Query", func() {
-		_, err := db.Query(pg.Discard, "SELECT ?", 1)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(count).To(Equal(1))
+	Describe("Query/Exec", func() {
+		BeforeEach(func() {
+			db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {
+				Expect(event.DB).To(Equal(db))
+				Expect(event.StartTime).NotTo(BeZero())
+				Expect(event.Query).To(Equal("SELECT ?"))
+				Expect(event.Params).To(Equal([]interface{}{1}))
+				Expect(event.Result).NotTo(BeNil())
+				Expect(event.Error).NotTo(HaveOccurred())
+
+				q, err := event.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal("SELECT ?"))
+
+				q, err = event.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal("SELECT 1"))
+
+				count++
+			})
+		})
+
+		It("is called for Query", func() {
+			_, err := db.Query(pg.Discard, "SELECT ?", 1)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(1))
+		})
+
+		It("is called for Exec", func() {
+			_, err := db.Exec("SELECT ?", 1)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(1))
+		})
 	})
 
-	It("is called for Exec", func() {
-		_, err := db.Exec("SELECT ?", 1)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(count).To(Equal(1))
+	Describe("Model", func() {
+		BeforeEach(func() {
+			db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {
+				Expect(event.DB).To(Equal(db))
+				Expect(event.StartTime).NotTo(BeZero())
+				Expect(event.Query).NotTo(BeNil())
+				Expect(event.Params).To(HaveLen(1))
+				Expect(event.Error).NotTo(HaveOccurred())
+				Expect(event.Result).NotTo(BeNil())
+
+				q, err := event.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal("SELECT ?"))
+
+				q, err = event.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal("SELECT 1"))
+
+				count++
+			})
+		})
+
+		It("is called for Model", func() {
+			var n int
+			err := db.Model().ColumnExpr("?", 1).Select(&n)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(1))
+		})
 	})
 })

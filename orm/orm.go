@@ -10,6 +10,8 @@ type ColumnScanner interface {
 }
 
 type QueryAppender interface {
+	Copy() QueryAppender
+	Query() *Query
 	AppendQuery(dst []byte, params ...interface{}) ([]byte, error)
 }
 

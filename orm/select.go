@@ -12,17 +12,32 @@ func Select(db DB, model interface{}) error {
 }
 
 type selectQuery struct {
-	*Query
+	q     *Query
 	count string
 }
 
 var _ QueryAppender = (*selectQuery)(nil)
 
+func (q selectQuery) Copy() QueryAppender {
+	return selectQuery{
+		q:     q.q.Copy(),
+		count: q.count,
+	}
+}
+
+func (q selectQuery) Query() *Query {
+	return q.q
+}
+
 func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	if q.q.stickyErr != nil {
+		return nil, q.q.stickyErr
+	}
+
 	var err error
 
-	if len(q.with) > 0 {
-		b, err = q.appendWith(b, q.count)
+	if len(q.q.with) > 0 {
+		b, err = q.q.appendWith(b, q.count)
 		if err != nil {
 			return nil, err
 		}
@@ -35,67 +50,67 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 		b = q.appendColumns(b)
 	}
 
-	if q.hasTables() {
+	if q.q.hasTables() {
 		b = append(b, " FROM "...)
-		b = q.appendTables(b)
+		b = q.q.appendTables(b)
 	}
 
-	q.forEachHasOneJoin(func(j *join) {
+	q.q.forEachHasOneJoin(func(j *join) {
 		b = append(b, ' ')
 		b = j.appendHasOneJoin(b)
 	})
-	if len(q.joins) > 0 {
-		for _, f := range q.joins {
+	if len(q.q.joins) > 0 {
+		for _, f := range q.q.joins {
 			b = append(b, ' ')
-			b = f.AppendFormat(b, q)
+			b = f.AppendFormat(b, q.q)
 		}
 	}
 
-	if len(q.where) > 0 {
-		b = q.appendWhere(b)
+	if len(q.q.where) > 0 {
+		b = q.q.appendWhere(b)
 	}
 
-	if len(q.group) > 0 {
+	if len(q.q.group) > 0 {
 		b = append(b, " GROUP BY "...)
-		for i, f := range q.group {
+		for i, f := range q.q.group {
 			if i > 0 {
 				b = append(b, ", "...)
 			}
-			b = f.AppendFormat(b, q)
+			b = f.AppendFormat(b, q.q)
 		}
 	}
 
-	if len(q.having) > 0 {
+	if len(q.q.having) > 0 {
 		b = append(b, " HAVING "...)
-		for i, f := range q.having {
+		for i, f := range q.q.having {
 			if i > 0 {
 				b = append(b, " AND "...)
 			}
 			b = append(b, '(')
-			b = f.AppendFormat(b, q)
+			b = f.AppendFormat(b, q.q)
 			b = append(b, ')')
 		}
 	}
 
 	if q.count == "" {
-		if len(q.order) > 0 {
+		if len(q.q.order) > 0 {
 			b = append(b, " ORDER BY "...)
-			for i, f := range q.order {
+			for i, f := range q.q.order {
 				if i > 0 {
 					b = append(b, ", "...)
 				}
-				b = f.AppendFormat(b, q)
+				b = f.AppendFormat(b, q.q)
 			}
 		}
 
-		if q.limit != 0 {
+		if q.q.limit != 0 {
 			b = append(b, " LIMIT "...)
-			b = strconv.AppendInt(b, int64(q.limit), 10)
+			b = strconv.AppendInt(b, int64(q.q.limit), 10)
 		}
 
-		if q.offset != 0 {
+		if q.q.offset != 0 {
 			b = append(b, " OFFSET "...)
-			b = strconv.AppendInt(b, int64(q.offset), 10)
+			b = strconv.AppendInt(b, int64(q.q.offset), 10)
 		}
 	}
 
@@ -105,15 +120,15 @@ func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error
 func (q selectQuery) appendColumns(b []byte) []byte {
 	start := len(b)
 
-	if q.columns != nil {
+	if q.q.columns != nil {
 		b = q.appendQueryColumns(b)
-	} else if q.hasModel() {
+	} else if q.q.hasModel() {
 		b = q.appendModelColumns(b)
 	} else {
 		b = append(b, '*')
 	}
 
-	q.forEachHasOneJoin(func(j *join) {
+	q.q.forEachHasOneJoin(func(j *join) {
 		if len(b) != start {
 			b = append(b, ", "...)
 			start = len(b)
@@ -130,21 +145,21 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 }
 
 func (q selectQuery) appendQueryColumns(b []byte) []byte {
-	for i, f := range q.columns {
+	for i, f := range q.q.columns {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		b = f.AppendFormat(b, q)
+		b = f.AppendFormat(b, q.q)
 	}
 	return b
 }
 
 func (q selectQuery) appendModelColumns(b []byte) []byte {
-	for i, f := range q.model.Table().Fields {
+	for i, f := range q.q.model.Table().Fields {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		b = append(b, q.model.Table().Alias...)
+		b = append(b, q.q.model.Table().Alias...)
 		b = append(b, '.')
 		b = append(b, f.ColName...)
 	}

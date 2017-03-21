@@ -11,36 +11,50 @@ func Delete(db DB, model interface{}) error {
 }
 
 type deleteQuery struct {
-	*Query
+	q *Query
 }
 
 var _ QueryAppender = (*deleteQuery)(nil)
 
+func (q deleteQuery) Copy() QueryAppender {
+	return deleteQuery{
+		q: q.q.Copy(),
+	}
+}
+
+func (q deleteQuery) Query() *Query {
+	return q.q
+}
+
 func (q deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+	if q.q.stickyErr != nil {
+		return nil, q.q.stickyErr
+	}
+
 	var err error
 
-	if len(q.with) > 0 {
-		b, err = q.appendWith(b, "")
+	if len(q.q.with) > 0 {
+		b, err = q.q.appendWith(b, "")
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	b = append(b, "DELETE FROM "...)
-	b = q.appendFirstTable(b)
+	b = q.q.appendFirstTable(b)
 
-	if q.hasOtherTables() {
+	if q.q.hasOtherTables() {
 		b = append(b, " USING "...)
-		b = q.appendOtherTables(b)
+		b = q.q.appendOtherTables(b)
 	}
 
-	b, err = q.mustAppendWhere(b)
+	b, err = q.q.mustAppendWhere(b)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(q.returning) > 0 {
-		b = q.appendReturning(b)
+	if len(q.q.returning) > 0 {
+		b = q.q.appendReturning(b)
 	}
 
 	return b, nil

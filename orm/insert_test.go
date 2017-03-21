@@ -45,7 +45,7 @@ var _ = Describe("Insert", func() {
 			Set("count1 = count1 + 1").
 			Where("cond1 IS TRUE")
 
-		b, err := insertQuery{Query: q}.AppendQuery(nil)
+		b, err := insertQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" () VALUES () ON CONFLICT (unq1) DO UPDATE SET count1 = count1 + 1 WHERE (cond1 IS TRUE)`))
 	})
@@ -56,7 +56,7 @@ var _ = Describe("Insert", func() {
 			Set("count1 = count1 + 1").
 			Where("cond1 IS TRUE")
 
-		b, err := insertQuery{Query: q}.AppendQuery(nil)
+		b, err := insertQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" () VALUES () ON CONFLICT (unq1) DO NOTHING`))
 	})
@@ -64,7 +64,7 @@ var _ = Describe("Insert", func() {
 	It("supports custom table name on embedded struct", func() {
 		q := NewQuery(nil, &EmbeddedInsertTest{})
 
-		b, err := insertQuery{Query: q}.AppendQuery(nil)
+		b, err := insertQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO my_name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
 	})
@@ -72,7 +72,7 @@ var _ = Describe("Insert", func() {
 	It("supports override table name with embedded struct", func() {
 		q := NewQuery(nil, &OverrideInsertTest{})
 
-		b, err := insertQuery{Query: q}.AppendQuery(nil)
+		b, err := insertQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
 	})
@@ -80,7 +80,7 @@ var _ = Describe("Insert", func() {
 	It("supports notnull", func() {
 		q := NewQuery(nil, &InsertNullTest{})
 
-		b, err := insertQuery{Query: q}.AppendQuery(nil)
+		b, err := insertQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO "insert_null_tests" ("f1", "f2", "f3", "f4") VALUES (DEFAULT, 0, DEFAULT, 0) RETURNING "f1", "f3"`))
 	})
@@ -90,7 +90,7 @@ var _ = Describe("Insert", func() {
 			Geo: types.Q("ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))')"),
 		})
 
-		b, err := insertQuery{Query: q}.AppendQuery(nil)
+		b, err := insertQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO "insert_q_tests" ("geo") VALUES (ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))'))`))
 	})
