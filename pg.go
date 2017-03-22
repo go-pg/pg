@@ -67,11 +67,6 @@ func SetLogger(logger *log.Logger) {
 	internal.Logger = logger
 }
 
-// SetQueryLogger sets a logger that will be used to log generated queries.
-func SetQueryLogger(logger *log.Logger) {
-	internal.QueryLogger = logger
-}
-
 //------------------------------------------------------------------------------
 
 type Strings []string

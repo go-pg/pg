@@ -247,9 +247,6 @@ func writeQueryMsg(buf *pool.WriteBuffer, fmter orm.QueryFormatter, query interf
 		buf.Reset()
 		return err
 	}
-	if internal.QueryLogger != nil {
-		internal.LogQuery(string(bytes[5:]))
-	}
 	buf.Bytes = bytes
 	buf.WriteByte(0x0)
 	buf.FinishMessage()
