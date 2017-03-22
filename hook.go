@@ -2,6 +2,8 @@ package pg
 
 import (
 	"fmt"
+	"runtime"
+	"strings"
 	"time"
 
 	"github.com/go-pg/pg/orm"
@@ -18,12 +20,16 @@ func (dummyDB) FormatQuery(dst []byte, query string, params ...interface{}) []by
 }
 
 type QueryProcessedEvent struct {
-	DB        orm.DB
 	StartTime time.Time
-	Query     interface{}
-	Params    []interface{}
-	Result    orm.Result
-	Error     error
+	Func      string
+	File      string
+	Line      int
+
+	DB     orm.DB
+	Query  interface{}
+	Params []interface{}
+	Result orm.Result
+	Error  error
 }
 
 func (ev *QueryProcessedEvent) UnformattedQuery() (string, error) {
@@ -75,15 +81,58 @@ func (db *DB) queryProcessed(
 		return
 	}
 
+	funcName, file, line := fileLine(2)
 	event := &QueryProcessedEvent{
-		DB:        ormDB,
 		StartTime: start,
-		Query:     query,
-		Params:    params,
-		Result:    res,
-		Error:     err,
+		Func:      funcName,
+		File:      file,
+		Line:      line,
+
+		DB:     ormDB,
+		Query:  query,
+		Params: params,
+		Result: res,
+		Error:  err,
 	}
 	for _, hook := range db.queryProcessedHooks {
 		hook(event)
 	}
+}
+
+const packageName = "github.com/go-pg/pg"
+
+func fileLine(depth int) (string, string, int) {
+	for i := depth; ; i++ {
+		pc, file, line, ok := runtime.Caller(i)
+		if !ok {
+			break
+		}
+		if strings.Contains(file, packageName) {
+			continue
+		}
+		_, funcName := packageFuncName(pc)
+		return funcName, file, line
+	}
+	return "", "", 0
+}
+
+func packageFuncName(pc uintptr) (string, string) {
+	f := runtime.FuncForPC(pc)
+	if f == nil {
+		return "", ""
+	}
+
+	packageName := ""
+	funcName := f.Name()
+
+	if ind := strings.LastIndex(funcName, "/"); ind > 0 {
+		packageName += funcName[:ind+1]
+		funcName = funcName[ind+1:]
+	}
+	if ind := strings.Index(funcName, "."); ind > 0 {
+		packageName += funcName[:ind]
+		funcName = funcName[ind+1:]
+	}
+
+	return packageName, funcName
 }

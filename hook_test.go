@@ -166,8 +166,11 @@ var _ = Describe("OnQueryProcessed", func() {
 	Describe("Query/Exec", func() {
 		BeforeEach(func() {
 			db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {
-				Expect(event.DB).To(Equal(db))
 				Expect(event.StartTime).NotTo(BeZero())
+				Expect(event.Func).NotTo(BeZero())
+				Expect(event.File).NotTo(BeZero())
+				Expect(event.Line).NotTo(BeZero())
+				Expect(event.DB).To(Equal(db))
 				Expect(event.Query).To(Equal("SELECT ?"))
 				Expect(event.Params).To(Equal([]interface{}{1}))
 				Expect(event.Result).NotTo(BeNil())
@@ -201,8 +204,11 @@ var _ = Describe("OnQueryProcessed", func() {
 	Describe("Model", func() {
 		BeforeEach(func() {
 			db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {
-				Expect(event.DB).To(Equal(db))
 				Expect(event.StartTime).NotTo(BeZero())
+				Expect(event.Func).NotTo(BeZero())
+				Expect(event.File).NotTo(BeZero())
+				Expect(event.Line).NotTo(BeZero())
+				Expect(event.DB).To(Equal(db))
 				Expect(event.Query).NotTo(BeNil())
 				Expect(event.Params).To(HaveLen(1))
 				Expect(event.Error).NotTo(HaveOccurred())
