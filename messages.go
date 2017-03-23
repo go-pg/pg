@@ -256,7 +256,7 @@ func writeQueryMsg(buf *pool.WriteBuffer, fmter orm.QueryFormatter, query interf
 func appendQuery(dst []byte, fmter orm.QueryFormatter, query interface{}, params ...interface{}) ([]byte, error) {
 	switch query := query.(type) {
 	case orm.QueryAppender:
-		return query.AppendQuery(dst, params...)
+		return query.AppendQuery(dst)
 	case string:
 		return fmter.FormatQuery(dst, query, params...), nil
 	default:

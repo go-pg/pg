@@ -26,7 +26,7 @@ func (q deleteQuery) Query() *Query {
 	return q.q
 }
 
-func (q deleteQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+func (q deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}

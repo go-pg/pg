@@ -23,7 +23,7 @@ func (q createTableQuery) Query() *Query {
 	return q.q
 }
 
-func (q createTableQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}

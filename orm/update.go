@@ -30,7 +30,7 @@ func (q updateQuery) Query() *Query {
 	return q.q
 }
 
-func (q updateQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}

@@ -29,7 +29,7 @@ func (q selectQuery) Query() *Query {
 	return q.q
 }
 
-func (q selectQuery) AppendQuery(b []byte, params ...interface{}) ([]byte, error) {
+func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
