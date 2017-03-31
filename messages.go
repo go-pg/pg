@@ -446,6 +446,10 @@ func readSimpleQuery(cn *pool.Conn) (*result, error) {
 			if firstErr == nil {
 				firstErr = e
 			}
+		case emptyQueryResponseMsg:
+			if firstErr == nil {
+				firstErr = errEmptyQuery
+			}
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
@@ -503,6 +507,10 @@ func readExtQuery(cn *pool.Conn) (*result, error) {
 			}
 			if firstErr == nil {
 				firstErr = e
+			}
+		case emptyQueryResponseMsg:
+			if firstErr == nil {
+				firstErr = errEmptyQuery
 			}
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
@@ -652,6 +660,10 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (*result, error) {
 			}
 			if firstErr == nil {
 				firstErr = e
+			}
+		case emptyQueryResponseMsg:
+			if firstErr == nil {
+				firstErr = errEmptyQuery
 			}
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
