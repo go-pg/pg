@@ -418,7 +418,12 @@ func sqlType(field *Field, sqlOpt tagOptions) string {
 		return "boolean"
 	case reflect.String:
 		return "text"
-	case reflect.Map, reflect.Slice, reflect.Struct:
+	case reflect.Map, reflect.Struct:
+		return "jsonb"
+	case reflect.Array, reflect.Slice:
+		if field.Type.Elem().Kind() == reflect.Uint8 {
+			return "bytea"
+		}
 		return "jsonb"
 	default:
 		return field.Type.Kind().String()
