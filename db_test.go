@@ -60,6 +60,33 @@ func TestDBString(t *testing.T) {
 	}
 }
 
+func TestEmptyQuery(t *testing.T) {
+	db := pg.Connect(pgOptions())
+
+	assert := func(err error) {
+		if err == nil {
+			t.Fatal("error expected")
+		}
+		if err.Error() != "pg: query is empty" {
+			t.Fatal(err)
+		}
+	}
+
+	_, err := db.Exec("")
+	assert(err)
+
+	_, err = db.Query(pg.Discard, "")
+	assert(err)
+
+	stmt, err := db.Prepare("")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = stmt.Exec()
+	assert(err)
+}
+
 var _ = Describe("Time", func() {
 	var tests = []struct {
 		str    string
