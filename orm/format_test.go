@@ -57,7 +57,6 @@ type formatTest struct {
 	params    params
 	paramsMap paramsMap
 	wanted    string
-	wanterr   string
 }
 
 var (

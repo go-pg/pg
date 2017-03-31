@@ -337,8 +337,6 @@ func readParseDescribeSync(cn *pool.Conn) ([][]byte, error) {
 
 // Writes BIND, EXECUTE and SYNC messages.
 func writeBindExecuteMsg(buf *pool.WriteBuffer, name string, params ...interface{}) error {
-	const paramLenWidth = 4
-
 	buf.StartMessage(bindMsg)
 	buf.WriteString("")
 	buf.WriteString(name)
@@ -365,41 +363,6 @@ func writeBindExecuteMsg(buf *pool.WriteBuffer, name string, params ...interface
 	writeSyncMsg(buf)
 
 	return nil
-}
-
-func readBindMsg(cn *pool.Conn) error {
-	for {
-		c, msgLen, err := readMessageType(cn)
-		if err != nil {
-			return err
-		}
-		switch c {
-		case bindCompleteMsg:
-			_, err := cn.ReadN(msgLen)
-			if err != nil {
-				return err
-			}
-		case readyForQueryMsg: // Response to the SYNC message.
-			_, err := cn.ReadN(msgLen)
-			return err
-		case errorResponseMsg:
-			e, err := readError(cn)
-			if err != nil {
-				return err
-			}
-			return e
-		case noticeResponseMsg:
-			if err := logNotice(cn, msgLen); err != nil {
-				return err
-			}
-		case parameterStatusMsg:
-			if err := logParameterStatus(cn, msgLen); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("pg: readBindMsg: unexpected message %#x", c)
-		}
-	}
 }
 
 func writeCloseMsg(buf *pool.WriteBuffer, name string) {
