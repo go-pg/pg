@@ -22,6 +22,9 @@ func modelDB() *pg.DB {
 	err = db.Insert(&Author{
 		Name: "author 1",
 	})
+	if err != nil {
+		panic(err)
+	}
 
 	books := []Book{{
 		Title:    "book 1",

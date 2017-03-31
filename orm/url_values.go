@@ -129,6 +129,9 @@ func (p *Pager) Paginate(q *Query) (*Query, error) {
 	q = q.Limit(p.limit)
 
 	if offset := p.Offset(); offset > 0 {
+		if offset > maxOffset {
+			return nil, fmt.Errorf("offset=%d is bigger than %d", offset, maxOffset)
+		}
 		q = q.Offset(offset)
 	}
 

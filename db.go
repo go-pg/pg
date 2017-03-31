@@ -96,12 +96,7 @@ func (db *DB) initConn(cn *pool.Conn) error {
 		}
 	}
 
-	err := startup(cn, db.opt.User, db.opt.Password, db.opt.Database)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return startup(cn, db.opt.User, db.opt.Password, db.opt.Database)
 }
 
 func (db *DB) freeConn(cn *pool.Conn, err error) error {

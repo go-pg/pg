@@ -28,12 +28,7 @@ func (j *join) selectMany(db DB) error {
 		return err
 	}
 
-	err = q.Select()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return q.Select()
 }
 
 func (j *join) manyQuery(db DB) (*Query, error) {
@@ -74,12 +69,7 @@ func (j *join) selectM2M(db DB) error {
 		return err
 	}
 
-	err = q.Select()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return q.Select()
 }
 
 func (j *join) m2mQuery(db DB) (*Query, error) {
