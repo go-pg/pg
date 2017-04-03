@@ -35,7 +35,8 @@ type InsertNullTest struct {
 }
 
 type InsertQTest struct {
-	Geo types.Q
+	Geo  types.Q
+	Func types.ValueAppender
 }
 
 var _ = Describe("Insert", func() {
@@ -87,11 +88,12 @@ var _ = Describe("Insert", func() {
 
 	It("inserts types.Q", func() {
 		q := NewQuery(nil, &InsertQTest{
-			Geo: types.Q("ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))')"),
+			Geo:  types.Q("ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))')"),
+			Func: Q("my_func(?)", "param"),
 		})
 
 		b, err := insertQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`INSERT INTO "insert_q_tests" ("geo") VALUES (ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))'))`))
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_q_tests" ("geo", "func") VALUES (ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))'), my_func('param'))`))
 	})
 })

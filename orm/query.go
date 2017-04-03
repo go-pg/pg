@@ -593,7 +593,7 @@ func (q *Query) FormatQuery(dst []byte, query string, params ...interface{}) []b
 	if q.db != nil {
 		return q.db.FormatQuery(dst, query, params...)
 	}
-	return Formatter{}.Append(dst, query, params...)
+	return formatter.Append(dst, query, params...)
 }
 
 func (q *Query) hasModel() bool {
