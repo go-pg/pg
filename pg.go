@@ -24,7 +24,7 @@ func Scan(values ...interface{}) orm.ColumnScanner {
 }
 
 // Q replaces any placeholders found in the query.
-func Q(query string, params ...interface{}) orm.FormatAppender {
+func Q(query string, params ...interface{}) types.ValueAppender {
 	return orm.Q(query, params...)
 }
 
