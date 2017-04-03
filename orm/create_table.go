@@ -3,8 +3,8 @@ package orm
 import "errors"
 
 type CreateTableOptions struct {
-	Temp         bool
-	IgnoreExists bool
+	Temp        bool
+	IfNotExists bool
 }
 
 func CreateTable(db DB, model interface{}, opt *CreateTableOptions) (Result, error) {
@@ -39,7 +39,7 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = append(b, "TEMP "...)
 	}
 	b = append(b, "TABLE "...)
-	if q.opt != nil && q.opt.IgnoreExists {
+	if q.opt != nil && q.opt.IfNotExists {
 		b = append(b, "IF NOT EXISTS "...)
 	}
 	b = append(b, table.Name...)
