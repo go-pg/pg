@@ -87,6 +87,46 @@ func TestEmptyQuery(t *testing.T) {
 	assert(err)
 }
 
+var _ = Describe("DB", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+	})
+
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
+	Describe("Query", func() {
+		It("does not return an error when there are no results", func() {
+			_, err := db.Query(pg.Discard, "SELECT 1 WHERE 1 = 2")
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Describe("QueryOne", func() {
+		It("returns pg.ErrNoRows when there are no results", func() {
+			_, err := db.QueryOne(pg.Discard, "SELECT 1 WHERE 1 = 2")
+			Expect(err).To(Equal(pg.ErrNoRows))
+		})
+	})
+
+	Describe("Exec", func() {
+		It("does not return an error when there are no results", func() {
+			_, err := db.Exec("SELECT 1 WHERE 1 = 2")
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Describe("ExecOne", func() {
+		It("returns pg.ErrNoRows when there are no results", func() {
+			_, err := db.ExecOne("SELECT 1 WHERE 1 = 2")
+			Expect(err).To(Equal(pg.ErrNoRows))
+		})
+	})
+})
+
 var _ = Describe("Time", func() {
 	var tests = []struct {
 		str    string
