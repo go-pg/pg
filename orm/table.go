@@ -223,6 +223,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			return nil
 		}
 		if sqlName != "" {
+			if isPostgresKeyword(sqlName) {
+				sqlName = `"` + sqlName + `"`
+			}
 			t.Name = types.Q(sqlName)
 		}
 		if alias, ok := sqlOpt.Get("alias:"); ok {
@@ -372,6 +375,14 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		return nil
 	}
 	return &field
+}
+
+func isPostgresKeyword(s string) bool {
+	switch s {
+	case "user":
+		return true
+	}
+	return false
 }
 
 func sqlType(field *Field, sqlOpt tagOptions) string {

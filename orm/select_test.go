@@ -5,6 +5,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
+type User struct {
+	tableName struct{} `sql:"user"`
+}
+
 type SelectModel struct {
 	Id       int
 	Name     string
@@ -23,6 +27,14 @@ type HasManyModel struct {
 }
 
 var _ = Describe("Select", func() {
+	It("works with User model", func() {
+		q := NewQuery(nil, &User{})
+
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT  FROM "user" AS "user"`))
+	})
+
 	It("works without db", func() {
 		q := NewQuery(nil).Where("hello = ?", "world")
 
