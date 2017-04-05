@@ -145,3 +145,8 @@ func createSchema(db *pg.DB) error {
    return nil
 }
 ```
+
+## See also
+
+- [Golang msgpack](https://github.com/vmihailenco/msgpack)
+- [Golang message task queue](https://github.com/go-msgqueue/msgqueue)
