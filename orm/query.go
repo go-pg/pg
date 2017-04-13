@@ -243,7 +243,8 @@ loop:
 			field := order[:ind]
 			sort := order[ind+1:]
 			switch internal.ToUpper(sort) {
-			case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST":
+			case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
+				"ASC NULLS LAST", "DESC NULLS LAST":
 				q.order = append(q.order, queryParamsAppender{
 					query:  "? ?",
 					params: []interface{}{types.F(field), types.Q(sort)},
