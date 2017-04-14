@@ -238,12 +238,13 @@ func (q *Query) Having(having string, params ...interface{}) *Query {
 func (q *Query) Order(orders ...string) *Query {
 loop:
 	for _, order := range orders {
-		ind := strings.LastIndex(order, " ")
+		ind := strings.Index(order, " ")
 		if ind != -1 {
 			field := order[:ind]
 			sort := order[ind+1:]
 			switch internal.ToUpper(sort) {
-			case "ASC", "DESC":
+			case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
+				"ASC NULLS LAST", "DESC NULLS LAST":
 				q.order = append(q.order, queryParamsAppender{
 					query:  "? ?",
 					params: []interface{}{types.F(field), types.Q(sort)},

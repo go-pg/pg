@@ -187,7 +187,7 @@ var _ = Describe("Select Order", func() {
 		{"id desc", `"id" desc`},
 		{"id ASC", `"id" ASC`},
 		{"id DESC", `"id" DESC`},
-		{"id ASC NULLS FIRST", `"id ASC NULLS FIRST"`},
+		{"id ASC NULLS FIRST", `"id" ASC NULLS FIRST`},
 	}
 
 	It("sets order", func() {
