@@ -386,11 +386,14 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 
 	var wg sync.WaitGroup
 	wg.Add(2)
+	var mu sync.Mutex
 
 	go func() {
 		defer wg.Done()
 		if e := q.Select(values...); e != nil {
+			mu.Lock()
 			err = e
+			mu.Unlock()
 		}
 	}()
 
@@ -399,7 +402,9 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 		var e error
 		count, e = q.Count()
 		if e != nil {
+			mu.Lock()
 			err = e
+			mu.Unlock()
 		}
 	}()
 
