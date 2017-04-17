@@ -37,7 +37,10 @@ func (valuesModel) AddModel(_ ColumnScanner) error {
 
 func (m valuesModel) ScanColumn(colIdx int, colName string, b []byte) error {
 	if colIdx >= len(m.values) {
-		return fmt.Errorf("pg: no Scan value for column index=%d name=%s", colIdx, colName)
+		return fmt.Errorf(
+			"pg: no Scan var for column index=%d name=%q",
+			colIdx, colName,
+		)
 	}
 	return types.Scan(m.values[colIdx], b)
 }

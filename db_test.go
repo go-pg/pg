@@ -633,7 +633,7 @@ var _ = Describe("errors", func() {
 	It("Scan error", func() {
 		var n1 int
 		_, err := db.QueryOne(pg.Scan(&n1), "SELECT 1, 2")
-		Expect(err).To(MatchError("pg: no Scan value for column index=1 name=?column?"))
+		Expect(err).To(MatchError(`pg: no Scan var for column index=1 name="?column?"`))
 		Expect(n1).To(Equal(1))
 	})
 })
