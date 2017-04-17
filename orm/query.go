@@ -245,16 +245,12 @@ loop:
 			switch internal.ToUpper(sort) {
 			case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
 				"ASC NULLS LAST", "DESC NULLS LAST":
-				q.order = append(q.order, queryParamsAppender{
-					query:  "? ?",
-					params: []interface{}{types.F(field), types.Q(sort)},
-				})
+				q = q.OrderExpr("? ?", types.F(field), types.Q(sort))
 				continue loop
 			}
 		}
 
 		q.order = append(q.order, fieldAppender{order})
-		continue
 	}
 	return q
 }
