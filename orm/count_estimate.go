@@ -93,11 +93,14 @@ func (q *Query) SelectAndCountEstimate(threshold int, values ...interface{}) (co
 
 	var wg sync.WaitGroup
 	wg.Add(2)
+	var mu sync.Mutex
 
 	go func() {
 		defer wg.Done()
 		if e := q.Select(values...); e != nil {
+			mu.Lock()
 			err = e
+			mu.Unlock()
 		}
 	}()
 
@@ -106,7 +109,9 @@ func (q *Query) SelectAndCountEstimate(threshold int, values ...interface{}) (co
 		var e error
 		count, e = q.CountEstimate(threshold)
 		if e != nil {
+			mu.Lock()
 			err = e
+			mu.Unlock()
 		}
 	}()
 
