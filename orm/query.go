@@ -245,16 +245,12 @@ loop:
 			switch internal.ToUpper(sort) {
 			case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
 				"ASC NULLS LAST", "DESC NULLS LAST":
-				q.order = append(q.order, queryParamsAppender{
-					query:  "? ?",
-					params: []interface{}{types.F(field), types.Q(sort)},
-				})
+				q = q.OrderExpr("? ?", types.F(field), types.Q(sort))
 				continue loop
 			}
 		}
 
 		q.order = append(q.order, fieldAppender{order})
-		continue
 	}
 	return q
 }
@@ -390,11 +386,14 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 
 	var wg sync.WaitGroup
 	wg.Add(2)
+	var mu sync.Mutex
 
 	go func() {
 		defer wg.Done()
 		if e := q.Select(values...); e != nil {
+			mu.Lock()
 			err = e
+			mu.Unlock()
 		}
 	}()
 
@@ -403,7 +402,9 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 		var e error
 		count, e = q.Count()
 		if e != nil {
+			mu.Lock()
 			err = e
+			mu.Unlock()
 		}
 	}()
 
