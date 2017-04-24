@@ -1,7 +1,6 @@
 package pool_test
 
 import (
-	"errors"
 	"testing"
 	"time"
 
@@ -52,7 +51,6 @@ func benchmarkPoolGetRemove(b *testing.B, poolSize int) {
 		IdleTimeout:        time.Hour,
 		IdleCheckFrequency: time.Hour,
 	})
-	removeReason := errors.New("benchmark")
 
 	b.ResetTimer()
 
@@ -62,7 +60,7 @@ func benchmarkPoolGetRemove(b *testing.B, poolSize int) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			if err := connPool.Remove(cn, removeReason); err != nil {
+			if err := connPool.Remove(cn); err != nil {
 				b.Fatal(err)
 			}
 		}

@@ -80,7 +80,7 @@ func (db *DB) conn() (*pool.Conn, error) {
 
 	if cn.InitedAt.IsZero() {
 		if err := db.initConn(cn); err != nil {
-			_ = db.pool.Remove(cn, err)
+			_ = db.pool.Remove(cn)
 			return nil, err
 		}
 		cn.InitedAt = time.Now()
@@ -103,7 +103,7 @@ func (db *DB) freeConn(cn *pool.Conn, err error) error {
 	if !isBadConn(err, false) {
 		return db.pool.Put(cn)
 	}
-	return db.pool.Remove(cn, err)
+	return db.pool.Remove(cn)
 }
 
 func (db *DB) shouldRetry(err error) bool {

@@ -7,5 +7,5 @@ func (db *DB) Pool() *pool.ConnPool {
 }
 
 func (ln *Listener) CurrentConn() *pool.Conn {
-	return ln._cn
+	return ln.cn
 }
