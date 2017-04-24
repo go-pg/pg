@@ -323,14 +323,7 @@ func conversionTests() []conversionTest {
 		{src: customStrSlice{}, dst: new(customStrSlice), wantzero: true},
 		{src: customStrSlice{"one", "two"}, dst: new(customStrSlice)},
 
-		{src: nil, dst: time.Time{}, pgtype: "timestamp", wanterr: "pg: Scan(non-pointer time.Time)"},
-		{src: nil, dst: new(time.Time), pgtype: "timestamp", wantzero: true},
-		{src: nil, dst: new(*time.Time), pgtype: "timestamp", wantnil: true},
-		{src: time.Now(), dst: new(time.Time), pgtype: "timestamp"},
-		{src: time.Now(), dst: new(*time.Time), pgtype: "timestamp"},
-		{src: time.Now().UTC(), dst: new(time.Time), pgtype: "timestamp"},
-		{src: time.Time{}, dst: new(time.Time), pgtype: "timestamp"},
-
+		{src: nil, dst: time.Time{}, wanterr: "pg: Scan(non-pointer time.Time)"},
 		{src: nil, dst: new(time.Time), pgtype: "timestamptz", wantzero: true},
 		{src: nil, dst: new(*time.Time), pgtype: "timestamptz", wantnil: true},
 		{src: time.Now(), dst: new(time.Time), pgtype: "timestamptz"},
