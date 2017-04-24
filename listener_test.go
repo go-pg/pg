@@ -39,7 +39,7 @@ var _ = Context("Listener", func() {
 		}
 
 		st := db.Pool().Stats()
-		Expect(st.Requests).To(Equal(uint32(1)))
+		Expect(st.Requests).To(Equal(uint32(0)))
 		Expect(st.Hits).To(Equal(uint32(0)))
 		Expect(st.Timeouts).To(Equal(uint32(0)))
 		Expect(st.TotalConns).To(Equal(uint32(1)))

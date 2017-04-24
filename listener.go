@@ -23,34 +23,90 @@ type Listener struct {
 	channels []string
 
 	mu     sync.Mutex
-	_cn    *pool.Conn
+	cn     *pool.Conn
 	closed bool
 }
 
 func (ln *Listener) conn(readTimeout time.Duration) (*pool.Conn, error) {
 	ln.mu.Lock()
-	defer ln.mu.Unlock()
+	cn, err := ln._conn(readTimeout)
+	ln.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
 
+	cn.SetReadWriteTimeout(readTimeout, ln.db.opt.WriteTimeout)
+	return cn, nil
+}
+
+func (ln *Listener) _conn(readTimeout time.Duration) (*pool.Conn, error) {
 	if ln.closed {
 		return nil, errListenerClosed
 	}
 
-	if ln._cn == nil {
-		cn, err := ln.db.conn()
-		if err != nil {
+	if ln.cn != nil {
+		return ln.cn, nil
+	}
+
+	cn, err := ln.db.pool.NewConn()
+	if err != nil {
+		return nil, err
+	}
+
+	if cn.InitedAt.IsZero() {
+		if err := ln.db.initConn(cn); err != nil {
+			_ = ln.db.pool.CloseConn(cn)
 			return nil, err
 		}
-		ln._cn = cn
+		cn.InitedAt = time.Now()
+	}
 
-		if len(ln.channels) > 0 {
-			if err := ln.listen(cn, ln.channels...); err != nil {
-				return nil, err
-			}
+	if len(ln.channels) > 0 {
+		if err := ln.listen(cn, ln.channels...); err != nil {
+			_ = ln.db.pool.CloseConn(cn)
+			return nil, err
 		}
 	}
 
-	ln._cn.SetReadWriteTimeout(readTimeout, ln.db.opt.WriteTimeout)
-	return ln._cn, nil
+	ln.cn = cn
+	return cn, nil
+}
+
+func (ln *Listener) freeConn(cn *pool.Conn, err error) {
+	if !isBadConn(err, true) {
+		return
+	}
+
+	ln.mu.Lock()
+	if cn == ln.cn {
+		_ = ln.closeConn(err)
+	}
+	ln.mu.Unlock()
+}
+
+func (ln *Listener) closeConn(reason error) error {
+	if !ln.closed {
+		internal.Logf("pg: discarding bad listener connection: %s", reason)
+	}
+
+	err := ln.db.pool.CloseConn(ln.cn)
+	ln.cn = nil
+	return err
+}
+
+// Close closes the listener, releasing any open resources.
+func (ln *Listener) Close() error {
+	ln.mu.Lock()
+	defer ln.mu.Unlock()
+
+	if ln.closed {
+		return errListenerClosed
+	}
+	ln.closed = true
+	if ln.cn != nil {
+		return ln.closeConn(errListenerClosed)
+	}
+	return nil
 }
 
 // Channel returns a channel for concurrently receiving notifications.
@@ -82,7 +138,7 @@ func (ln *Listener) Listen(channels ...string) error {
 
 	if err := ln.listen(cn, channels...); err != nil {
 		if err != nil {
-			ln.freeConn(err)
+			ln.freeConn(cn, err)
 		}
 		return err
 	}
@@ -107,57 +163,18 @@ func (ln *Listener) Receive() (channel string, payload string, err error) {
 
 // ReceiveTimeout waits for a notification until timeout is reached.
 func (ln *Listener) ReceiveTimeout(timeout time.Duration) (channel, payload string, err error) {
-	channel, payload, err = ln.receiveTimeout(timeout)
-	if err != nil {
-		ln.freeConn(err)
-	}
-	return channel, payload, err
-}
-
-func (ln *Listener) receiveTimeout(readTimeout time.Duration) (channel, payload string, err error) {
-	cn, err := ln.conn(readTimeout)
+	cn, err := ln.conn(timeout)
 	if err != nil {
 		return "", "", err
 	}
-	return readNotification(cn)
-}
 
-func (ln *Listener) freeConn(err error) (retErr error) {
-	if !isBadConn(err, true) {
-		return nil
-	}
-	return ln.closeConn(err)
-}
-
-func (ln *Listener) closeConn(reason error) error {
-	var firstErr error
-
-	ln.mu.Lock()
-
-	if ln._cn != nil {
-		if !ln.closed {
-			internal.Logf("pg: discarding bad listener connection: %s", reason)
-		}
-
-		firstErr = ln.db.pool.Remove(ln._cn, reason)
-		ln._cn = nil
+	channel, payload, err = readNotification(cn)
+	if err != nil {
+		ln.freeConn(cn, err)
+		return "", "", err
 	}
 
-	ln.mu.Unlock()
-
-	return firstErr
-}
-
-// Close closes the listener, releasing any open resources.
-func (ln *Listener) Close() error {
-	ln.mu.Lock()
-	closed := ln.closed
-	ln.closed = true
-	ln.mu.Unlock()
-	if closed {
-		return errListenerClosed
-	}
-	return ln.closeConn(errListenerClosed)
+	return channel, payload, nil
 }
 
 func appendIfNotExists(ss []string, es ...string) []string {
