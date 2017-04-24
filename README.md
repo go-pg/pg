@@ -24,6 +24,7 @@
 - [CountEstimate](https://godoc.org/github.com/go-pg/pg#example-DB-Model-CountEstimate) using `EXPLAIN` to get [estimated number of matching rows](https://wiki.postgresql.org/wiki/Count_estimate).
 - [HasOne](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasOne), [BelongsTo](https://godoc.org/github.com/go-pg/pg#example-DB-Model-BelongsTo), [HasMany](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasMany) and [ManyToMany](https://godoc.org/github.com/go-pg/pg#example-DB-Model-ManyToMany).
 - [Creating tables from structs](https://godoc.org/github.com/go-pg/pg#example-DB-CreateTable).
+- [Pagination](https://godoc.org/github.com/go-pg/pg/orm#Pagination) and [URL filters](https://godoc.org/github.com/go-pg/pg/orm#URLFilters) helpers.
 - [Migrations](https://github.com/go-pg/migrations).
 - [Sharding](https://github.com/go-pg/sharding).
 
