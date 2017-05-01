@@ -578,7 +578,7 @@ func readDataRow(cn *pool.Conn, scanner orm.ColumnScanner, columns [][]byte) err
 
 		column := internal.BytesToString(columns[colIdx])
 		if err := scanner.ScanColumn(int(colIdx), column, b); err != nil && firstErr == nil {
-			firstErr = err
+			firstErr = internal.Errorf(err.Error())
 		}
 
 	}
