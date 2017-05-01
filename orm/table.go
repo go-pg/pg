@@ -6,16 +6,17 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/jinzhu/inflection"
+
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/types"
-
-	"github.com/jinzhu/inflection"
 )
 
-var nullBool = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
-var nullFloat = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
-var nullInt = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
-var nullString = reflect.TypeOf((*sql.NullString)(nil)).Elem()
+var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
+var nullBoolType = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
+var nullFloatType = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
+var nullIntType = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
+var nullStringType = reflect.TypeOf((*sql.NullString)(nil)).Elem()
 
 type Table struct {
 	Type       reflect.Type
@@ -296,7 +297,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	field.SQLType = sqlType(&field, sqlOpt)
 
-	if !skip && types.IsSQLScanner(f.Type) {
+	if !skip && isColumn(f.Type) {
 		return &field
 	}
 
@@ -385,6 +386,10 @@ func isPostgresKeyword(s string) bool {
 	return false
 }
 
+func isColumn(typ reflect.Type) bool {
+	return typ.Implements(scannerType) || reflect.PtrTo(typ).Implements(scannerType)
+}
+
 func sqlType(field *Field, sqlOpt tagOptions) string {
 	if v, ok := sqlOpt.Get("type:"); ok {
 		return v
@@ -393,13 +398,13 @@ func sqlType(field *Field, sqlOpt tagOptions) string {
 	switch field.Type {
 	case timeType:
 		return "timestamptz"
-	case nullBool:
+	case nullBoolType:
 		return "boolean"
-	case nullFloat:
+	case nullFloatType:
 		return "double precision"
-	case nullInt:
+	case nullIntType:
 		return "bigint"
-	case nullString:
+	case nullStringType:
 		return "text"
 	}
 
