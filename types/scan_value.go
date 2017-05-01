@@ -13,14 +13,9 @@ import (
 	"github.com/go-pg/pg/internal"
 )
 
-var (
-	scannerType      = reflect.TypeOf(new(sql.Scanner)).Elem()
-	driverValuerType = reflect.TypeOf(new(driver.Valuer)).Elem()
-)
-
-var (
-	timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
-)
+var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
+var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
+var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 
 type ScannerFunc func(reflect.Value, []byte) error
 
@@ -119,16 +114,6 @@ func scanIfaceValue(v reflect.Value, b []byte) error {
 		return scanJSONValue(v, b)
 	}
 	return ScanValue(v.Elem(), b)
-}
-
-func IsSQLScanner(typ reflect.Type) bool {
-	if typ.Implements(scannerType) {
-		return true
-	}
-	if reflect.PtrTo(typ).Implements(scannerType) {
-		return true
-	}
-	return false
 }
 
 func ScanValue(v reflect.Value, b []byte) error {
