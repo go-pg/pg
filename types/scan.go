@@ -3,6 +3,8 @@ package types
 import (
 	"database/sql"
 	"encoding/hex"
+	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -51,14 +53,14 @@ func Scan(v interface{}, b []byte) error {
 
 	vv := reflect.ValueOf(v)
 	if !vv.IsValid() {
-		return internal.Errorf("pg: Scan(nil)")
+		return errors.New("pg: Scan(nil)")
 	}
 	if vv.Kind() != reflect.Ptr {
-		return internal.Errorf("pg: Scan(non-pointer %T)", v)
+		return fmt.Errorf("pg: Scan(non-pointer %T)", v)
 	}
 	vv = vv.Elem()
 	if !vv.IsValid() {
-		return internal.Errorf("pg: Scan(non-pointer %T)", v)
+		return fmt.Errorf("pg: Scan(non-pointer %T)", v)
 	}
 	return ScanValue(vv, b)
 }
@@ -72,7 +74,7 @@ func scanSQLScanner(scanner sql.Scanner, b []byte) error {
 
 func scanBytes(b []byte) ([]byte, error) {
 	if len(b) < 2 {
-		return nil, internal.Errorf("pg: can't parse bytes: %q", b)
+		return nil, fmt.Errorf("pg: can't parse bytes: %q", b)
 	}
 
 	b = b[2:] // Trim off "\\x".

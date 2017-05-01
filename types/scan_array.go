@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"reflect"
 	"strconv"
 
@@ -25,7 +26,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 	scanElem := scanner(elemType, true)
 	return func(v reflect.Value, b []byte) error {
 		if !v.CanSet() {
-			return internal.Errorf("pg: Scan(non-pointer %s)", v.Type())
+			return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
 		}
 		if b == nil {
 			if !v.IsNil() {
@@ -53,7 +54,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 
 func scanSliceStringValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return internal.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
 	}
 	strings, err := decodeSliceString(b)
 	if err != nil {
@@ -81,7 +82,7 @@ func decodeSliceString(b []byte) ([]string, error) {
 
 func scanSliceIntValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return internal.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
 	}
 	ints, err := decodeSliceInt(b)
 	if err != nil {
@@ -117,7 +118,7 @@ func decodeSliceInt(b []byte) ([]int, error) {
 
 func scanSliceInt64Value(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return internal.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
 	}
 	ints, err := decodeSliceInt64(b)
 	if err != nil {
@@ -153,7 +154,7 @@ func decodeSliceInt64(b []byte) ([]int64, error) {
 
 func scanSliceFloat64Value(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return internal.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
 	}
 	floats, err := decodeSliceFloat64(b)
 	if err != nil {

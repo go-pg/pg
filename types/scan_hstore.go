@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/parser"
 )
 
@@ -48,7 +47,7 @@ func scanMapStringString(b []byte) (map[string]string, error) {
 
 func scanMapStringStringValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return internal.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
 	}
 	m, err := scanMapStringString(b)
 	if err != nil {
