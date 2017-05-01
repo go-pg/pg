@@ -2,7 +2,7 @@
 
 ## Features:
 
-- Basic types: integers, floats, string, bool, time.Time.
+- Basic types: integers, floats, string, bool, time.Time, net.IP, net.IPNet.
 - sql.NullBool, sql.NullString, sql.NullInt64, sql.NullFloat64 and [pg.NullTime](http://godoc.org/github.com/go-pg/pg#NullTime).
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
 - Structs, maps and arrays are marshalled as JSON by default.

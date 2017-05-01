@@ -3,6 +3,7 @@ package types
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"net"
 	"reflect"
 	"strconv"
 	"time"
@@ -50,8 +51,13 @@ func Appender(typ reflect.Type) AppenderFunc {
 }
 
 func appender(typ reflect.Type, pgArray bool) AppenderFunc {
-	if typ == timeType {
+	switch typ {
+	case timeType:
 		return appendTimeValue
+	case ipType:
+		return appendIPValue
+	case ipNetType:
+		return appendIPNetValue
 	}
 
 	if typ.Implements(appenderType) {
@@ -145,6 +151,16 @@ func appendJSONValue(b []byte, v reflect.Value, quote int) []byte {
 func appendTimeValue(b []byte, v reflect.Value, quote int) []byte {
 	tm := v.Interface().(time.Time)
 	return AppendTime(b, tm, quote)
+}
+
+func appendIPValue(b []byte, v reflect.Value, quote int) []byte {
+	ip := v.Interface().(net.IP)
+	return AppendString(b, ip.String(), quote)
+}
+
+func appendIPNetValue(b []byte, v reflect.Value, quote int) []byte {
+	ipnet := v.Interface().(net.IPNet)
+	return AppendString(b, ipnet.String(), quote)
 }
 
 func appendAppenderValue(b []byte, v reflect.Value, quote int) []byte {

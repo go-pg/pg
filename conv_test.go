@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
 	"reflect"
 	"testing"
 	"time"
@@ -360,6 +361,18 @@ func conversionTests() []conversionTest {
 		{src: Struct{}, dst: new(Struct), pgtype: "json"},
 		{src: Struct{Foo: "bar"}, dst: new(Struct), pgtype: "json"},
 		{src: `{"foo": "bar"}`, dst: new(Struct), wanted: Struct{Foo: "bar"}},
+
+		{src: nil, dst: new(net.IP), wanted: net.IP(nil), pgtype: "inet"},
+		{src: net.ParseIP("127.0.0.1"), dst: new(net.IP), pgtype: "inet"},
+		{src: net.ParseIP("::10.2.3.4"), dst: new(net.IP), pgtype: "inet"},
+		{src: net.ParseIP("::ffff:10.4.3.2"), dst: new(net.IP), pgtype: "inet"},
+
+		{src: nil, dst: (*net.IPNet)(nil), pgtype: "cidr", wanterr: "pg: Scan(non-pointer *net.IPNet)"},
+		{src: nil, dst: new(net.IPNet), wanted: net.IPNet{}, pgtype: "cidr"},
+		{src: nil, dst: mustParseCIDR("192.168.100.128/25"), wanted: net.IPNet{}, pgtype: "cidr"},
+		{src: mustParseCIDR("192.168.100.128/25"), dst: new(net.IPNet), pgtype: "cidr"},
+		{src: mustParseCIDR("2001:4f8:3:ba::/64"), dst: new(net.IPNet), pgtype: "cidr"},
+		{src: mustParseCIDR("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/128"), dst: new(net.IPNet), pgtype: "cidr"},
 	}
 }
 
@@ -420,4 +433,12 @@ func TestConversion(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+}
+
+func mustParseCIDR(s string) *net.IPNet {
+	_, ipnet, err := net.ParseCIDR(s)
+	if err != nil {
+		panic(err)
+	}
+	return ipnet
 }
