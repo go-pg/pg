@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"reflect"
 	"strconv"
 	"time"
@@ -16,6 +17,8 @@ import (
 var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
 var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
+var ipType = reflect.TypeOf((*net.IP)(nil)).Elem()
+var ipNetType = reflect.TypeOf((*net.IPNet)(nil)).Elem()
 
 type ScannerFunc func(reflect.Value, []byte) error
 
@@ -57,8 +60,13 @@ func Scanner(typ reflect.Type) ScannerFunc {
 }
 
 func scanner(typ reflect.Type, pgArray bool) ScannerFunc {
-	if typ == timeType {
+	switch typ {
+	case timeType:
 		return scanTimeValue
+	case ipType:
+		return scanIPValue
+	case ipNetType:
+		return scanIPNetValue
 	}
 
 	if typ.Implements(scannerType) {
@@ -226,6 +234,39 @@ func scanTimeValue(v reflect.Value, b []byte) error {
 		return err
 	}
 	v.Set(reflect.ValueOf(tm))
+	return nil
+}
+
+func scanIPValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+	}
+	if b == nil {
+		return nil
+	}
+	ip := net.ParseIP(internal.BytesToString(b))
+	if ip == nil {
+		return fmt.Errorf("pg: invalid ip=%q", b)
+	}
+	v.Set(reflect.ValueOf(ip))
+	return nil
+}
+
+var zeroIPNetValue = reflect.ValueOf(net.IPNet{})
+
+func scanIPNetValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+	}
+	if b == nil {
+		v.Set(zeroIPNetValue)
+		return nil
+	}
+	_, ipnet, err := net.ParseCIDR(internal.BytesToString(b))
+	if err != nil {
+		return err
+	}
+	v.Set(reflect.ValueOf(*ipnet))
 	return nil
 }
 

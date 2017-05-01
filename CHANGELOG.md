@@ -6,6 +6,7 @@
  - Added `OnQueryProcessed` event that can be used to log / report queries timing. Query logger is removed.
  - `orm.URLValues` is renamed to `orm.URLFilters`. It is no longer adds ORDER clause.
  - `orm.Pager` is renamed to `orm.Pagination`.
+ - Support for net.IP and net.IPNet.
 
 ## v5
 
