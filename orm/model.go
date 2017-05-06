@@ -5,12 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/go-pg/pg/types"
 )
-
-var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 
 type useQueryOne interface {
 	useQueryOne() bool

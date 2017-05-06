@@ -137,56 +137,56 @@ func (m *structTableModel) AddModel(_ ColumnScanner) error {
 }
 
 func (m *structTableModel) AfterQuery(db DB) error {
-	if !m.table.Has(AfterQueryHookFlag) {
+	if !m.table.HasFlag(AfterQueryHookFlag) {
 		return nil
 	}
 	return callAfterQueryHook(m.strct.Addr(), db)
 }
 
 func (m *structTableModel) AfterSelect(db DB) error {
-	if !m.table.Has(AfterSelectHookFlag) {
+	if !m.table.HasFlag(AfterSelectHookFlag) {
 		return nil
 	}
 	return callAfterSelectHook(m.strct.Addr(), db)
 }
 
 func (m *structTableModel) BeforeInsert(db DB) error {
-	if !m.table.Has(BeforeInsertHookFlag) {
+	if !m.table.HasFlag(BeforeInsertHookFlag) {
 		return nil
 	}
 	return callBeforeInsertHook(m.strct.Addr(), db)
 }
 
 func (m *structTableModel) AfterInsert(db DB) error {
-	if !m.table.Has(AfterInsertHookFlag) {
+	if !m.table.HasFlag(AfterInsertHookFlag) {
 		return nil
 	}
 	return callAfterInsertHook(m.strct.Addr(), db)
 }
 
 func (m *structTableModel) BeforeUpdate(db DB) error {
-	if !m.table.Has(BeforeUpdateHookFlag) {
+	if !m.table.HasFlag(BeforeUpdateHookFlag) {
 		return nil
 	}
 	return callBeforeUpdateHook(m.strct.Addr(), db)
 }
 
 func (m *structTableModel) AfterUpdate(db DB) error {
-	if !m.table.Has(AfterUpdateHookFlag) {
+	if !m.table.HasFlag(AfterUpdateHookFlag) {
 		return nil
 	}
 	return callAfterUpdateHook(m.strct.Addr(), db)
 }
 
 func (m *structTableModel) BeforeDelete(db DB) error {
-	if !m.table.Has(BeforeDeleteHookFlag) {
+	if !m.table.HasFlag(BeforeDeleteHookFlag) {
 		return nil
 	}
 	return callBeforeDeleteHook(m.strct.Addr(), db)
 }
 
 func (m *structTableModel) AfterDelete(db DB) error {
-	if !m.table.Has(AfterDeleteHookFlag) {
+	if !m.table.HasFlag(AfterDeleteHookFlag) {
 		return nil
 	}
 	return callAfterDeleteHook(m.strct.Addr(), db)

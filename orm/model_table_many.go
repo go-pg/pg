@@ -59,7 +59,7 @@ func (m *manyModel) AddModel(model ColumnScanner) error {
 }
 
 func (m *manyModel) AfterQuery(db DB) error {
-	if !m.rel.JoinTable.Has(AfterQueryHookFlag) {
+	if !m.rel.JoinTable.HasFlag(AfterQueryHookFlag) {
 		return nil
 	}
 

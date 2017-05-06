@@ -46,56 +46,56 @@ func (m *sliceTableModel) NewModel() ColumnScanner {
 }
 
 func (m *sliceTableModel) AfterQuery(db DB) error {
-	if !m.table.Has(AfterQueryHookFlag) {
+	if !m.table.HasFlag(AfterQueryHookFlag) {
 		return nil
 	}
 	return callAfterQueryHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
 func (m *sliceTableModel) AfterSelect(db DB) error {
-	if !m.table.Has(AfterSelectHookFlag) {
+	if !m.table.HasFlag(AfterSelectHookFlag) {
 		return nil
 	}
 	return callAfterSelectHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
 func (m *sliceTableModel) BeforeInsert(db DB) error {
-	if !m.table.Has(BeforeInsertHookFlag) {
+	if !m.table.HasFlag(BeforeInsertHookFlag) {
 		return nil
 	}
 	return callBeforeInsertHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
 func (m *sliceTableModel) AfterInsert(db DB) error {
-	if !m.table.Has(AfterInsertHookFlag) {
+	if !m.table.HasFlag(AfterInsertHookFlag) {
 		return nil
 	}
 	return callAfterInsertHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
 func (m *sliceTableModel) BeforeUpdate(db DB) error {
-	if !m.table.Has(BeforeUpdateHookFlag) {
+	if !m.table.HasFlag(BeforeUpdateHookFlag) {
 		return nil
 	}
 	return callBeforeUpdateHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
 func (m *sliceTableModel) AfterUpdate(db DB) error {
-	if !m.table.Has(AfterUpdateHookFlag) {
+	if !m.table.HasFlag(AfterUpdateHookFlag) {
 		return nil
 	}
 	return callAfterUpdateHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
 func (m *sliceTableModel) BeforeDelete(db DB) error {
-	if !m.table.Has(BeforeDeleteHookFlag) {
+	if !m.table.HasFlag(BeforeDeleteHookFlag) {
 		return nil
 	}
 	return callBeforeDeleteHookSlice(m.slice, m.sliceOfPtr, db)
 }
 
 func (m *sliceTableModel) AfterDelete(db DB) error {
-	if !m.table.Has(AfterDeleteHookFlag) {
+	if !m.table.HasFlag(AfterDeleteHookFlag) {
 		return nil
 	}
 	return callAfterDeleteHookSlice(m.slice, m.sliceOfPtr, db)

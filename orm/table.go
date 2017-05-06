@@ -3,8 +3,10 @@ package orm
 import (
 	"database/sql"
 	"fmt"
+	"net"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/jinzhu/inflection"
 
@@ -12,6 +14,9 @@ import (
 	"github.com/go-pg/pg/types"
 )
 
+var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
+var ipType = reflect.TypeOf((*net.IP)(nil)).Elem()
+var ipNetType = reflect.TypeOf((*net.IPNet)(nil)).Elem()
 var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
 var nullBoolType = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
 var nullFloatType = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
@@ -34,10 +39,14 @@ type Table struct {
 	Methods   map[string]*Method
 	Relations map[string]*Relation
 
-	flags int16
+	flags uint8
 }
 
-func (t *Table) Has(flag int16) bool {
+func (t *Table) SetFlag(flag uint8) {
+	t.flags |= flag
+}
+
+func (t *Table) HasFlag(flag uint8) bool {
 	if t == nil {
 		return false
 	}
@@ -120,28 +129,28 @@ func newTable(typ reflect.Type) *Table {
 	typ = reflect.PtrTo(typ)
 
 	if typ.Implements(afterQueryHookType) {
-		table.flags |= AfterQueryHookFlag
+		table.SetFlag(AfterQueryHookFlag)
 	}
 	if typ.Implements(afterSelectHookType) {
-		table.flags |= AfterSelectHookFlag
+		table.SetFlag(AfterSelectHookFlag)
 	}
 	if typ.Implements(beforeInsertHookType) {
-		table.flags |= BeforeInsertHookFlag
+		table.SetFlag(BeforeInsertHookFlag)
 	}
 	if typ.Implements(afterInsertHookType) {
-		table.flags |= AfterInsertHookFlag
+		table.SetFlag(AfterInsertHookFlag)
 	}
 	if typ.Implements(beforeUpdateHookType) {
-		table.flags |= BeforeUpdateHookFlag
+		table.SetFlag(BeforeUpdateHookFlag)
 	}
 	if typ.Implements(afterUpdateHookType) {
-		table.flags |= AfterUpdateHookFlag
+		table.SetFlag(AfterUpdateHookFlag)
 	}
 	if typ.Implements(beforeDeleteHookType) {
-		table.flags |= BeforeDeleteHookFlag
+		table.SetFlag(BeforeDeleteHookFlag)
 	}
 	if typ.Implements(afterDeleteHookType) {
-		table.flags |= AfterDeleteHookFlag
+		table.SetFlag(AfterDeleteHookFlag)
 	}
 
 	if table.Methods == nil {
@@ -250,19 +259,6 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	_, pgOpt := parseTag(f.Tag.Get("pg"))
 
-	var appender types.AppenderFunc
-	var scanner types.ScannerFunc
-	if _, ok := pgOpt.Get("array"); ok {
-		appender = types.ArrayAppender(f.Type)
-		scanner = types.ArrayScanner(f.Type)
-	} else if _, ok := pgOpt.Get("hstore"); ok {
-		appender = types.HstoreAppender(f.Type)
-		scanner = types.HstoreScanner(f.Type)
-	} else {
-		appender = types.Appender(f.Type)
-		scanner = types.Scanner(f.Type)
-	}
-
 	field := Field{
 		Type: indirectType(f.Type),
 
@@ -271,31 +267,45 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		ColName: types.Q(types.AppendField(nil, sqlName, 1)),
 
 		Index: append(index, f.Index...),
-
-		append: appender,
-		scan:   scanner,
-
-		isEmpty: isEmptyFunc(f.Type),
 	}
 
 	if _, ok := sqlOpt.Get("notnull"); ok {
-		field.flags |= NotNullFlag
+		field.SetFlag(NotNullFlag)
 	}
 	if _, ok := sqlOpt.Get("unique"); ok {
-		field.flags |= UniqueFlag
+		field.SetFlag(UniqueFlag)
 	}
 
 	if len(t.PKs) == 0 && (field.SQLName == "id" || field.SQLName == "uuid") {
-		field.flags |= PrimaryKeyFlag
+		field.SetFlag(PrimaryKeyFlag)
 		t.PKs = append(t.PKs, &field)
 	} else if _, ok := sqlOpt.Get("pk"); ok {
-		field.flags |= PrimaryKeyFlag
+		field.SetFlag(PrimaryKeyFlag)
 		t.PKs = append(t.PKs, &field)
 	} else if strings.HasSuffix(string(field.SQLName), "_id") {
-		field.flags |= ForeignKeyFlag
+		field.SetFlag(ForeignKeyFlag)
 	}
 
-	field.SQLType = sqlType(&field, sqlOpt)
+	if _, ok := pgOpt.Get("array"); ok {
+		field.SetFlag(ArrayFlag)
+	}
+
+	field.SQLType = fieldSQLType(&field, sqlOpt)
+	if strings.HasSuffix(field.SQLType, "[]") {
+		field.SetFlag(ArrayFlag)
+	}
+
+	if field.HasFlag(ArrayFlag) {
+		field.append = types.ArrayAppender(f.Type)
+		field.scan = types.ArrayScanner(f.Type)
+	} else if _, ok := pgOpt.Get("hstore"); ok {
+		field.append = types.HstoreAppender(f.Type)
+		field.scan = types.HstoreScanner(f.Type)
+	} else {
+		field.append = types.Appender(f.Type)
+		field.scan = types.Scanner(f.Type)
+	}
+	field.isEmpty = isEmptyFunc(f.Type)
 
 	if !skip && isColumn(f.Type) {
 		return &field
@@ -390,14 +400,38 @@ func isColumn(typ reflect.Type) bool {
 	return typ.Implements(scannerType) || reflect.PtrTo(typ).Implements(scannerType)
 }
 
-func sqlType(field *Field, sqlOpt tagOptions) string {
+func fieldSQLType(field *Field, sqlOpt tagOptions) string {
 	if v, ok := sqlOpt.Get("type:"); ok {
 		return v
 	}
 
-	switch field.Type {
+	if field.HasFlag(ArrayFlag) {
+		sqlType := sqlType(field.Type.Elem())
+		return sqlType + "[]"
+	}
+
+	sqlType := sqlType(field.Type)
+	if field.HasFlag(PrimaryKeyFlag) {
+		switch sqlType {
+		case "smallint":
+			return "smallserial"
+		case "integer":
+			return "serial"
+		case "bigint":
+			return "bigserial"
+		}
+	}
+	return sqlType
+}
+
+func sqlType(typ reflect.Type) string {
+	switch typ {
 	case timeType:
 		return "timestamptz"
+	case ipType:
+		return "inet"
+	case ipNetType:
+		return "cidr"
 	case nullBoolType:
 		return "boolean"
 	case nullFloatType:
@@ -408,21 +442,12 @@ func sqlType(field *Field, sqlOpt tagOptions) string {
 		return "text"
 	}
 
-	switch field.Type.Kind() {
+	switch typ.Kind() {
 	case reflect.Int8, reflect.Uint8, reflect.Int16:
-		if field.Has(PrimaryKeyFlag) {
-			return "smallserial"
-		}
 		return "smallint"
 	case reflect.Uint16, reflect.Int32:
-		if field.Has(PrimaryKeyFlag) {
-			return "serial"
-		}
 		return "integer"
 	case reflect.Uint32, reflect.Int64, reflect.Int:
-		if field.Has(PrimaryKeyFlag) {
-			return "bigserial"
-		}
 		return "bigint"
 	case reflect.Uint, reflect.Uint64:
 		return "decimal"
@@ -437,12 +462,12 @@ func sqlType(field *Field, sqlOpt tagOptions) string {
 	case reflect.Map, reflect.Struct:
 		return "jsonb"
 	case reflect.Array, reflect.Slice:
-		if field.Type.Elem().Kind() == reflect.Uint8 {
+		if typ.Elem().Kind() == reflect.Uint8 {
 			return "bytea"
 		}
 		return "jsonb"
 	default:
-		return field.Type.Kind().String()
+		return typ.Kind().String()
 	}
 }
 

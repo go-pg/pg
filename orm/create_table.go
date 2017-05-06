@@ -49,10 +49,10 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = append(b, field.SQLName...)
 		b = append(b, " "...)
 		b = append(b, field.SQLType...)
-		if field.Has(NotNullFlag) {
+		if field.HasFlag(NotNullFlag) {
 			b = append(b, " NOT NULL"...)
 		}
-		if field.Has(UniqueFlag) {
+		if field.HasFlag(UniqueFlag) {
 			b = append(b, " UNIQUE"...)
 		}
 

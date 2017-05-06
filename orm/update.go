@@ -104,7 +104,7 @@ func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 
 	start := len(b)
 	for _, field := range table.Fields {
-		if field.Has(PrimaryKeyFlag) {
+		if field.HasFlag(PrimaryKeyFlag) {
 			continue
 		}
 

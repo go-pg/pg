@@ -7,10 +7,11 @@ import (
 )
 
 const (
-	PrimaryKeyFlag = 1 << iota
+	PrimaryKeyFlag = uint8(1) << iota
 	ForeignKeyFlag
 	NotNullFlag
 	UniqueFlag
+	ArrayFlag
 )
 
 type Field struct {
@@ -36,7 +37,11 @@ func (f *Field) Copy() *Field {
 	return &copy
 }
 
-func (f *Field) Has(flag uint8) bool {
+func (f *Field) SetFlag(flag uint8) {
+	f.flags |= flag
+}
+
+func (f *Field) HasFlag(flag uint8) bool {
 	return f.flags&flag != 0
 }
 
@@ -50,12 +55,12 @@ func (f *Field) IsEmpty(strct reflect.Value) bool {
 }
 
 func (f *Field) OmitEmpty(strct reflect.Value) bool {
-	return !f.Has(NotNullFlag) && f.isEmpty(f.Value(strct))
+	return !f.HasFlag(NotNullFlag) && f.isEmpty(f.Value(strct))
 }
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 	fv := f.Value(strct)
-	if !f.Has(NotNullFlag) && f.isEmpty(fv) {
+	if !f.HasFlag(NotNullFlag) && f.isEmpty(fv) {
 		return types.AppendNull(b, quote)
 	}
 	return f.append(b, fv, quote)
