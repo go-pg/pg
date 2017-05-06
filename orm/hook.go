@@ -3,7 +3,7 @@ package orm
 import "reflect"
 
 const (
-	AfterQueryHookFlag = 1 << iota
+	AfterQueryHookFlag = uint8(1) << iota
 	AfterSelectHookFlag
 	BeforeInsertHookFlag
 	AfterInsertHookFlag

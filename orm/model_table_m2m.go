@@ -64,7 +64,7 @@ func (m *m2mModel) AddModel(model ColumnScanner) error {
 }
 
 func (m *m2mModel) AfterQuery(db DB) error {
-	if !m.rel.JoinTable.Has(AfterQueryHookFlag) {
+	if !m.rel.JoinTable.HasFlag(AfterQueryHookFlag) {
 		return nil
 	}
 
