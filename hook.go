@@ -136,3 +136,7 @@ func packageFuncName(pc uintptr) (string, string) {
 
 	return packageName, funcName
 }
+
+func copyQueryProcessedHooks(s []queryProcessedHook) []queryProcessedHook {
+	return s[:len(s):len(s)]
+}

@@ -22,17 +22,6 @@ func Connect(opt *Options) *DB {
 	}
 }
 
-// DB is a database handle representing a pool of zero or more
-// underlying connections. It's safe for concurrent use by multiple
-// goroutines.
-type DB struct {
-	opt   *Options
-	pool  *pool.ConnPool
-	fmter orm.Formatter
-
-	queryProcessedHooks []queryProcessedHook
-}
-
 var _ orm.DB = (*DB)(nil)
 
 func (db *DB) String() string {
@@ -55,7 +44,7 @@ func (db *DB) WithTimeout(d time.Duration) *DB {
 		pool:  db.pool,
 		fmter: db.fmter,
 
-		queryProcessedHooks: db.queryProcessedHooks[:len(db.queryProcessedHooks):len(db.queryProcessedHooks)],
+		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
 	}
 }
 
@@ -66,7 +55,7 @@ func (db *DB) WithParam(param string, value interface{}) *DB {
 		pool:  db.pool,
 		fmter: db.fmter.WithParam(param, value),
 
-		queryProcessedHooks: db.queryProcessedHooks[:len(db.queryProcessedHooks):len(db.queryProcessedHooks)],
+		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
 	}
 }
 
