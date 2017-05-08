@@ -14,7 +14,6 @@ func appendField(b []byte, p *parser.Parser, quote int) []byte {
 	var quoted bool
 	for p.Valid() {
 		c := p.Read()
-
 		switch c {
 		case '*':
 			if !quoted {
@@ -45,9 +44,8 @@ func appendField(b []byte, p *parser.Parser, quote int) []byte {
 		} else {
 			b = append(b, c)
 		}
-
 	}
-	if quote == 1 && quoted {
+	if quoted && quote == 1 {
 		b = append(b, '"')
 	}
 	return b

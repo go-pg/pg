@@ -11,8 +11,8 @@ type Q string
 
 var _ ValueAppender = Q("")
 
-func (q Q) AppendValue(dst []byte, quote int) ([]byte, error) {
-	return append(dst, q...), nil
+func (q Q) AppendValue(b []byte, quote int) ([]byte, error) {
+	return append(b, q...), nil
 }
 
 //------------------------------------------------------------------------------
@@ -22,6 +22,6 @@ type F string
 
 var _ ValueAppender = F("")
 
-func (f F) AppendValue(dst []byte, quote int) ([]byte, error) {
-	return AppendField(dst, string(f), quote), nil
+func (f F) AppendValue(b []byte, quote int) ([]byte, error) {
+	return AppendField(b, string(f), quote), nil
 }
