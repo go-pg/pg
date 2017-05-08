@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/pool"
+	"github.com/go-pg/pg/types"
 )
 
 // A notification received with LISTEN command.
@@ -149,7 +150,7 @@ func (ln *Listener) Listen(channels ...string) error {
 
 func (ln *Listener) listen(cn *pool.Conn, channels ...string) error {
 	for _, channel := range channels {
-		if err := writeQueryMsg(cn.Wr, ln.db, "LISTEN ?", F(channel)); err != nil {
+		if err := writeQueryMsg(cn.Wr, ln.db, "LISTEN ?", pgChan(channel)); err != nil {
 			return err
 		}
 	}
@@ -188,4 +189,26 @@ loop:
 		ss = append(ss, e)
 	}
 	return ss
+}
+
+type pgChan string
+
+var _ types.ValueAppender = pgChan("")
+
+func (ch pgChan) AppendValue(b []byte, quote int) ([]byte, error) {
+	if quote == 0 {
+		return append(b, ch...), nil
+	}
+
+	b = append(b, '"')
+	for _, c := range []byte(ch) {
+		if c == '"' {
+			b = append(b, '"', '"')
+		} else {
+			b = append(b, c)
+		}
+	}
+	b = append(b, '"')
+
+	return b, nil
 }

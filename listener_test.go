@@ -21,7 +21,7 @@ var _ = Context("Listener", func() {
 
 		db = pg.Connect(opt)
 
-		ln = db.Listen("test_channel")
+		ln = db.Listen("test.channel")
 	})
 
 	var _ = AfterEach(func() {
@@ -54,7 +54,7 @@ var _ = Context("Listener", func() {
 			wait <- struct{}{}
 			channel, payload, err := ln.Receive()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(channel).To(Equal("test_channel"))
+			Expect(channel).To(Equal("test.channel"))
 			Expect(payload).To(Equal(""))
 			wait <- struct{}{}
 		}()
@@ -66,7 +66,7 @@ var _ = Context("Listener", func() {
 			Fail("timeout")
 		}
 
-		_, err := db.Exec("NOTIFY test_channel")
+		_, err := db.Exec(`NOTIFY "test.channel"`)
 		Expect(err).NotTo(HaveOccurred())
 
 		select {
@@ -171,7 +171,7 @@ var _ = Context("Listener", func() {
 			// ok
 		}
 
-		_, err = db.Exec("NOTIFY test_channel")
+		_, err = db.Exec(`NOTIFY "test.channel"`)
 		Expect(err).NotTo(HaveOccurred())
 
 		select {
