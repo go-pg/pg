@@ -42,6 +42,7 @@ var _ = Describe("DB timeout race", func() {
 	})
 
 	It("is race free", func() {
+		N = 100
 		perform(C, func(id int) {
 			for i := 0; i < N; i++ {
 				_, err := db.Exec("SELECT pg_sleep(1)")
