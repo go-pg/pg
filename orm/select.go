@@ -57,7 +57,7 @@ func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	q.q.forEachHasOneJoin(func(j *join) {
 		b = append(b, ' ')
-		b = j.appendHasOneJoin(b)
+		b = j.appendHasOneJoin(q.q.db, b)
 	})
 	if len(q.q.joins) > 0 {
 		for _, f := range q.q.joins {

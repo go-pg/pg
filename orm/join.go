@@ -1,6 +1,9 @@
 package orm
 
-import "github.com/go-pg/pg/types"
+import (
+	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/types"
+)
 
 type join struct {
 	Parent     *join
@@ -27,7 +30,6 @@ func (j *join) selectMany(db DB) error {
 	if err != nil {
 		return err
 	}
-
 	return q.Select()
 }
 
@@ -48,9 +50,13 @@ func (j *join) manyQuery(db DB) (*Query, error) {
 	q.columns = append(q.columns, hasManyColumnsAppender{j})
 
 	baseTable := j.BaseModel.Table()
-	cols := columns(j.JoinModel.Table().Alias, "", j.Rel.FKs)
-	vals := values(root, index, baseTable.PKs)
-	q = q.Where(`(?) IN (?)`, types.Q(cols), types.Q(vals))
+	var where []byte
+	where = append(where, "("...)
+	where = columns(where, j.JoinModel.Table().Alias, "", j.Rel.FKs)
+	where = append(where, ") IN ("...)
+	where = values(where, root, index, baseTable.PKs)
+	where = append(where, ")"...)
+	q = q.Where(internal.BytesToString(where))
 
 	if j.Rel.Polymorphic {
 		q = q.Where(
@@ -68,17 +74,10 @@ func (j *join) selectM2M(db DB) error {
 	if err != nil {
 		return err
 	}
-
 	return q.Select()
 }
 
 func (j *join) m2mQuery(db DB) (*Query, error) {
-	index := j.JoinModel.ParentIndex()
-
-	baseTable := j.BaseModel.Table()
-	m2mCols := columns(j.Rel.M2MTableName, j.Rel.BasePrefix, baseTable.PKs)
-	m2mVals := values(j.BaseModel.Root(), index, baseTable.PKs)
-
 	m2mModel := newM2MModel(j)
 	q := NewQuery(db, m2mModel)
 	if j.ApplyQuery != nil {
@@ -90,18 +89,31 @@ func (j *join) m2mQuery(db DB) (*Query, error) {
 	}
 
 	q.columns = append(q.columns, hasManyColumnsAppender{j})
-	q = q.Join(
-		"JOIN ? ON (?) IN (?)",
-		j.Rel.M2MTableName,
-		types.Q(m2mCols), types.Q(m2mVals),
-	)
+
+	index := j.JoinModel.ParentIndex()
+	baseTable := j.BaseModel.Table()
+	var join []byte
+	join = append(join, "JOIN "...)
+	if db != nil {
+		join = db.FormatQuery(join, string(j.Rel.M2MTableName))
+	} else {
+		join = append(join, j.Rel.M2MTableName...)
+	}
+	join = append(join, " AS "...)
+	join = append(join, j.Rel.M2MTableAlias...)
+	join = append(join, " ON ("...)
+	join = columns(join, j.Rel.M2MTableAlias, j.Rel.BasePrefix, baseTable.PKs)
+	join = append(join, ") IN ("...)
+	join = values(join, j.BaseModel.Root(), index, baseTable.PKs)
+	join = append(join, ")"...)
+	q = q.Join(internal.BytesToString(join))
 
 	joinAlias := j.JoinModel.Table().Alias
 	for _, pk := range j.JoinModel.Table().PKs {
 		q = q.Where(
 			"?.? = ?.?",
 			joinAlias, pk.ColName,
-			j.Rel.M2MTableName, types.F(j.Rel.JoinPrefix+pk.SQLName),
+			j.Rel.M2MTableAlias, types.F(j.Rel.JoinPrefix+pk.SQLName),
 		)
 	}
 
@@ -185,9 +197,13 @@ func (j *join) appendHasOneColumns(b []byte) []byte {
 	return b
 }
 
-func (j *join) appendHasOneJoin(b []byte) []byte {
+func (j *join) appendHasOneJoin(db DB, b []byte) []byte {
 	b = append(b, "LEFT JOIN "...)
-	b = append(b, j.JoinModel.Table().Name...)
+	if db != nil {
+		b = db.FormatQuery(b, string(j.JoinModel.Table().Name))
+	} else {
+		b = append(b, j.JoinModel.Table().Name...)
+	}
 	b = append(b, " AS "...)
 	b = j.appendAlias(b)
 
@@ -230,8 +246,8 @@ type hasManyColumnsAppender struct {
 }
 
 func (q hasManyColumnsAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
-	if q.Rel.M2MTableName != "" {
-		b = append(b, q.Rel.M2MTableName...)
+	if q.Rel.M2MTableAlias != "" {
+		b = append(b, q.Rel.M2MTableAlias...)
 		b = append(b, ".*, "...)
 	}
 

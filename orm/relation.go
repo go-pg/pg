@@ -16,7 +16,8 @@ type Relation struct {
 	JoinTable   *Table
 	FKs         []*Field
 
-	M2MTableName types.Q
-	BasePrefix   string
-	JoinPrefix   string
+	M2MTableName  types.Q
+	M2MTableAlias types.Q
+	BasePrefix    string
+	JoinPrefix    string
 }
