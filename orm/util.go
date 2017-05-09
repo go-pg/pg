@@ -55,8 +55,7 @@ func indirectNew(v reflect.Value) reflect.Value {
 	return v
 }
 
-func columns(table types.Q, prefix string, fields []*Field) []byte {
-	var b []byte
+func columns(b []byte, table types.Q, prefix string, fields []*Field) []byte {
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)
@@ -93,8 +92,7 @@ func visitField(v reflect.Value, index []int, fn func(reflect.Value)) {
 	}
 }
 
-func values(v reflect.Value, index []int, fields []*Field) []byte {
-	var b []byte
+func values(b []byte, v reflect.Value, index []int, fields []*Field) []byte {
 	walk(v, index, func(v reflect.Value) {
 		b = append(b, '(')
 		for i, field := range fields {

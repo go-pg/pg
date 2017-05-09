@@ -326,18 +326,24 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 
 		if m2mTable, _ := pgOpt.Get("many2many:"); m2mTable != "" {
+			m2mTableAlias := m2mTable
+			if ind := strings.IndexByte(m2mTable, '.'); ind >= 0 {
+				m2mTableAlias = m2mTable[ind+1:]
+			}
+
 			joinPrefix := joinTable.TypeName
 			if s, ok := pgOpt.Get("joinFK:"); ok {
 				joinPrefix = s
 			}
 
 			t.addRelation(&Relation{
-				Type:         Many2ManyRelation,
-				Field:        &field,
-				JoinTable:    joinTable,
-				M2MTableName: types.Q(m2mTable),
-				BasePrefix:   internal.Underscore(basePrefix + "_"),
-				JoinPrefix:   internal.Underscore(joinPrefix + "_"),
+				Type:          Many2ManyRelation,
+				Field:         &field,
+				JoinTable:     joinTable,
+				M2MTableName:  types.Q(m2mTable),
+				M2MTableAlias: types.Q(m2mTableAlias),
+				BasePrefix:    internal.Underscore(basePrefix + "_"),
+				JoinPrefix:    internal.Underscore(joinPrefix + "_"),
 			})
 			return nil
 		}

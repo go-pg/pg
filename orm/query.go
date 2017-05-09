@@ -322,15 +322,15 @@ func (q *Query) countSelectQuery(column string) selectQuery {
 
 // First selects the first row.
 func (q *Query) First() error {
-	b := columns(q.model.Table().Alias, "", q.model.Table().PKs)
-	return q.OrderExpr(string(b)).Limit(1).Select()
+	b := columns(nil, q.model.Table().Alias, "", q.model.Table().PKs)
+	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select()
 }
 
 // Last selects the last row.
 func (q *Query) Last() error {
-	b := columns(q.model.Table().Alias, "", q.model.Table().PKs)
+	b := columns(nil, q.model.Table().Alias, "", q.model.Table().PKs)
 	b = append(b, " DESC"...)
-	return q.OrderExpr(string(b)).Limit(1).Select()
+	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select()
 }
 
 // Select selects the model.
@@ -351,7 +351,7 @@ func (q *Query) Select(values ...interface{}) error {
 
 	if res.RowsReturned() > 0 {
 		if q.model != nil {
-			if err := selectJoins(q.db, q.model.GetJoins()); err != nil {
+			if err := q.selectJoins(q.model.GetJoins()); err != nil {
 				return err
 			}
 		}
@@ -430,14 +430,14 @@ func (q *Query) _forEachHasOneJoin(fn func(*join), joins []join) {
 	}
 }
 
-func selectJoins(db DB, joins []join) error {
+func (q *Query) selectJoins(joins []join) error {
 	var err error
 	for i := range joins {
 		j := &joins[i]
 		if j.Rel.Type == HasOneRelation || j.Rel.Type == BelongsToRelation {
-			err = selectJoins(db, j.JoinModel.GetJoins())
+			err = q.selectJoins(j.JoinModel.GetJoins())
 		} else {
-			err = j.Select(db)
+			err = j.Select(q.db)
 		}
 		if err != nil {
 			return err
@@ -590,12 +590,12 @@ func (q *Query) CreateTable(opt *CreateTableOptions) (Result, error) {
 	})
 }
 
-func (q *Query) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
+func (q *Query) FormatQuery(b []byte, query string, params ...interface{}) []byte {
 	params = append(params, q.model)
 	if q.db != nil {
-		return q.db.FormatQuery(dst, query, params...)
+		return q.db.FormatQuery(b, query, params...)
 	}
-	return formatter.Append(dst, query, params...)
+	return formatter.Append(b, query, params...)
 }
 
 func (q *Query) hasModel() bool {

@@ -42,7 +42,7 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.opt != nil && q.opt.IfNotExists {
 		b = append(b, "IF NOT EXISTS "...)
 	}
-	b = append(b, table.Name...)
+	b = q.q.appendTableName(b)
 	b = append(b, " ("...)
 
 	for i, field := range table.Fields {
