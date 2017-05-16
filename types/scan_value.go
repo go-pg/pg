@@ -2,7 +2,6 @@ package types
 
 import (
 	"database/sql"
-	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,7 +14,6 @@ import (
 )
 
 var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
-var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 var ipType = reflect.TypeOf((*net.IP)(nil)).Elem()
 var ipNetType = reflect.TypeOf((*net.IPNet)(nil)).Elem()

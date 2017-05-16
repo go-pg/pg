@@ -28,7 +28,7 @@ type Field struct {
 	append types.AppenderFunc
 	scan   types.ScannerFunc
 
-	isEmpty func(reflect.Value) bool
+	isZero func(reflect.Value) bool
 }
 
 func (f *Field) Copy() *Field {
@@ -49,18 +49,18 @@ func (f *Field) Value(strct reflect.Value) reflect.Value {
 	return strct.FieldByIndex(f.Index)
 }
 
-func (f *Field) IsEmpty(strct reflect.Value) bool {
+func (f *Field) IsZero(strct reflect.Value) bool {
 	fv := f.Value(strct)
-	return f.isEmpty(fv)
+	return f.isZero(fv)
 }
 
-func (f *Field) OmitEmpty(strct reflect.Value) bool {
-	return !f.HasFlag(NotNullFlag) && f.isEmpty(f.Value(strct))
+func (f *Field) OmitZero(strct reflect.Value) bool {
+	return !f.HasFlag(NotNullFlag) && f.isZero(f.Value(strct))
 }
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 	fv := f.Value(strct)
-	if !f.HasFlag(NotNullFlag) && f.isEmpty(fv) {
+	if !f.HasFlag(NotNullFlag) && f.isZero(fv) {
 		return types.AppendNull(b, quote)
 	}
 	return f.append(b, fv, quote)

@@ -106,7 +106,7 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) [
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		if f.OmitEmpty(v) {
+		if f.OmitZero(v) {
 			b = append(b, "DEFAULT"...)
 			q.addReturningField(f)
 		} else {

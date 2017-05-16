@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
 var appenderType = reflect.TypeOf((*ValueAppender)(nil)).Elem()
 
 type AppenderFunc func([]byte, reflect.Value, int) []byte

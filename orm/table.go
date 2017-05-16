@@ -305,7 +305,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.append = types.Appender(f.Type)
 		field.scan = types.Scanner(f.Type)
 	}
-	field.isEmpty = isEmptyFunc(f.Type)
+	field.isZero = isZeroFunc(f.Type)
 
 	if !skip && isColumn(f.Type) {
 		return &field
