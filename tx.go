@@ -247,6 +247,12 @@ func (tx *Tx) CreateTable(model interface{}, opt *orm.CreateTableOptions) error 
 	return err
 }
 
+// DropTable drops table for the model.
+func (tx *Tx) DropTable(model interface{}, opt *orm.DropTableOptions) error {
+	_, err := orm.DropTable(tx, model, opt)
+	return err
+}
+
 func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
 	return tx.db.FormatQuery(dst, query, params...)
 }

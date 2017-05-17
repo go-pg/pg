@@ -590,6 +590,16 @@ func (q *Query) CreateTable(opt *CreateTableOptions) (Result, error) {
 	})
 }
 
+func (q *Query) DropTable(opt *DropTableOptions) (Result, error) {
+	if q.stickyErr != nil {
+		return nil, q.stickyErr
+	}
+	return q.db.Exec(dropTableQuery{
+		q:   q,
+		opt: opt,
+	})
+}
+
 func (q *Query) FormatQuery(b []byte, query string, params ...interface{}) []byte {
 	params = append(params, q.model)
 	if q.db != nil {
