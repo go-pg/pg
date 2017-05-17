@@ -20,16 +20,13 @@ func isZeroFunc(typ reflect.Type) func(reflect.Value) bool {
 		return isZero
 	}
 
-	if typ.Implements(appenderType) {
-		return isZeroAppenderValue
-	}
-
-	if typ.Implements(driverValuerType) {
-		return isZeroDriverValue
-	}
-
 	switch typ.Kind() {
-	case reflect.Array, reflect.Map, reflect.Slice, reflect.String:
+	case reflect.Array:
+		if typ.Elem().Kind() == reflect.Uint8 {
+			return isZeroBytes
+		}
+		return isZeroLen
+	case reflect.Map, reflect.Slice, reflect.String:
 		return isZeroLen
 	case reflect.Bool:
 		return isZeroBool
@@ -42,6 +39,14 @@ func isZeroFunc(typ reflect.Type) func(reflect.Value) bool {
 	case reflect.Interface, reflect.Ptr:
 		return isZeroNil
 	}
+
+	if typ.Implements(appenderType) {
+		return isZeroAppenderValue
+	}
+	if typ.Implements(driverValuerType) {
+		return isZeroDriverValue
+	}
+
 	return isZeroFalse
 }
 
@@ -100,6 +105,16 @@ func isZeroUint(v reflect.Value) bool {
 
 func isZeroFloat(v reflect.Value) bool {
 	return v.Float() == 0
+}
+
+func isZeroBytes(v reflect.Value) bool {
+	b := v.Slice(0, v.Len()).Bytes()
+	for _, c := range b {
+		if c != 0 {
+			return false
+		}
+	}
+	return true
 }
 
 func isZeroFalse(v reflect.Value) bool {
