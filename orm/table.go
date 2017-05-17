@@ -89,6 +89,15 @@ func (t *Table) AppendParam(dst []byte, strct reflect.Value, name string) ([]byt
 		return dst, true
 	}
 
+	switch name {
+	case "TableName":
+		dst = append(dst, t.Name...)
+		return dst, true
+	case "TableAlias":
+		dst = append(dst, t.Alias...)
+		return dst, true
+	}
+
 	return dst, false
 }
 
