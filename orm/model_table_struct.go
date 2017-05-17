@@ -61,18 +61,7 @@ func (m *structTableModel) Relation() *Relation {
 }
 
 func (m *structTableModel) AppendParam(dst []byte, name string) ([]byte, bool) {
-	dst, ok := m.table.AppendParam(dst, m.strct, name)
-	if ok {
-		return dst, true
-	}
-
-	switch name {
-	case "TableAlias":
-		dst = append(dst, m.table.Alias...)
-		return dst, true
-	}
-
-	return dst, false
+	return m.table.AppendParam(dst, m.strct, name)
 }
 
 func (m *structTableModel) Root() reflect.Value {

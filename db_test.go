@@ -521,6 +521,20 @@ var _ = Describe("DB.Select", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	It("selects ?TableName", func() {
+		var alias string
+		_, err := db.QueryOne(pg.Scan(&alias), "SELECT '?TableName'", &BookGenre{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(alias).To(Equal(`"book_genres"`))
+	})
+
+	It("selects ?TableAlias", func() {
+		var alias string
+		_, err := db.QueryOne(pg.Scan(&alias), "SELECT '?TableAlias'", &BookGenre{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(alias).To(Equal("bg"))
+	})
+
 	It("selects bytea", func() {
 		var col []byte
 		err := db.Model().Table("tests").Column("col").Select(pg.Scan(&col))
