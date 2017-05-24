@@ -184,9 +184,13 @@ func newTable(typ reflect.Type) *Table {
 	return table
 }
 
-func (t *Table) addFields(typ reflect.Type, index []int) {
+func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 	for i := 0; i < typ.NumField(); i++ {
 		f := typ.Field(i)
+
+		// Make a copy so slice is not shared between fields.
+		var index []int
+		index = append(index, baseIndex...)
 
 		if f.Anonymous {
 			embeddedTable := newTable(indirectType(f.Type))
