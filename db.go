@@ -136,7 +136,7 @@ func (db *DB) Exec(query interface{}, params ...interface{}) (res orm.Result, er
 		var cn *pool.Conn
 
 		if i >= 1 {
-			time.Sleep(internal.RetryBackoff(i - 1))
+			time.Sleep(internal.RetryBackoff(i-1, db.opt.MaxRetryBackoff))
 		}
 
 		cn, err = db.conn()
@@ -178,7 +178,7 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res orm.Re
 		var cn *pool.Conn
 
 		if i >= 1 {
-			time.Sleep(internal.RetryBackoff(i - 1))
+			time.Sleep(internal.RetryBackoff(i-1, db.opt.MaxRetryBackoff))
 		}
 
 		cn, err = db.conn()
