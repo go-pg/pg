@@ -74,75 +74,98 @@ func forAllValues(q *Query, fieldName string, values []string, queryTemplate, qu
 }
 
 type Pager struct {
-	limit int
-	page  int
+	Limit  int
+	Offset int
+
+	// Default max limit is 1000.
+	MaxLimit int
+	// Default max offset is 1000000.
+	MaxOffset int
 
 	stickyErr error
 }
 
-func NewPager(values url.Values, defaultLimit int) *Pager {
+func NewPager(values url.Values) *Pager {
+	p := &Pager{}
+	p.SetURLValues(values)
+	return p
+}
+
+func (p *Pager) SetURLValues(values url.Values) {
 	limit, err := intParam(values, "limit")
 	if err != nil {
-		return &Pager{stickyErr: err}
+		p.stickyErr = err
+		return
 	}
-	if limit <= 0 {
-		limit = defaultLimit
-	}
+	p.Limit = limit
 
 	page, err := intParam(values, "page")
 	if err != nil {
-		return &Pager{stickyErr: err}
+		p.stickyErr = err
+		return
+	}
+	if page > 0 {
+		p.Offset = (page - 1) * p.GetLimit()
+	}
+}
+
+func (p *Pager) maxLimit() int {
+	if p.MaxLimit > 0 {
+		return p.MaxLimit
+	}
+	return 1000
+}
+
+func (p *Pager) maxOffset() int {
+	if p.MaxOffset > 0 {
+		return p.MaxOffset
+	}
+	return 1000000
+}
+
+func (p *Pager) GetLimit() int {
+	const defaultLimit = 100
+
+	if p.Limit <= 0 {
+		return defaultLimit
 	}
 
-	return &Pager{
-		limit: limit,
-		page:  page,
+	if p.Limit > p.maxLimit() {
+		return p.maxLimit()
 	}
+
+	return p.Limit
 }
 
-func (p *Pager) Limit() int {
-	return p.limit
-}
-
-func (p *Pager) Page() int {
-	return p.page
-}
-
-func (p *Pager) Offset() int {
-	if p.page > 0 {
-		return (p.page - 1) * p.limit
+func (p *Pager) GetOffset() int {
+	if p.Offset > p.maxOffset() {
+		return p.maxOffset()
+	}
+	if p.Offset > 0 {
+		return p.Offset
 	}
 	return 0
 }
 
-func (p *Pager) Paginate(q *Query) (*Query, error) {
-	const maxLimit = 1000
-	const maxOffset = 1000000
+func (p *Pager) GetPage() int {
+	return (p.GetOffset() / p.GetLimit()) + 1
+}
 
+func (p *Pager) Paginate(q *Query) (*Query, error) {
 	if p.stickyErr != nil {
 		return nil, p.stickyErr
 	}
 
-	if p.limit > maxLimit {
-		return nil, fmt.Errorf("limit=%d is bigger than %d", p.limit, maxLimit)
-	}
-	q = q.Limit(p.limit)
-
-	if offset := p.Offset(); offset > 0 {
-		if offset > maxOffset {
-			return nil, fmt.Errorf("offset=%d is bigger than %d", offset, maxOffset)
-		}
-		q = q.Offset(offset)
-	}
-
+	q = q.Limit(p.GetLimit()).
+		Offset(p.GetOffset())
 	return q, nil
 }
 
 // Pagination is used with Query.Apply to set LIMIT and OFFSET from the URL values:
 //   - ?limit=10 - sets q.Limit(10), max limit is 1000.
 //   - ?page=5 - sets q.Offset((page - 1) * limit), max offset is 1000000.
-func Pagination(values url.Values, defaultLimit int) func(*Query) (*Query, error) {
-	return NewPager(values, defaultLimit).Paginate
+func Pagination(values url.Values) func(*Query) (*Query, error) {
+	return NewPager(values).Paginate
 }
 
 func intParam(urlValues url.Values, paramName string) (int, error) {

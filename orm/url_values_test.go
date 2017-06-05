@@ -107,7 +107,7 @@ var _ = Describe("Pager", func() {
 			req, _ := http.NewRequest("GET", urlValuesTest.url, nil)
 
 			q := NewQuery(nil, &URLValuesModel{})
-			q = q.Apply(Pagination(req.URL.Query(), 100))
+			q = q.Apply(Pagination(req.URL.Query()))
 
 			b, err := selectQuery{q: q}.AppendQuery(nil)
 			Expect(err).NotTo(HaveOccurred())
