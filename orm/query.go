@@ -266,9 +266,17 @@ func (q *Query) Limit(n int) *Query {
 	return q
 }
 
+func (q *Query) GetLimit() int {
+	return q.limit
+}
+
 func (q *Query) Offset(n int) *Query {
 	q.offset = n
 	return q
+}
+
+func (q *Query) GetOffset() int {
+	return q.offset
 }
 
 func (q *Query) OnConflict(s string, params ...interface{}) *Query {
