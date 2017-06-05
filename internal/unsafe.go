@@ -8,13 +8,20 @@ import (
 )
 
 func BytesToString(b []byte) string {
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	sh := reflect.StringHeader{bh.Data, bh.Len}
-	return *(*string)(unsafe.Pointer(&sh))
+	bytesHeader := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	strHeader := reflect.StringHeader{
+		Data: bytesHeader.Data,
+		Len:  bytesHeader.Len,
+	}
+	return *(*string)(unsafe.Pointer(&strHeader))
 }
 
 func StringToBytes(s string) []byte {
 	sh := (*reflect.StringHeader)(unsafe.Pointer(&s))
-	bh := reflect.SliceHeader{sh.Data, sh.Len, sh.Len}
+	bh := reflect.SliceHeader{
+		Data: sh.Data,
+		Len:  sh.Len,
+		Cap:  sh.Len,
+	}
 	return *(*[]byte)(unsafe.Pointer(&bh))
 }
