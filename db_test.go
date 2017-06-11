@@ -880,6 +880,34 @@ var _ = Describe("ORM", func() {
 		Expect(comments).To(HaveLen(3))
 	})
 
+	It("multi updates", func() {
+		books := []Book{{
+			Id:    100,
+			Title: " suffix",
+		}, {
+			Id: 101,
+		}}
+		res, err := db.Model(&books).
+			Set("title = book.title || COALESCE(_data.title, '')").
+			Update()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.RowsAffected()).To(Equal(2))
+
+		books = nil
+		err = db.Model(&books).Column("id", "title").Order("id").Select()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(books).To(Equal([]Book{{
+			Id:    100,
+			Title: "book 1 suffix",
+		}, {
+			Id:    101,
+			Title: "book 2",
+		}, {
+			Id:    102,
+			Title: "book 3",
+		}}))
+	})
+
 	Describe("struct model", func() {
 		It("supports HasOne, HasMany, HasMany2Many, Polymorphic, HasMany -> Polymorphic", func() {
 			var book Book

@@ -230,8 +230,8 @@ func (tx *Tx) Insert(model ...interface{}) error {
 }
 
 // Update updates the model by primary key.
-func (tx *Tx) Update(model interface{}) error {
-	return orm.Update(tx, model)
+func (tx *Tx) Update(model ...interface{}) error {
+	return orm.Update(tx, model...)
 }
 
 // Delete deletes the model by primary key.

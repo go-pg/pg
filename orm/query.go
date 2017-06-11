@@ -3,6 +3,7 @@ package orm
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -169,14 +170,33 @@ func (q *Query) ColumnExpr(expr string, params ...interface{}) *Query {
 	return q
 }
 
-func (q *Query) getFields() []string {
-	var fields []string
+func (q *Query) getFields() ([]*Field, error) {
+	return q._getFields(false)
+}
+
+func (q *Query) getColumns() ([]*Field, error) {
+	return q._getFields(true)
+}
+
+func (q *Query) _getFields(filterPKs bool) ([]*Field, error) {
+	table := q.model.Table()
+
+	var columns []*Field
 	for _, col := range q.columns {
 		if f, ok := col.(fieldAppender); ok {
-			fields = append(fields, f.field)
+			field, err := table.GetField(f.field)
+			if err != nil {
+				return nil, err
+			}
+
+			if filterPKs && field.HasFlag(PrimaryKeyFlag) {
+				continue
+			}
+
+			columns = append(columns, field)
 		}
 	}
-	return fields
+	return columns, nil
 }
 
 func (q *Query) Relation(name string, apply func(*Query) (*Query, error)) *Query {
@@ -655,12 +675,15 @@ func (q *Query) appendFirstTable(b []byte) []byte {
 
 func (q *Query) hasOtherTables() bool {
 	if q.hasModel() {
-		return len(q.tables) > 0
+		if len(q.tables) > 0 {
+			return true
+		}
+		return q.model.Value().Kind() == reflect.Slice
 	}
 	return len(q.tables) > 1
 }
 
-func (q *Query) appendOtherTables(b []byte) []byte {
+func (q *Query) appendOtherTables(b []byte) ([]byte, error) {
 	tables := q.tables
 	if !q.hasModel() {
 		tables = tables[1:]
@@ -670,6 +693,57 @@ func (q *Query) appendOtherTables(b []byte) []byte {
 			b = append(b, ", "...)
 		}
 		b = f.AppendFormat(b, q)
+	}
+
+	if q.hasModel() {
+		v := q.model.Value()
+		if v.Kind() == reflect.Slice {
+			columns, err := q.getColumns()
+			if err != nil {
+				return nil, err
+			}
+
+			if len(columns) > 0 {
+				columns = append(columns, q.model.Table().PKs...)
+			} else {
+				columns = q.model.Table().Fields
+			}
+
+			return appendSliceValues(b, columns, v), nil
+		}
+	}
+
+	return b, nil
+}
+
+func appendSliceValues(b []byte, fields []*Field, slice reflect.Value) []byte {
+	b = append(b, "(VALUES ("...)
+	for i := 0; i < slice.Len(); i++ {
+		el := slice.Index(i)
+		if el.Kind() == reflect.Interface {
+			el = el.Elem()
+		}
+		b = appendValues(b, fields, reflect.Indirect(el))
+		if i != slice.Len()-1 {
+			b = append(b, "), ("...)
+		}
+	}
+	b = append(b, ")) AS _data("...)
+	b = appendFieldsColumns(b, fields)
+	b = append(b, ")"...)
+	return b
+}
+
+func appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
+	for i, f := range fields {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		if f.OmitZero(v) {
+			b = append(b, "NULL"...)
+		} else {
+			b = f.AppendValue(b, v, 1)
+		}
 	}
 	return b
 }
@@ -764,5 +838,38 @@ func (wherePKQuery) AppendSep(b []byte) []byte {
 
 func (q wherePKQuery) AppendFormat(b []byte, f QueryFormatter) []byte {
 	table := q.model.Table()
-	return appendColumnAndValue(b, q.model.Value(), table, table.PKs)
+	value := q.model.Value()
+	if value.Kind() == reflect.Struct {
+		return appendColumnAndValue(b, value, table.Alias, table.PKs)
+	} else {
+		return appendColumnAndColumn(b, value, table.Alias, table.PKs)
+	}
+}
+
+func appendColumnAndValue(b []byte, v reflect.Value, alias types.Q, fields []*Field) []byte {
+	for i, f := range fields {
+		if i > 0 {
+			b = append(b, " AND "...)
+		}
+		b = append(b, alias...)
+		b = append(b, '.')
+		b = append(b, f.Column...)
+		b = append(b, " = "...)
+		b = f.AppendValue(b, v, 1)
+	}
+	return b
+}
+
+func appendColumnAndColumn(b []byte, v reflect.Value, alias types.Q, fields []*Field) []byte {
+	for i, f := range fields {
+		if i > 0 {
+			b = append(b, " AND "...)
+		}
+		b = append(b, alias...)
+		b = append(b, '.')
+		b = append(b, f.Column...)
+		b = append(b, " = _data."...)
+		b = append(b, f.Column...)
+	}
+	return b
 }

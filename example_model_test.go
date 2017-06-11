@@ -785,6 +785,37 @@ func ExampleDB_Update_setValues() {
 	// Output: Book<Id=1 Title="prefix book 1 suffix">
 }
 
+func ExampleDB_Update_bulkUpdate() {
+	db := modelDB()
+
+	book1 := &Book{
+		Id:    1,
+		Title: "updated book 1",
+	}
+	book2 := &Book{
+		Id:    2,
+		Title: "updated book 2",
+	}
+
+	// UPDATE "books" AS "book"
+	// SET "title" = _data."title"
+	// FROM (VALUES ('updated book 1', 1), ('updated book 2', 2)) AS _data("title", "id")
+	// WHERE "book"."id" = _data."id"
+	_, err := db.Model(book1, book2).Column("title").Update()
+	if err != nil {
+		panic(err)
+	}
+
+	var books []Book
+	err = db.Model(&books).Order("id").Select()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(books)
+	// Output: [Book<Id=1 Title="updated book 1"> Book<Id=2 Title="updated book 2"> Book<Id=3 Title="book 3">]
+}
+
 func ExampleDB_Delete() {
 	db := modelDB()
 

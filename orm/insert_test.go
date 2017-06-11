@@ -7,7 +7,10 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type InsertTest struct{}
+type InsertTest struct {
+	Id    int
+	Value string
+}
 
 type EmbeddingTest struct {
 	tableName struct{} `sql:"name"`
@@ -40,6 +43,19 @@ type InsertQTest struct {
 }
 
 var _ = Describe("Insert", func() {
+	It("multi inserts", func() {
+		q := NewQuery(nil, &InsertTest{
+			Id:    1,
+			Value: "hello",
+		}, &InsertTest{
+			Id: 2,
+		})
+
+		b, err := insertQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, 'hello'), (2, DEFAULT) RETURNING "value"`))
+	})
+
 	It("supports ON CONFLICT DO UPDATE", func() {
 		q := NewQuery(nil, &InsertTest{}).
 			OnConflict("(unq1) DO UPDATE").
@@ -48,7 +64,7 @@ var _ = Describe("Insert", func() {
 
 		b, err := insertQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" () VALUES () ON CONFLICT (unq1) DO UPDATE SET count1 = count1 + 1 WHERE (cond1 IS TRUE)`))
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" ("id", "value") VALUES (DEFAULT, DEFAULT) ON CONFLICT (unq1) DO UPDATE SET count1 = count1 + 1 WHERE (cond1 IS TRUE) RETURNING "id", "value"`))
 	})
 
 	It("supports ON CONFLICT DO NOTHING", func() {
@@ -59,7 +75,7 @@ var _ = Describe("Insert", func() {
 
 		b, err := insertQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" () VALUES () ON CONFLICT (unq1) DO NOTHING`))
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" ("id", "value") VALUES (DEFAULT, DEFAULT) ON CONFLICT (unq1) DO NOTHING RETURNING "id", "value"`))
 	})
 
 	It("supports custom table name on embedded struct", func() {
@@ -70,7 +86,7 @@ var _ = Describe("Insert", func() {
 		Expect(string(b)).To(Equal(`INSERT INTO my_name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
 	})
 
-	It("supports override table name with embedded struct", func() {
+	It("overrides table name with embedded struct", func() {
 		q := NewQuery(nil, &OverrideInsertTest{})
 
 		b, err := insertQuery{q: q}.AppendQuery(nil)

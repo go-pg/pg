@@ -112,7 +112,7 @@ func (j *join) m2mQuery(db DB) (*Query, error) {
 	for _, pk := range j.JoinModel.Table().PKs {
 		q = q.Where(
 			"?.? = ?.?",
-			joinAlias, pk.ColName,
+			joinAlias, pk.Column,
 			j.Rel.M2MTableAlias, types.F(j.Rel.JoinPrefix+pk.SQLName),
 		)
 	}
@@ -176,7 +176,7 @@ func (j *join) appendHasOneColumns(b []byte) []byte {
 			}
 			b = j.appendAlias(b)
 			b = append(b, '.')
-			b = append(b, f.ColName...)
+			b = append(b, f.Column...)
 			b = append(b, " AS "...)
 			b = j.appendAliasColumn(b, f.SQLName)
 		}
@@ -216,11 +216,11 @@ func (j *join) appendHasOneJoin(db DB, b []byte) []byte {
 			}
 			b = j.appendAlias(b)
 			b = append(b, '.')
-			b = append(b, joinTable.PKs[i].ColName...)
+			b = append(b, joinTable.PKs[i].Column...)
 			b = append(b, " = "...)
 			b = j.appendBaseAlias(b)
 			b = append(b, '.')
-			b = append(b, fk.ColName...)
+			b = append(b, fk.Column...)
 		}
 	} else {
 		baseTable := j.BaseModel.Table()
@@ -230,11 +230,11 @@ func (j *join) appendHasOneJoin(db DB, b []byte) []byte {
 			}
 			b = j.appendAlias(b)
 			b = append(b, '.')
-			b = append(b, fk.ColName...)
+			b = append(b, fk.Column...)
 			b = append(b, " = "...)
 			b = j.appendBaseAlias(b)
 			b = append(b, '.')
-			b = append(b, baseTable.PKs[i].ColName...)
+			b = append(b, baseTable.PKs[i].Column...)
 		}
 	}
 
@@ -260,7 +260,7 @@ func (q hasManyColumnsAppender) AppendFormat(b []byte, f QueryFormatter) []byte 
 			}
 			b = append(b, joinTable.Alias...)
 			b = append(b, '.')
-			b = append(b, f.ColName...)
+			b = append(b, f.Column...)
 		}
 		return b
 	}
