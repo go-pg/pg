@@ -46,16 +46,7 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = q.q.appendTableName(b)
 	}
 	b = append(b, " ("...)
-
-	start := len(b)
-	for _, f := range table.Fields {
-		b = append(b, f.ColName...)
-		b = append(b, ", "...)
-	}
-	if len(b) > start {
-		b = b[:len(b)-2]
-	}
-
+	b = appendFieldsColumns(b, table.Fields)
 	b = append(b, ") VALUES ("...)
 	if value.Kind() == reflect.Struct {
 		b = q.appendValues(b, table.Fields, value)
@@ -127,11 +118,6 @@ func (ins *insertQuery) addReturningField(field *Field) {
 
 func (insertQuery) appendReturningFields(b []byte, fields []*Field) []byte {
 	b = append(b, " RETURNING "...)
-	for i, f := range fields {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-		b = append(b, f.ColName...)
-	}
+	b = appendFieldsColumns(b, fields)
 	return b
 }

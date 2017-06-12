@@ -161,7 +161,7 @@ func (q selectQuery) appendModelColumns(b []byte) []byte {
 		}
 		b = append(b, q.q.model.Table().Alias...)
 		b = append(b, '.')
-		b = append(b, f.ColName...)
+		b = append(b, f.Column...)
 	}
 	return b
 }

@@ -119,20 +119,6 @@ func dstValues(model tableModel, fields []*Field) map[string][]reflect.Value {
 	return mp
 }
 
-func appendColumnAndValue(b []byte, v reflect.Value, table *Table, fields []*Field) []byte {
-	for i, f := range fields {
-		if i > 0 {
-			b = append(b, " AND "...)
-		}
-		b = append(b, table.Alias...)
-		b = append(b, '.')
-		b = append(b, f.ColName...)
-		b = append(b, " = "...)
-		b = f.AppendValue(b, v, 1)
-	}
-	return b
-}
-
 func modelId(b []byte, v reflect.Value, fields []*Field) []byte {
 	for _, f := range fields {
 		b = f.AppendValue(b, v, 0)
@@ -145,6 +131,16 @@ func modelIdMap(b []byte, m map[string]string, prefix string, fields []*Field) [
 	for _, f := range fields {
 		b = append(b, m[prefix+f.SQLName]...)
 		b = append(b, ',')
+	}
+	return b
+}
+
+func appendFieldsColumns(b []byte, fields []*Field) []byte {
+	for i, f := range fields {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = append(b, f.Column...)
 	}
 	return b
 }

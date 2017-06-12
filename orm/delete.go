@@ -45,7 +45,10 @@ func (q deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	if q.q.hasOtherTables() {
 		b = append(b, " USING "...)
-		b = q.q.appendOtherTables(b)
+		b, err = q.q.appendOtherTables(b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	b, err = q.q.mustAppendWhere(b)

@@ -32,8 +32,10 @@ type Table struct {
 	Alias     types.Q
 	ModelName string
 
+	Fields []*Field
+	// TODO: PKs and Columns should be slices of Fields
 	PKs       []*Field
-	Fields    []*Field
+	Columns   []*Field
 	FieldsMap map[string]*Field
 
 	Methods   map[string]*Method
@@ -67,6 +69,11 @@ func (t *Table) checkPKs() error {
 
 func (t *Table) AddField(field *Field) {
 	t.Fields = append(t.Fields, field)
+	if field.HasFlag(PrimaryKeyFlag) {
+		t.PKs = append(t.PKs, field)
+	} else {
+		t.Columns = append(t.Columns, field)
+	}
 	t.FieldsMap[field.SQLName] = field
 }
 
@@ -268,7 +275,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		GoName:  f.Name,
 		SQLName: sqlName,
-		ColName: types.Q(types.AppendField(nil, sqlName, 1)),
+		Column:  types.Q(types.AppendField(nil, sqlName, 1)),
 
 		Index: append(index, f.Index...),
 	}
@@ -282,10 +289,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	if len(t.PKs) == 0 && (field.SQLName == "id" || field.SQLName == "uuid") {
 		field.SetFlag(PrimaryKeyFlag)
-		t.PKs = append(t.PKs, &field)
 	} else if _, ok := sqlOpt.Get("pk"); ok {
 		field.SetFlag(PrimaryKeyFlag)
-		t.PKs = append(t.PKs, &field)
 	} else if strings.HasSuffix(string(field.SQLName), "_id") {
 		field.SetFlag(ForeignKeyFlag)
 	}
@@ -379,7 +384,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		for _, ff := range joinTable.FieldsMap {
 			ff = ff.Copy()
 			ff.SQLName = field.SQLName + "__" + ff.SQLName
-			ff.ColName = types.Q(types.AppendField(nil, ff.SQLName, 1))
+			ff.Column = types.Q(types.AppendField(nil, ff.SQLName, 1))
 			ff.Index = append(field.Index, ff.Index...)
 			t.FieldsMap[ff.SQLName] = ff
 		}

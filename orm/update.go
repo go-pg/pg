@@ -2,12 +2,13 @@ package orm
 
 import (
 	"errors"
+	"reflect"
 
 	"github.com/go-pg/pg/internal"
 )
 
-func Update(db DB, model interface{}) error {
-	res, err := NewQuery(db, model).Update()
+func Update(db DB, model ...interface{}) error {
+	res, err := NewQuery(db, model...).Update()
 	if err != nil {
 		return err
 	}
@@ -54,7 +55,10 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	if q.q.hasOtherTables() {
 		b = append(b, " FROM "...)
-		b = q.q.appendOtherTables(b)
+		b, err = q.q.appendOtherTables(b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	b, err = q.q.mustAppendWhere(b)
@@ -81,40 +85,61 @@ func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 
 	b = append(b, " SET "...)
 
-	table := q.q.model.Table()
-	strct := q.q.model.Value()
-
-	if fields := q.q.getFields(); len(fields) > 0 {
-		for i, fieldName := range fields {
-			field, err := table.GetField(fieldName)
-			if err != nil {
-				return nil, err
-			}
-
-			if i > 0 {
-				b = append(b, ", "...)
-			}
-
-			b = append(b, field.ColName...)
-			b = append(b, " = "...)
-			b = field.AppendValue(b, strct, 1)
-		}
-		return b, nil
+	value := q.q.model.Value()
+	var err error
+	if value.Kind() == reflect.Struct {
+		b, err = q.appendSetStruct(b, value)
+	} else {
+		b, err = q.appendSetSlice(b, value)
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	start := len(b)
-	for _, field := range table.Fields {
-		if field.HasFlag(PrimaryKeyFlag) {
-			continue
+	return b, nil
+}
+
+func (q updateQuery) appendSetStruct(b []byte, strct reflect.Value) ([]byte, error) {
+	fields, err := q.q.getFields()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(fields) == 0 {
+		fields = q.q.model.Table().Columns
+	}
+
+	for i, field := range fields {
+		if i > 0 {
+			b = append(b, ", "...)
 		}
 
-		b = append(b, field.ColName...)
+		b = append(b, field.Column...)
 		b = append(b, " = "...)
 		b = field.AppendValue(b, strct, 1)
-		b = append(b, ", "...)
 	}
-	if len(b) > start {
-		b = b[:len(b)-2]
+	return b, nil
+}
+
+func (q updateQuery) appendSetSlice(b []byte, slice reflect.Value) ([]byte, error) {
+	fields, err := q.q.getFields()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(fields) == 0 {
+		fields = q.q.model.Table().Columns
+	}
+
+	for i, field := range fields {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+
+		b = append(b, field.Column...)
+		b = append(b, " = "...)
+		b = append(b, "_data."...)
+		b = append(b, field.Column...)
 	}
 	return b, nil
 }
