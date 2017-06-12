@@ -20,6 +20,7 @@
 - Scanning variables using [ORM](https://godoc.org/github.com/go-pg/pg#example-DB-Select-SomeColumnsIntoVars) and [SQL](https://godoc.org/github.com/go-pg/pg#example-Scan).
 - [SelectOrInsert](https://godoc.org/github.com/go-pg/pg#example-DB-Insert-SelectOrInsert) using on-conflict.
 - [INSERT ... ON CONFLICT DO UPDATE](https://godoc.org/github.com/go-pg/pg#example-DB-Insert-OnConflictDoUpdate) using ORM.
+- Bulk/batch [inserts](https://godoc.org/github.com/go-pg/pg#example-DB-Insert-BulkInsert) and [updates](https://godoc.org/github.com/go-pg/pg#example-DB-Update-BulkUpdate).
 - Common table expressions using [WITH](https://godoc.org/github.com/go-pg/pg#example-DB-Select-With) and [WrapWith](https://godoc.org/github.com/go-pg/pg#example-DB-Select-WrapWith).
 - [CountEstimate](https://godoc.org/github.com/go-pg/pg#example-DB-Model-CountEstimate) using `EXPLAIN` to get [estimated number of matching rows](https://wiki.postgresql.org/wiki/Count_estimate).
 - [HasOne](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasOne), [BelongsTo](https://godoc.org/github.com/go-pg/pg#example-DB-Model-BelongsTo), [HasMany](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasMany) and [ManyToMany](https://godoc.org/github.com/go-pg/pg#example-DB-Model-ManyToMany).
