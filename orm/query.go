@@ -224,6 +224,34 @@ func (q *Query) WhereOr(where string, params ...interface{}) *Query {
 	return q
 }
 
+// WhereGroup encloses conditions added in the function in parentheses.
+//
+//    q.Where("TRUE").
+//    	WhereGroup(func(q *orm.Query) (*orm.Query, error)) {
+//    		q = q.WhereOr("FALSE").
+//    			WhereOr("TRUE").
+//    		return q, nil
+//    	})
+//
+// generates
+//
+//    WHERE TRUE AND (FALSE OR TRUE)
+func (q *Query) WhereGroup(fn func(*Query) (*Query, error)) *Query {
+	saved := q.where
+	q.where = nil
+
+	newq, err := fn(q)
+	if err != nil {
+		q.err(err)
+		return q
+	}
+
+	group := whereGroupAppender{newq.where}
+	newq.where = append(saved, group)
+
+	return newq
+}
+
 // WhereIn is a shortcut for Where and pg.In to work with IN operator:
 //
 //    WhereIn("id IN (?)", 1, 2, 3)
@@ -768,13 +796,13 @@ func (q *Query) mustAppendWhere(b []byte) ([]byte, error) {
 
 func (q *Query) appendWhere(b []byte) []byte {
 	b = append(b, " WHERE "...)
-	for i, f := range q.where {
+	for i, app := range q.where {
 		if i > 0 {
 			b = append(b, ' ')
-			b = f.AppendSep(b)
+			b = app.AppendSep(b)
 			b = append(b, ' ')
 		}
-		b = f.AppendFormat(b, q)
+		b = app.AppendFormat(b, q)
 	}
 	return b
 }

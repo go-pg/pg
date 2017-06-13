@@ -9,6 +9,7 @@
  - Support for net.IP and net.IPNet.
  - Support for context.Context.
  - Bulk/multi updates.
+ - Query.WhereGroup for enclosing conditions in paretheses.
 
 ## v5
 

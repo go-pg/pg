@@ -318,6 +318,25 @@ func ExampleDB_Select_whereIn() {
 	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
 }
 
+func ExampleDB_Select_whereGroup() {
+	db := modelDB()
+
+	var books []Book
+	err := db.Model(&books).
+		WhereGroup(func(q *orm.Query) (*orm.Query, error) {
+			q = q.WhereOr("id = 1").
+				WhereOr("id = 2")
+			return q, nil
+		}).
+		Where("title IS NOT NULL").
+		Select()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(books)
+	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
+}
+
 func ExampleDB_Select_sqlExpression() {
 	db := modelDB()
 
