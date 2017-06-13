@@ -706,7 +706,9 @@ func (q *Query) hasOtherTables() bool {
 		if len(q.tables) > 0 {
 			return true
 		}
-		return q.model.Value().Kind() == reflect.Slice
+
+		v := q.model.Value()
+		return v.Kind() == reflect.Slice && v.Len() > 0
 	}
 	return len(q.tables) > 1
 }
@@ -725,7 +727,7 @@ func (q *Query) appendOtherTables(b []byte) ([]byte, error) {
 
 	if q.hasModel() {
 		v := q.model.Value()
-		if v.Kind() == reflect.Slice {
+		if v.Kind() == reflect.Slice && v.Len() > 0 {
 			columns, err := q.getColumns()
 			if err != nil {
 				return nil, err
