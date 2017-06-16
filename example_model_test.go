@@ -117,7 +117,7 @@ func ExampleDB_Insert_bulkInsert() {
 	}
 }
 
-func ExampleDB_Insert_bulkInsert2() {
+func ExampleDB_Insert_bulkInsertSlice() {
 	db := modelDB()
 
 	books := []Book{{
@@ -826,6 +826,36 @@ func ExampleDB_Update_bulkUpdate() {
 	}
 
 	var books []Book
+	err = db.Model(&books).Order("id").Select()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(books)
+	// Output: [Book<Id=1 Title="updated book 1"> Book<Id=2 Title="updated book 2"> Book<Id=3 Title="book 3">]
+}
+
+func ExampleDB_Update_bulkUpdateSlice() {
+	db := modelDB()
+
+	books := []Book{{
+		Id:    1,
+		Title: "updated book 1",
+	}, {
+		Id:    2,
+		Title: "updated book 2",
+	}}
+
+	// UPDATE "books" AS "book"
+	// SET "title" = _data."title"
+	// FROM (VALUES ('updated book 1', 1), ('updated book 2', 2)) AS _data("title", "id")
+	// WHERE "book"."id" = _data."id"
+	_, err := db.Model(&books).Column("title").Update()
+	if err != nil {
+		panic(err)
+	}
+
+	books = nil
 	err = db.Model(&books).Order("id").Select()
 	if err != nil {
 		panic(err)
