@@ -47,9 +47,6 @@ type Pooler interface {
 }
 
 type Options struct {
-	DialErrorsThreshold int
-	DialBackoff         time.Duration
-
 	Dial    func() (net.Conn, error)
 	OnClose func(*Conn) error
 
@@ -58,11 +55,6 @@ type Options struct {
 	IdleTimeout        time.Duration
 	IdleCheckFrequency time.Duration
 	MaxAge             time.Duration
-}
-
-type lastDialError struct {
-	Time time.Time
-	Err  error
 }
 
 type ConnPool struct {
@@ -107,18 +99,16 @@ func (p *ConnPool) NewConn() (*Conn, error) {
 		return nil, ErrClosed
 	}
 
-	if p.opt.DialErrorsThreshold > 0 &&
-		atomic.LoadUint32(&p.dialErrorsNum) > uint32(p.opt.DialErrorsThreshold) {
-		lastDial := p.lastDialError()
-		if time.Since(lastDial.Time) < p.opt.DialBackoff {
-			return nil, lastDial.Err
-		}
+	if atomic.LoadUint32(&p.dialErrorsNum) >= uint32(p.opt.PoolSize) {
+		return nil, p.lastDialError()
 	}
 
 	netConn, err := p.opt.Dial()
 	if err != nil {
 		p.setLastDialError(err)
-		atomic.AddUint32(&p.dialErrorsNum, 1)
+		if atomic.AddUint32(&p.dialErrorsNum, 1) == uint32(p.opt.PoolSize) {
+			go p.tryDial()
+		}
 		return nil, err
 	}
 	atomic.StoreUint32(&p.dialErrorsNum, 0)
@@ -131,15 +121,27 @@ func (p *ConnPool) NewConn() (*Conn, error) {
 	return cn, nil
 }
 
-func (p *ConnPool) setLastDialError(err error) {
-	p._lastDialError.Store(lastDialError{
-		Time: time.Now(),
-		Err:  err,
-	})
+func (p *ConnPool) tryDial() {
+	for {
+		conn, err := p.opt.Dial()
+		if err != nil {
+			p.setLastDialError(err)
+			time.Sleep(time.Second)
+			continue
+		}
+
+		atomic.StoreUint32(&p.dialErrorsNum, 0)
+		_ = conn.Close()
+		return
+	}
 }
 
-func (p *ConnPool) lastDialError() lastDialError {
-	return p._lastDialError.Load().(lastDialError)
+func (p *ConnPool) setLastDialError(err error) {
+	p._lastDialError.Store(err)
+}
+
+func (p *ConnPool) lastDialError() error {
+	return p._lastDialError.Load().(error)
 }
 
 func (p *ConnPool) isStaleConn(cn *Conn) bool {

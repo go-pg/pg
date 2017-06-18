@@ -43,12 +43,6 @@ type Options struct {
 	// Dial timeout for establishing new connections.
 	// Default is 5 seconds.
 	DialTimeout time.Duration
-	// Number of consecutive dial errors after which client assumes PostgreSQL
-	// is unreachable for DialBackoff duration.
-	// Default is 2 * PoolSize consecutive errors.
-	DialErrorsThreshold int
-	// Default is 30 seconds.
-	DialBackoff time.Duration
 
 	// Timeout for socket reads. If reached, commands will fail
 	// with a timeout instead of blocking.
@@ -110,15 +104,6 @@ func (opt *Options) init() {
 
 	if opt.DialTimeout == 0 {
 		opt.DialTimeout = 5 * time.Second
-	}
-	switch opt.DialErrorsThreshold {
-	case -1:
-		opt.DialErrorsThreshold = 0
-	case 0:
-		opt.DialErrorsThreshold = 2 * opt.PoolSize
-	}
-	if opt.DialBackoff == 0 {
-		opt.DialBackoff = 30 * time.Second
 	}
 
 	if opt.IdleCheckFrequency == 0 {
