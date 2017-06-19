@@ -534,7 +534,7 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, err error)
 	var insertErr error
 	for i := 0; i < 5; i++ {
 		if i >= 2 {
-			time.Sleep(internal.RetryBackoff(i-2, 4*time.Second))
+			time.Sleep(internal.RetryBackoff(i-2, 250*time.Millisecond, 4*time.Second))
 		}
 
 		err := q.Select(values...)

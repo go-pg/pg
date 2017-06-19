@@ -63,7 +63,7 @@ func (stmt *Stmt) exec(params ...interface{}) (orm.Result, error) {
 func (stmt *Stmt) Exec(params ...interface{}) (res orm.Result, err error) {
 	for i := 0; i <= stmt.db.opt.MaxRetries; i++ {
 		if i >= 1 {
-			time.Sleep(internal.RetryBackoff(i-1, stmt.db.opt.MaxRetryBackoff))
+			time.Sleep(stmt.db.retryBackoff(i - 1))
 		}
 
 		start := time.Now()
@@ -122,7 +122,7 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (orm.Result, e
 func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res orm.Result, err error) {
 	for i := 0; i <= stmt.db.opt.MaxRetries; i++ {
 		if i >= 1 {
-			time.Sleep(internal.RetryBackoff(i-1, stmt.db.opt.MaxRetryBackoff))
+			time.Sleep(stmt.db.retryBackoff(i - 1))
 		}
 
 		start := time.Now()

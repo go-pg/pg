@@ -34,6 +34,9 @@ func pgOptions() *pg.Options {
 			InsecureSkipVerify: true,
 		},
 
+		MaxRetries:      1,
+		MinRetryBackoff: -1,
+
 		DialTimeout:  30 * time.Second,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
