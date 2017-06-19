@@ -59,6 +59,10 @@ func (db *DB) WithParam(param string, value interface{}) *DB {
 	}
 }
 
+func (db *DB) retryBackoff(retry int) time.Duration {
+	return internal.RetryBackoff(retry, db.opt.MinRetryBackoff, db.opt.MaxRetryBackoff)
+}
+
 func (db *DB) conn() (*pool.Conn, error) {
 	cn, _, err := db.pool.Get()
 	if err != nil {
@@ -136,7 +140,7 @@ func (db *DB) Exec(query interface{}, params ...interface{}) (res orm.Result, er
 		var cn *pool.Conn
 
 		if i >= 1 {
-			time.Sleep(internal.RetryBackoff(i-1, db.opt.MaxRetryBackoff))
+			time.Sleep(db.retryBackoff(i - 1))
 		}
 
 		cn, err = db.conn()
@@ -178,7 +182,7 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res orm.Re
 		var cn *pool.Conn
 
 		if i >= 1 {
-			time.Sleep(internal.RetryBackoff(i-1, db.opt.MaxRetryBackoff))
+			time.Sleep(db.retryBackoff(i - 1))
 		}
 
 		cn, err = db.conn()

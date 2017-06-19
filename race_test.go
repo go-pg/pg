@@ -22,18 +22,15 @@ var _ = Describe("DB timeout race", func() {
 	var C, N int
 
 	BeforeEach(func() {
-		opt := pgOptions()
-		opt.DialTimeout = 10 * time.Millisecond
-		opt.ReadTimeout = 10 * time.Millisecond
-		opt.WriteTimeout = 10 * time.Millisecond
-		opt.PoolTimeout = 10 * time.Millisecond
-
-		db = pg.Connect(opt)
-
 		C, N = concurrency()
+		N = 100
 	})
 
 	AfterEach(func() {
+		pool := db.Pool()
+		Expect(pool.Len()).To(Equal(0))
+		Expect(pool.FreeLen()).To(Equal(0))
+
 		err := db.Close()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -41,14 +38,45 @@ var _ = Describe("DB timeout race", func() {
 		time.Sleep(time.Second)
 	})
 
-	It("is race free", func() {
-		N = 100
-		perform(C, func(id int) {
-			for i := 0; i < N; i++ {
-				_, err := db.Exec("SELECT pg_sleep(1)")
-				Expect(err).To(HaveOccurred())
-			}
+	test := func() {
+		It("is race free", func() {
+			perform(C, func(id int) {
+				for i := 0; i < N; i++ {
+					_, err := db.Exec("SELECT pg_sleep(1)")
+					Expect(err).To(HaveOccurred())
+				}
+			})
 		})
+	}
+
+	Describe("dial timeout", func() {
+		BeforeEach(func() {
+			opt := pgOptions()
+			opt.DialTimeout = time.Nanosecond
+			db = pg.Connect(opt)
+		})
+
+		test()
+	})
+
+	Describe("read timeout", func() {
+		BeforeEach(func() {
+			opt := pgOptions()
+			opt.ReadTimeout = time.Nanosecond
+			db = pg.Connect(opt)
+		})
+
+		test()
+	})
+
+	Describe("write timeout", func() {
+		BeforeEach(func() {
+			opt := pgOptions()
+			opt.WriteTimeout = time.Nanosecond
+			db = pg.Connect(opt)
+		})
+
+		test()
 	})
 })
 

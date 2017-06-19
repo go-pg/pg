@@ -36,6 +36,9 @@ type Options struct {
 	MaxRetries int
 	// Whether to retry queries cancelled because of statement_timeout.
 	RetryStatementTimeout bool
+	// Minimum backoff between each retry.
+	// Default is 250 milliseconds; -1 disables backoff.
+	MinRetryBackoff time.Duration
 	// Maximum backoff between each retry.
 	// Default is 4 seconds; -1 disables backoff.
 	MaxRetryBackoff time.Duration
@@ -110,6 +113,12 @@ func (opt *Options) init() {
 		opt.IdleCheckFrequency = time.Minute
 	}
 
+	switch opt.MinRetryBackoff {
+	case -1:
+		opt.MinRetryBackoff = 0
+	case 0:
+		opt.MinRetryBackoff = 250 * time.Millisecond
+	}
 	switch opt.MaxRetryBackoff {
 	case -1:
 		opt.MaxRetryBackoff = 0
