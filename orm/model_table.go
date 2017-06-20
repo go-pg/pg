@@ -27,22 +27,19 @@ type tableModel interface {
 	scanColumn(int, string, []byte) (bool, error)
 }
 
-func newTableModel(v interface{}) (tableModel, error) {
-	switch v := v.(type) {
-	case tableModel:
-		return v, nil
-	case reflect.Value:
-		return newTableModelValue(v)
-	default:
-		vv := reflect.ValueOf(v)
-		if !vv.IsValid() {
-			return nil, errors.New("pg: Model(nil)")
-		}
-		if vv.Kind() != reflect.Ptr {
-			return nil, fmt.Errorf("pg: Model(non-pointer %T)", v)
-		}
-		return newTableModelValue(vv.Elem())
+func newTableModel(value interface{}) (tableModel, error) {
+	if value, ok := value.(tableModel); ok {
+		return value, nil
 	}
+
+	v := reflect.ValueOf(value)
+	if !v.IsValid() {
+		return nil, errors.New("pg: Model(nil)")
+	}
+	if v.Kind() != reflect.Ptr {
+		return nil, fmt.Errorf("pg: Model(non-pointer %T)", value)
+	}
+	return newTableModelValue(v.Elem())
 }
 
 func newTableModelValue(v reflect.Value) (tableModel, error) {
