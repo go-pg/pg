@@ -417,7 +417,9 @@ func readSimpleQuery(cn *pool.Conn) (*result, error) {
 			if err != nil {
 				return nil, err
 			}
-			res.parse(b)
+			if err := res.parse(b); err != nil && firstErr == nil {
+				firstErr = err
+			}
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -490,7 +492,9 @@ func readExtQuery(cn *pool.Conn) (*result, error) {
 			if err != nil {
 				return nil, err
 			}
-			res.parse(b)
+			if err := res.parse(b); err != nil && firstErr == nil {
+				firstErr = err
+			}
 		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -643,7 +647,9 @@ func readSimpleQueryData(cn *pool.Conn, mod interface{}) (*result, error) {
 			if err != nil {
 				return nil, err
 			}
-			res.parse(b)
+			if err := res.parse(b); err != nil && firstErr == nil {
+				firstErr = err
+			}
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -723,7 +729,9 @@ func readExtQueryData(cn *pool.Conn, mod interface{}, columns [][]byte) (*result
 			if err != nil {
 				return nil, err
 			}
-			res.parse(b)
+			if err := res.parse(b); err != nil && firstErr == nil {
+				firstErr = err
+			}
 		case readyForQueryMsg: // Response to the SYNC message.
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
@@ -819,6 +827,7 @@ func readCopyOutResponse(cn *pool.Conn) error {
 
 func readCopyData(cn *pool.Conn, w io.Writer) (*result, error) {
 	var res result
+	var firstErr error
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -846,11 +855,16 @@ func readCopyData(cn *pool.Conn, w io.Writer) (*result, error) {
 			if err != nil {
 				return nil, err
 			}
-			res.parse(b)
+			if err := res.parse(b); err != nil && firstErr == nil {
+				firstErr = err
+			}
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {
 				return nil, err
+			}
+			if firstErr != nil {
+				return nil, firstErr
 			}
 			return &res, nil
 		case errorResponseMsg:
@@ -900,7 +914,9 @@ func readReadyForQuery(cn *pool.Conn) (*result, error) {
 			if err != nil {
 				return nil, err
 			}
-			res.parse(b)
+			if err := res.parse(b); err != nil && firstErr == nil {
+				firstErr = err
+			}
 		case readyForQueryMsg:
 			_, err := cn.ReadN(msgLen)
 			if err != nil {

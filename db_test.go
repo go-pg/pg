@@ -92,9 +92,14 @@ func TestEmptyQuery(t *testing.T) {
 
 var _ = Describe("DB", func() {
 	var db *pg.DB
+	var tx *pg.Tx
 
 	BeforeEach(func() {
 		db = pg.Connect(pgOptions())
+
+		var err error
+		tx, err = db.Begin()
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -106,11 +111,21 @@ var _ = Describe("DB", func() {
 			_, err := db.Query(pg.Discard, "SELECT 1 WHERE 1 = 2")
 			Expect(err).NotTo(HaveOccurred())
 		})
+
+		It("does not return an error when there are no results", func() {
+			_, err := tx.Query(pg.Discard, "SELECT 1 WHERE 1 = 2")
+			Expect(err).NotTo(HaveOccurred())
+		})
 	})
 
 	Describe("QueryOne", func() {
 		It("returns pg.ErrNoRows when there are no results", func() {
 			_, err := db.QueryOne(pg.Discard, "SELECT 1 WHERE 1 = 2")
+			Expect(err).To(Equal(pg.ErrNoRows))
+		})
+
+		It("returns pg.ErrNoRows when there are no results", func() {
+			_, err := tx.QueryOne(pg.Discard, "SELECT 1 WHERE 1 = 2")
 			Expect(err).To(Equal(pg.ErrNoRows))
 		})
 	})
@@ -120,11 +135,21 @@ var _ = Describe("DB", func() {
 			_, err := db.Exec("SELECT 1 WHERE 1 = 2")
 			Expect(err).NotTo(HaveOccurred())
 		})
+
+		It("does not return an error when there are no results", func() {
+			_, err := tx.Exec("SELECT 1 WHERE 1 = 2")
+			Expect(err).NotTo(HaveOccurred())
+		})
 	})
 
 	Describe("ExecOne", func() {
 		It("returns pg.ErrNoRows when there are no results", func() {
 			_, err := db.ExecOne("SELECT 1 WHERE 1 = 2")
+			Expect(err).To(Equal(pg.ErrNoRows))
+		})
+
+		It("returns pg.ErrNoRows when there are no results", func() {
+			_, err := tx.ExecOne("SELECT 1 WHERE 1 = 2")
 			Expect(err).To(Equal(pg.ErrNoRows))
 		})
 	})

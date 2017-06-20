@@ -18,19 +18,22 @@ type result struct {
 
 var _ orm.Result = (*result)(nil)
 
-func (res *result) parse(b []byte) {
+func (res *result) parse(b []byte) error {
 	res.affected = -1
 
 	ind := bytes.LastIndexByte(b, ' ')
 	if ind == -1 {
-		return
+		return nil
 	}
 
 	s := internal.BytesToString(b[ind+1 : len(b)-1])
+
 	affected, err := strconv.Atoi(s)
 	if err == nil {
 		res.affected = affected
 	}
+
+	return nil
 }
 
 func (res *result) Model() orm.Model {
