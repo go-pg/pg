@@ -616,9 +616,14 @@ func (q *Query) Update(values ...interface{}) (Result, error) {
 }
 
 // Delete deletes the model.
-func (q *Query) Delete() (Result, error) {
+func (q *Query) Delete(values ...interface{}) (Result, error) {
 	if q.stickyErr != nil {
 		return nil, q.stickyErr
+	}
+
+	model, err := q.newModel(values...)
+	if err != nil {
+		return nil, err
 	}
 
 	if q.model != nil {
@@ -627,7 +632,7 @@ func (q *Query) Delete() (Result, error) {
 		}
 	}
 
-	res, err := q.db.Query(q.model, deleteQuery{q}, q.model)
+	res, err := q.db.Query(model, deleteQuery{q}, q.model)
 	if err != nil {
 		return nil, err
 	}

@@ -74,7 +74,7 @@ type Strings []string
 var _ orm.Model = (*Strings)(nil)
 var _ types.ValueAppender = (*Strings)(nil)
 
-func (strings *Strings) Reset() error {
+func (strings *Strings) Init() error {
 	if s := *strings; len(s) > 0 {
 		*strings = s[:0]
 	}
@@ -146,7 +146,7 @@ type Ints []int64
 var _ orm.Model = (*Ints)(nil)
 var _ types.ValueAppender = (*Ints)(nil)
 
-func (ints *Ints) Reset() error {
+func (ints *Ints) Init() error {
 	if s := *ints; len(s) > 0 {
 		*ints = s[:0]
 	}
@@ -221,7 +221,7 @@ type IntSet map[int64]struct{}
 
 var _ orm.Model = (*IntSet)(nil)
 
-func (set *IntSet) Reset() error {
+func (set *IntSet) Init() error {
 	if len(*set) > 0 {
 		*set = make(map[int64]struct{})
 	}

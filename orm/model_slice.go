@@ -14,7 +14,7 @@ type sliceModel struct {
 
 var _ Model = (*sliceModel)(nil)
 
-func (m *sliceModel) Reset() error {
+func (m *sliceModel) Init() error {
 	if m.slice.IsValid() && m.slice.Len() > 0 {
 		m.slice.Set(m.slice.Slice(0, 0))
 	}

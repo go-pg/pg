@@ -1433,4 +1433,25 @@ var _ = Describe("ORM", func() {
 			},
 		}))
 	})
+
+	It("deletes book returning title", func() {
+		book := &Book{
+			Id: 100,
+		}
+		res, err := db.Model(book).Returning("title").Delete()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.RowsAffected()).To(Equal(1))
+		Expect(book).To(Equal(&Book{
+			Id:    100,
+			Title: "book 1",
+		}))
+	})
+
+	It("deletes books returning id", func() {
+		var ids []int
+		res, err := db.Model(&Book{}).Where("TRUE").Returning("id").Delete(&ids)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(res.RowsAffected()).To(Equal(3))
+		Expect(ids).To(Equal([]int{100, 101, 102}))
+	})
 })
