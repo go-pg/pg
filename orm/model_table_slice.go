@@ -32,7 +32,7 @@ func (m *sliceTableModel) Value() reflect.Value {
 	return m.slice
 }
 
-func (m *sliceTableModel) Reset() error {
+func (m *sliceTableModel) Init() error {
 	if m.slice.IsValid() && m.slice.Len() > 0 {
 		m.slice.Set(m.slice.Slice(0, 0))
 	}

@@ -126,7 +126,7 @@ func (m *structTableModel) bindChildren() {
 	}
 }
 
-func (structTableModel) Reset() error {
+func (structTableModel) Init() error {
 	return nil
 }
 

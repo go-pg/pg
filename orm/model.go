@@ -16,8 +16,7 @@ type useQueryOne interface {
 type Model interface {
 	ColumnScanner
 
-	// Reset resets model state.
-	Reset() error
+	Init() error
 
 	// NewModel returns ColumnScanner that is used to scan columns
 	// from the current row.

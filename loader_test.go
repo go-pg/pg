@@ -114,7 +114,7 @@ type errLoader string
 
 var _ orm.Model = errLoader("")
 
-func (errLoader) Reset() error {
+func (errLoader) Init() error {
 	return nil
 }
 

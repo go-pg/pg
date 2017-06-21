@@ -88,8 +88,10 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 	return b, nil
 }
 
+var doUpdate = []byte(" DO UPDATE")
+
 func onConflictDoUpdate(b []byte) bool {
-	return bytes.HasSuffix(b, []byte(" DO UPDATE"))
+	return bytes.HasSuffix(b, doUpdate)
 }
 
 func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) []byte {

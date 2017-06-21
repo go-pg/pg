@@ -23,10 +23,6 @@ func (valuesModel) useQueryOne() bool {
 	return true
 }
 
-func (valuesModel) Reset() error {
-	return nil
-}
-
 func (m valuesModel) NewModel() ColumnScanner {
 	return m
 }

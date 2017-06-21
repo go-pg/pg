@@ -6,10 +6,6 @@ type Discard struct {
 
 var _ Model = (*Discard)(nil)
 
-func (Discard) Reset() error {
-	return nil
-}
-
 func (d Discard) NewModel() ColumnScanner {
 	return d
 }
