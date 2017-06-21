@@ -115,7 +115,7 @@ var _ = Describe("Count", func() {
 	It("removes LIMIT, OFFSET, and ORDER", func() {
 		q := NewQuery(nil).Order("order").Limit(1).Offset(2)
 
-		b, err := q.countSelectQuery("count(*)").AppendQuery(nil)
+		b, err := q.countQuery().countSelectQuery("count(*)").AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT count(*)`))
 	})
@@ -129,7 +129,7 @@ var _ = Describe("Count", func() {
 			WrapWith("wrapper").
 			Table("wrapper")
 
-		b, err := q.countSelectQuery("count(*)").AppendQuery(nil)
+		b, err := q.countQuery().countSelectQuery("count(*)").AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "col1", "col2") SELECT count(*) FROM "wrapper"`))
 	})
@@ -139,7 +139,15 @@ var _ = Describe("Count", func() {
 
 		b, err := q.countQuery().countSelectQuery("count(*)").AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT * GROUP BY "one") SELECT count(*) FROM "wrapper"`))
+		Expect(string(b)).To(Equal(`WITH "_count_wrapper" AS (SELECT * GROUP BY "one") SELECT count(*) FROM "_count_wrapper"`))
+	})
+
+	It("uses CTE when column contains DISTINCT", func() {
+		q := NewQuery(nil).ColumnExpr("DISTINCT group_id")
+
+		b, err := q.countQuery().countSelectQuery("count(*)").AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`WITH "_count_wrapper" AS (SELECT DISTINCT group_id) SELECT count(*) FROM "_count_wrapper"`))
 	})
 
 	It("includes has one joins", func() {

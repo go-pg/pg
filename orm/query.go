@@ -355,10 +355,23 @@ func (q *Query) Count() (int, error) {
 }
 
 func (q *Query) countQuery() *Query {
-	if len(q.group) > 0 {
-		return q.Copy().WrapWith("wrapper").Table("wrapper")
+	if len(q.group) > 0 || q.isDistinct() {
+		return q.Copy().WrapWith("_count_wrapper").Table("_count_wrapper")
 	}
 	return q
+}
+
+func (q *Query) isDistinct() bool {
+	for _, column := range q.columns {
+		column, ok := column.(queryParamsAppender)
+		if ok {
+			if strings.Contains(column.query, "DISTINCT") ||
+				strings.Contains(column.query, "disctinct") {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (q *Query) countSelectQuery(column string) selectQuery {
