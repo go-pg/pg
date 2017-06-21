@@ -366,7 +366,7 @@ func (q *Query) isDistinct() bool {
 		column, ok := column.(queryParamsAppender)
 		if ok {
 			if strings.Contains(column.query, "DISTINCT") ||
-				strings.Contains(column.query, "disctinct") {
+				strings.Contains(column.query, "distinct") {
 				return true
 			}
 		}
