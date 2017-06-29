@@ -9,7 +9,7 @@ import (
 
 func benchmarkPoolGetPut(b *testing.B, poolSize int) {
 	connPool := pool.NewConnPool(&pool.Options{
-		Dial:               dummyDialer,
+		Dialer:             dummyDialer,
 		PoolSize:           poolSize,
 		PoolTimeout:        time.Second,
 		IdleTimeout:        time.Hour,
@@ -45,7 +45,7 @@ func BenchmarkPoolGetPut1000Conns(b *testing.B) {
 
 func benchmarkPoolGetRemove(b *testing.B, poolSize int) {
 	connPool := pool.NewConnPool(&pool.Options{
-		Dial:               dummyDialer,
+		Dialer:             dummyDialer,
 		PoolSize:           poolSize,
 		PoolTimeout:        time.Second,
 		IdleTimeout:        time.Hour,

@@ -47,7 +47,7 @@ type Pooler interface {
 }
 
 type Options struct {
-	Dial    func() (net.Conn, error)
+	Dialer  func() (net.Conn, error)
 	OnClose func(*Conn) error
 
 	PoolSize           int
@@ -60,10 +60,10 @@ type Options struct {
 type ConnPool struct {
 	opt *Options
 
-	queue chan struct{}
-
 	dialErrorsNum  uint32 // atomic
 	_lastDialError atomic.Value
+
+	queue chan struct{}
 
 	connsMu sync.Mutex
 	conns   []*Conn
@@ -103,7 +103,7 @@ func (p *ConnPool) NewConn() (*Conn, error) {
 		return nil, p.lastDialError()
 	}
 
-	netConn, err := p.opt.Dial()
+	netConn, err := p.opt.Dialer()
 	if err != nil {
 		p.setLastDialError(err)
 		if atomic.AddUint32(&p.dialErrorsNum, 1) == uint32(p.opt.PoolSize) {
@@ -123,7 +123,7 @@ func (p *ConnPool) NewConn() (*Conn, error) {
 
 func (p *ConnPool) tryDial() {
 	for {
-		conn, err := p.opt.Dial()
+		conn, err := p.opt.Dialer()
 		if err != nil {
 			p.setLastDialError(err)
 			time.Sleep(time.Second)
@@ -160,32 +160,6 @@ func (p *ConnPool) isStaleConn(cn *Conn) bool {
 	return false
 }
 
-func (p *ConnPool) PopFree() *Conn {
-	timer := timers.Get().(*time.Timer)
-	timer.Reset(p.opt.PoolTimeout)
-
-	select {
-	case p.queue <- struct{}{}:
-		if !timer.Stop() {
-			<-timer.C
-		}
-		timers.Put(timer)
-	case <-timer.C:
-		timers.Put(timer)
-		atomic.AddUint32(&p.stats.Timeouts, 1)
-		return nil
-	}
-
-	p.freeConnsMu.Lock()
-	cn := p.popFree()
-	p.freeConnsMu.Unlock()
-
-	if cn == nil {
-		<-p.queue
-	}
-	return cn
-}
-
 func (p *ConnPool) popFree() *Conn {
 	if len(p.freeConns) == 0 {
 		return nil
@@ -205,19 +179,23 @@ func (p *ConnPool) Get() (*Conn, bool, error) {
 
 	atomic.AddUint32(&p.stats.Requests, 1)
 
-	timer := timers.Get().(*time.Timer)
-	timer.Reset(p.opt.PoolTimeout)
-
 	select {
 	case p.queue <- struct{}{}:
-		if !timer.Stop() {
-			<-timer.C
+	default:
+		timer := timers.Get().(*time.Timer)
+		timer.Reset(p.opt.PoolTimeout)
+
+		select {
+		case p.queue <- struct{}{}:
+			if !timer.Stop() {
+				<-timer.C
+			}
+			timers.Put(timer)
+		case <-timer.C:
+			timers.Put(timer)
+			atomic.AddUint32(&p.stats.Timeouts, 1)
+			return nil, false, ErrPoolTimeout
 		}
-		timers.Put(timer)
-	case <-timer.C:
-		timers.Put(timer)
-		atomic.AddUint32(&p.stats.Timeouts, 1)
-		return nil, false, ErrPoolTimeout
 	}
 
 	for {
