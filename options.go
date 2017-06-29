@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"runtime"
 	"strings"
 	"time"
 
@@ -55,7 +56,7 @@ type Options struct {
 	WriteTimeout time.Duration
 
 	// Maximum number of socket connections.
-	// Default is 20 connections.
+	// Default is 10 connections per every CPU as reported by runtime.NumCPU.
 	PoolSize int
 	// Time for which client waits for free connection if all
 	// connections are busy before returning an error.
@@ -94,7 +95,7 @@ func (opt *Options) init() {
 	}
 
 	if opt.PoolSize == 0 {
-		opt.PoolSize = 20
+		opt.PoolSize = 10 * runtime.NumCPU()
 	}
 
 	if opt.PoolTimeout == 0 {
@@ -209,7 +210,7 @@ func (opt *Options) getDialer() func() (net.Conn, error) {
 
 func newConnPool(opt *Options) *pool.ConnPool {
 	return pool.NewConnPool(&pool.Options{
-		Dial:               opt.getDialer(),
+		Dialer:             opt.getDialer(),
 		PoolSize:           opt.PoolSize,
 		PoolTimeout:        opt.PoolTimeout,
 		IdleTimeout:        opt.IdleTimeout,

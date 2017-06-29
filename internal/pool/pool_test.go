@@ -15,7 +15,7 @@ var _ = Describe("ConnPool", func() {
 
 	BeforeEach(func() {
 		connPool = pool.NewConnPool(&pool.Options{
-			Dial:               dummyDialer,
+			Dialer:             dummyDialer,
 			PoolSize:           10,
 			PoolTimeout:        time.Hour,
 			IdleTimeout:        time.Millisecond,
@@ -92,7 +92,7 @@ var _ = Describe("conns reaper", func() {
 		BeforeEach(func() {
 			closedConns = nil
 			connPool = pool.NewConnPool(&pool.Options{
-				Dial:               dummyDialer,
+				Dialer:             dummyDialer,
 				PoolSize:           10,
 				PoolTimeout:        time.Second,
 				IdleTimeout:        idleTimeout,
@@ -227,7 +227,7 @@ var _ = Describe("race", func() {
 
 	It("does not happen on Get, Put, and Remove", func() {
 		connPool = pool.NewConnPool(&pool.Options{
-			Dial:               dummyDialer,
+			Dialer:             dummyDialer,
 			PoolSize:           10,
 			PoolTimeout:        time.Minute,
 			IdleTimeout:        time.Millisecond,
@@ -248,31 +248,6 @@ var _ = Describe("race", func() {
 				Expect(err).NotTo(HaveOccurred())
 				if err == nil {
 					Expect(connPool.Remove(cn)).NotTo(HaveOccurred())
-				}
-			}
-		})
-	})
-
-	It("does not happen on Get and PopFree", func() {
-		connPool = pool.NewConnPool(&pool.Options{
-			Dial:               dummyDialer,
-			PoolSize:           10,
-			PoolTimeout:        time.Minute,
-			IdleTimeout:        time.Second,
-			IdleCheckFrequency: time.Millisecond,
-		})
-
-		perform(C, func(id int) {
-			for i := 0; i < N; i++ {
-				cn, _, err := connPool.Get()
-				Expect(err).NotTo(HaveOccurred())
-				if err == nil {
-					Expect(connPool.Put(cn)).NotTo(HaveOccurred())
-				}
-
-				cn = connPool.PopFree()
-				if cn != nil {
-					Expect(connPool.Put(cn)).NotTo(HaveOccurred())
 				}
 			}
 		})
