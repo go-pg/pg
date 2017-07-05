@@ -252,19 +252,27 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 		param := params[paramsIndex]
 		paramsIndex++
 
-		if fa, ok := param.(FormatAppender); ok {
-			dst = fa.AppendFormat(dst, f)
-		} else {
-			dst = types.Append(dst, param, 1)
-		}
+		dst = f.appendParam(dst, param)
 	}
 
 	return dst
 }
 
+type queryAppender interface {
+	AppendQuery(dst []byte) ([]byte, error)
+}
+
 func (f Formatter) appendParam(b []byte, param interface{}) []byte {
-	if fa, ok := param.(FormatAppender); ok {
-		return fa.AppendFormat(b, f)
+	switch param := param.(type) {
+	case queryAppender:
+		bb, err := param.AppendQuery(b)
+		if err != nil {
+			return types.AppendError(b, err)
+		}
+		return bb
+	case FormatAppender:
+		return param.AppendFormat(b, f)
+	default:
+		return types.Append(b, param, 1)
 	}
-	return types.Append(b, param, 1)
 }

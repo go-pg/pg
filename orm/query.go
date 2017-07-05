@@ -39,6 +39,8 @@ type Query struct {
 	offset     int
 }
 
+var _ queryAppender = (*Query)(nil)
+
 func NewQuery(db DB, model ...interface{}) *Query {
 	return (&Query{}).DB(db).Model(model...)
 }
@@ -50,6 +52,10 @@ func (q *Query) New() *Query {
 		model:       q.model,
 		ignoreModel: true,
 	}
+}
+
+func (q *Query) AppendQuery(b []byte) ([]byte, error) {
+	return selectQuery{q: q}.AppendQuery(b)
 }
 
 // Copy returns copy of the Query.
