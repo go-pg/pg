@@ -105,9 +105,19 @@ var _ = Describe("Select", func() {
 
 	It("WhereOr", func() {
 		q := NewQuery(nil).Where("1 = 1").WhereOr("1 = 2")
+
 		b, err := selectQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT * WHERE (1 = 1) OR (1 = 2)`))
+	})
+
+	It("supports subqueries", func() {
+		subq := NewQuery(nil, &SelectModel{}).Column("id").Where("name IS NOT NULL")
+		q := NewQuery(nil).Where("id IN (?)", subq)
+
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT * WHERE (id IN (SELECT "id" FROM "select_models" AS "select_model" WHERE (name IS NOT NULL)))`))
 	})
 })
 

@@ -12,7 +12,8 @@ func Select(db DB, model interface{}) error {
 }
 
 type selectQuery struct {
-	q     *Query
+	q *Query
+
 	count string
 }
 
