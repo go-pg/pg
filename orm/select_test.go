@@ -125,39 +125,26 @@ var _ = Describe("Count", func() {
 	It("removes LIMIT, OFFSET, and ORDER", func() {
 		q := NewQuery(nil).Order("order").Limit(1).Offset(2)
 
-		b, err := q.countQuery().countSelectQuery("count(*)").AppendQuery(nil)
+		b, err := q.countSelectQuery("*").AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`SELECT count(*)`))
+		Expect(string(b)).To(Equal(`WITH "_count_wrapper" AS (SELECT *) SELECT * FROM "_count_wrapper"`))
 	})
 
-	It("removes LIMIT, OFFSET, and ORDER from CTE", func() {
+	It("does not remove LIMIT, OFFSET, and ORDER from CTE", func() {
 		q := NewQuery(nil).
 			Column("col1", "col2").
 			Order("order").
 			Limit(1).
 			Offset(2).
 			WrapWith("wrapper").
-			Table("wrapper")
+			Table("wrapper").
+			Order("order").
+			Limit(1).
+			Offset(2)
 
-		b, err := q.countQuery().countSelectQuery("count(*)").AppendQuery(nil)
+		b, err := q.countSelectQuery("count(*)").AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "col1", "col2") SELECT count(*) FROM "wrapper"`))
-	})
-
-	It("uses CTE when query contains GROUP BY", func() {
-		q := NewQuery(nil).Group("one")
-
-		b, err := q.countQuery().countSelectQuery("count(*)").AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`WITH "_count_wrapper" AS (SELECT * GROUP BY "one") SELECT count(*) FROM "_count_wrapper"`))
-	})
-
-	It("uses CTE when column contains DISTINCT", func() {
-		q := NewQuery(nil).ColumnExpr("DISTINCT group_id")
-
-		b, err := q.countQuery().countSelectQuery("count(*)").AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`WITH "_count_wrapper" AS (SELECT DISTINCT group_id) SELECT count(*) FROM "_count_wrapper"`))
+		Expect(string(b)).To(Equal(`WITH "_count_wrapper" AS (WITH "wrapper" AS (SELECT "col1", "col2" ORDER BY "order" LIMIT 1 OFFSET 2) SELECT * FROM "wrapper") SELECT count(*) FROM "_count_wrapper"`))
 	})
 
 	It("includes has one joins", func() {
@@ -165,7 +152,7 @@ var _ = Describe("Count", func() {
 
 		b, err := q.countSelectQuery("count(*)").AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`SELECT count(*) FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
+		Expect(string(b)).To(Equal(`WITH "_count_wrapper" AS (SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id", "has_one"."id" AS "has_one__id" FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id") SELECT count(*) FROM "_count_wrapper"`))
 	})
 })
 

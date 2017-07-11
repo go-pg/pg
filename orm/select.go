@@ -37,19 +37,19 @@ func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	var err error
 
+	if q.count != "" {
+		b = append(b, `WITH "_count_wrapper" AS (`...)
+	}
+
 	if len(q.q.with) > 0 {
-		b, err = q.q.appendWith(b, q.count)
+		b, err = q.q.appendWith(b)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	b = append(b, "SELECT "...)
-	if q.count != "" && q.count != "*" {
-		b = append(b, q.count...)
-	} else {
-		b = q.appendColumns(b)
-	}
+	b = q.appendColumns(b)
 
 	if q.q.hasTables() {
 		b = append(b, " FROM "...)
@@ -113,6 +113,10 @@ func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
 			b = append(b, " OFFSET "...)
 			b = strconv.AppendInt(b, int64(q.q.offset), 10)
 		}
+	} else {
+		b = append(b, `) SELECT `...)
+		b = append(b, q.count...)
+		b = append(b, ` FROM "_count_wrapper"`...)
 	}
 
 	return b, nil
