@@ -34,7 +34,7 @@ func (q deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 	var err error
 
 	if len(q.q.with) > 0 {
-		b, err = q.q.appendWith(b, "")
+		b, err = q.q.appendWith(b)
 		if err != nil {
 			return nil, err
 		}
