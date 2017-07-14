@@ -1,6 +1,9 @@
 package orm
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 func Select(db DB, model interface{}) error {
 	q := NewQuery(db, model)
@@ -37,7 +40,8 @@ func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	var err error
 
-	if q.count != "" {
+	cteCount := q.count != "" && (len(q.q.group) > 0 || q.isDistinct())
+	if cteCount {
 		b = append(b, `WITH "_count_wrapper" AS (`...)
 	}
 
@@ -49,7 +53,11 @@ func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	b = append(b, "SELECT "...)
-	b = q.appendColumns(b)
+	if q.count != "" && !cteCount {
+		b = append(b, q.count...)
+	} else {
+		b = q.appendColumns(b)
+	}
 
 	if q.q.hasTables() {
 		b = append(b, " FROM "...)
@@ -113,7 +121,7 @@ func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
 			b = append(b, " OFFSET "...)
 			b = strconv.AppendInt(b, int64(q.q.offset), 10)
 		}
-	} else {
+	} else if cteCount {
 		b = append(b, `) SELECT `...)
 		b = append(b, q.count...)
 		b = append(b, ` FROM "_count_wrapper"`...)
@@ -169,4 +177,17 @@ func (q selectQuery) appendModelColumns(b []byte) []byte {
 		b = append(b, f.Column...)
 	}
 	return b
+}
+
+func (q selectQuery) isDistinct() bool {
+	for _, column := range q.q.columns {
+		column, ok := column.(queryParamsAppender)
+		if ok {
+			if strings.Contains(column.query, "DISTINCT") ||
+				strings.Contains(column.query, "distinct") {
+				return true
+			}
+		}
+	}
+	return false
 }
