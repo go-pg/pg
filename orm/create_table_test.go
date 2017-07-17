@@ -47,7 +47,7 @@ var _ = Describe("CreateTable", func() {
 
 		b, err := createTableQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_models" (id bigserial, int8 smallint, uint8 smallint, int16 smallint, uint16 integer, int32 integer, uint32 bigint, int64 bigint, uint64 decimal, float32 real, float64 double precision, byte_slice bytea, byte_array bytea, string text, varchar varchar(500), time timestamptz, not_null bigint NOT NULL, unique bigint UNIQUE, null_bool boolean, null_float64 double precision, null_int64 bigint, null_string text, slice jsonb, slice_array bigint[], map jsonb, struct jsonb, PRIMARY KEY (id))`))
+		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_models" ("id" bigserial, "int8" smallint, "uint8" smallint, "int16" smallint, "uint16" integer, "int32" integer, "uint32" bigint, "int64" bigint, "uint64" decimal, "float32" real, "float64" double precision, "byte_slice" bytea, "byte_array" bytea, "string" text, "varchar" varchar(500), "time" timestamptz, "not_null" bigint NOT NULL, "unique" bigint UNIQUE, "null_bool" boolean, "null_float64" double precision, "null_int64" bigint, "null_string" text, "slice" jsonb, "slice_array" bigint[], "map" jsonb, "struct" jsonb, PRIMARY KEY ("id"))`))
 	})
 
 	It("creates new table without primary key", func() {
@@ -55,6 +55,6 @@ var _ = Describe("CreateTable", func() {
 
 		b, err := createTableQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_without_pk_models" (string text)`))
+		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_without_pk_models" ("string" text)`))
 	})
 })

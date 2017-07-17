@@ -46,7 +46,7 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	b = append(b, " ("...)
 
 	for i, field := range table.Fields {
-		b = append(b, field.SQLName...)
+		b = append(b, field.Column...)
 		b = append(b, " "...)
 		b = append(b, field.SQLType...)
 		if field.HasFlag(NotNullFlag) {
@@ -75,7 +75,7 @@ func appendPKConstraint(b []byte, primaryKeys []*Field) []byte {
 
 	b = append(b, ", PRIMARY KEY ("...)
 	for i, pk := range primaryKeys {
-		b = append(b, pk.SQLName...)
+		b = append(b, pk.Column...)
 
 		if i != len(primaryKeys)-1 {
 			b = append(b, ", "...)
