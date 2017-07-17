@@ -46,9 +46,8 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	b = append(b, " ("...)
 
 	for i, field := range table.Fields {
-		b = append(b, `"`...)
-		b = append(b, field.SQLName...)
-		b = append(b, `" `...)
+		b = append(b, field.Column...)
+		b = append(b, " "...)
 		b = append(b, field.SQLType...)
 		if field.HasFlag(NotNullFlag) {
 			b = append(b, " NOT NULL"...)
