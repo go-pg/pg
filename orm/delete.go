@@ -41,14 +41,11 @@ func (q deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	b = append(b, "DELETE FROM "...)
-	b = q.q.appendFirstTable(b)
+	b = q.q.appendFirstTableWithAlias(b)
 
 	if q.q.hasOtherTables() {
 		b = append(b, " USING "...)
-		b, err = q.q.appendOtherTables(b)
-		if err != nil {
-			return nil, err
-		}
+		b = q.q.appendOtherTables(b)
 	}
 
 	b, err = q.q.mustAppendWhere(b)

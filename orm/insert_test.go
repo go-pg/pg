@@ -112,4 +112,16 @@ var _ = Describe("Insert", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO "insert_q_tests" ("geo", "func") VALUES (ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))'), my_func('param'))`))
 	})
+
+	It("supports FROM", func() {
+		q := NewQuery(nil, &InsertTest{})
+		q = q.WrapWith("data").
+			TableExpr("dst").
+			ColumnExpr("dst_col1, dst_col2").
+			TableExpr("data")
+
+		b, err := insertQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`WITH "data" AS (SELECT "insert_test"."id", "insert_test"."value" FROM "insert_tests" AS "insert_test") INSERT INTO dst (dst_col1, dst_col2) SELECT * FROM data`))
+	})
 })

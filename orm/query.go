@@ -679,6 +679,26 @@ func (q *Query) appendTableNameWithAlias(b []byte) []byte {
 	return b
 }
 
+func (q *Query) appendFirstTable(b []byte) []byte {
+	if q.hasModel() {
+		return q.appendTableName(b)
+	}
+	if len(q.tables) > 0 {
+		b = q.tables[0].AppendFormat(b, q)
+	}
+	return b
+}
+
+func (q *Query) appendFirstTableWithAlias(b []byte) []byte {
+	if q.hasModel() {
+		return q.appendTableNameWithAlias(b)
+	}
+	if len(q.tables) > 0 {
+		b = q.tables[0].AppendFormat(b, q)
+	}
+	return b
+}
+
 func (q *Query) appendTables(b []byte) []byte {
 	if q.hasModel() {
 		b = q.appendTableNameWithAlias(b)
@@ -695,29 +715,22 @@ func (q *Query) appendTables(b []byte) []byte {
 	return b
 }
 
-func (q *Query) appendFirstTable(b []byte) []byte {
-	if q.hasModel() {
-		return q.appendTableNameWithAlias(b)
-	}
-	if len(q.tables) > 0 {
-		b = q.tables[0].AppendFormat(b, q)
-	}
-	return b
-}
-
 func (q *Query) hasOtherTables() bool {
 	if q.hasModel() {
-		if len(q.tables) > 0 {
-			return true
-		}
-
-		v := q.model.Value()
-		return v.Kind() == reflect.Slice && v.Len() > 0
+		return len(q.tables) > 0
 	}
 	return len(q.tables) > 1
 }
 
-func (q *Query) appendOtherTables(b []byte) ([]byte, error) {
+func (q *Query) modelHasData() bool {
+	if !q.hasModel() {
+		return false
+	}
+	v := q.model.Value()
+	return v.Kind() == reflect.Slice && v.Len() > 0
+}
+
+func (q *Query) appendOtherTables(b []byte) []byte {
 	tables := q.tables
 	if !q.hasModel() {
 		tables = tables[1:]
@@ -728,7 +741,10 @@ func (q *Query) appendOtherTables(b []byte) ([]byte, error) {
 		}
 		b = f.AppendFormat(b, q)
 	}
+	return b
+}
 
+func (q *Query) appendModelData(b []byte) ([]byte, error) {
 	if q.hasModel() {
 		v := q.model.Value()
 		if v.Kind() == reflect.Slice && v.Len() > 0 {
@@ -778,6 +794,16 @@ func appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
 		} else {
 			b = f.AppendValue(b, v, 1)
 		}
+	}
+	return b
+}
+
+func (q *Query) appendColumns(b []byte) []byte {
+	for i, f := range q.columns {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = f.AppendFormat(b, q)
 	}
 	return b
 }
