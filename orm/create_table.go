@@ -75,7 +75,7 @@ func appendPKConstraint(b []byte, primaryKeys []*Field) []byte {
 
 	b = append(b, ", PRIMARY KEY ("...)
 	for i, pk := range primaryKeys {
-		b = append(b, pk.SQLName...)
+		b = append(b, pk.Column...)
 
 		if i != len(primaryKeys)-1 {
 			b = append(b, ", "...)
