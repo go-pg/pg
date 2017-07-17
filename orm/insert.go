@@ -38,31 +38,52 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	table := q.q.model.Table()
 	value := q.q.model.Value()
+	var err error
+
+	if len(q.q.with) > 0 {
+		b, err = q.q.appendWith(b)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	b = append(b, "INSERT INTO "...)
 	if q.q.onConflict != nil {
-		b = q.q.appendTableNameWithAlias(b)
+		b = q.q.appendFirstTableWithAlias(b)
 	} else {
-		b = q.q.appendTableName(b)
+		b = q.q.appendFirstTable(b)
 	}
 	b = append(b, " ("...)
-	b = appendFieldsColumns(b, table.Fields)
-	b = append(b, ") VALUES ("...)
-	if value.Kind() == reflect.Struct {
-		b = q.appendValues(b, table.Fields, value)
-	} else {
-		for i := 0; i < value.Len(); i++ {
-			el := value.Index(i)
-			if el.Kind() == reflect.Interface {
-				el = el.Elem()
-			}
-			b = q.appendValues(b, table.Fields, reflect.Indirect(el))
-			if i != value.Len()-1 {
-				b = append(b, "), ("...)
-			}
-		}
+	if q.q.hasModel() {
+		b = appendFieldsColumns(b, table.Fields)
+	} else if q.q.columns != nil {
+		b = q.q.appendColumns(b)
 	}
 	b = append(b, ')')
+
+	if q.q.hasModel() {
+		b = append(b, " VALUES ("...)
+		if value.Kind() == reflect.Struct {
+			b = q.appendValues(b, table.Fields, value)
+		} else {
+			for i := 0; i < value.Len(); i++ {
+				el := value.Index(i)
+				if el.Kind() == reflect.Interface {
+					el = el.Elem()
+				}
+				b = q.appendValues(b, table.Fields, reflect.Indirect(el))
+				if i != value.Len()-1 {
+					b = append(b, "), ("...)
+				}
+			}
+		}
+		b = append(b, ')')
+	}
+
+	if q.q.hasOtherTables() {
+		b = append(b, " SELECT * FROM "...)
+		b = q.q.appendOtherTables(b)
+	}
 
 	if q.q.onConflict != nil {
 		b = append(b, " ON CONFLICT "...)

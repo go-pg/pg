@@ -46,16 +46,17 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	b = append(b, "UPDATE "...)
-	b = q.q.appendFirstTable(b)
+	b = q.q.appendFirstTableWithAlias(b)
 
 	b, err = q.mustAppendSet(b)
 	if err != nil {
 		return nil, err
 	}
 
-	if q.q.hasOtherTables() {
+	if q.q.hasOtherTables() || q.q.modelHasData() {
 		b = append(b, " FROM "...)
-		b, err = q.q.appendOtherTables(b)
+		b = q.q.appendOtherTables(b)
+		b, err = q.q.appendModelData(b)
 		if err != nil {
 			return nil, err
 		}

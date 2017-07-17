@@ -134,7 +134,7 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 	start := len(b)
 
 	if q.q.columns != nil {
-		b = q.appendQueryColumns(b)
+		b = q.q.appendColumns(b)
 	} else if q.q.hasModel() {
 		b = q.appendModelColumns(b)
 	} else {
@@ -154,16 +154,6 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 		}
 	})
 
-	return b
-}
-
-func (q selectQuery) appendQueryColumns(b []byte) []byte {
-	for i, f := range q.q.columns {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-		b = f.AppendFormat(b, q.q)
-	}
 	return b
 }
 
