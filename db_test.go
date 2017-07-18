@@ -685,10 +685,18 @@ func (g Genre) String() string {
 	return fmt.Sprintf("Genre<Id=%d Name=%q>", g.Id, g.Name)
 }
 
+type Image struct {
+	Id   int
+	Path string
+}
+
 type Author struct {
-	ID    int // both "Id" and "ID" are detected as primary key
-	Name  string
+	ID    int     // both "Id" and "ID" are detected as primary key
+	Name  string  `sql:",unique"`
 	Books []*Book // has many relation
+
+	AvatarId int
+	Avatar   Image
 }
 
 func (a Author) String() string {
@@ -708,7 +716,7 @@ type Book struct {
 	Id        int
 	Title     string
 	AuthorID  int
-	Author    *Author // has one relation
+	Author    Author // has one relation
 	EditorID  int
 	Editor    *Author // has one relation
 	CreatedAt time.Time
@@ -756,22 +764,8 @@ type Comment struct {
 }
 
 func createTestSchema(db *pg.DB) error {
-	sql := []string{
-		`DROP TABLE IF EXISTS comments`,
-		`DROP TABLE IF EXISTS translations`,
-		`DROP TABLE IF EXISTS authors`,
-		`DROP TABLE IF EXISTS books`,
-		`DROP TABLE IF EXISTS genres`,
-		`DROP TABLE IF EXISTS book_genres`,
-	}
-	for _, q := range sql {
-		_, err := db.Exec(q)
-		if err != nil {
-			return err
-		}
-	}
-
 	tables := []interface{}{
+		&Image{},
 		&Author{},
 		&Book{},
 		&Genre{},
@@ -780,14 +774,19 @@ func createTestSchema(db *pg.DB) error {
 		&Comment{},
 	}
 	for _, table := range tables {
-		err := db.CreateTable(table, nil)
+		err := db.DropTable(table, &orm.DropTableOptions{
+			IfExists: true,
+		})
+		if err != nil {
+			return err
+		}
+
+		err = db.CreateTable(table, nil)
 		if err != nil {
 			return err
 		}
 	}
-
-	_, err := db.Exec(`CREATE UNIQUE INDEX authors_name ON authors (name)`)
-	return err
+	return nil
 }
 
 var _ = Describe("ORM", func() {
@@ -814,20 +813,36 @@ var _ = Describe("ORM", func() {
 			Name:     "subgenre 2",
 			ParentId: 1,
 		}}
-
 		err = db.Insert(&genres)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(genres).To(HaveLen(4))
 
-		authors := []Author{{
-			ID:   10,
-			Name: "author 1",
+		images := []Image{{
+			Id:   1,
+			Path: "/path/to/1.jpg",
 		}, {
-			ID:   11,
-			Name: "author 2",
+			Id:   2,
+			Path: "/path/to/2.jpg",
+		}, {
+			Id:   3,
+			Path: "/path/to/3.jpg",
+		}}
+		err = db.Insert(&images)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(images).To(HaveLen(3))
+
+		authors := []Author{{
+			ID:       10,
+			Name:     "author 1",
+			AvatarId: images[0].Id,
+		}, {
+			ID:       11,
+			Name:     "author 2",
+			AvatarId: images[1].Id,
 		}, Author{
-			ID:   12,
-			Name: "author 3",
+			ID:       12,
+			Name:     "author 3",
+			AvatarId: images[2].Id,
 		}}
 		err = db.Insert(&authors)
 		Expect(err).NotTo(HaveOccurred())
@@ -937,17 +952,37 @@ var _ = Describe("ORM", func() {
 	})
 
 	Describe("struct model", func() {
-		It("supports HasOne, HasMany, HasMany2Many, Polymorphic, HasMany -> Polymorphic", func() {
+		It("fetches Book relations", func() {
 			var book Book
 			err := db.Model(&book).
-				Column("book.id", "Author", "Editor", "Genres", "Comments", "Translations", "Translations.Comments").
+				Column(
+					"book.id",
+					"Author", "Author.Avatar", "Editor", "Editor.Avatar",
+					"Genres", "Comments", "Translations", "Translations.Comments",
+				).
 				First()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(book).To(Equal(Book{
-				Id:        100,
-				Title:     "",
-				Author:    &Author{ID: 10, Name: "author 1", Books: nil},
-				Editor:    &Author{ID: 11, Name: "author 2", Books: nil},
+				Id:    100,
+				Title: "",
+				Author: Author{
+					ID:       10,
+					Name:     "author 1",
+					AvatarId: 1,
+					Avatar: Image{
+						Id:   1,
+						Path: "/path/to/1.jpg",
+					},
+				},
+				Editor: &Author{
+					ID:       11,
+					Name:     "author 2",
+					AvatarId: 2,
+					Avatar: Image{
+						Id:   2,
+						Path: "/path/to/2.jpg",
+					},
+				},
 				CreatedAt: time.Time{},
 				Genres: []Genre{
 					{Id: 1, Name: "genre 1", Rating: 999},
@@ -985,15 +1020,16 @@ var _ = Describe("ORM", func() {
 				First()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(author).To(Equal(Author{
-				ID:   10,
-				Name: "author 1",
+				ID:       10,
+				Name:     "author 1",
+				AvatarId: 1,
 				Books: []*Book{{
 					Id:        100,
 					Title:     "",
 					AuthorID:  10,
-					Author:    &Author{ID: 10, Name: "author 1", Books: nil},
+					Author:    Author{ID: 10, Name: "author 1", AvatarId: 1},
 					EditorID:  11,
-					Editor:    &Author{ID: 11, Name: "author 2", Books: nil},
+					Editor:    &Author{ID: 11, Name: "author 2", AvatarId: 2},
 					CreatedAt: time.Time{},
 					Genres:    nil,
 					Translations: []Translation{
@@ -1004,9 +1040,9 @@ var _ = Describe("ORM", func() {
 					Id:        101,
 					Title:     "",
 					AuthorID:  10,
-					Author:    &Author{ID: 10, Name: "author 1", Books: nil},
+					Author:    Author{ID: 10, Name: "author 1", AvatarId: 1},
 					EditorID:  12,
-					Editor:    &Author{ID: 12, Name: "author 3", Books: nil},
+					Editor:    &Author{ID: 12, Name: "author 3", AvatarId: 3},
 					CreatedAt: time.Time{},
 					Genres:    nil,
 					Translations: []Translation{
@@ -1027,32 +1063,16 @@ var _ = Describe("ORM", func() {
 				Name:   "genre 1",
 				Rating: 0,
 				Books: []Book{{
-					Id:        100,
-					Title:     "",
-					AuthorID:  0,
-					Author:    nil,
-					EditorID:  0,
-					Editor:    nil,
-					CreatedAt: time.Time{},
-					Genres:    nil,
+					Id: 100,
 					Translations: []Translation{
 						{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
 						{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
 					},
-					Comments: nil,
 				}, {
-					Id:        101,
-					Title:     "",
-					AuthorID:  0,
-					Author:    nil,
-					EditorID:  0,
-					Editor:    nil,
-					CreatedAt: time.Time{},
-					Genres:    nil,
+					Id: 101,
 					Translations: []Translation{
 						{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
 					},
-					Comments: nil,
 				}},
 				ParentId:  0,
 				Subgenres: nil,
@@ -1070,8 +1090,8 @@ var _ = Describe("ORM", func() {
 				BookId: 100,
 				Book: &Book{
 					Id:     100,
-					Author: &Author{ID: 10, Name: "author 1"},
-					Editor: &Author{ID: 11, Name: "author 2"},
+					Author: Author{ID: 10, Name: "author 1", AvatarId: 1},
+					Editor: &Author{ID: 11, Name: "author 2", AvatarId: 2},
 				},
 				Lang: "ru",
 			}))
@@ -1096,7 +1116,7 @@ var _ = Describe("ORM", func() {
 			Expect(book).To(Equal(BookWithCommentCount{
 				Book: Book{
 					Id:     100,
-					Author: &Author{ID: 10, Name: "author 1"},
+					Author: Author{ID: 10, Name: "author 1", AvatarId: 1},
 					Genres: []Genre{
 						{Id: 1, Name: "genre 1", Rating: 999},
 						{Id: 2, Name: "genre 2", Rating: 9999},
@@ -1108,56 +1128,113 @@ var _ = Describe("ORM", func() {
 	})
 
 	Describe("slice model", func() {
-		It("supports HasOne, HasMany, HasMany2Many", func() {
+		It("fetches Book relations", func() {
 			var books []Book
 			err := db.Model(&books).
-				Column("book.id", "Author", "Editor", "Translations", "Genres").
+				Column(
+					"book.id",
+					"Author", "Author.Avatar", "Editor", "Editor.Avatar",
+					"Genres", "Comments", "Translations", "Translations.Comments",
+				).
 				OrderExpr("book.id ASC").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(books).To(Equal([]Book{{
-				Id:        100,
-				Title:     "",
-				AuthorID:  0,
-				Author:    &Author{ID: 10, Name: "author 1", Books: nil},
-				EditorID:  0,
-				Editor:    &Author{ID: 11, Name: "author 2", Books: nil},
-				CreatedAt: time.Time{},
+				Id:       100,
+				Title:    "",
+				AuthorID: 0,
+				Author: Author{
+					ID:       10,
+					Name:     "author 1",
+					AvatarId: 1,
+					Avatar: Image{
+						Id:   1,
+						Path: "/path/to/1.jpg",
+					},
+				},
+				EditorID: 0,
+				Editor: &Author{
+					ID:       11,
+					Name:     "author 2",
+					AvatarId: 2,
+					Avatar: Image{
+						Id:   2,
+						Path: "/path/to/2.jpg",
+					},
+				},
 				Genres: []Genre{
-					{Id: 1, Name: "genre 1", Rating: 999, Books: nil, ParentId: 0, Subgenres: nil},
-					{Id: 2, Name: "genre 2", Rating: 9999, Books: nil, ParentId: 0, Subgenres: nil},
+					{Id: 1, Name: "genre 1", Rating: 999},
+					{Id: 2, Name: "genre 2", Rating: 9999},
+				},
+				Translations: []Translation{{
+					Id:     1000,
+					BookId: 100,
+					Lang:   "ru",
+					Comments: []Comment{
+						{TrackableId: 1000, TrackableType: "Translation", Text: "comment3"},
+					},
+				}, {
+					Id:       1001,
+					BookId:   100,
+					Lang:     "md",
+					Comments: nil,
+				}},
+				Comments: []Comment{
+					{TrackableId: 100, TrackableType: "Book", Text: "comment1"},
+					{TrackableId: 100, TrackableType: "Book", Text: "comment2"},
+				},
+			}, {
+				Id:       101,
+				Title:    "",
+				AuthorID: 0,
+				Author: Author{
+					ID:       10,
+					Name:     "author 1",
+					AvatarId: 1,
+					Avatar: Image{
+						Id:   1,
+						Path: "/path/to/1.jpg",
+					},
+				},
+				EditorID: 0,
+				Editor: &Author{
+					ID:       12,
+					Name:     "author 3",
+					AvatarId: 3,
+					Avatar: Image{
+						Id:   3,
+						Path: "/path/to/3.jpg",
+					},
+				},
+				Genres: []Genre{
+					{Id: 1, Name: "genre 1", Rating: 99999},
 				},
 				Translations: []Translation{
-					{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
-					{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
+					{Id: 1002, BookId: 101, Lang: "ua"},
 				},
-				Comments: nil,
 			}, {
-				Id:        101,
-				Title:     "",
-				AuthorID:  0,
-				Author:    &Author{ID: 10, Name: "author 1", Books: nil},
-				EditorID:  0,
-				Editor:    &Author{ID: 12, Name: "author 3", Books: nil},
-				CreatedAt: time.Time{},
-				Genres: []Genre{
-					{Id: 1, Name: "genre 1", Rating: 99999, Books: nil, ParentId: 0, Subgenres: nil},
+				Id:       102,
+				Title:    "",
+				AuthorID: 0,
+				Author: Author{
+					ID:       11,
+					Name:     "author 2",
+					AvatarId: 2,
+					Avatar: Image{
+						Id:   2,
+						Path: "/path/to/2.jpg",
+					},
 				},
-				Translations: []Translation{
-					{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
+				EditorID: 0,
+				Editor: &Author{
+					ID:       11,
+					Name:     "author 2",
+					AvatarId: 2,
+					Avatar: Image{
+						Id:   2,
+						Path: "/path/to/2.jpg",
+					},
 				},
-				Comments: nil,
-			}, {
-				Id:           102,
-				Title:        "",
-				AuthorID:     0,
-				Author:       &Author{ID: 11, Name: "author 2", Books: nil},
-				EditorID:     0,
-				Editor:       &Author{ID: 11, Name: "author 2", Books: nil},
-				CreatedAt:    time.Time{},
-				Genres:       nil,
-				Translations: nil,
-				Comments:     nil,
 			}}))
 		})
 
@@ -1174,32 +1251,16 @@ var _ = Describe("ORM", func() {
 				Name:   "genre 1",
 				Rating: 0,
 				Books: []Book{{
-					Id:        100,
-					Title:     "",
-					AuthorID:  0,
-					Author:    nil,
-					EditorID:  0,
-					Editor:    nil,
-					CreatedAt: time.Time{},
-					Genres:    nil,
+					Id: 100,
 					Translations: []Translation{
 						{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
 						{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
 					},
-					Comments: nil,
 				}, {
-					Id:        101,
-					Title:     "",
-					AuthorID:  0,
-					Author:    nil,
-					EditorID:  0,
-					Editor:    nil,
-					CreatedAt: time.Time{},
-					Genres:    nil,
+					Id: 101,
 					Translations: []Translation{
 						{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
 					},
-					Comments: nil,
 				}},
 				ParentId: 0,
 				Subgenres: []Genre{
@@ -1211,19 +1272,11 @@ var _ = Describe("ORM", func() {
 				Name:   "genre 2",
 				Rating: 0,
 				Books: []Book{{
-					Id:        100,
-					Title:     "",
-					AuthorID:  0,
-					Author:    nil,
-					EditorID:  0,
-					Editor:    nil,
-					CreatedAt: time.Time{},
-					Genres:    nil,
+					Id: 100,
 					Translations: []Translation{
 						{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
 						{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
 					},
-					Comments: nil,
 				}},
 				ParentId:  0,
 				Subgenres: nil,
@@ -1242,8 +1295,8 @@ var _ = Describe("ORM", func() {
 				BookId: 100,
 				Book: &Book{
 					Id:     100,
-					Author: &Author{ID: 10, Name: "author 1"},
-					Editor: &Author{ID: 11, Name: "author 2"},
+					Author: Author{ID: 10, Name: "author 1", AvatarId: 1},
+					Editor: &Author{ID: 11, Name: "author 2", AvatarId: 2},
 				},
 				Lang: "ru",
 			}, {
@@ -1251,8 +1304,8 @@ var _ = Describe("ORM", func() {
 				BookId: 100,
 				Book: &Book{
 					Id:     100,
-					Author: &Author{ID: 10, Name: "author 1"},
-					Editor: &Author{ID: 11, Name: "author 2"},
+					Author: Author{ID: 10, Name: "author 1", AvatarId: 1},
+					Editor: &Author{ID: 11, Name: "author 2", AvatarId: 2},
 				},
 				Lang: "md",
 			}, {
@@ -1260,8 +1313,8 @@ var _ = Describe("ORM", func() {
 				BookId: 101,
 				Book: &Book{
 					Id:     101,
-					Author: &Author{ID: 10, Name: "author 1", Books: nil},
-					Editor: &Author{ID: 12, Name: "author 3", Books: nil},
+					Author: Author{ID: 10, Name: "author 1", AvatarId: 1},
+					Editor: &Author{ID: 12, Name: "author 3", AvatarId: 3},
 				},
 				Lang: "ua",
 			}}))
@@ -1288,7 +1341,7 @@ var _ = Describe("ORM", func() {
 			Expect(books).To(Equal([]BookWithCommentCount{{
 				Book: Book{
 					Id:     100,
-					Author: &Author{ID: 10, Name: "author 1", Books: nil},
+					Author: Author{ID: 10, Name: "author 1", AvatarId: 1},
 					Genres: []Genre{
 						{Id: 1, Name: "genre 1", Rating: 999},
 						{Id: 2, Name: "genre 2", Rating: 9999},
@@ -1298,7 +1351,7 @@ var _ = Describe("ORM", func() {
 			}, {
 				Book: Book{
 					Id:     101,
-					Author: &Author{ID: 10, Name: "author 1", Books: nil},
+					Author: Author{ID: 10, Name: "author 1", AvatarId: 1},
 					Genres: []Genre{
 						{Id: 1, Name: "genre 1", Rating: 99999},
 					},
@@ -1307,7 +1360,7 @@ var _ = Describe("ORM", func() {
 			}, {
 				Book: Book{
 					Id:     102,
-					Author: &Author{ID: 11, Name: "author 2", Books: nil},
+					Author: Author{ID: 11, Name: "author 2", AvatarId: 2},
 				},
 				CommentCount: 0,
 			}}))
@@ -1376,27 +1429,9 @@ var _ = Describe("ORM", func() {
 			Select()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(books).To(Equal([]Book{{
-			Id:           100,
-			Title:        "",
-			AuthorID:     0,
-			Author:       nil,
-			EditorID:     0,
-			Editor:       nil,
-			CreatedAt:    time.Time{},
-			Genres:       nil,
-			Translations: nil,
-			Comments:     nil,
+			Id: 100,
 		}, {
-			Id:           101,
-			Title:        "",
-			AuthorID:     0,
-			Author:       nil,
-			EditorID:     0,
-			Editor:       nil,
-			CreatedAt:    time.Time{},
-			Genres:       nil,
-			Translations: nil,
-			Comments:     nil,
+			Id: 101,
 		}}))
 	})
 

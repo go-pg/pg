@@ -95,6 +95,7 @@ func ExampleListener() {
 	ch := ln.Channel()
 
 	go func() {
+		time.Sleep(time.Millisecond)
 		_, err := db.Exec("NOTIFY mychan, ?", "hello world")
 		if err != nil {
 			panic(err)
