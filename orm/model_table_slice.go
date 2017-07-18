@@ -41,7 +41,8 @@ func (m *sliceTableModel) Init() error {
 
 func (m *sliceTableModel) NewModel() ColumnScanner {
 	m.strct = m.nextElem()
-	m.bindChildren()
+	m.structInited = false
+	m.structTableModel.NewModel()
 	return m
 }
 
