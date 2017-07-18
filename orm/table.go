@@ -389,8 +389,13 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			t.FieldsMap[ff.SQLName] = ff
 		}
 
-		if t.detectHasOne(&field, joinTable) ||
-			t.detectBelongsToOne(&field, joinTable) {
+		prefix := field.GoName
+		if s, ok := pgOpt.Get("fk:"); ok {
+			prefix = s
+		}
+
+		if t.tryHasOne(&field, joinTable, prefix) ||
+			t.tryBelongsToOne(&field, joinTable) {
 			t.FieldsMap[field.SQLName] = &field
 			return nil
 		}
@@ -497,8 +502,8 @@ func foreignKeys(base, join *Table, prefix string) []*Field {
 	return fks
 }
 
-func (t *Table) detectHasOne(field *Field, joinTable *Table) bool {
-	fks := foreignKeys(joinTable, t, field.GoName)
+func (t *Table) tryHasOne(field *Field, joinTable *Table, prefix string) bool {
+	fks := foreignKeys(joinTable, t, prefix)
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
 			Type:      HasOneRelation,
@@ -511,7 +516,7 @@ func (t *Table) detectHasOne(field *Field, joinTable *Table) bool {
 	return false
 }
 
-func (t *Table) detectBelongsToOne(field *Field, joinTable *Table) bool {
+func (t *Table) tryBelongsToOne(field *Field, joinTable *Table) bool {
 	fks := foreignKeys(t, joinTable, t.TypeName)
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
