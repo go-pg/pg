@@ -15,7 +15,8 @@ type structTableModel struct {
 	root  reflect.Value
 	index []int
 
-	strct reflect.Value
+	strct        reflect.Value
+	structInited bool
 }
 
 var _ tableModel = (*structTableModel)(nil)
@@ -94,11 +95,17 @@ func (m *structTableModel) Value() reflect.Value {
 	return m.strct
 }
 
-func (m *structTableModel) Bind(bind reflect.Value) {
-	m.strct = bind.FieldByIndex(m.rel.Field.Index)
+func (m *structTableModel) Mount(host reflect.Value) {
+	m.strct = host.FieldByIndex(m.rel.Field.Index)
+	m.structInited = false
 }
 
-func (m *structTableModel) initStruct(bindChildren bool) {
+func (m *structTableModel) initStruct() {
+	if m.structInited {
+		return
+	}
+	m.structInited = true
+
 	if m.strct.Kind() == reflect.Interface {
 		m.strct = m.strct.Elem()
 	}
@@ -106,22 +113,19 @@ func (m *structTableModel) initStruct(bindChildren bool) {
 		if m.strct.IsNil() {
 			m.strct.Set(reflect.New(m.strct.Type().Elem()))
 			m.strct = m.strct.Elem()
-			bindChildren = true
 		} else {
 			m.strct = m.strct.Elem()
 		}
 	}
-	if bindChildren {
-		m.bindChildren()
-	}
+	m.mountJoins()
 }
 
-func (m *structTableModel) bindChildren() {
+func (m *structTableModel) mountJoins() {
 	for i := range m.joins {
 		j := &m.joins[i]
 		switch j.Rel.Type {
 		case HasOneRelation, BelongsToRelation:
-			j.JoinModel.Bind(m.strct)
+			j.JoinModel.Mount(m.strct)
 		}
 	}
 }
@@ -131,7 +135,7 @@ func (structTableModel) Init() error {
 }
 
 func (m *structTableModel) NewModel() ColumnScanner {
-	m.initStruct(true)
+	m.initStruct()
 	return m
 }
 
@@ -204,6 +208,8 @@ func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) erro
 }
 
 func (m *structTableModel) scanColumn(colIdx int, colName string, b []byte) (bool, error) {
+	m.initStruct()
+
 	joinName, fieldName := splitColumn(colName)
 	if joinName != "" {
 		if join := m.GetJoin(joinName); join != nil {
@@ -219,7 +225,6 @@ func (m *structTableModel) scanColumn(colIdx int, colName string, b []byte) (boo
 		return false, nil
 	}
 
-	m.initStruct(false)
 	return true, field.ScanValue(m.strct, b)
 }
 

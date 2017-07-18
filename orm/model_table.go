@@ -21,7 +21,7 @@ type tableModel interface {
 	Root() reflect.Value
 	Index() []int
 	ParentIndex() []int
-	Bind(reflect.Value)
+	Mount(reflect.Value)
 	Value() reflect.Value
 
 	scanColumn(int, string, []byte) (bool, error)

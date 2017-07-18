@@ -36,6 +36,7 @@ func (m *manyModel) NewModel() ColumnScanner {
 	} else {
 		m.strct.Set(m.table.zeroStruct)
 	}
+	m.structInited = false
 	m.structTableModel.NewModel()
 	return m
 }
