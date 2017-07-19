@@ -47,7 +47,7 @@ func (m *m2mModel) NewModel() ColumnScanner {
 }
 
 func (m *m2mModel) AddModel(model ColumnScanner) error {
-	m.buf = modelIdMap(m.buf[:0], m.columns, m.baseTable.ModelName+"_", m.baseTable.PKs)
+	m.buf = modelIdMap(m.buf[:0], m.columns, m.rel.BasePrefix, m.baseTable.PKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
 		return fmt.Errorf("pg: can't find dst value for model id=%q", m.buf)
