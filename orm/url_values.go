@@ -105,7 +105,7 @@ func (p *Pager) SetURLValues(values url.Values) {
 		return
 	}
 	if page > 0 {
-		p.Offset = (page - 1) * p.GetLimit()
+		p.SetPage(page)
 	}
 }
 
@@ -129,11 +129,9 @@ func (p *Pager) GetLimit() int {
 	if p.Limit <= 0 {
 		return defaultLimit
 	}
-
 	if p.Limit > p.maxLimit() {
 		return p.maxLimit()
 	}
-
 	return p.Limit
 }
 
@@ -145,6 +143,10 @@ func (p *Pager) GetOffset() int {
 		return p.Offset
 	}
 	return 0
+}
+
+func (p *Pager) SetPage(page int) {
+	p.Offset = (page - 1) * p.GetLimit()
 }
 
 func (p *Pager) GetPage() int {
