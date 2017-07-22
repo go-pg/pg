@@ -137,9 +137,7 @@ func ExampleDB_Model() {
 
 func createSchema(db *pg.DB) error {
    for _, model := range []interface{}{&User{}, &Story{}} {
-      err := db.CreateTable(model, &orm.CreateTableOptions{
-         Temp: true,
-      })
+      err := db.CreateTable(model, nil)
       if err != nil {
          return err
       }
