@@ -652,6 +652,30 @@ func (q *Query) DropTable(opt *DropTableOptions) (Result, error) {
 	})
 }
 
+// Exec is an alias for db.Exec.
+func (q *Query) Exec(query interface{}, params ...interface{}) (Result, error) {
+	params = append(params, q.model)
+	return q.db.Exec(query, params...)
+}
+
+// ExecOne is an alias for db.ExecOne.
+func (q *Query) ExecOne(query interface{}, params ...interface{}) (Result, error) {
+	params = append(params, q.model)
+	return q.db.ExecOne(query, params...)
+}
+
+// Query is an alias for db.Query.
+func (q *Query) Query(model, query interface{}, params ...interface{}) (Result, error) {
+	params = append(params, q.model)
+	return q.db.Query(model, query, params...)
+}
+
+// QueryOne is an alias for db.QueryOne.
+func (q *Query) QueryOne(model, query interface{}, params ...interface{}) (Result, error) {
+	params = append(params, q.model)
+	return q.db.QueryOne(model, query, params...)
+}
+
 func (q *Query) FormatQuery(b []byte, query string, params ...interface{}) []byte {
 	params = append(params, q.model)
 	if q.db != nil {
