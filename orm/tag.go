@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"bytes"
 	"strings"
 )
 
@@ -23,10 +22,16 @@ func (o tagOptions) Get(name string) (string, bool) {
 	return "", false
 }
 
-func parseTag(tagStr string) (string, tagOptions) {
-	tag := []byte(tagStr)
-	if idx := bytes.IndexByte(tag, ','); idx != -1 {
-		return string(tag[:idx]), tagOptions(tag[idx+1:])
+func parseTag(tag string) (string, tagOptions) {
+	if idx := strings.IndexByte(tag, ','); idx != -1 {
+		name := tag[:idx]
+		if strings.IndexByte(name, ':') == -1 {
+			return name, tagOptions(tag[idx+1:])
+		}
 	}
-	return tagStr, ""
+
+	if strings.IndexByte(tag, ':') == -1 {
+		return tag, ""
+	}
+	return "", tagOptions(tag)
 }
