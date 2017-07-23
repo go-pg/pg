@@ -291,7 +291,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.SetFlag(PrimaryKeyFlag)
 	} else if _, ok := sqlOpt.Get("pk"); ok {
 		field.SetFlag(PrimaryKeyFlag)
-	} else if strings.HasSuffix(string(field.SQLName), "_id") {
+	} else if strings.HasSuffix(field.SQLName, "_id") ||
+		strings.HasSuffix(field.SQLName, "_uuid") {
 		field.SetFlag(ForeignKeyFlag)
 	}
 
@@ -329,9 +330,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		joinTable := newTable(elemType)
 
-		basePrefix := t.TypeName
-		if s, ok := pgOpt.Get("fk:"); ok {
-			basePrefix = s
+		fk, ok := pgOpt.Get("fk:")
+		if !ok {
+			fk = t.TypeName
 		}
 
 		if m2mTable, _ := pgOpt.Get("many2many:"); m2mTable != "" {
@@ -340,9 +341,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 				m2mTableAlias = m2mTable[ind+1:]
 			}
 
-			joinPrefix := joinTable.TypeName
-			if s, ok := pgOpt.Get("joinFK:"); ok {
-				joinPrefix = s
+			joinFK, ok := pgOpt.Get("joinFK:")
+			if !ok {
+				joinFK = joinTable.TypeName
 			}
 
 			t.addRelation(&Relation{
@@ -351,19 +352,18 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 				JoinTable:     joinTable,
 				M2MTableName:  types.Q(m2mTable),
 				M2MTableAlias: types.Q(m2mTableAlias),
-				BasePrefix:    internal.Underscore(basePrefix + "_"),
-				JoinPrefix:    internal.Underscore(joinPrefix + "_"),
+				BasePrefix:    internal.Underscore(fk + "_"),
+				JoinPrefix:    internal.Underscore(joinFK + "_"),
 			})
 			return nil
 		}
 
-		var polymorphic bool
-		if s, ok := pgOpt.Get("polymorphic:"); ok {
-			polymorphic = true
-			basePrefix = s
+		s, polymorphic := pgOpt.Get("polymorphic:")
+		if polymorphic {
+			fk = s
 		}
 
-		fks := foreignKeys(t, joinTable, basePrefix)
+		fks := foreignKeys(t, joinTable, &field, fk)
 		if len(fks) > 0 {
 			t.addRelation(&Relation{
 				Type:        HasManyRelation,
@@ -371,7 +371,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 				Field:       &field,
 				FKs:         fks,
 				JoinTable:   joinTable,
-				BasePrefix:  internal.Underscore(basePrefix + "_"),
+				BasePrefix:  internal.Underscore(fk + "_"),
 			})
 			return nil
 		}
@@ -389,13 +389,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			t.FieldsMap[ff.SQLName] = ff
 		}
 
-		prefix := field.GoName
-		if s, ok := pgOpt.Get("fk:"); ok {
-			prefix = s
-		}
-
-		if t.tryHasOne(&field, joinTable, prefix) ||
-			t.tryBelongsToOne(&field, joinTable) {
+		if t.tryHasOne(joinTable, &field, pgOpt) ||
+			t.tryBelongsToOne(joinTable, &field, pgOpt) {
 			t.FieldsMap[field.SQLName] = &field
 			return nil
 		}
@@ -491,19 +486,35 @@ func sqlType(typ reflect.Type) string {
 	}
 }
 
-func foreignKeys(base, join *Table, prefix string) []*Field {
+func foreignKeys(base, join *Table, field *Field, fk string) []*Field {
 	var fks []*Field
+
 	for _, pk := range base.PKs {
-		fkName := prefix + pk.GoName
-		if fk := join.getField(fkName); fk != nil {
-			fks = append(fks, fk)
+		fkName := fk + pk.GoName
+		if f := join.getField(fkName); f != nil {
+			fks = append(fks, f)
+		}
+	}
+
+	if len(fks) > 0 {
+		return fks
+	}
+
+	if fk != "" && fk != field.GoName {
+		if f := join.getField(fk); f != nil {
+			fks = append(fks, f)
 		}
 	}
 	return fks
 }
 
-func (t *Table) tryHasOne(field *Field, joinTable *Table, prefix string) bool {
-	fks := foreignKeys(joinTable, t, prefix)
+func (t *Table) tryHasOne(joinTable *Table, field *Field, opt tagOptions) bool {
+	fk, ok := opt.Get("fk:")
+	if !ok {
+		fk = field.GoName
+	}
+
+	fks := foreignKeys(joinTable, t, field, fk)
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
 			Type:      HasOneRelation,
@@ -516,8 +527,13 @@ func (t *Table) tryHasOne(field *Field, joinTable *Table, prefix string) bool {
 	return false
 }
 
-func (t *Table) tryBelongsToOne(field *Field, joinTable *Table) bool {
-	fks := foreignKeys(t, joinTable, t.TypeName)
+func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, opt tagOptions) bool {
+	fk, ok := opt.Get("fk:")
+	if !ok {
+		fk = t.TypeName
+	}
+
+	fks := foreignKeys(t, joinTable, field, fk)
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
 			Type:      BelongsToRelation,
