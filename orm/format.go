@@ -173,6 +173,14 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 	var tableParams *tableParams
 	var model tableModel
 
+	if len(params) > 0 {
+		var ok bool
+		model, ok = params[len(params)-1].(tableModel)
+		if ok {
+			params = params[:len(params)-1]
+		}
+	}
+
 	for p.Valid() {
 		b, ok := p.ReadSep('?')
 		if !ok {
@@ -210,12 +218,6 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 
 			if !namedParamsOnce && len(params) > 0 {
 				namedParamsOnce = true
-
-				model, ok = params[len(params)-1].(tableModel)
-				if ok {
-					params = params[:len(params)-1]
-				}
-
 				if len(params) > 0 {
 					tableParams, ok = newTableParams(params[len(params)-1])
 					if ok {
