@@ -120,7 +120,7 @@ var _ = Describe("HookTest", func() {
 	})
 
 	It("calls BeforeInsert and AfterInsert", func() {
-		hook := &HookTest{
+		hook := HookTest{
 			Id:    1,
 			Value: "value",
 		}
@@ -132,7 +132,7 @@ var _ = Describe("HookTest", func() {
 	})
 
 	It("calls BeforeUpdate and AfterUpdate", func() {
-		hook := &HookTest{
+		hook := HookTest{
 			Id: 1,
 		}
 		err := db.Update(&hook)
@@ -143,7 +143,7 @@ var _ = Describe("HookTest", func() {
 	})
 
 	It("calls BeforeDelete and AfterDelete", func() {
-		hook := &HookTest{
+		hook := HookTest{
 			Id: 1,
 		}
 		err := db.Delete(&hook)

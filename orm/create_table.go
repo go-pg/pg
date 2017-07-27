@@ -29,7 +29,7 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 		return nil, q.q.stickyErr
 	}
 	if q.q.model == nil {
-		return nil, errors.New("pg: Model(nil)")
+		return nil, errors.New("pg: Model is nil")
 	}
 
 	table := q.q.model.Table()

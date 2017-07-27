@@ -62,7 +62,7 @@ func NewModel(values ...interface{}) (Model, error) {
 
 	switch v.Kind() {
 	case reflect.Struct:
-		return newStructTableModel(v)
+		return newStructTableModelValue(v), nil
 	case reflect.Slice:
 		typ := v.Type()
 		structType := indirectType(typ.Elem())

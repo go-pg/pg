@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -21,32 +20,18 @@ type structTableModel struct {
 
 var _ tableModel = (*structTableModel)(nil)
 
-func newStructTableModel(v interface{}) (*structTableModel, error) {
-	switch v := v.(type) {
-	case *structTableModel:
-		return v, nil
-	case reflect.Value:
-		return newStructTableModelValue(v)
-	default:
-		return newStructTableModelValue(reflect.ValueOf(v))
-	}
-}
-
-func newStructTableModelValue(v reflect.Value) (*structTableModel, error) {
-	if !v.IsValid() {
-		return nil, errors.New("pg: Model(nil)")
-	}
-
-	v = reflect.Indirect(v)
-	if v.Kind() != reflect.Struct {
-		return nil, fmt.Errorf("pg: Model(unsupported %s)", v.Type())
-	}
-
+func newStructTableModelValue(v reflect.Value) *structTableModel {
 	return &structTableModel{
 		table: Tables.Get(v.Type()),
 		root:  v,
 		strct: v,
-	}, nil
+	}
+}
+
+func newStructTableModelType(typ reflect.Type) *structTableModel {
+	return &structTableModel{
+		table: Tables.Get(typ),
+	}
 }
 
 func (structTableModel) useQueryOne() bool {

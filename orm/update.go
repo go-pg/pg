@@ -81,7 +81,7 @@ func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 	}
 
 	if q.q.model == nil {
-		return nil, errors.New("pg: Model(nil)")
+		return nil, errors.New("pg: Model is nil")
 	}
 
 	b = append(b, " SET "...)
