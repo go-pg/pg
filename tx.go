@@ -263,6 +263,7 @@ func (tx *Tx) begin() error {
 	}
 
 	_, err := tx.Exec("BEGIN")
+	tx.close(err)
 	return err
 }
 
