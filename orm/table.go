@@ -112,11 +112,6 @@ func newTable(typ reflect.Type) *Table {
 		return table
 	}
 
-	table, ok = Tables.inFlight[typ]
-	if ok {
-		return table
-	}
-
 	modelName := internal.Underscore(typ.Name())
 	table = &Table{
 		Type:       typ,
@@ -130,7 +125,7 @@ func newTable(typ reflect.Type) *Table {
 		Fields:    make([]*Field, 0, typ.NumField()),
 		FieldsMap: make(map[string]*Field, typ.NumField()),
 	}
-	Tables.inFlight[typ] = table
+	Tables.tables[typ] = table
 
 	table.addFields(typ, nil)
 	typ = reflect.PtrTo(typ)
@@ -184,9 +179,6 @@ func newTable(typ reflect.Type) *Table {
 
 		table.Methods[m.Name] = &method
 	}
-
-	Tables.tables[typ] = table
-	delete(Tables.inFlight, typ)
 
 	return table
 }
@@ -268,8 +260,6 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		return field
 	}
 
-	_, pgOpt := parseTag(f.Tag.Get("pg"))
-
 	field := Field{
 		Type: indirectType(f.Type),
 
@@ -296,6 +286,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.SetFlag(ForeignKeyFlag)
 	}
 
+	_, pgOpt := parseTag(f.Tag.Get("pg"))
 	if _, ok := pgOpt.Get("array"); ok {
 		field.SetFlag(ArrayFlag)
 	}
@@ -317,7 +308,11 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 	field.isZero = isZeroFunc(f.Type)
 
-	if !skip && isColumn(f.Type) {
+	if skip {
+		t.FieldsMap[field.SQLName] = &field
+		return nil
+	}
+	if isColumn(f.Type) {
 		return &field
 	}
 
@@ -363,7 +358,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			fk = s
 		}
 
-		fks := foreignKeys(t, joinTable, &field, fk)
+		fks := foreignKeys(t, joinTable, fk, t.TypeName)
 		if len(fks) > 0 {
 			t.addRelation(&Relation{
 				Type:        HasManyRelation,
@@ -396,10 +391,6 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 	}
 
-	if skip {
-		t.FieldsMap[field.SQLName] = &field
-		return nil
-	}
 	return &field
 }
 
@@ -486,7 +477,7 @@ func sqlType(typ reflect.Type) string {
 	}
 }
 
-func foreignKeys(base, join *Table, field *Field, fk string) []*Field {
+func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
 	var fks []*Field
 
 	for _, pk := range base.PKs {
@@ -500,7 +491,7 @@ func foreignKeys(base, join *Table, field *Field, fk string) []*Field {
 		return fks
 	}
 
-	if fk != "" && fk != field.GoName {
+	if fk != "" && fk != fieldName {
 		if f := join.getField(fk); f != nil {
 			fks = append(fks, f)
 		}
@@ -514,7 +505,7 @@ func (t *Table) tryHasOne(joinTable *Table, field *Field, opt tagOptions) bool {
 		fk = field.GoName
 	}
 
-	fks := foreignKeys(joinTable, t, field, fk)
+	fks := foreignKeys(joinTable, t, fk, field.GoName)
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
 			Type:      HasOneRelation,
@@ -533,7 +524,7 @@ func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, opt tagOptions) 
 		fk = t.TypeName
 	}
 
-	fks := foreignKeys(t, joinTable, field, fk)
+	fks := foreignKeys(t, joinTable, fk, t.TypeName)
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
 			Type:      BelongsToRelation,

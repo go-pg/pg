@@ -148,3 +148,21 @@ var _ = Describe("unexported types", func() {
 		Expect(rel.Type).To(Equal(orm.HasOneRelation))
 	})
 })
+
+type H struct {
+	I *I
+}
+
+type I struct {
+	H *H
+}
+
+var _ = Describe("model with circular reference", func() {
+	It("works", func() {
+		table := orm.Tables.Get(reflect.TypeOf(H{}))
+		Expect(table).NotTo(BeNil())
+
+		table = orm.Tables.Get(reflect.TypeOf(I{}))
+		Expect(table).NotTo(BeNil())
+	})
+})

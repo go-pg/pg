@@ -9,15 +9,13 @@ import (
 var Tables = newTables()
 
 type tables struct {
-	inFlight map[reflect.Type]*Table
-	tables   map[reflect.Type]*Table
-	mu       sync.RWMutex
+	mu     sync.RWMutex
+	tables map[reflect.Type]*Table
 }
 
 func newTables() *tables {
 	return &tables{
-		inFlight: make(map[reflect.Type]*Table),
-		tables:   make(map[reflect.Type]*Table),
+		tables: make(map[reflect.Type]*Table),
 	}
 }
 
@@ -32,8 +30,10 @@ func (t *tables) Get(typ reflect.Type) *Table {
 	if ok {
 		return table
 	}
+
 	t.mu.Lock()
 	table = newTable(typ)
 	t.mu.Unlock()
+
 	return table
 }
