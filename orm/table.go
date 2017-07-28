@@ -308,11 +308,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 	field.isZero = isZeroFunc(f.Type)
 
-	if skip {
-		t.FieldsMap[field.SQLName] = &field
-		return nil
-	}
-	if isColumn(f.Type) {
+	if !skip && isColumn(f.Type) {
 		return &field
 	}
 
@@ -389,6 +385,11 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			t.FieldsMap[field.SQLName] = &field
 			return nil
 		}
+	}
+
+	if skip {
+		t.FieldsMap[field.SQLName] = &field
+		return nil
 	}
 
 	return &field
