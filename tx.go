@@ -263,6 +263,9 @@ func (tx *Tx) begin() error {
 	}
 
 	_, err := tx.Exec("BEGIN")
+	if err != nil {
+		tx.close(err)
+	}
 	return err
 }
 
