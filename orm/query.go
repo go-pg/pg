@@ -839,7 +839,7 @@ func (q *Query) mustAppendWhere(b []byte) ([]byte, error) {
 	}
 
 	if q.model == nil {
-		return nil, errors.New("pg: Model(nil)")
+		return nil, errors.New("pg: Model is nil")
 	}
 
 	if err := q.model.Table().checkPKs(); err != nil {

@@ -35,14 +35,6 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal(`SELECT  FROM "user" AS "user"`))
 	})
 
-	It("works without db", func() {
-		q := NewQuery(nil).Where("hello = ?", "world")
-
-		b, err := selectQuery{q: q}.AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal("SELECT * WHERE (hello = 'world')"))
-	})
-
 	It("works with Copy", func() {
 		q1 := NewQuery(nil).Where("1 = 1").Where("2 = 2").Where("3 = 3")
 		q2 := q1.Copy().Where("q2 = ?", "v2")

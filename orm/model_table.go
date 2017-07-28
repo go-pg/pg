@@ -39,18 +39,22 @@ func newTableModel(value interface{}) (tableModel, error) {
 	if v.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("pg: Model(non-pointer %T)", value)
 	}
+
+	if v.IsNil() {
+		typ := v.Type().Elem()
+		if typ.Kind() == reflect.Struct {
+			return newStructTableModelType(typ), nil
+		}
+		return nil, errors.New("pg: Model(nil)")
+	}
+
 	return newTableModelValue(v.Elem())
 }
 
 func newTableModelValue(v reflect.Value) (tableModel, error) {
-	if !v.IsValid() {
-		return nil, errors.New("pg: Model(nil)")
-	}
-	v = reflect.Indirect(v)
-
 	switch v.Kind() {
 	case reflect.Struct:
-		return newStructTableModel(v)
+		return newStructTableModelValue(v), nil
 	case reflect.Slice:
 		structType := sliceElemType(v)
 		if structType.Kind() == reflect.Struct {

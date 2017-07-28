@@ -198,7 +198,10 @@ var _ = Describe("Time", func() {
 			var tm time.Time
 			_, err := db.QueryOne(pg.Scan(&tm), "SELECT ?", test.wanted)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(tm.Unix()).To(Equal(test.wanted.Unix()), "#%d str=%q wanted=%q", i, test.str, test.wanted)
+			Expect(tm.Unix()).To(
+				Equal(test.wanted.Unix()),
+				"#%d str=%q wanted=%q", i, test.str, test.wanted,
+			)
 		}
 	})
 
@@ -207,7 +210,10 @@ var _ = Describe("Time", func() {
 			var tm time.Time
 			_, err := db.QueryOne(pg.Scan(&tm), "SELECT ?", test.str)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(tm.Unix()).To(Equal(test.wanted.Unix()), "#%d str=%q wanted=%q", i, test.str, test.wanted)
+			Expect(tm.Unix()).To(
+				Equal(test.wanted.Unix()),
+				"#%d str=%q wanted=%q", i, test.str, test.wanted,
+			)
 		}
 	})
 })
