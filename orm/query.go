@@ -29,11 +29,12 @@ type Query struct {
 	columns    []FormatAppender
 	set        []FormatAppender
 	where      []sepFormatAppender
+	updWhere   []sepFormatAppender
 	joins      []FormatAppender
 	group      []FormatAppender
 	having     []queryParamsAppender
 	order      []FormatAppender
-	onConflict FormatAppender
+	onConflict *queryParamsAppender
 	returning  []queryParamsAppender
 	limit      int
 	offset     int
@@ -71,6 +72,7 @@ func (q *Query) Copy() *Query {
 		columns:    q.columns[:len(q.columns):len(q.columns)],
 		set:        q.set[:len(q.set):len(q.set)],
 		where:      q.where[:len(q.where):len(q.where)],
+		updWhere:   q.updWhere[:len(q.updWhere):len(q.updWhere)],
 		joins:      q.joins[:len(q.joins):len(q.joins)],
 		group:      q.group[:len(q.group):len(q.group)],
 		having:     q.having[:len(q.having):len(q.having)],
@@ -221,7 +223,12 @@ func (q *Query) Set(set string, params ...interface{}) *Query {
 }
 
 func (q *Query) Where(where string, params ...interface{}) *Query {
-	q.where = append(q.where, &whereAppender{"AND", where, params})
+	f := &whereAppender{"AND", where, params}
+	if q.onConflictDoUpdate() {
+		q.updWhere = append(q.updWhere, f)
+	} else {
+		q.where = append(q.where, f)
+	}
 	return q
 }
 
@@ -326,8 +333,13 @@ func (q *Query) Offset(n int) *Query {
 }
 
 func (q *Query) OnConflict(s string, params ...interface{}) *Query {
-	q.onConflict = queryParamsAppender{s, params}
+	q.onConflict = &queryParamsAppender{s, params}
 	return q
+}
+
+func (q *Query) onConflictDoUpdate() bool {
+	return q.onConflict != nil &&
+		strings.HasSuffix(q.onConflict.query, "DO UPDATE")
 }
 
 func (q *Query) Returning(s string, params ...interface{}) *Query {
@@ -851,14 +863,22 @@ func (q *Query) mustAppendWhere(b []byte) ([]byte, error) {
 }
 
 func (q *Query) appendWhere(b []byte) []byte {
+	return q._appendWhere(b, q.where)
+}
+
+func (q *Query) appendUpdWhere(b []byte) []byte {
+	return q._appendWhere(b, q.updWhere)
+}
+
+func (q *Query) _appendWhere(b []byte, where []sepFormatAppender) []byte {
 	b = append(b, " WHERE "...)
-	for i, app := range q.where {
+	for i, f := range where {
 		if i > 0 {
 			b = append(b, ' ')
-			b = app.AppendSep(b)
+			b = f.AppendSep(b)
 			b = append(b, ' ')
 		}
-		b = app.AppendFormat(b, q)
+		b = f.AppendFormat(b, q)
 	}
 	return b
 }

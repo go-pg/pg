@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"bytes"
 	"errors"
 	"reflect"
 )
@@ -89,13 +88,13 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = append(b, " ON CONFLICT "...)
 		b = q.q.onConflict.AppendFormat(b, q.q)
 
-		if onConflictDoUpdate(b) {
+		if q.q.onConflictDoUpdate() {
 			if len(q.q.set) > 0 {
 				b = q.q.appendSet(b)
 			}
 
-			if len(q.q.where) > 0 {
-				b = q.q.appendWhere(b)
+			if len(q.q.updWhere) > 0 {
+				b = q.q.appendUpdWhere(b)
 			}
 		}
 	}
@@ -107,12 +106,6 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	return b, nil
-}
-
-var doUpdate = []byte(" DO UPDATE")
-
-func onConflictDoUpdate(b []byte) bool {
-	return bytes.HasSuffix(b, doUpdate)
 }
 
 func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
