@@ -92,18 +92,27 @@ func visitField(v reflect.Value, index []int, fn func(reflect.Value)) {
 	}
 }
 
-func values(b []byte, v reflect.Value, index []int, fields []*Field) []byte {
+func appendChildValues(b []byte, v reflect.Value, index []int, fields []*Field) []byte {
+	seen := make(map[string]struct{})
 	walk(v, index, func(v reflect.Value) {
+		start := len(b)
+
 		b = append(b, '(')
-		for i, field := range fields {
+		for i, f := range fields {
 			if i > 0 {
 				b = append(b, ", "...)
 			}
-			b = field.AppendValue(b, v, 1)
+			b = f.AppendValue(b, v, 1)
 		}
 		b = append(b, "), "...)
+
+		if _, ok := seen[string(b[start:])]; ok {
+			b = b[:start]
+		} else {
+			seen[string(b[start:])] = struct{}{}
+		}
 	})
-	if len(b) > 0 {
+	if len(seen) > 0 {
 		b = b[:len(b)-2] // trim ", "
 	}
 	return b
