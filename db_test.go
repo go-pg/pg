@@ -1014,7 +1014,7 @@ var _ = Describe("ORM", func() {
 			}))
 		})
 
-		It("supports HasMany -> HasOne, HasMany -> HasMany", func() {
+		It("fetches Author relations", func() {
 			var author Author
 			err := db.Model(&author).
 				Column(
@@ -1058,7 +1058,7 @@ var _ = Describe("ORM", func() {
 			}))
 		})
 
-		It("supports HasMany -> HasMany -> HasMany", func() {
+		It("fetches Genre relations", func() {
 			var genre Genre
 			err := db.Model(&genre).
 				Column("genre.*", "Books.id", "Books.Translations").
@@ -1085,7 +1085,7 @@ var _ = Describe("ORM", func() {
 			}))
 		})
 
-		It("supports HasOne -> HasOne", func() {
+		It("fetches Translation relation", func() {
 			var translation Translation
 			err := db.Model(&translation).
 				Column("tr.*", "Book.id", "Book.Author", "Book.Editor").
@@ -1244,7 +1244,7 @@ var _ = Describe("ORM", func() {
 			}}))
 		})
 
-		It("supports HasMany2Many, HasMany2Many -> HasMany", func() {
+		It("fetches Genre relations", func() {
 			var genres []Genre
 			err := db.Model(&genres).
 				Column("genre.*", "Subgenres", "Books.id", "Books.Translations").
@@ -1290,7 +1290,7 @@ var _ = Describe("ORM", func() {
 			}))
 		})
 
-		It("supports HasOne -> HasOne", func() {
+		It("fetches Translation relation", func() {
 			var translations []Translation
 			err := db.Model(&translations).
 				Column("tr.*", "Book.id", "Book.Author", "Book.Editor").
@@ -1373,7 +1373,7 @@ var _ = Describe("ORM", func() {
 		})
 	})
 
-	Describe("slice of ptrs model", func() {
+	Describe("fetches Book relations", func() {
 		It("supports HasOne, HasMany, HasMany2Many", func() {
 			var books []*Book
 			err := db.Model(&books).
@@ -1384,7 +1384,7 @@ var _ = Describe("ORM", func() {
 			Expect(books).To(HaveLen(3))
 		})
 
-		It("supports HasMany2Many, HasMany2Many -> HasMany", func() {
+		It("fetches Genre relations", func() {
 			var genres []*Genre
 			err := db.Model(&genres).
 				Column("genre.*", "Subgenres", "Books.id", "Books.Translations").
@@ -1395,7 +1395,7 @@ var _ = Describe("ORM", func() {
 			Expect(genres).To(HaveLen(2))
 		})
 
-		It("supports HasOne -> HasOne", func() {
+		It("fetches Translation relations", func() {
 			var translations []*Translation
 			err := db.Model(&translations).
 				Column("tr.*", "Book.id", "Book.Author", "Book.Editor").
