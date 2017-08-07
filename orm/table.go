@@ -194,8 +194,8 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 		if f.Anonymous {
 			embeddedTable := newTable(indirectType(f.Type))
 
-			_, pgOpt := parseTag(f.Tag.Get("pg"))
-			if _, ok := pgOpt.Get("override"); ok {
+			pgTag := parseTag(f.Tag.Get("pg"))
+			if _, ok := pgTag.Options["override"]; ok {
 				t.TypeName = embeddedTable.TypeName
 				t.Name = embeddedTable.Name
 				t.Alias = embeddedTable.Alias
@@ -228,20 +228,20 @@ func (t *Table) getField(name string) *Field {
 }
 
 func (t *Table) newField(f reflect.StructField, index []int) *Field {
-	sqlName, sqlOpt := parseTag(f.Tag.Get("sql"))
+	sqlTag := parseTag(f.Tag.Get("sql"))
 
 	switch f.Name {
 	case "tableName", "TableName":
 		if index != nil {
 			return nil
 		}
-		if sqlName != "" {
-			if isPostgresKeyword(sqlName) {
-				sqlName = `"` + sqlName + `"`
+		if sqlTag.Name != "" {
+			if isPostgresKeyword(sqlTag.Name) {
+				sqlTag.Name = `"` + sqlTag.Name + `"`
 			}
-			t.Name = types.Q(sqlName)
+			t.Name = types.Q(sqlTag.Name)
 		}
-		if alias, ok := sqlOpt.Get("alias:"); ok {
+		if alias, ok := sqlTag.Options["alias"]; ok {
 			t.Alias = types.Q(alias)
 		}
 		return nil
@@ -251,12 +251,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		return nil
 	}
 
-	skip := sqlName == "-"
-	if skip || sqlName == "" {
-		sqlName = internal.Underscore(f.Name)
+	skip := sqlTag.Name == "-"
+	if skip || sqlTag.Name == "" {
+		sqlTag.Name = internal.Underscore(f.Name)
 	}
 
-	if field, ok := t.FieldsMap[sqlName]; ok {
+	if field, ok := t.FieldsMap[sqlTag.Name]; ok {
 		return field
 	}
 
@@ -264,34 +264,34 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		Type: indirectType(f.Type),
 
 		GoName:  f.Name,
-		SQLName: sqlName,
-		Column:  types.Q(types.AppendField(nil, sqlName, 1)),
+		SQLName: sqlTag.Name,
+		Column:  types.Q(types.AppendField(nil, sqlTag.Name, 1)),
 
 		Index: append(index, f.Index...),
 	}
 
-	if _, ok := sqlOpt.Get("notnull"); ok {
+	if _, ok := sqlTag.Options["notnull"]; ok {
 		field.SetFlag(NotNullFlag)
 	}
-	if _, ok := sqlOpt.Get("unique"); ok {
+	if _, ok := sqlTag.Options["unique"]; ok {
 		field.SetFlag(UniqueFlag)
 	}
 
 	if len(t.PKs) == 0 && (field.SQLName == "id" || field.SQLName == "uuid") {
 		field.SetFlag(PrimaryKeyFlag)
-	} else if _, ok := sqlOpt.Get("pk"); ok {
+	} else if _, ok := sqlTag.Options["pk"]; ok {
 		field.SetFlag(PrimaryKeyFlag)
 	} else if strings.HasSuffix(field.SQLName, "_id") ||
 		strings.HasSuffix(field.SQLName, "_uuid") {
 		field.SetFlag(ForeignKeyFlag)
 	}
 
-	_, pgOpt := parseTag(f.Tag.Get("pg"))
-	if _, ok := pgOpt.Get("array"); ok {
+	pgTag := parseTag(f.Tag.Get("pg"))
+	if _, ok := pgTag.Options["array"]; ok {
 		field.SetFlag(ArrayFlag)
 	}
 
-	field.SQLType = fieldSQLType(&field, sqlOpt)
+	field.SQLType = fieldSQLType(&field, sqlTag)
 	if strings.HasSuffix(field.SQLType, "[]") {
 		field.SetFlag(ArrayFlag)
 	}
@@ -299,7 +299,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	if field.HasFlag(ArrayFlag) {
 		field.append = types.ArrayAppender(f.Type)
 		field.scan = types.ArrayScanner(f.Type)
-	} else if _, ok := pgOpt.Get("hstore"); ok {
+	} else if _, ok := pgTag.Options["hstore"]; ok {
 		field.append = types.HstoreAppender(f.Type)
 		field.scan = types.HstoreScanner(f.Type)
 	} else {
@@ -321,18 +321,18 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		joinTable := newTable(elemType)
 
-		fk, ok := pgOpt.Get("fk:")
+		fk, ok := pgTag.Options["fk"]
 		if !ok {
 			fk = t.TypeName
 		}
 
-		if m2mTable, _ := pgOpt.Get("many2many:"); m2mTable != "" {
+		if m2mTable, _ := pgTag.Options["many2many"]; m2mTable != "" {
 			m2mTableAlias := m2mTable
 			if ind := strings.IndexByte(m2mTable, '.'); ind >= 0 {
 				m2mTableAlias = m2mTable[ind+1:]
 			}
 
-			joinFK, ok := pgOpt.Get("joinFK:")
+			joinFK, ok := pgTag.Options["joinFK"]
 			if !ok {
 				joinFK = joinTable.TypeName
 			}
@@ -349,7 +349,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			return nil
 		}
 
-		s, polymorphic := pgOpt.Get("polymorphic:")
+		s, polymorphic := pgTag.Options["polymorphic"]
 		if polymorphic {
 			fk = s
 		}
@@ -380,8 +380,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			t.FieldsMap[ff.SQLName] = ff
 		}
 
-		if t.tryHasOne(joinTable, &field, pgOpt) ||
-			t.tryBelongsToOne(joinTable, &field, pgOpt) {
+		if t.tryHasOne(joinTable, &field, pgTag) ||
+			t.tryBelongsToOne(joinTable, &field, pgTag) {
 			t.FieldsMap[field.SQLName] = &field
 			return nil
 		}
@@ -407,8 +407,8 @@ func isColumn(typ reflect.Type) bool {
 	return typ.Implements(scannerType) || reflect.PtrTo(typ).Implements(scannerType)
 }
 
-func fieldSQLType(field *Field, sqlOpt tagOptions) string {
-	if v, ok := sqlOpt.Get("type:"); ok {
+func fieldSQLType(field *Field, sqlTag *tag) string {
+	if v, ok := sqlTag.Options["type"]; ok {
 		return v
 	}
 
@@ -500,8 +500,8 @@ func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
 	return fks
 }
 
-func (t *Table) tryHasOne(joinTable *Table, field *Field, opt tagOptions) bool {
-	fk, ok := opt.Get("fk:")
+func (t *Table) tryHasOne(joinTable *Table, field *Field, tag *tag) bool {
+	fk, ok := tag.Options["fk"]
 	if !ok {
 		fk = field.GoName
 	}
@@ -519,8 +519,8 @@ func (t *Table) tryHasOne(joinTable *Table, field *Field, opt tagOptions) bool {
 	return false
 }
 
-func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, opt tagOptions) bool {
-	fk, ok := opt.Get("fk:")
+func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, tag *tag) bool {
+	fk, ok := tag.Options["fk"]
 	if !ok {
 		fk = t.TypeName
 	}
