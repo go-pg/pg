@@ -8,19 +8,44 @@ import (
 )
 
 type Parser struct {
+	data []byte
+	pos  int
+
 	b []byte
 }
 
 func New(b []byte) *Parser {
-	return &Parser{b: b}
+	return &Parser{
+		data: b,
+		b:    b,
+	}
 }
 
 func NewString(s string) *Parser {
-	return &Parser{b: internal.StringToBytes(s)}
+	return New(internal.StringToBytes(s))
 }
 
 func (p *Parser) Bytes() []byte {
 	return p.b
+}
+
+func (p *Parser) Position() int {
+	return p.pos
+}
+
+func (p *Parser) PositionByte(c byte) int {
+	ind := bytes.IndexByte(p.b, c)
+	if ind == -1 {
+		return len(p.data)
+	}
+	return p.pos + ind
+}
+
+func (p *Parser) Slice(s, e int) []byte {
+	b := p.data[s:e]
+	p.pos = e
+	p.b = p.data[e:]
+	return b
 }
 
 func (p *Parser) Valid() bool {
@@ -28,9 +53,12 @@ func (p *Parser) Valid() bool {
 }
 
 func (p *Parser) Read() byte {
-	c := p.b[0]
-	p.Skip(c)
-	return c
+	if p.Valid() {
+		c := p.b[0]
+		p.Skip(c)
+		return c
+	}
+	return 0
 }
 
 func (p *Parser) Peek() byte {
@@ -41,6 +69,7 @@ func (p *Parser) Peek() byte {
 }
 
 func (p *Parser) Advance() {
+	p.pos++
 	p.b = p.b[1:]
 }
 
@@ -59,6 +88,7 @@ func (p *Parser) SkipBytes(b []byte) bool {
 	if !bytes.Equal(p.b[:len(b)], b) {
 		return false
 	}
+	p.pos += len(b)
 	p.b = p.b[len(b):]
 	return true
 }
@@ -67,17 +97,19 @@ func (p *Parser) ReadSep(c byte) ([]byte, bool) {
 	ind := bytes.IndexByte(p.b, c)
 	if ind == -1 {
 		b := p.b
+		p.pos = len(p.b)
 		p.b = p.b[len(p.b):]
 		return b, false
 	}
 
 	b := p.b[:ind]
+	p.pos += ind + 1
 	p.b = p.b[ind+1:]
 	return b, true
 }
 
 func (p *Parser) ReadIdentifier() (s string, numeric bool) {
-	pos := len(p.b)
+	end := len(p.b)
 	numeric = true
 	for i, ch := range p.b {
 		if isNum(ch) {
@@ -87,14 +119,15 @@ func (p *Parser) ReadIdentifier() (s string, numeric bool) {
 			numeric = false
 			continue
 		}
-		pos = i
+		end = i
 		break
 	}
-	if pos <= 0 {
+	if end <= 0 {
 		return "", false
 	}
-	b := p.b[:pos]
-	p.b = p.b[pos:]
+	b := p.b[:end]
+	p.pos += end
+	p.b = p.b[end:]
 	return internal.BytesToString(b), numeric
 }
 
@@ -110,6 +143,7 @@ func (p *Parser) ReadNumber() int {
 		return 0
 	}
 	n, _ := strconv.Atoi(string(p.b[:end]))
+	p.pos += end
 	p.b = p.b[end:]
 	return n
 }
