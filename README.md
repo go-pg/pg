@@ -23,13 +23,14 @@
 - Bulk/batch [inserts](https://godoc.org/github.com/go-pg/pg#example-DB-Insert-BulkInsert) and [updates](https://godoc.org/github.com/go-pg/pg#example-DB-Update-BulkUpdate).
 - Common table expressions using [WITH](https://godoc.org/github.com/go-pg/pg#example-DB-Select-With) and [WrapWith](https://godoc.org/github.com/go-pg/pg#example-DB-Select-WrapWith).
 - [CountEstimate](https://godoc.org/github.com/go-pg/pg#example-DB-Model-CountEstimate) using `EXPLAIN` to get [estimated number of matching rows](https://wiki.postgresql.org/wiki/Count_estimate).
-- [HasOne](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasOne), [BelongsTo](https://godoc.org/github.com/go-pg/pg#example-DB-Model-BelongsTo), [HasMany](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasMany) and [ManyToMany](https://godoc.org/github.com/go-pg/pg#example-DB-Model-ManyToMany).
+- ORM supports [has one](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasOne), [belongs to](https://godoc.org/github.com/go-pg/pg#example-DB-Model-BelongsTo), [has many](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasMany), and [many to many](https://godoc.org/github.com/go-pg/pg#example-DB-Model-ManyToMany) with composite/multi-column primary keys.
 - [Creating tables from structs](https://godoc.org/github.com/go-pg/pg#example-DB-CreateTable).
 - [Pagination](https://godoc.org/github.com/go-pg/pg/orm#Pagination) and [URL filters](https://godoc.org/github.com/go-pg/pg/orm#URLFilters) helpers.
 - [Migrations](https://github.com/go-pg/migrations).
 - [Sharding](https://github.com/go-pg/sharding).
 
 ## Get Started
+
 - [Wiki](https://github.com/go-pg/pg/wiki)
 - [API docs](http://godoc.org/github.com/go-pg/pg)
 - [Examples](http://godoc.org/github.com/go-pg/pg#pkg-examples)
