@@ -180,7 +180,7 @@ func ExampleDB_Insert_onConflictDoUpdate() {
 		}
 		_, err := db.Model(book).
 			OnConflict("(id) DO UPDATE").
-			Set("title = ?title").
+			Set("title = EXCLUDED.title").
 			Insert()
 		if err != nil {
 			panic(err)
