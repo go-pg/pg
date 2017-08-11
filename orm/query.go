@@ -815,7 +815,7 @@ func appendSliceValues(b []byte, fields []*Field, slice reflect.Value) []byte {
 		}
 	}
 	b = append(b, ")) AS _data("...)
-	b = appendFieldsColumns(b, fields)
+	b = appendColumns(b, fields)
 	b = append(b, ")"...)
 	return b
 }

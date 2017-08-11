@@ -54,7 +54,7 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 	b = append(b, " ("...)
 	if q.q.hasModel() {
-		b = appendFieldsColumns(b, table.Fields)
+		b = appendColumns(b, table.Fields)
 	} else if q.q.columns != nil {
 		b = q.q.appendColumns(b)
 	}
@@ -134,6 +134,6 @@ func (ins *insertQuery) addReturningField(field *Field) {
 
 func (insertQuery) appendReturningFields(b []byte, fields []*Field) []byte {
 	b = append(b, " RETURNING "...)
-	b = appendFieldsColumns(b, fields)
+	b = appendColumns(b, fields)
 	return b
 }
