@@ -1,5 +1,7 @@
 package orm
 
+import "io"
+
 // ColumnScanner is used to scan column values.
 type ColumnScanner interface {
 	// Scan assigns a column value from a row.
@@ -31,6 +33,9 @@ type DB interface {
 	ExecOne(query interface{}, params ...interface{}) (Result, error)
 	Query(coll, query interface{}, params ...interface{}) (Result, error)
 	QueryOne(model, query interface{}, params ...interface{}) (Result, error)
+
+	CopyFrom(r io.Reader, query interface{}, params ...interface{}) (Result, error)
+	CopyTo(w io.Writer, query interface{}, params ...interface{}) (Result, error)
 
 	QueryFormatter
 }

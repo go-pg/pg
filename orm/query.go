@@ -3,6 +3,7 @@ package orm
 import (
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 	"sync"
@@ -664,28 +665,40 @@ func (q *Query) DropTable(opt *DropTableOptions) (Result, error) {
 	})
 }
 
-// Exec is an alias for db.Exec.
+// Exec is an alias for DB.Exec.
 func (q *Query) Exec(query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)
 	return q.db.Exec(query, params...)
 }
 
-// ExecOne is an alias for db.ExecOne.
+// ExecOne is an alias for DB.ExecOne.
 func (q *Query) ExecOne(query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)
 	return q.db.ExecOne(query, params...)
 }
 
-// Query is an alias for db.Query.
+// Query is an alias for DB.Query.
 func (q *Query) Query(model, query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)
 	return q.db.Query(model, query, params...)
 }
 
-// QueryOne is an alias for db.QueryOne.
+// QueryOne is an alias for DB.QueryOne.
 func (q *Query) QueryOne(model, query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)
 	return q.db.QueryOne(model, query, params...)
+}
+
+// CopyFrom is an alias from DB.CopyFrom.
+func (q *Query) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (Result, error) {
+	params = append(params, q.model)
+	return q.db.CopyFrom(r, query, params...)
+}
+
+// CopyTo is an alias from DB.CopyTo.
+func (q *Query) CopyTo(w io.Writer, query interface{}, params ...interface{}) (Result, error) {
+	params = append(params, q.model)
+	return q.db.CopyTo(w, query, params...)
 }
 
 func (q *Query) FormatQuery(b []byte, query string, params ...interface{}) []byte {

@@ -237,40 +237,59 @@ func (db *DB) Listen(channels ...string) *Listener {
 }
 
 // CopyFrom copies data from reader to a table.
-func (db *DB) CopyFrom(reader io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
+func (db *DB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := db.copyFrom(cn, reader, query, params...)
+	res, err := db.copyFrom(cn, r, query, params...)
 	db.freeConn(cn, err)
 	return res, err
 }
 
+func (db *DB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
+	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
+		return nil, err
+	}
+
+	if err := cn.FlushWriter(); err != nil {
+		return nil, err
+	}
+
+	if err := readCopyInResponse(cn); err != nil {
+		return nil, err
+	}
+
+	for {
+		if _, err := writeCopyData(cn.Wr, r); err != nil {
+			if err == io.EOF {
+				break
+			}
+			return nil, err
+		}
+
+		if err := cn.FlushWriter(); err != nil {
+			return nil, err
+		}
+	}
+
+	writeCopyDone(cn.Wr)
+	if err := cn.FlushWriter(); err != nil {
+		return nil, err
+	}
+
+	return readReadyForQuery(cn)
+}
+
 // CopyTo copies data from a table to writer.
-func (db *DB) CopyTo(writer io.Writer, query interface{}, params ...interface{}) (orm.Result, error) {
+func (db *DB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (orm.Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
-		db.pool.Put(cn)
-		return nil, err
-	}
-
-	if err := cn.FlushWriter(); err != nil {
-		db.freeConn(cn, err)
-		return nil, err
-	}
-
-	if err := readCopyOutResponse(cn); err != nil {
-		db.freeConn(cn, err)
-		return nil, err
-	}
-
-	res, err := readCopyData(cn, writer)
+	res, err := db.copyTo(cn, w, query, params...)
 	if err != nil {
 		db.freeConn(cn, err)
 		return nil, err
@@ -278,6 +297,22 @@ func (db *DB) CopyTo(writer io.Writer, query interface{}, params ...interface{})
 
 	db.pool.Put(cn)
 	return res, nil
+}
+
+func (db *DB) copyTo(cn *pool.Conn, w io.Writer, query interface{}, params ...interface{}) (orm.Result, error) {
+	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
+		return nil, err
+	}
+
+	if err := cn.FlushWriter(); err != nil {
+		return nil, err
+	}
+
+	if err := readCopyOutResponse(cn); err != nil {
+		return nil, err
+	}
+
+	return readCopyData(cn, w)
 }
 
 // Model returns new query for the model.
@@ -374,38 +409,4 @@ func (db *DB) simpleQueryData(
 	}
 
 	return res, nil
-}
-
-func (db *DB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
-	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
-		return nil, err
-	}
-
-	if err := cn.FlushWriter(); err != nil {
-		return nil, err
-	}
-
-	if err := readCopyInResponse(cn); err != nil {
-		return nil, err
-	}
-
-	for {
-		if _, err := writeCopyData(cn.Wr, r); err != nil {
-			if err == io.EOF {
-				break
-			}
-			return nil, err
-		}
-
-		if err := cn.FlushWriter(); err != nil {
-			return nil, err
-		}
-	}
-
-	writeCopyDone(cn.Wr)
-	if err := cn.FlushWriter(); err != nil {
-		return nil, err
-	}
-
-	return readReadyForQuery(cn)
 }

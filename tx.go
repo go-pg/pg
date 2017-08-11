@@ -139,7 +139,7 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 	return stmt, nil
 }
 
-// Exec executes a query with the given parameters in a transaction.
+// Exec is an alias for DB.Exec.
 func (tx *Tx) Exec(query interface{}, params ...interface{}) (orm.Result, error) {
 	cn, err := tx.conn()
 	if err != nil {
@@ -154,9 +154,7 @@ func (tx *Tx) Exec(query interface{}, params ...interface{}) (orm.Result, error)
 	return res, err
 }
 
-// ExecOne acts like Exec, but query must affect only one row. It
-// returns ErrNoRows error when query returns zero rows or
-// ErrMultiRows when query returns multiple rows.
+// ExecOne is an alias for DB.ExecOne.
 func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (orm.Result, error) {
 	res, err := tx.Exec(query, params...)
 	if err != nil {
@@ -169,7 +167,7 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (orm.Result, err
 	return res, nil
 }
 
-// Query executes a query with the given parameters in a transaction.
+// Query is an alias for DB.Query.
 func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (orm.Result, error) {
 	cn, err := tx.conn()
 	if err != nil {
@@ -194,9 +192,7 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 	return res, err
 }
 
-// QueryOne acts like Query, but query must return only one row. It
-// returns ErrNoRows error when query returns zero rows or
-// ErrMultiRows when query returns multiple rows.
+// QueryOne is an alias for DB.QueryOne.
 func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (orm.Result, error) {
 	mod, err := orm.NewModel(model)
 	if err != nil {
@@ -214,43 +210,65 @@ func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface
 	return res, nil
 }
 
-// Model returns new query for the model.
+// Model is an alias for DB.Model.
 func (tx *Tx) Model(model ...interface{}) *orm.Query {
 	return orm.NewQuery(tx, model...)
 }
 
-// Select selects the model by primary key.
+// Select is an alias for DB.Select.
 func (tx *Tx) Select(model interface{}) error {
 	return orm.Select(tx, model)
 }
 
-// Insert inserts the model updating primary keys if they are empty.
+// Insert is an alias for DB.Insert.
 func (tx *Tx) Insert(model ...interface{}) error {
 	return orm.Insert(tx, model...)
 }
 
-// Update updates the model by primary key.
+// Update is an alias for DB.Update.
 func (tx *Tx) Update(model ...interface{}) error {
 	return orm.Update(tx, model...)
 }
 
-// Delete deletes the model by primary key.
+// Delete is an alias for DB.Delete.
 func (tx *Tx) Delete(model interface{}) error {
 	return orm.Delete(tx, model)
 }
 
-// CreateTable creates table for the model. It recognizes following field tags:
-//   - notnull - sets NOT NULL constraint.
-//   - unique - sets UNIQUE constraint.
+// CreateTable is an alias for DB.CreateTable.
 func (tx *Tx) CreateTable(model interface{}, opt *orm.CreateTableOptions) error {
 	_, err := orm.CreateTable(tx, model, opt)
 	return err
 }
 
-// DropTable drops table for the model.
+// DropTable is an alias for DB.DropTable.
 func (tx *Tx) DropTable(model interface{}, opt *orm.DropTableOptions) error {
 	_, err := orm.DropTable(tx, model, opt)
 	return err
+}
+
+// CopyFrom is an alias for DB.CopyFrom.
+func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
+	cn, err := tx.conn()
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := tx.db.copyFrom(cn, r, query, params...)
+	tx.freeConn(cn, err)
+	return res, err
+}
+
+// CopyTo is an alias for DB.CopyTo.
+func (tx *Tx) CopyTo(w io.Writer, query interface{}, params ...interface{}) (orm.Result, error) {
+	cn, err := tx.conn()
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := tx.db.copyTo(cn, w, query, params...)
+	tx.freeConn(cn, err)
+	return res, err
 }
 
 func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
@@ -305,16 +323,4 @@ func (tx *Tx) close(lastErr error) error {
 	tx.cn = nil
 
 	return err
-}
-
-// CopyFrom copies data from reader to a table.
-func (tx *Tx) CopyFrom(r io.Reader, query string, params ...interface{}) (orm.Result, error) {
-	cn, err := tx.conn()
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := tx.db.copyFrom(cn, r, query, params...)
-	tx.freeConn(cn, err)
-	return res, err
 }
