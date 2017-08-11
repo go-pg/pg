@@ -227,14 +227,14 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 			}
 
 			if tableParams != nil {
-				dst, ok = tableParams.AppendParam(dst, id)
+				dst, ok = tableParams.AppendParam(dst, f, id)
 				if ok {
 					continue
 				}
 			}
 
 			if model != nil {
-				dst, ok = model.AppendParam(dst, id)
+				dst, ok = model.AppendParam(dst, f, id)
 				if ok {
 					continue
 				}

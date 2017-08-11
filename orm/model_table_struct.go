@@ -46,7 +46,7 @@ func (m *structTableModel) Relation() *Relation {
 	return m.rel
 }
 
-func (m *structTableModel) AppendParam(b []byte, name string) ([]byte, bool) {
+func (m *structTableModel) AppendParam(b []byte, f QueryFormatter, name string) ([]byte, bool) {
 	b, ok := m.table.AppendParam(b, m.strct, name)
 	if ok {
 		return b, true
@@ -54,7 +54,7 @@ func (m *structTableModel) AppendParam(b []byte, name string) ([]byte, bool) {
 
 	switch name {
 	case "TableName":
-		b = append(b, m.table.Name...)
+		b = f.FormatQuery(b, string(m.table.Name))
 		return b, true
 	case "TableAlias":
 		b = append(b, m.table.Alias...)

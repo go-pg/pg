@@ -11,7 +11,7 @@ type tableModel interface {
 
 	Table() *Table
 	Relation() *Relation
-	AppendParam([]byte, string) ([]byte, bool)
+	AppendParam([]byte, QueryFormatter, string) ([]byte, bool)
 
 	Join(string, func(*Query) (*Query, error)) (bool, *join)
 	GetJoin(string) *join

@@ -85,18 +85,18 @@ func (t *Table) GetField(fieldName string) (*Field, error) {
 	return field, nil
 }
 
-func (t *Table) AppendParam(dst []byte, strct reflect.Value, name string) ([]byte, bool) {
+func (t *Table) AppendParam(b []byte, strct reflect.Value, name string) ([]byte, bool) {
 	if field, ok := t.FieldsMap[name]; ok {
-		dst = field.AppendValue(dst, strct, 1)
-		return dst, true
+		b = field.AppendValue(b, strct, 1)
+		return b, true
 	}
 
 	if method, ok := t.Methods[name]; ok {
-		dst = method.AppendValue(dst, strct.Addr(), 1)
-		return dst, true
+		b = method.AppendValue(b, strct.Addr(), 1)
+		return b, true
 	}
 
-	return dst, false
+	return b, false
 }
 
 func (t *Table) addRelation(rel *Relation) {

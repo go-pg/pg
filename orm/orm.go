@@ -18,7 +18,7 @@ type QueryAppender interface {
 }
 
 type QueryFormatter interface {
-	FormatQuery(dst []byte, query string, params ...interface{}) []byte
+	FormatQuery(b []byte, query string, params ...interface{}) []byte
 }
 
 // DB is a common interface for pg.DB and pg.Tx types.
