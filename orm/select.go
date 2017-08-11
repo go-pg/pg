@@ -136,7 +136,7 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 	if q.q.columns != nil {
 		b = q.q.appendColumns(b)
 	} else if q.q.hasModel() {
-		b = q.appendModelColumns(b)
+		b = q.appendTableColumns(b, q.q.model.Table())
 	} else {
 		b = append(b, '*')
 	}
@@ -157,12 +157,12 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 	return b
 }
 
-func (q selectQuery) appendModelColumns(b []byte) []byte {
-	for i, f := range q.q.model.Table().Fields {
+func (q selectQuery) appendTableColumns(b []byte, table *Table) []byte {
+	for i, f := range table.Fields {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		b = append(b, q.q.model.Table().Alias...)
+		b = append(b, table.Alias...)
 		b = append(b, '.')
 		b = append(b, f.Column...)
 	}

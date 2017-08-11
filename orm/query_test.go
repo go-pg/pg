@@ -18,23 +18,24 @@ func TestQuerySize(t *testing.T) {
 	}
 }
 
-type FormatModel struct {
-	Foo string
-}
-
 func TestQueryFormatQuery(t *testing.T) {
-	q := orm.NewQuery(nil, &FormatModel{"bar"})
+	type FormatModel struct {
+		Foo string
+		Bar string
+	}
+
+	q := orm.NewQuery(nil, &FormatModel{"foo", "bar"})
 
 	params := &struct {
 		Foo string
 	}{
-		"not_bar",
+		"not_foo",
 	}
-	b := q.FormatQuery(nil, "?foo ?TableAlias", params)
+	b := q.FormatQuery(nil, "?foo ?TableName ?TableAlias ?Columns", params)
 
-	wanted := `'not_bar' "format_model"`
+	wanted := `'not_foo' "format_models" "format_model" "foo", "bar"`
 	if string(b) != wanted {
-		t.Fatalf("got %q, wanted %q", string(b), wanted)
+		t.Fatalf("got `%s`, wanted `%s`", string(b), wanted)
 	}
 }
 

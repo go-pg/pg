@@ -57,8 +57,24 @@ func Example_placeholders() {
 	}
 	fmt.Println("global:", num)
 
+	// Model params.
+	var tableName, tableAlias, columns string
+	_, err = db.Model(&Params{}).Query(
+		pg.Scan(&tableName, &tableAlias, &columns),
+		"SELECT '?TableName', '?TableAlias', '?Columns'",
+	)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("table name:", tableName)
+	fmt.Println("table alias:", tableAlias)
+	fmt.Println("columns:", columns)
+
 	// Output: simple: 42
 	// indexed: 2
 	// named: 4
 	// global: 3
+	// table name: "params"
+	// table alias: "params"
+	// columns: "x", "y"
 }

@@ -144,7 +144,7 @@ func modelIdMap(b []byte, m map[string]string, prefix string, fields []*Field) [
 	return b
 }
 
-func appendFieldsColumns(b []byte, fields []*Field) []byte {
+func appendColumns(b []byte, fields []*Field) []byte {
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)
