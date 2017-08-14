@@ -47,7 +47,6 @@ import (
    "fmt"
 
    "github.com/go-pg/pg"
-   "github.com/go-pg/pg/orm"
 )
 
 type User struct {
