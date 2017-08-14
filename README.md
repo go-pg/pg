@@ -1,4 +1,7 @@
-# PostgreSQL client for Golang [![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=master)](https://travis-ci.org/go-pg/pg)
+# PostgreSQL client and ORM for Golang
+
+[![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=master)](https://travis-ci.org/go-pg/pg)
+[![GoDoc](https://godoc.org/github.com/go-pg/pg?status.svg)](https://godoc.org/github.com/go-pg/pg)
 
 ## Features:
 
