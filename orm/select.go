@@ -105,7 +105,7 @@ func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
 		if len(q.q.order) > 0 {
 			b = append(b, " ORDER BY "...)
 			for i, f := range q.q.order {
-				if i > 0 {
+				if i > 0 && i < len(q.q.order)-1 {
 					b = append(b, ", "...)
 				}
 				b = f.AppendFormat(b, q.q)
