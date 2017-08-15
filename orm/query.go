@@ -382,12 +382,22 @@ func (q *Query) countSelectQuery(column string) selectQuery {
 
 // First selects the first row.
 func (q *Query) First() error {
+	err := q.model.Table().checkPKs()
+	if err != nil {
+		return err
+	}
+
 	b := columns(nil, q.model.Table().Alias, "", q.model.Table().PKs)
 	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select()
 }
 
 // Last selects the last row.
 func (q *Query) Last() error {
+	err := q.model.Table().checkPKs()
+	if err != nil {
+		return err
+	}
+
 	b := columns(nil, q.model.Table().Alias, "", q.model.Table().PKs)
 	b = append(b, " DESC"...)
 	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select()
