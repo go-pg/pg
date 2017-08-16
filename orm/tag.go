@@ -27,65 +27,96 @@ type tagParser struct {
 func (p *tagParser) setTagOption(key, value string) {
 	if p.tag.Options == nil {
 		p.tag.Options = make(map[string]string)
+		if value == "" && p.tag.Name == "" {
+			p.tag.Name = key
+			return
+		}
 	}
 	p.tag.Options[key] = value
 }
 
 func (p *tagParser) parseKey() {
-	start := p.Position()
-	end := minIndex(p.PositionByte(','), p.PositionByte(':'))
-	b := p.Slice(start, end)
-	c := p.Read()
-
-	if c == ':' {
-		p.key = string(b)
-		p.parseValue()
-		return
+	var b []byte
+	for p.Valid() {
+		c := p.Read()
+		switch c {
+		case ',':
+			p.Skip(' ')
+			p.setTagOption(string(b), "")
+			p.parseKey()
+			return
+		case ':':
+			p.key = string(b)
+			p.parseValue()
+			return
+		default:
+			b = append(b, c)
+		}
 	}
-
-	if start == 0 {
-		p.tag.Name = string(b)
-	} else {
+	if len(b) > 0 {
 		p.setTagOption(string(b), "")
-	}
-
-	if p.Valid() {
-		p.parseKey()
 	}
 }
 
 func (p *tagParser) parseValue() {
+	const quote = '\''
+
 	c := p.Peek()
-	quote := c == '\''
-
-	start := p.Position()
-	if quote {
-		start++
-		p.Advance()
+	if c == quote {
+		p.parseQuotedValue()
+		return
 	}
 
-	var end int
-	if quote {
-		end = p.PositionByte('\'')
-	} else {
-		end = p.PositionByte(',')
+	var b []byte
+	for p.Valid() {
+		c = p.Read()
+		switch c {
+		case '\\':
+			c = p.Read()
+			b = append(b, c)
+		case ',':
+			p.Skip(' ')
+			p.setTagOption(p.key, string(b))
+			p.parseKey()
+			return
+		default:
+			b = append(b, c)
+		}
 	}
-
-	value := p.Slice(start, end)
-	p.setTagOption(p.key, string(value))
-
-	if quote {
-		p.Skip('\'')
-	}
-
-	if p.Valid() {
-		p.parseKey()
+	if len(b) > 0 {
+		p.setTagOption(p.key, string(b))
 	}
 }
 
-func minIndex(a, b int) int {
-	if a <= b {
-		return a
+func (p *tagParser) parseQuotedValue() {
+	const quote = '\''
+
+	if !p.Skip(quote) {
+		panic("not reached")
 	}
-	return b
+
+	var b []byte
+	for p.Valid() {
+		bb, ok := p.ReadSep(quote)
+		if !ok {
+			b = append(b, bb...)
+			break
+		}
+
+		if len(bb) > 0 && bb[len(bb)-1] == '\\' {
+			b = append(b, bb[:len(bb)-1]...)
+			b = append(b, quote)
+			continue
+		}
+
+		b = append(b, bb...)
+		p.Skip(quote)
+
+		p.setTagOption(p.key, string(b))
+		p.parseKey()
+		return
+	}
+	if len(b) > 0 {
+		p.setTagOption(p.key, string(b))
+	}
 }

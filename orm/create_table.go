@@ -1,6 +1,8 @@
 package orm
 
-import "errors"
+import (
+	"errors"
+)
 
 type CreateTableOptions struct {
 	Temp        bool
@@ -54,6 +56,10 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 		}
 		if field.HasFlag(UniqueFlag) {
 			b = append(b, " UNIQUE"...)
+		}
+		if field.Default != "" {
+			b = append(b, " DEFAULT "...)
+			b = append(b, field.Default...)
 		}
 
 		if i != len(table.Fields)-1 {
