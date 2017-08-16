@@ -32,8 +32,7 @@ type Table struct {
 	Alias     types.Q
 	ModelName string
 
-	Fields []*Field
-	// TODO: PKs and Columns should be slices of Fields
+	Fields    []*Field
 	PKs       []*Field
 	Columns   []*Field
 	FieldsMap map[string]*Field
@@ -275,6 +274,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 	if _, ok := sqlTag.Options["unique"]; ok {
 		field.SetFlag(UniqueFlag)
+	}
+	if v, ok := sqlTag.Options["default"]; ok {
+		field.Default = v
 	}
 
 	if len(t.PKs) == 0 && (field.SQLName == "id" || field.SQLName == "uuid") {

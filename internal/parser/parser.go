@@ -8,16 +8,12 @@ import (
 )
 
 type Parser struct {
-	data []byte
-	pos  int
-
 	b []byte
 }
 
 func New(b []byte) *Parser {
 	return &Parser{
-		data: b,
-		b:    b,
+		b: b,
 	}
 }
 
@@ -27,25 +23,6 @@ func NewString(s string) *Parser {
 
 func (p *Parser) Bytes() []byte {
 	return p.b
-}
-
-func (p *Parser) Position() int {
-	return p.pos
-}
-
-func (p *Parser) PositionByte(c byte) int {
-	ind := bytes.IndexByte(p.b, c)
-	if ind == -1 {
-		return len(p.data)
-	}
-	return p.pos + ind
-}
-
-func (p *Parser) Slice(s, e int) []byte {
-	b := p.data[s:e]
-	p.pos = e
-	p.b = p.data[e:]
-	return b
 }
 
 func (p *Parser) Valid() bool {
@@ -69,7 +46,6 @@ func (p *Parser) Peek() byte {
 }
 
 func (p *Parser) Advance() {
-	p.pos++
 	p.b = p.b[1:]
 }
 
@@ -88,7 +64,6 @@ func (p *Parser) SkipBytes(b []byte) bool {
 	if !bytes.Equal(p.b[:len(b)], b) {
 		return false
 	}
-	p.pos += len(b)
 	p.b = p.b[len(b):]
 	return true
 }
@@ -97,13 +72,11 @@ func (p *Parser) ReadSep(c byte) ([]byte, bool) {
 	ind := bytes.IndexByte(p.b, c)
 	if ind == -1 {
 		b := p.b
-		p.pos = len(p.b)
 		p.b = p.b[len(p.b):]
 		return b, false
 	}
 
 	b := p.b[:ind]
-	p.pos += ind + 1
 	p.b = p.b[ind+1:]
 	return b, true
 }
@@ -126,7 +99,6 @@ func (p *Parser) ReadIdentifier() (s string, numeric bool) {
 		return "", false
 	}
 	b := p.b[:end]
-	p.pos += end
 	p.b = p.b[end:]
 	return internal.BytesToString(b), numeric
 }
@@ -143,7 +115,6 @@ func (p *Parser) ReadNumber() int {
 		return 0
 	}
 	n, _ := strconv.Atoi(string(p.b[:end]))
-	p.pos += end
 	p.b = p.b[end:]
 	return n
 }

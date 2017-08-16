@@ -22,6 +22,7 @@ type Field struct {
 	Column  types.Q // escaped SQL name
 	SQLType string
 	Index   []int
+	Default string
 
 	flags uint8
 
