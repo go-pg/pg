@@ -12,6 +12,7 @@ const (
 	NotNullFlag
 	UniqueFlag
 	ArrayFlag
+	customTypeFlag
 )
 
 type Field struct {

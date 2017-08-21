@@ -56,7 +56,7 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.hasOtherTables() || q.q.modelHasData() {
 		b = append(b, " FROM "...)
 		b = q.q.appendOtherTables(b)
-		b, err = q.q.appendModelData(b)
+		b, err = q.appendModelData(b)
 		if err != nil {
 			return nil, err
 		}
@@ -110,14 +110,14 @@ func (q updateQuery) appendSetStruct(b []byte, strct reflect.Value) ([]byte, err
 		fields = q.q.model.Table().Columns
 	}
 
-	for i, field := range fields {
+	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
 
-		b = append(b, field.Column...)
+		b = append(b, f.Column...)
 		b = append(b, " = "...)
-		b = field.AppendValue(b, strct, 1)
+		b = f.AppendValue(b, strct, 1)
 	}
 	return b, nil
 }
@@ -132,15 +132,75 @@ func (q updateQuery) appendSetSlice(b []byte, slice reflect.Value) ([]byte, erro
 		fields = q.q.model.Table().Columns
 	}
 
-	for i, field := range fields {
+	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
 
-		b = append(b, field.Column...)
+		b = append(b, f.Column...)
 		b = append(b, " = "...)
 		b = append(b, "_data."...)
-		b = append(b, field.Column...)
+		b = append(b, f.Column...)
 	}
 	return b, nil
+}
+
+func (q updateQuery) appendModelData(b []byte) ([]byte, error) {
+	if !q.q.hasModel() {
+		return b, nil
+	}
+
+	v := q.q.model.Value()
+	if v.Kind() != reflect.Slice || v.Len() == 0 {
+		return b, nil
+	}
+
+	columns, err := q.q.getDataFields()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(columns) > 0 {
+		columns = append(columns, q.q.model.Table().PKs...)
+	} else {
+		columns = q.q.model.Table().Fields
+	}
+
+	return appendSliceValues(b, columns, v), nil
+}
+
+func appendSliceValues(b []byte, fields []*Field, slice reflect.Value) []byte {
+	b = append(b, "(VALUES ("...)
+	for i := 0; i < slice.Len(); i++ {
+		el := slice.Index(i)
+		if el.Kind() == reflect.Interface {
+			el = el.Elem()
+		}
+		b = appendValues(b, fields, reflect.Indirect(el))
+		if i != slice.Len()-1 {
+			b = append(b, "), ("...)
+		}
+	}
+	b = append(b, ")) AS _data("...)
+	b = appendColumns(b, fields)
+	b = append(b, ")"...)
+	return b
+}
+
+func appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
+	for i, f := range fields {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		if f.OmitZero(v) {
+			b = append(b, "NULL"...)
+		} else {
+			b = f.AppendValue(b, v, 1)
+			if f.HasFlag(customTypeFlag) {
+				b = append(b, "::"...)
+				b = append(b, f.SQLType...)
+			}
+		}
+	}
+	return b
 }

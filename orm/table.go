@@ -411,6 +411,7 @@ func isColumn(typ reflect.Type) bool {
 
 func fieldSQLType(field *Field, sqlTag *tag) string {
 	if v, ok := sqlTag.Options["type"]; ok {
+		field.SetFlag(customTypeFlag)
 		return v
 	}
 
