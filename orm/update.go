@@ -196,10 +196,10 @@ func appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
 			b = append(b, "NULL"...)
 		} else {
 			b = f.AppendValue(b, v, 1)
-			if f.HasFlag(customTypeFlag) {
-				b = append(b, "::"...)
-				b = append(b, f.SQLType...)
-			}
+		}
+		if f.HasFlag(customTypeFlag) {
+			b = append(b, "::"...)
+			b = append(b, f.SQLType...)
 		}
 	}
 	return b

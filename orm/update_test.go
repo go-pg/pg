@@ -7,11 +7,11 @@ import (
 
 type UpdateTest struct {
 	Id    int
-	Value string
+	Value string `sql:"type:mytype"`
 }
 
 var _ = Describe("Update", func() {
-	It("multi updates", func() {
+	It("bulk updates", func() {
 		q := NewQuery(nil, &UpdateTest{}).
 			Model(&UpdateTest{
 				Id:    1,
@@ -22,7 +22,7 @@ var _ = Describe("Update", func() {
 
 		b, err := updateQuery{q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (1, 'hello'), (2, NULL)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
+		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (1, 'hello'::mytype), (2, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
 	})
 
 	It("supports WITH", func() {
