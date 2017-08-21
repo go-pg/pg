@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jinzhu/inflection"
-
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/types"
 )
@@ -117,7 +115,7 @@ func newTable(typ reflect.Type) *Table {
 		zeroStruct: reflect.Zero(typ),
 
 		TypeName:  internal.ToExported(typ.Name()),
-		Name:      types.Q(types.AppendField(nil, inflection.Plural(modelName), 1)),
+		Name:      types.Q(types.AppendField(nil, tableNameInflector(modelName), 1)),
 		Alias:     types.Q(types.AppendField(nil, modelName, 1)),
 		ModelName: modelName,
 
