@@ -183,7 +183,7 @@ func (q *Query) getFields() ([]*Field, error) {
 	return q._getFields(false)
 }
 
-func (q *Query) getColumns() ([]*Field, error) {
+func (q *Query) getDataFields() ([]*Field, error) {
 	return q._getFields(true)
 }
 
@@ -192,18 +192,21 @@ func (q *Query) _getFields(filterPKs bool) ([]*Field, error) {
 
 	var columns []*Field
 	for _, col := range q.columns {
-		if f, ok := col.(fieldAppender); ok {
-			field, err := table.GetField(f.field)
-			if err != nil {
-				return nil, err
-			}
-
-			if filterPKs && field.HasFlag(PrimaryKeyFlag) {
-				continue
-			}
-
-			columns = append(columns, field)
+		f, ok := col.(fieldAppender)
+		if !ok {
+			continue
 		}
+
+		field, err := table.GetField(f.field)
+		if err != nil {
+			return nil, err
+		}
+
+		if filterPKs && field.HasFlag(PrimaryKeyFlag) {
+			continue
+		}
+
+		columns = append(columns, field)
 	}
 	return columns, nil
 }
@@ -799,60 +802,6 @@ func (q *Query) appendOtherTables(b []byte) []byte {
 			b = append(b, ", "...)
 		}
 		b = f.AppendFormat(b, q)
-	}
-	return b
-}
-
-func (q *Query) appendModelData(b []byte) ([]byte, error) {
-	if q.hasModel() {
-		v := q.model.Value()
-		if v.Kind() == reflect.Slice && v.Len() > 0 {
-			columns, err := q.getColumns()
-			if err != nil {
-				return nil, err
-			}
-
-			if len(columns) > 0 {
-				columns = append(columns, q.model.Table().PKs...)
-			} else {
-				columns = q.model.Table().Fields
-			}
-
-			return appendSliceValues(b, columns, v), nil
-		}
-	}
-
-	return b, nil
-}
-
-func appendSliceValues(b []byte, fields []*Field, slice reflect.Value) []byte {
-	b = append(b, "(VALUES ("...)
-	for i := 0; i < slice.Len(); i++ {
-		el := slice.Index(i)
-		if el.Kind() == reflect.Interface {
-			el = el.Elem()
-		}
-		b = appendValues(b, fields, reflect.Indirect(el))
-		if i != slice.Len()-1 {
-			b = append(b, "), ("...)
-		}
-	}
-	b = append(b, ")) AS _data("...)
-	b = appendColumns(b, fields)
-	b = append(b, ")"...)
-	return b
-}
-
-func appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
-	for i, f := range fields {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-		if f.OmitZero(v) {
-			b = append(b, "NULL"...)
-		} else {
-			b = f.AppendValue(b, v, 1)
-		}
 	}
 	return b
 }
