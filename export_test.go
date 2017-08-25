@@ -2,7 +2,7 @@ package pg
 
 import "github.com/go-pg/pg/internal/pool"
 
-func (db *DB) Pool() *pool.ConnPool {
+func (db *DB) Pool() pool.Pooler {
 	return db.pool
 }
 

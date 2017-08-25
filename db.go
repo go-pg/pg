@@ -72,11 +72,11 @@ func (db *DB) conn() (*pool.Conn, error) {
 	cn.SetReadWriteTimeout(db.opt.ReadTimeout, db.opt.WriteTimeout)
 
 	if cn.InitedAt.IsZero() {
+		cn.InitedAt = time.Now()
 		if err := db.initConn(cn); err != nil {
 			_ = db.pool.Remove(cn)
 			return nil, err
 		}
-		cn.InitedAt = time.Now()
 	}
 
 	return cn, nil
@@ -89,7 +89,21 @@ func (db *DB) initConn(cn *pool.Conn) error {
 		}
 	}
 
-	return startup(cn, db.opt.User, db.opt.Password, db.opt.Database)
+	err := startup(cn, db.opt.User, db.opt.Password, db.opt.Database)
+	if err != nil {
+		return err
+	}
+
+	if db.opt.OnConnect != nil {
+		dbConn := &DB{
+			opt:   db.opt,
+			pool:  pool.NewSingleConnPool(cn),
+			fmter: db.fmter,
+		}
+		return db.opt.OnConnect(dbConn)
+	}
+
+	return nil
 }
 
 func (db *DB) freeConn(cn *pool.Conn, err error) error {
