@@ -932,3 +932,40 @@ func ExampleF() {
 	fmt.Println(book)
 	// Output: Book<Id=1 Title="book 1">
 }
+
+func ExampleDB_jsonUseNumber() {
+	type Event struct {
+		Id   int
+		Data map[string]interface{} `pg:",json_use_number"`
+	}
+
+	db := pg.Connect(pgOptions())
+	defer db.Close()
+
+	err := db.CreateTable((*Event)(nil), &orm.CreateTableOptions{
+		Temp: true,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	event := &Event{
+		Data: map[string]interface{}{
+			"price": 1.23,
+		},
+	}
+	err = db.Insert(event)
+	if err != nil {
+		panic(err)
+	}
+
+	event2 := new(Event)
+	err = db.Model(event2).Where("id = ?", event.Id).Select()
+	if err != nil {
+		panic(err)
+	}
+
+	// Check that price is decoded as json.Number.
+	fmt.Printf("%T", event2.Data["price"])
+	// Output: json.Number
+}
