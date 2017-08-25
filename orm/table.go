@@ -1,7 +1,9 @@
 package orm
 
 import (
+	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
@@ -296,7 +298,10 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.SetFlag(ArrayFlag)
 	}
 
-	if field.HasFlag(ArrayFlag) {
+	if _, ok := pgTag.Options["json_use_number"]; ok {
+		field.append = types.Appender(f.Type)
+		field.scan = scanJSONValue
+	} else if field.HasFlag(ArrayFlag) {
 		field.append = types.ArrayAppender(f.Type)
 		field.scan = types.ArrayScanner(f.Type)
 	} else if _, ok := pgTag.Options["hstore"]; ok {
@@ -537,4 +542,17 @@ func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, tag *tag) bool {
 		return true
 	}
 	return false
+}
+
+func scanJSONValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+	}
+	if b == nil {
+		v.Set(reflect.New(v.Type()).Elem())
+		return nil
+	}
+	dec := json.NewDecoder(bytes.NewReader(b))
+	dec.UseNumber()
+	return dec.Decode(v.Addr().Interface())
 }
