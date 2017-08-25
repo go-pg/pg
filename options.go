@@ -25,6 +25,9 @@ type Options struct {
 	// Network and Addr options.
 	Dialer func(network, addr string) (net.Conn, error)
 
+	// Hook that is called when new connection is established.
+	OnConnect func(*DB) error
+
 	User     string
 	Password string
 	Database string

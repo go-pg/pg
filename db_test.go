@@ -63,6 +63,24 @@ func TestDBString(t *testing.T) {
 	}
 }
 
+func TestOnConnect(t *testing.T) {
+	opt := pgOptions()
+	opt.OnConnect = func(db *pg.DB) error {
+		_, err := db.Exec("SET application_name = 'myapp'")
+		return err
+	}
+	db := pg.Connect(opt)
+
+	var name string
+	_, err := db.QueryOne(pg.Scan(&name), "SHOW application_name")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if name != "myapp" {
+		t.Fatalf(`got %q, wanted "myapp"`, name)
+	}
+}
+
 func TestEmptyQuery(t *testing.T) {
 	db := pg.Connect(pgOptions())
 

@@ -14,7 +14,7 @@ import (
 // goroutines.
 type DB struct {
 	opt   *Options
-	pool  *pool.ConnPool
+	pool  pool.Pooler
 	fmter orm.Formatter
 
 	queryProcessedHooks []queryProcessedHook
