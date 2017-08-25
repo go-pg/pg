@@ -39,6 +39,7 @@ type Query struct {
 	returning  []queryParamsAppender
 	limit      int
 	offset     int
+	selFor     FormatAppender
 }
 
 var _ queryAppender = (*Query)(nil)
@@ -348,6 +349,11 @@ func (q *Query) onConflictDoUpdate() bool {
 
 func (q *Query) Returning(s string, params ...interface{}) *Query {
 	q.returning = append(q.returning, queryParamsAppender{s, params})
+	return q
+}
+
+func (q *Query) For(s string, params ...interface{}) *Query {
+	q.selFor = queryParamsAppender{s, params}
 	return q
 }
 

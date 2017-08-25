@@ -111,6 +111,13 @@ var _ = Describe("Select", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT * WHERE (id IN (SELECT "id" FROM "select_models" AS "select_model" WHERE (name IS NOT NULL)))`))
 	})
+
+	It("supports locking", func() {
+		q := NewQuery(nil).For("UPDATE SKIP LOCKED")
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT * FOR UPDATE SKIP LOCKED`))
+	})
 })
 
 var _ = Describe("Count", func() {
