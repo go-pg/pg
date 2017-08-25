@@ -121,6 +121,11 @@ func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
 			b = append(b, " OFFSET "...)
 			b = strconv.AppendInt(b, int64(q.q.offset), 10)
 		}
+
+		if q.q.selFor != nil {
+			b = append(b, " FOR "...)
+			b = q.q.selFor.AppendFormat(b, q.q)
+		}
 	} else if cteCount {
 		b = append(b, `) SELECT `...)
 		b = append(b, q.count...)
