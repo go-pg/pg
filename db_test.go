@@ -359,9 +359,9 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 		db = pg.Connect(pgOptions())
 
 		qs := []string{
-			"CREATE TEMP TABLE copy_from(n int)",
-			"CREATE TEMP TABLE copy_to(n int)",
-			fmt.Sprintf("INSERT INTO copy_from SELECT generate_series(1, %d)", n),
+			"CREATE TEMP TABLE copy_src(n int)",
+			"CREATE TEMP TABLE copy_dst(n int)",
+			fmt.Sprintf("INSERT INTO copy_src SELECT generate_series(1, %d)", n),
 		}
 		for _, q := range qs {
 			_, err := db.Exec(q)
@@ -376,31 +376,31 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 
 	It("copies data from a table and to a table", func() {
 		var buf bytes.Buffer
-		res, err := db.CopyTo(&buf, "COPY copy_from TO STDOUT")
+		res, err := db.CopyTo(&buf, "COPY copy_src TO STDOUT")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.RowsAffected()).To(Equal(n))
 
-		res, err = db.CopyFrom(&buf, "COPY copy_to FROM STDIN")
+		res, err = db.CopyFrom(&buf, "COPY copy_dst FROM STDIN")
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.RowsAffected()).To(Equal(n))
-
-		var count int
-		_, err = db.QueryOne(pg.Scan(&count), "SELECT count(*) FROM copy_to")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(count).To(Equal(n))
 
 		st := db.Pool().Stats()
-		Expect(st.Requests).To(Equal(uint32(6)))
-		Expect(st.Hits).To(Equal(uint32(5)))
+		Expect(st.Requests).To(Equal(uint32(5)))
+		Expect(st.Hits).To(Equal(uint32(4)))
 		Expect(st.Timeouts).To(Equal(uint32(0)))
 		Expect(st.TotalConns).To(Equal(uint32(1)))
 		Expect(st.FreeConns).To(Equal(uint32(1)))
+
+		var count int
+		_, err = db.QueryOne(pg.Scan(&count), "SELECT count(*) FROM copy_dst")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(count).To(Equal(n))
 	})
 
 	It("copies corrupted data to a table", func() {
-		buf := bytes.NewBufferString("corrupted data")
-		res, err := db.CopyFrom(buf, "COPY copy_to FROM STDIN")
-		Expect(err).To(MatchError(`ERROR #22P02 invalid input syntax for integer: "corrupted data" (addr="127.0.0.1:5432")`))
+		buf := bytes.NewBufferString("corrupted,data\nrow,two\r\nrow three")
+		res, err := db.CopyFrom(buf, "COPY copy_dst FROM STDIN WITH FORMAT csv")
+		Expect(err).To(MatchError(`ERROR #42601 syntax error at or near "FORMAT" (addr="127.0.0.1:5432")`))
 		Expect(res).To(BeNil())
 
 		st := db.Pool().Stats()
@@ -409,6 +409,11 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 		Expect(st.Timeouts).To(Equal(uint32(0)))
 		Expect(st.TotalConns).To(Equal(uint32(1)))
 		Expect(st.FreeConns).To(Equal(uint32(1)))
+
+		var count int
+		_, err = db.QueryOne(pg.Scan(&count), "SELECT count(*) FROM copy_dst")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(count).To(Equal(0))
 	})
 })
 

@@ -764,6 +764,7 @@ func readExtQueryData(cn *pool.Conn, mod interface{}, columns [][]byte) (*result
 }
 
 func readCopyInResponse(cn *pool.Conn) error {
+	var firstErr error
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -779,7 +780,15 @@ func readCopyInResponse(cn *pool.Conn) error {
 			if err != nil {
 				return err
 			}
-			return e
+			if firstErr == nil {
+				firstErr = e
+			}
+		case readyForQueryMsg:
+			_, err := cn.ReadN(msgLen)
+			if err != nil {
+				return err
+			}
+			return firstErr
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
 				return err
@@ -795,6 +804,7 @@ func readCopyInResponse(cn *pool.Conn) error {
 }
 
 func readCopyOutResponse(cn *pool.Conn) error {
+	var firstErr error
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -810,7 +820,15 @@ func readCopyOutResponse(cn *pool.Conn) error {
 			if err != nil {
 				return err
 			}
-			return e
+			if firstErr == nil {
+				firstErr = e
+			}
+		case readyForQueryMsg:
+			_, err := cn.ReadN(msgLen)
+			if err != nil {
+				return err
+			}
+			return firstErr
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
 				return err
@@ -887,11 +905,11 @@ func readCopyData(cn *pool.Conn, w io.Writer) (*result, error) {
 	}
 }
 
-func writeCopyData(buf *pool.WriteBuffer, r io.Reader) (int64, error) {
+func writeCopyData(buf *pool.WriteBuffer, r io.Reader) error {
 	buf.StartMessage(copyDataMsg)
-	n, err := buf.ReadFrom(r)
+	_, err := buf.ReadFrom(r)
 	buf.FinishMessage()
-	return n, err
+	return err
 }
 
 func writeCopyDone(buf *pool.WriteBuffer) {
