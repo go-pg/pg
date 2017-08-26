@@ -276,7 +276,7 @@ func (db *DB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...
 	}
 
 	for {
-		if _, err := writeCopyData(cn.Wr, r); err != nil {
+		if err := writeCopyData(cn.Wr, r); err != nil {
 			if err == io.EOF {
 				break
 			}
