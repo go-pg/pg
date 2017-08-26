@@ -35,7 +35,7 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal(`SELECT  FROM "user" AS "user"`))
 	})
 
-	It("works with Copy", func() {
+	It("copies query", func() {
 		q1 := NewQuery(nil).Where("1 = 1").Where("2 = 2").Where("3 = 3")
 		q2 := q1.Copy().Where("q2 = ?", "v2")
 		_ = q1.Where("q1 = ?", "v1")
@@ -117,6 +117,26 @@ var _ = Describe("Select", func() {
 		b, err := selectQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT * FOR UPDATE SKIP LOCKED`))
+	})
+
+	It("supports WhereGroup", func() {
+		q := NewQuery(nil).Where("TRUE").WhereGroup(func(q *Query) (*Query, error) {
+			q = q.Where("FALSE").WhereOr("TRUE")
+			return q, nil
+		})
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT * WHERE (TRUE) AND ((FALSE) OR (TRUE))`))
+	})
+
+	It("supports WhereOrGroup", func() {
+		q := NewQuery(nil).Where("TRUE").WhereOrGroup(func(q *Query) (*Query, error) {
+			q = q.Where("FALSE").Where("TRUE")
+			return q, nil
+		})
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT * WHERE (TRUE) OR ((FALSE) AND (TRUE))`))
 	})
 })
 

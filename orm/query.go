@@ -228,17 +228,20 @@ func (q *Query) Set(set string, params ...interface{}) *Query {
 }
 
 func (q *Query) Where(where string, params ...interface{}) *Query {
-	f := &whereAppender{"AND", where, params}
-	if q.onConflictDoUpdate() {
-		q.updWhere = append(q.updWhere, f)
-	} else {
-		q.where = append(q.where, f)
-	}
+	q.addWhere(&whereAppender{
+		sep:    "AND",
+		where:  where,
+		params: params,
+	})
 	return q
 }
 
 func (q *Query) WhereOr(where string, params ...interface{}) *Query {
-	q.where = append(q.where, &whereAppender{"OR", where, params})
+	q.addWhere(&whereAppender{
+		sep:    "OR",
+		where:  where,
+		params: params,
+	})
 	return q
 }
 
@@ -246,8 +249,7 @@ func (q *Query) WhereOr(where string, params ...interface{}) *Query {
 //
 //    q.Where("TRUE").
 //    	WhereGroup(func(q *orm.Query) (*orm.Query, error)) {
-//    		q = q.WhereOr("FALSE").
-//    			WhereOr("TRUE").
+//    		q = q.WhereOr("FALSE").WhereOr("TRUE").
 //    		return q, nil
 //    	})
 //
@@ -255,6 +257,25 @@ func (q *Query) WhereOr(where string, params ...interface{}) *Query {
 //
 //    WHERE TRUE AND (FALSE OR TRUE)
 func (q *Query) WhereGroup(fn func(*Query) (*Query, error)) *Query {
+	return q.whereGroup("AND", fn)
+}
+
+// WhereOrGroup encloses conditions added in the function in parentheses.
+//
+//    q.Where("TRUE").
+//    	WhereOrGroup(func(q *orm.Query) (*orm.Query, error)) {
+//    		q = q.Where("FALSE").Where("TRUE").
+//    		return q, nil
+//    	})
+//
+// generates
+//
+//    WHERE TRUE OR (FALSE AND TRUE)
+func (q *Query) WhereOrGroup(fn func(*Query) (*Query, error)) *Query {
+	return q.whereGroup("OR", fn)
+}
+
+func (q *Query) whereGroup(conj string, fn func(*Query) (*Query, error)) *Query {
 	saved := q.where
 	q.where = nil
 
@@ -264,8 +285,12 @@ func (q *Query) WhereGroup(fn func(*Query) (*Query, error)) *Query {
 		return q
 	}
 
-	group := whereGroupAppender{newq.where}
-	newq.where = append(saved, group)
+	f := whereGroupAppender{
+		sep:   conj,
+		where: newq.where,
+	}
+	newq.where = saved
+	newq.addWhere(f)
 
 	return newq
 }
@@ -275,6 +300,14 @@ func (q *Query) WhereGroup(fn func(*Query) (*Query, error)) *Query {
 //    WhereIn("id IN (?)", 1, 2, 3)
 func (q *Query) WhereIn(where string, params ...interface{}) *Query {
 	return q.Where(where, types.In(params))
+}
+
+func (q *Query) addWhere(f sepFormatAppender) {
+	if q.onConflictDoUpdate() {
+		q.updWhere = append(q.updWhere, f)
+	} else {
+		q.where = append(q.where, f)
+	}
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
