@@ -46,6 +46,7 @@ func (q queryParamsAppender) AppendValue(b []byte, quote int) ([]byte, error) {
 //------------------------------------------------------------------------------
 
 type whereGroupAppender struct {
+	sep   string
 	where []sepFormatAppender
 }
 
@@ -53,7 +54,7 @@ var _ FormatAppender = (*whereAppender)(nil)
 var _ sepFormatAppender = (*whereAppender)(nil)
 
 func (q whereGroupAppender) AppendSep(b []byte) []byte {
-	return append(b, "AND"...)
+	return append(b, q.sep...)
 }
 
 func (q whereGroupAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
@@ -73,8 +74,8 @@ func (q whereGroupAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 //------------------------------------------------------------------------------
 
 type whereAppender struct {
-	conj   string
-	query  string
+	sep    string
+	where  string
 	params []interface{}
 }
 
@@ -82,12 +83,12 @@ var _ FormatAppender = (*whereAppender)(nil)
 var _ sepFormatAppender = (*whereAppender)(nil)
 
 func (q whereAppender) AppendSep(b []byte) []byte {
-	return append(b, q.conj...)
+	return append(b, q.sep...)
 }
 
 func (q whereAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 	b = append(b, '(')
-	b = f.FormatQuery(b, q.query, q.params...)
+	b = f.FormatQuery(b, q.where, q.params...)
 	b = append(b, ')')
 	return b
 }
