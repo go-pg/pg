@@ -74,8 +74,9 @@ func (buf *WriteBuffer) WriteBytes(b []byte) {
 	buf.Bytes = append(buf.Bytes, 0)
 }
 
-func (buf *WriteBuffer) WriteByte(c byte) {
+func (buf *WriteBuffer) WriteByte(c byte) error {
 	buf.Bytes = append(buf.Bytes, c)
+	return nil
 }
 
 func (buf *WriteBuffer) Reset() {
