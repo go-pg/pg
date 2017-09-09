@@ -4,6 +4,7 @@ import "errors"
 
 type DropTableOptions struct {
 	IfExists bool
+	Cascade  bool
 }
 
 func DropTable(db DB, model interface{}, opt *DropTableOptions) (Result, error) {
@@ -36,6 +37,9 @@ func (q dropTableQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = append(b, "IF EXISTS "...)
 	}
 	b = q.q.appendTableName(b)
+	if q.opt != nil && q.opt.Cascade {
+		b = append(b, " CASCADE"...)
+	}
 
 	return b, nil
 }

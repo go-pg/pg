@@ -704,10 +704,10 @@ type Genre struct {
 	Name   string
 	Rating int `sql:"-"` // - is used to ignore field
 
-	Books []Book `pg:",many2many:book_genres"` // many to many relation
+	Books []Book `pg:"many2many:book_genres"` // many to many relation
 
 	ParentId  int
-	Subgenres []Genre `pg:",fk:Parent"` // fk specifies prefix for foreign key (ParentId)
+	Subgenres []Genre `pg:"fk:Parent"` // fk specifies prefix for foreign key (ParentId)
 }
 
 func (g Genre) String() string {
@@ -733,10 +733,12 @@ func (a Author) String() string {
 }
 
 type BookGenre struct {
-	tableName struct{} `sql:",alias:bg"` // custom table alias
+	tableName struct{} `sql:"alias:bg"` // custom table alias
 
 	BookId  int `sql:",pk"` // pk tag is used to mark field as primary key
+	Book    *Book
 	GenreId int `sql:",pk"`
+	Genre   *Genre
 
 	Genre_Rating int // belongs to and is copied to Genre model
 }
@@ -750,9 +752,9 @@ type Book struct {
 	Editor    *Author // has one relation
 	CreatedAt time.Time
 
-	Genres       []Genre       `pg:",many2many:book_genres" gorm:"many2many:book_genres;"` // many to many relation
+	Genres       []Genre       `pg:"many2many:book_genres"` // many to many relation
 	Translations []Translation // has many relation
-	Comments     []Comment     `pg:",polymorphic:Trackable"` // has many polymorphic relation
+	Comments     []Comment     `pg:"polymorphic:Trackable"` // has many polymorphic relation
 }
 
 func (b Book) String() string {
@@ -780,7 +782,7 @@ type Translation struct {
 
 	Id     int
 	BookId int
-	Book   *Book // belongs to relation
+	Book   *Book // has one relation
 	Lang   string
 
 	Comments []Comment `pg:",polymorphic:Trackable"` // has many polymorphic relation
@@ -805,6 +807,7 @@ func createTestSchema(db *pg.DB) error {
 	for _, table := range tables {
 		err := db.DropTable(table, &orm.DropTableOptions{
 			IfExists: true,
+			Cascade:  true,
 		})
 		if err != nil {
 			return err
@@ -1520,7 +1523,7 @@ var _ = Describe("ORM", func() {
 	})
 
 	It("supports Exec & Query", func() {
-		_, err := db.Model(&Book{}).Exec("DROP TABLE ?TableName")
+		_, err := db.Model(&Book{}).Exec("DROP TABLE ?TableName CASCADE")
 		Expect(err).NotTo(HaveOccurred())
 
 		var num int
