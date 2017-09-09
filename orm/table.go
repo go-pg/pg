@@ -256,7 +256,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 
 	if field, ok := t.FieldsMap[sqlTag.Name]; ok {
-		return field
+		if field.GoName == f.Name {
+			return field
+		}
 	}
 
 	field := Field{
@@ -382,7 +384,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			ff.SQLName = field.SQLName + "__" + ff.SQLName
 			ff.Column = types.Q(types.AppendField(nil, ff.SQLName, 1))
 			ff.Index = append(field.Index, ff.Index...)
-			t.FieldsMap[ff.SQLName] = ff
+			if _, ok := t.FieldsMap[ff.SQLName]; !ok {
+				t.FieldsMap[ff.SQLName] = ff
+			}
 		}
 
 		if t.tryHasOne(joinTable, &field, pgTag) ||

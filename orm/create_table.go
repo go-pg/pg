@@ -6,9 +6,10 @@ import (
 )
 
 type CreateTableOptions struct {
-	Temp        bool
-	IfNotExists bool
-	Varchar     int // replaces PostgreSQL data type `text` with `varchar(n)`
+	Temp          bool
+	IfNotExists   bool
+	Varchar       int  // replaces PostgreSQL data type `text` with `varchar(n)`
+	FKConstraints bool // whether to create foreign key constraints
 }
 
 func CreateTable(db DB, model interface{}, opt *CreateTableOptions) (Result, error) {
@@ -78,24 +79,44 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	b = appendPKConstraint(b, table.PKs)
 
+	if q.opt != nil && q.opt.FKConstraints {
+		for _, rel := range table.Relations {
+			b = q.appendFKConstraint(b, table, rel)
+		}
+	}
+
 	b = append(b, ")"...)
 
 	return b, nil
 }
 
-func appendPKConstraint(b []byte, primaryKeys []*Field) []byte {
-	if len(primaryKeys) == 0 {
+func appendPKConstraint(b []byte, pks []*Field) []byte {
+	if len(pks) == 0 {
 		return b
 	}
 
 	b = append(b, ", PRIMARY KEY ("...)
-	for i, pk := range primaryKeys {
-		b = append(b, pk.Column...)
-
-		if i != len(primaryKeys)-1 {
-			b = append(b, ", "...)
-		}
-	}
+	b = appendColumns(b, pks)
 	b = append(b, ")"...)
+	return b
+}
+
+func (q createTableQuery) appendFKConstraint(b []byte, table *Table, rel *Relation) []byte {
+	if rel.Type != HasOneRelation {
+		return b
+	}
+
+	b = append(b, ", FOREIGN KEY ("...)
+	b = appendColumns(b, rel.FKs)
+	b = append(b, ")"...)
+
+	b = append(b, " REFERENCES "...)
+	b = q.q.FormatQuery(b, string(rel.JoinTable.Name))
+	b = append(b, " ("...)
+	b = appendColumns(b, rel.JoinTable.PKs)
+	b = append(b, ")"...)
+
+	b = append(b, " ON DELETE CASCADE"...)
+
 	return b
 }
