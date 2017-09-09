@@ -2,11 +2,13 @@ package orm
 
 import (
 	"errors"
+	"strconv"
 )
 
 type CreateTableOptions struct {
 	Temp        bool
 	IfNotExists bool
+	Varchar     int // replaces PostgreSQL data type `text` with `varchar(n)`
 }
 
 func CreateTable(db DB, model interface{}, opt *CreateTableOptions) (Result, error) {
@@ -50,7 +52,14 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	for i, field := range table.Fields {
 		b = append(b, field.Column...)
 		b = append(b, " "...)
-		b = append(b, field.SQLType...)
+		if q.opt != nil && q.opt.Varchar > 0 &&
+			field.SQLType == "text" && !field.HasFlag(customTypeFlag) {
+			b = append(b, "varchar("...)
+			b = strconv.AppendInt(b, int64(q.opt.Varchar), 10)
+			b = append(b, ")"...)
+		} else {
+			b = append(b, field.SQLType...)
+		}
 		if field.HasFlag(NotNullFlag) {
 			b = append(b, " NOT NULL"...)
 		}

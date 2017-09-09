@@ -58,4 +58,13 @@ var _ = Describe("CreateTable", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_without_pk_models" ("string" text)`))
 	})
+
+	It("creates new table with Varchar=255", func() {
+		q := NewQuery(nil, &CreateTableWithoutPKModel{})
+
+		opt := &CreateTableOptions{Varchar: 255}
+		b, err := createTableQuery{q: q, opt: opt}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_without_pk_models" ("string" varchar(255))`))
+	})
 })
