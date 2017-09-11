@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -8,6 +9,8 @@ import (
 	"github.com/go-pg/pg/internal/pool"
 	"github.com/go-pg/pg/orm"
 )
+
+var errStmtClosed = errors.New("pg: statement is closed")
 
 // Stmt is a prepared statement. Stmt is safe for concurrent use by
 // multiple goroutines.

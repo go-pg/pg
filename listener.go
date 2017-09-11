@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"errors"
 	"sync"
 	"time"
 
@@ -8,6 +9,8 @@ import (
 	"github.com/go-pg/pg/internal/pool"
 	"github.com/go-pg/pg/types"
 )
+
+var errListenerClosed = errors.New("pg: listener is closed")
 
 // A notification received with LISTEN command.
 type Notification struct {
@@ -33,6 +36,10 @@ func (ln *Listener) conn(readTimeout time.Duration) (*pool.Conn, error) {
 	cn, err := ln._conn(readTimeout)
 	ln.mu.Unlock()
 	if err != nil {
+		if err == pool.ErrClosed {
+			_ = ln.Close()
+			return nil, errListenerClosed
+		}
 		return nil, err
 	}
 

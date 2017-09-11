@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"errors"
 	"io"
 	"time"
 
@@ -8,6 +9,8 @@ import (
 	"github.com/go-pg/pg/internal/pool"
 	"github.com/go-pg/pg/orm"
 )
+
+var errTxDone = errors.New("pg: transaction has already been committed or rolled back")
 
 // Tx is an in-progress database transaction.
 //
