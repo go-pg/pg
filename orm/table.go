@@ -278,7 +278,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.SetFlag(UniqueFlag)
 	}
 	if v, ok := sqlTag.Options["default"]; ok {
-		field.Default = v
+		v, ok = unquote(v)
+		if ok {
+			field.Default = types.Q(types.AppendString(nil, v, 1))
+		} else {
+			field.Default = types.Q(v)
+		}
 	}
 
 	if len(t.PKs) == 0 && (field.SQLName == "id" || field.SQLName == "uuid") {
@@ -419,6 +424,7 @@ func isColumn(typ reflect.Type) bool {
 func fieldSQLType(field *Field, sqlTag *tag) string {
 	if v, ok := sqlTag.Options["type"]; ok {
 		field.SetFlag(customTypeFlag)
+		v, _ := unquote(v)
 		return v
 	}
 

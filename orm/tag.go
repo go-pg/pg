@@ -32,7 +32,9 @@ func (p *tagParser) setTagOption(key, value string) {
 			return
 		}
 	}
-	p.tag.Options[key] = value
+	if key != "" {
+		p.tag.Options[key] = value
+	}
 }
 
 func (p *tagParser) parseKey() {
@@ -96,6 +98,8 @@ func (p *tagParser) parseQuotedValue() {
 	}
 
 	var b []byte
+	b = append(b, quote)
+
 	for p.Valid() {
 		bb, ok := p.ReadSep(quote)
 		if !ok {
@@ -110,13 +114,26 @@ func (p *tagParser) parseQuotedValue() {
 		}
 
 		b = append(b, bb...)
-		p.Skip(quote)
+		b = append(b, quote)
 
 		p.setTagOption(p.key, string(b))
 		p.parseKey()
 		return
 	}
+
 	if len(b) > 0 {
 		p.setTagOption(p.key, string(b))
 	}
+}
+
+func unquote(s string) (string, bool) {
+	const quote = '\''
+
+	if len(s) < 2 {
+		return s, false
+	}
+	if s[0] == quote && s[len(s)-1] == quote {
+		return s[1 : len(s)-1], true
+	}
+	return s, false
 }
