@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 
@@ -57,6 +58,8 @@ const (
 	copyDoneMsg        = 'c'
 )
 
+var errEmptyQuery = internal.Errorf("pg: query is empty")
+
 func startup(cn *pool.Conn, user, password, database string) error {
 	writeStartupMsg(cn.Wr, user, database)
 	if err := cn.FlushWriter(); err != nil {
@@ -102,6 +105,8 @@ func startup(cn *pool.Conn, user, password, database string) error {
 		}
 	}
 }
+
+var errSSLNotSupported = errors.New("pg: SSL is not enabled on the server")
 
 func enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
 	writeSSLMsg(cn.Wr)

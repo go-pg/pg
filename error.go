@@ -7,17 +7,8 @@ import (
 	"github.com/go-pg/pg/internal"
 )
 
-var (
-	ErrNoRows    = internal.ErrNoRows
-	ErrMultiRows = internal.ErrMultiRows
-
-	errSSLNotSupported = internal.Errorf("pg: SSL is not enabled on the server")
-
-	errEmptyQuery     = internal.Errorf("pg: query is empty")
-	errTxDone         = internal.Errorf("pg: transaction has already been committed or rolled back")
-	errStmtClosed     = internal.Errorf("pg: statement is closed")
-	errListenerClosed = internal.Errorf("pg: listener is closed")
-)
+var ErrNoRows = internal.ErrNoRows
+var ErrMultiRows = internal.ErrMultiRows
 
 type Error interface {
 	Field(byte) string

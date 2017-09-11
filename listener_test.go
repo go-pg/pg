@@ -27,8 +27,7 @@ var _ = Context("Listener", func() {
 	var _ = AfterEach(func() {
 		_ = ln.Close()
 
-		err := db.Close()
-		Expect(err).NotTo(HaveOccurred())
+		_ = db.Close()
 	})
 
 	It("reuses connection", func() {
@@ -77,7 +76,7 @@ var _ = Context("Listener", func() {
 		}
 	})
 
-	It("is aborted when DB is closed", func() {
+	It("is closed when DB is closed", func() {
 		wait := make(chan struct{}, 2)
 
 		go func() {
@@ -96,7 +95,7 @@ var _ = Context("Listener", func() {
 		select {
 		case <-wait:
 			// ok
-		case <-time.After(3 * time.Second):
+		case <-time.After(time.Second):
 			Fail("timeout")
 		}
 
@@ -107,14 +106,20 @@ var _ = Context("Listener", func() {
 			// ok
 		}
 
-		Expect(ln.Close()).To(BeNil())
+		Expect(db.Close()).To(BeNil())
 
 		select {
 		case <-wait:
 			// ok
 		case <-time.After(3 * time.Second):
-			Fail("timeout")
+			Fail("Listener is not closed")
 		}
+
+		_, _, err := ln.Receive()
+		Expect(err).To(MatchError("pg: listener is closed"))
+
+		err = ln.Close()
+		Expect(err).To(MatchError("pg: listener is closed"))
 	})
 
 	It("returns an error on timeout", func() {
