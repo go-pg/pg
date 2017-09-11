@@ -15,9 +15,8 @@ var tagTests = []struct {
 	{",hello", "", map[string]string{"hello": ""}},
 	{"hello:world", "", map[string]string{"hello": "world"}},
 	{"hello:world,foo:bar", "", map[string]string{"hello": "world", "foo": "bar"}},
-	{"hello:'world1,world2'", "", map[string]string{"hello": "world1,world2"}},
-	{`hello:\'world\'`, "", map[string]string{"hello": "'world'"}},
-	{`hello:\'world\', foo:bar`, "", map[string]string{"hello": "'world'", "foo": "bar"}},
+	{"hello:'world1,world2'", "", map[string]string{"hello": "'world1,world2'"}},
+	{`hello:'D\'Angelo', foo:bar`, "", map[string]string{"hello": "'D'Angelo'", "foo": "bar"}},
 }
 
 func TestTagParser(t *testing.T) {
@@ -29,8 +28,8 @@ func TestTagParser(t *testing.T) {
 
 		if len(tag.Options) != len(test.opts) {
 			t.Fatalf(
-				"got %d options, wanted %d (tag=%q)",
-				len(tag.Options), len(test.opts), test.tag,
+				"got %#v options, wanted %#v (tag=%q)",
+				tag.Options, test.opts, test.tag,
 			)
 		}
 
