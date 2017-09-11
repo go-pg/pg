@@ -2,6 +2,7 @@ package pg
 
 import (
 	"log"
+	"os"
 	"strconv"
 
 	"github.com/go-pg/pg/internal"
@@ -11,6 +12,10 @@ import (
 
 // Discard is used with Query and QueryOne to discard rows.
 var Discard orm.Discard
+
+func init() {
+	SetLogger(log.New(os.Stderr, "pg: ", log.LstdFlags|log.Lshortfile))
+}
 
 // Model returns new query for the optional model.
 func Model(model ...interface{}) *orm.Query {
