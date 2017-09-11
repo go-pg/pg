@@ -27,8 +27,9 @@ type Stats struct {
 	Hits     uint32 // number of times free connection was found in the pool
 	Timeouts uint32 // number of times a wait timeout occurred
 
-	TotalConns uint32 // the number of total connections in the pool
-	FreeConns  uint32 // the number of free connections in the pool
+	TotalConns uint32 // number of total connections in the pool
+	FreeConns  uint32 // number of free connections in the pool
+	StaleConns uint32 // number of stale connections removed from the pool
 }
 
 type Pooler interface {
@@ -371,10 +372,6 @@ func (p *ConnPool) reaper(frequency time.Duration) {
 			internal.Logf("ReapStaleConns failed: %s", err)
 			continue
 		}
-		s := p.Stats()
-		internal.Logf(
-			"reaper: removed %d stale conns (TotalConns=%d FreeConns=%d Requests=%d Hits=%d Timeouts=%d)",
-			n, s.TotalConns, s.FreeConns, s.Requests, s.Hits, s.Timeouts,
-		)
+		atomic.AddUint32(&p.stats.StaleConns, uint32(n))
 	}
 }

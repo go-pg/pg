@@ -16,10 +16,6 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func init() {
-	//pg.SetLogger(log.New(os.Stderr, "pg: ", log.LstdFlags))
-}
-
 func TestGinkgo(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "pg")

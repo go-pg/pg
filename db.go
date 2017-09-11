@@ -33,6 +33,14 @@ func (db *DB) Options() *Options {
 	return db.opt
 }
 
+type PoolStats pool.Stats
+
+// PoolStats returns connection pool stats.
+func (db *DB) PoolStats() *PoolStats {
+	stats := db.pool.Stats()
+	return (*PoolStats)(stats)
+}
+
 // WithTimeout returns a DB that uses d as the read/write timeout.
 func (db *DB) WithTimeout(d time.Duration) *DB {
 	newopt := *db.opt
@@ -137,13 +145,6 @@ func (db *DB) shouldRetry(err error) bool {
 // It is rare to Close a DB, as the DB handle is meant to be
 // long-lived and shared between many goroutines.
 func (db *DB) Close() error {
-	st := db.pool.Stats()
-	if st.TotalConns != st.FreeConns {
-		internal.Logf(
-			"connection leaking detected: total_conns=%d free_conns=%d",
-			st.TotalConns, st.FreeConns,
-		)
-	}
 	return db.pool.Close()
 }
 
