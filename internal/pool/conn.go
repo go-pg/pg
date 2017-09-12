@@ -15,11 +15,11 @@ var noDeadline = time.Time{}
 type Conn struct {
 	netConn net.Conn
 
-	buf     []byte // read buffer
-	Rd      *bufio.Reader
+	Reader  *bufio.Reader
+	readBuf []byte
 	Columns [][]byte
 
-	Wr *WriteBuffer
+	Writer *WriteBuffer
 
 	InitedAt time.Time
 	UsedAt   time.Time
@@ -32,9 +32,11 @@ type Conn struct {
 
 func NewConn(netConn net.Conn) *Conn {
 	cn := &Conn{
-		buf:    make([]byte, 0, 512),
-		Rd:     bufio.NewReader(netConn),
-		Wr:     NewWriteBuffer(),
+		Reader:  bufio.NewReader(netConn),
+		readBuf: make([]byte, 0, 512),
+
+		Writer: NewWriteBuffer(),
+
 		UsedAt: time.Now(),
 	}
 	cn.SetNetConn(netConn)
@@ -47,7 +49,7 @@ func (cn *Conn) RemoteAddr() net.Addr {
 
 func (cn *Conn) SetNetConn(netConn net.Conn) {
 	cn.netConn = netConn
-	cn.Rd.Reset(netConn)
+	cn.Reader.Reset(netConn)
 }
 
 func (cn *Conn) NetConn() net.Conn {
@@ -59,7 +61,7 @@ func (cn *Conn) NextId() string {
 	return strconv.FormatInt(cn._lastId, 10)
 }
 
-func (cn *Conn) SetReadWriteTimeout(rt, wt time.Duration) {
+func (cn *Conn) SetTimeout(rt, wt time.Duration) {
 	cn.UsedAt = time.Now()
 	if rt > 0 {
 		cn.netConn.SetReadDeadline(cn.UsedAt.Add(rt))
@@ -74,19 +76,19 @@ func (cn *Conn) SetReadWriteTimeout(rt, wt time.Duration) {
 }
 
 func (cn *Conn) ReadN(n int) ([]byte, error) {
-	if d := n - cap(cn.buf); d > 0 {
-		cn.buf = cn.buf[:cap(cn.buf)]
-		cn.buf = append(cn.buf, make([]byte, d)...)
+	if d := n - cap(cn.readBuf); d > 0 {
+		cn.readBuf = cn.readBuf[:cap(cn.readBuf)]
+		cn.readBuf = append(cn.readBuf, make([]byte, d)...)
 	} else {
-		cn.buf = cn.buf[:n]
+		cn.readBuf = cn.readBuf[:n]
 	}
-	_, err := io.ReadFull(cn.Rd, cn.buf)
-	return cn.buf, err
+	_, err := io.ReadFull(cn.Reader, cn.readBuf)
+	return cn.readBuf, err
 }
 
 func (cn *Conn) FlushWriter() error {
-	_, err := cn.netConn.Write(cn.Wr.Bytes)
-	cn.Wr.Reset()
+	_, err := cn.netConn.Write(cn.Writer.Bytes)
+	cn.Writer.Reset()
 	return err
 }
 
@@ -95,8 +97,8 @@ func (cn *Conn) Close() error {
 }
 
 func (cn *Conn) CheckHealth() error {
-	if cn.Rd.Buffered() != 0 {
-		b, _ := cn.Rd.Peek(cn.Rd.Buffered())
+	if cn.Reader.Buffered() != 0 {
+		b, _ := cn.Reader.Peek(cn.Reader.Buffered())
 		err := fmt.Errorf("connection has unread data:\n%s", hex.Dump(b))
 		return err
 	}

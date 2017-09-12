@@ -43,7 +43,7 @@ func (ln *Listener) conn(readTimeout time.Duration) (*pool.Conn, error) {
 		return nil, err
 	}
 
-	cn.SetReadWriteTimeout(readTimeout, ln.db.opt.WriteTimeout)
+	cn.SetTimeout(readTimeout, ln.db.opt.WriteTimeout)
 	return cn, nil
 }
 
@@ -157,7 +157,7 @@ func (ln *Listener) Listen(channels ...string) error {
 
 func (ln *Listener) listen(cn *pool.Conn, channels ...string) error {
 	for _, channel := range channels {
-		if err := writeQueryMsg(cn.Wr, ln.db, "LISTEN ?", pgChan(channel)); err != nil {
+		if err := writeQueryMsg(cn.Writer, ln.db, "LISTEN ?", pgChan(channel)); err != nil {
 			return err
 		}
 	}

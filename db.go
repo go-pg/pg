@@ -77,7 +77,7 @@ func (db *DB) conn() (*pool.Conn, error) {
 		return nil, err
 	}
 
-	cn.SetReadWriteTimeout(db.opt.ReadTimeout, db.opt.WriteTimeout)
+	cn.SetTimeout(db.opt.ReadTimeout, db.opt.WriteTimeout)
 
 	if cn.InitedAt.IsZero() {
 		cn.InitedAt = time.Now()
@@ -264,7 +264,7 @@ func (db *DB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (o
 }
 
 func (db *DB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
-	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
+	if err := writeQueryMsg(cn.Writer, db, query, params...); err != nil {
 		return nil, err
 	}
 
@@ -277,7 +277,7 @@ func (db *DB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...
 	}
 
 	for {
-		if err := writeCopyData(cn.Wr, r); err != nil {
+		if err := writeCopyData(cn.Writer, r); err != nil {
 			if err == io.EOF {
 				break
 			}
@@ -289,7 +289,7 @@ func (db *DB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...
 		}
 	}
 
-	writeCopyDone(cn.Wr)
+	writeCopyDone(cn.Writer)
 	if err := cn.FlushWriter(); err != nil {
 		return nil, err
 	}
@@ -315,7 +315,7 @@ func (db *DB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (orm
 }
 
 func (db *DB) copyTo(cn *pool.Conn, w io.Writer, query interface{}, params ...interface{}) (orm.Result, error) {
-	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
+	if err := writeQueryMsg(cn.Writer, db, query, params...); err != nil {
 		return nil, err
 	}
 
@@ -380,7 +380,7 @@ func (db *DB) cancelRequest(processId, secretKey int32) error {
 		return err
 	}
 
-	writeCancelRequestMsg(cn.Wr, processId, secretKey)
+	writeCancelRequestMsg(cn.Writer, processId, secretKey)
 	if err = cn.FlushWriter(); err != nil {
 		return err
 	}
@@ -392,7 +392,7 @@ func (db *DB) cancelRequest(processId, secretKey int32) error {
 func (db *DB) simpleQuery(
 	cn *pool.Conn, query interface{}, params ...interface{},
 ) (orm.Result, error) {
-	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
+	if err := writeQueryMsg(cn.Writer, db, query, params...); err != nil {
 		return nil, err
 	}
 
@@ -411,7 +411,7 @@ func (db *DB) simpleQuery(
 func (db *DB) simpleQueryData(
 	cn *pool.Conn, model, query interface{}, params ...interface{},
 ) (orm.Result, error) {
-	if err := writeQueryMsg(cn.Wr, db, query, params...); err != nil {
+	if err := writeQueryMsg(cn.Writer, db, query, params...); err != nil {
 		return nil, err
 	}
 

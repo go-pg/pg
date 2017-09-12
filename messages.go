@@ -61,7 +61,7 @@ const (
 var errEmptyQuery = internal.Errorf("pg: query is empty")
 
 func startup(cn *pool.Conn, user, password, database string) error {
-	writeStartupMsg(cn.Wr, user, database)
+	writeStartupMsg(cn.Writer, user, database)
 	if err := cn.FlushWriter(); err != nil {
 		return err
 	}
@@ -109,12 +109,12 @@ func startup(cn *pool.Conn, user, password, database string) error {
 var errSSLNotSupported = errors.New("pg: SSL is not enabled on the server")
 
 func enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
-	writeSSLMsg(cn.Wr)
+	writeSSLMsg(cn.Writer)
 	if err := cn.FlushWriter(); err != nil {
 		return err
 	}
 
-	c, err := cn.Rd.ReadByte()
+	c, err := cn.Reader.ReadByte()
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func authenticate(cn *pool.Conn, user, password string) error {
 	case 0:
 		return nil
 	case 3:
-		writePasswordMsg(cn.Wr, password)
+		writePasswordMsg(cn.Writer, password)
 		if err := cn.FlushWriter(); err != nil {
 			return err
 		}
@@ -170,7 +170,7 @@ func authenticate(cn *pool.Conn, user, password string) error {
 		}
 
 		secret := "md5" + md5s(md5s(password+user)+string(b))
-		writePasswordMsg(cn.Wr, secret)
+		writePasswordMsg(cn.Writer, secret)
 		if err := cn.FlushWriter(); err != nil {
 			return err
 		}
@@ -1046,7 +1046,7 @@ func readInt32(cn *pool.Conn) (int32, error) {
 }
 
 func readString(cn *pool.Conn) (string, error) {
-	s, err := cn.Rd.ReadString(0)
+	s, err := cn.Reader.ReadString(0)
 	if err != nil {
 		return "", err
 	}
@@ -1055,7 +1055,7 @@ func readString(cn *pool.Conn) (string, error) {
 
 func readBytes(cn *pool.Conn, b []byte) ([]byte, error) {
 	for {
-		line, err := cn.Rd.ReadSlice(0)
+		line, err := cn.Reader.ReadSlice(0)
 		if err != nil && err != bufio.ErrBufferFull {
 			return nil, err
 		}
@@ -1072,7 +1072,7 @@ func readError(cn *pool.Conn) (error, error) {
 		'a': cn.RemoteAddr().String(),
 	}
 	for {
-		c, err := cn.Rd.ReadByte()
+		c, err := cn.Reader.ReadByte()
 		if err != nil {
 			return nil, err
 		}
@@ -1090,7 +1090,7 @@ func readError(cn *pool.Conn) (error, error) {
 }
 
 func readMessageType(cn *pool.Conn) (byte, int, error) {
-	c, err := cn.Rd.ReadByte()
+	c, err := cn.Reader.ReadByte()
 	if err != nil {
 		return 0, 0, err
 	}

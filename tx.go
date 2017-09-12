@@ -99,7 +99,7 @@ func (tx *Tx) conn() (*pool.Conn, error) {
 		}
 	}
 
-	cn.SetReadWriteTimeout(tx.db.opt.ReadTimeout, tx.db.opt.WriteTimeout)
+	cn.SetTimeout(tx.db.opt.ReadTimeout, tx.db.opt.WriteTimeout)
 	return cn, nil
 }
 
