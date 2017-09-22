@@ -37,9 +37,9 @@ var _ = Context("Listener", func() {
 			Expect(err.Error()).To(MatchRegexp(".+ i/o timeout"))
 		}
 
-		st := db.Pool().Stats()
-		Expect(st.Requests).To(Equal(uint32(0)))
+		st := db.PoolStats()
 		Expect(st.Hits).To(Equal(uint32(0)))
+		Expect(st.Misses).To(Equal(uint32(0)))
 		Expect(st.Timeouts).To(Equal(uint32(0)))
 		Expect(st.TotalConns).To(Equal(uint32(1)))
 		Expect(st.FreeConns).To(Equal(uint32(0)))

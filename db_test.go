@@ -380,9 +380,9 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.RowsAffected()).To(Equal(n))
 
-		st := db.Pool().Stats()
-		Expect(st.Requests).To(Equal(uint32(5)))
+		st := db.PoolStats()
 		Expect(st.Hits).To(Equal(uint32(4)))
+		Expect(st.Misses).To(Equal(uint32(1)))
 		Expect(st.Timeouts).To(Equal(uint32(0)))
 		Expect(st.TotalConns).To(Equal(uint32(1)))
 		Expect(st.FreeConns).To(Equal(uint32(1)))
@@ -400,8 +400,8 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 		Expect(res).To(BeNil())
 
 		st := db.Pool().Stats()
-		Expect(st.Requests).To(Equal(uint32(4)))
 		Expect(st.Hits).To(Equal(uint32(3)))
+		Expect(st.Misses).To(Equal(uint32(1)))
 		Expect(st.Timeouts).To(Equal(uint32(0)))
 		Expect(st.TotalConns).To(Equal(uint32(1)))
 		Expect(st.FreeConns).To(Equal(uint32(1)))
