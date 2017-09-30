@@ -20,7 +20,7 @@ type Field struct {
 
 	GoName  string  // struct field name, e.g. Id
 	SQLName string  // SQL name, .e.g. id
-	Column  types.Q // escaped SQL name
+	Column  types.Q // escaped SQL name, e.g. "id"
 	SQLType string
 	Index   []int
 	Default types.Q

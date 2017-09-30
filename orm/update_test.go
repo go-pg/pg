@@ -11,6 +11,22 @@ type UpdateTest struct {
 }
 
 var _ = Describe("Update", func() {
+	It("updates model", func() {
+		q := NewQuery(nil, &UpdateTest{})
+
+		b, err := updateQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = NULL WHERE "update_test"."id" = NULL`))
+	})
+
+	It("omits zero", func() {
+		q := NewQuery(nil, &UpdateTest{})
+
+		b, err := updateQuery{q: q, omitZero: true}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET  WHERE "update_test"."id" = NULL`))
+	})
+
 	It("bulk updates", func() {
 		q := NewQuery(nil, &UpdateTest{}).
 			Model(&UpdateTest{
@@ -20,7 +36,7 @@ var _ = Describe("Update", func() {
 				Id: 2,
 			})
 
-		b, err := updateQuery{q}.AppendQuery(nil)
+		b, err := updateQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (1, 'hello'::mytype), (2, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
 	})
@@ -32,7 +48,7 @@ var _ = Describe("Update", func() {
 			Table("wrapper").
 			Where("update_test.id = wrapper.id")
 
-		b, err := updateQuery{q}.AppendQuery(nil)
+		b, err := updateQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "update_test"."id", "update_test"."value" FROM "update_tests" AS "update_test") UPDATE "update_tests" AS "update_test" SET "value" = NULL FROM "wrapper" WHERE (update_test.id = wrapper.id)`))
 	})
