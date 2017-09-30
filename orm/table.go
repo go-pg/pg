@@ -32,10 +32,10 @@ type Table struct {
 	Alias     types.Q
 	ModelName string
 
-	Fields    []*Field
-	PKs       []*Field
-	Columns   []*Field
-	FieldsMap map[string]*Field
+	Fields     []*Field // PKs + DataFields
+	PKs        []*Field
+	DataFields []*Field
+	FieldsMap  map[string]*Field
 
 	Methods   map[string]*Method
 	Relations map[string]*Relation
@@ -71,7 +71,7 @@ func (t *Table) AddField(field *Field) {
 	if field.HasFlag(PrimaryKeyFlag) {
 		t.PKs = append(t.PKs, field)
 	} else {
-		t.Columns = append(t.Columns, field)
+		t.DataFields = append(t.DataFields, field)
 	}
 	t.FieldsMap[field.SQLName] = field
 }

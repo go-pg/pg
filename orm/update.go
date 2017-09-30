@@ -107,7 +107,7 @@ func (q updateQuery) appendSetStruct(b []byte, strct reflect.Value) ([]byte, err
 	}
 
 	if len(fields) == 0 {
-		fields = q.q.model.Table().Columns
+		fields = q.q.model.Table().DataFields
 	}
 
 	for i, f := range fields {
@@ -129,7 +129,7 @@ func (q updateQuery) appendSetSlice(b []byte, slice reflect.Value) ([]byte, erro
 	}
 
 	if len(fields) == 0 {
-		fields = q.q.model.Table().Columns
+		fields = q.q.model.Table().DataFields
 	}
 
 	for i, f := range fields {
