@@ -735,16 +735,41 @@ func ExampleDB_Model_manyToMany() {
 func ExampleDB_Update() {
 	db := modelDB()
 
-	err := db.Update(&Book{
-		Id:    1,
-		Title: "updated book 1",
-	})
+	book := &Book{Id: 1}
+	err := db.Select(book)
 	if err != nil {
 		panic(err)
 	}
 
-	var book Book
-	err = db.Model(&book).Where("id = ?", 1).Select()
+	book.Title = "updated book 1"
+	err = db.Update(book)
+	if err != nil {
+		panic(err)
+	}
+
+	err = db.Select(book)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(book)
+	// Output: Book<Id=1 Title="updated book 1">
+}
+
+func ExampleDB_Update_notNull() {
+	db := modelDB()
+
+	book := &Book{
+		Id:    1,
+		Title: "updated book 1",
+	}
+	_, err := db.Model(book).UpdateNotNull()
+	if err != nil {
+		panic(err)
+	}
+
+	book = new(Book)
+	err = db.Model(book).Where("id = ?", 1).Select()
 	if err != nil {
 		panic(err)
 	}

@@ -642,12 +642,21 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, err error)
 }
 
 // Update updates the model.
-func (q *Query) Update(values ...interface{}) (Result, error) {
+func (q *Query) Update(scan ...interface{}) (Result, error) {
+	return q.update(scan, false)
+}
+
+// Update updates the model omitting null columns.
+func (q *Query) UpdateNotNull(scan ...interface{}) (Result, error) {
+	return q.update(scan, true)
+}
+
+func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 	if q.stickyErr != nil {
 		return nil, q.stickyErr
 	}
 
-	model, err := q.newModel(values...)
+	model, err := q.newModel(scan...)
 	if err != nil {
 		return nil, err
 	}
@@ -658,7 +667,7 @@ func (q *Query) Update(values ...interface{}) (Result, error) {
 		}
 	}
 
-	res, err := q.db.Query(model, updateQuery{q}, q.model)
+	res, err := q.db.Query(model, updateQuery{q: q, omitZero: omitZero}, q.model)
 	if err != nil {
 		return nil, err
 	}
