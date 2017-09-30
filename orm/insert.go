@@ -52,36 +52,41 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 	} else {
 		b = q.q.appendFirstTable(b)
 	}
-	b = append(b, " ("...)
-	if q.q.hasModel() {
-		b = appendColumns(b, table.Fields)
-	} else if q.q.columns != nil {
-		b = q.q.appendColumns(b)
-	}
-	b = append(b, ')')
 
-	if q.q.hasModel() {
-		b = append(b, " VALUES ("...)
+	if q.q.hasOtherTables() && q.q.columns != nil {
+		b = append(b, " ("...)
+		b = q.q.appendColumns(b)
+		b = append(b, ")"...)
+		b = append(b, " SELECT * FROM "...)
+		b = q.q.appendOtherTables(b)
+	} else {
+		fields, err := q.q.getFields()
+		if err != nil {
+			return nil, err
+		}
+
+		if len(fields) == 0 {
+			fields = table.Fields
+		}
+
+		b = append(b, " ("...)
+		b = appendColumns(b, fields)
+		b = append(b, ") VALUES ("...)
 		if value.Kind() == reflect.Struct {
-			b = q.appendValues(b, table.Fields, value)
+			b = q.appendValues(b, fields, value)
 		} else {
 			for i := 0; i < value.Len(); i++ {
 				el := value.Index(i)
 				if el.Kind() == reflect.Interface {
 					el = el.Elem()
 				}
-				b = q.appendValues(b, table.Fields, reflect.Indirect(el))
+				b = q.appendValues(b, fields, reflect.Indirect(el))
 				if i != value.Len()-1 {
 					b = append(b, "), ("...)
 				}
 			}
 		}
-		b = append(b, ')')
-	}
-
-	if q.q.hasOtherTables() {
-		b = append(b, " SELECT * FROM "...)
-		b = q.q.appendOtherTables(b)
+		b = append(b, ")"...)
 	}
 
 	if q.q.onConflict != nil {

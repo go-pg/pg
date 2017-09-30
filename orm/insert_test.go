@@ -43,6 +43,18 @@ type InsertQTest struct {
 }
 
 var _ = Describe("Insert", func() {
+	It("supports Column", func() {
+		model := &InsertTest{
+			Id:    1,
+			Value: "hello",
+		}
+		q := NewQuery(nil, model).Column("id")
+
+		b, err := insertQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" ("id") VALUES (1)`))
+	})
+
 	It("multi inserts", func() {
 		q := NewQuery(nil, &InsertTest{
 			Id:    1,
