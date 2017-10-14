@@ -61,8 +61,10 @@ type Options struct {
 type ConnPool struct {
 	opt *Options
 
-	dialErrorsNum  uint32 // atomic
-	_lastDialError atomic.Value
+	dialErrorsNum uint32 // atomic
+
+	lastDialErrorMu sync.RWMutex
+	lastDialError   error
 
 	queue chan struct{}
 
@@ -101,7 +103,7 @@ func (p *ConnPool) NewConn() (*Conn, error) {
 	}
 
 	if atomic.LoadUint32(&p.dialErrorsNum) >= uint32(p.opt.PoolSize) {
-		return nil, p.lastDialError()
+		return nil, p.getLastDialError()
 	}
 
 	netConn, err := p.opt.Dialer()
@@ -142,11 +144,16 @@ func (p *ConnPool) tryDial() {
 }
 
 func (p *ConnPool) setLastDialError(err error) {
-	p._lastDialError.Store(err)
+	p.lastDialErrorMu.Lock()
+	p.lastDialError = err
+	p.lastDialErrorMu.Unlock()
 }
 
-func (p *ConnPool) lastDialError() error {
-	return p._lastDialError.Load().(error)
+func (p *ConnPool) getLastDialError() error {
+	p.lastDialErrorMu.RLock()
+	err := p.lastDialError
+	p.lastDialErrorMu.RUnlock()
+	return err
 }
 
 func (p *ConnPool) isStaleConn(cn *Conn) bool {
