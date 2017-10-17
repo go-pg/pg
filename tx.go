@@ -136,7 +136,7 @@ func (tx *Tx) Exec(query interface{}, params ...interface{}) (orm.Result, error)
 	start := time.Now()
 	res, err := tx.db.simpleQuery(cn, query, params...)
 	tx.freeConn(cn, err)
-	tx.db.queryProcessed(tx, start, query, params, res, err)
+	tx.db.queryProcessed(tx, start, query, params, 0, res, err)
 
 	return res, err
 }
@@ -164,7 +164,7 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 	start := time.Now()
 	res, err := tx.db.simpleQueryData(cn, model, query, params...)
 	tx.freeConn(cn, err)
-	tx.db.queryProcessed(tx, start, query, params, res, err)
+	tx.db.queryProcessed(tx, start, query, params, 0, res, err)
 
 	if err != nil {
 		return nil, err
