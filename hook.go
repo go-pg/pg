@@ -25,11 +25,12 @@ type QueryProcessedEvent struct {
 	File      string
 	Line      int
 
-	DB     orm.DB
-	Query  interface{}
-	Params []interface{}
-	Result orm.Result
-	Error  error
+	DB      orm.DB
+	Query   interface{}
+	Params  []interface{}
+	Attempt int
+	Result  orm.Result
+	Error   error
 }
 
 func (ev *QueryProcessedEvent) UnformattedQuery() (string, error) {
@@ -74,6 +75,7 @@ func (db *DB) queryProcessed(
 	start time.Time,
 	query interface{},
 	params []interface{},
+	attempt int,
 	res orm.Result,
 	err error,
 ) {
@@ -88,11 +90,12 @@ func (db *DB) queryProcessed(
 		File:      file,
 		Line:      line,
 
-		DB:     ormDB,
-		Query:  query,
-		Params: params,
-		Result: res,
-		Error:  err,
+		DB:      ormDB,
+		Query:   query,
+		Params:  params,
+		Attempt: attempt,
+		Result:  res,
+		Error:   err,
 	}
 	for _, hook := range db.queryProcessedHooks {
 		hook(event)
