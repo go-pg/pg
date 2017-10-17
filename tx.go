@@ -36,13 +36,11 @@ func (db *DB) Begin() (*Tx, error) {
 		db: db,
 	}
 
-	if !db.opt.DisableTransaction {
-		cn, err := db.conn()
-		if err != nil {
-			return nil, err
-		}
-		tx.cn = cn
+	cn, err := db.conn()
+	if err != nil {
+		return nil, err
 	}
+	tx.cn = cn
 
 	if err := tx.begin(); err != nil {
 		return nil, err
@@ -85,29 +83,15 @@ func (tx *Tx) RunInTransaction(fn func(*Tx) error) error {
 }
 
 func (tx *Tx) conn() (*pool.Conn, error) {
-	var cn *pool.Conn
-	if tx.db.opt.DisableTransaction {
-		var err error
-		cn, err = tx.db.conn()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		cn = tx.cn
-		if cn == nil {
-			return nil, errTxDone
-		}
+	if tx.cn == nil {
+		return nil, errTxDone
 	}
 
-	cn.SetTimeout(tx.db.opt.ReadTimeout, tx.db.opt.WriteTimeout)
-	return cn, nil
+	tx.cn.SetTimeout(tx.db.opt.ReadTimeout, tx.db.opt.WriteTimeout)
+	return tx.cn, nil
 }
 
-func (tx *Tx) freeConn(cn *pool.Conn, err error) {
-	if tx.db.opt.DisableTransaction {
-		_ = tx.db.freeConn(cn, err)
-	}
-}
+func (tx *Tx) freeConn(cn *pool.Conn, err error) {}
 
 // Stmt returns a transaction-specific prepared statement from an existing statement.
 func (tx *Tx) Stmt(stmt *Stmt) *Stmt {
@@ -279,10 +263,6 @@ func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byt
 }
 
 func (tx *Tx) begin() error {
-	if tx.db.opt.DisableTransaction {
-		return nil
-	}
-
 	_, err := tx.Exec("BEGIN")
 	if err != nil {
 		tx.close(err)
@@ -292,10 +272,6 @@ func (tx *Tx) begin() error {
 
 // Commit commits the transaction.
 func (tx *Tx) Commit() error {
-	if tx.db.opt.DisableTransaction {
-		return nil
-	}
-
 	_, err := tx.Exec("COMMIT")
 	tx.close(err)
 	return err
@@ -303,10 +279,6 @@ func (tx *Tx) Commit() error {
 
 // Rollback aborts the transaction.
 func (tx *Tx) Rollback() error {
-	if tx.db.opt.DisableTransaction {
-		return nil
-	}
-
 	_, err := tx.Exec("ROLLBACK")
 	tx.close(err)
 	return err

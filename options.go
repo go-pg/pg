@@ -75,12 +75,6 @@ type Options struct {
 	// Frequency of idle checks.
 	// Default is 1 minute.
 	IdleCheckFrequency time.Duration
-
-	// When true Tx does not issue BEGIN, COMMIT, or ROLLBACK.
-	// Also underlying database connection is immediately returned to the pool.
-	// This is primarily useful for running your database tests in one big
-	// transaction, because PostgreSQL does not support nested transactions.
-	DisableTransaction bool
 }
 
 func (opt *Options) init() {
