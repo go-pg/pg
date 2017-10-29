@@ -1526,4 +1526,18 @@ var _ = Describe("ORM", func() {
 		_, err = db.Model(&Book{}).QueryOne(pg.Scan(&num), "SELECT 1 FROM ?TableName")
 		Expect(err).To(MatchError(`ERROR #42P01 relation "books" does not exist (addr="127.0.0.1:5432")`))
 	})
+
+	It("does not create zero model for null relation", func() {
+		newBook := new(Book)
+		err := db.Insert(newBook)
+		Expect(err).NotTo(HaveOccurred())
+
+		book := new(Book)
+		err = db.Model(book).
+			Column("Editor").
+			Where("book.id = ?", newBook.Id).
+			Select()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(book.Editor).To(BeNil())
+	})
 })

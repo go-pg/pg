@@ -192,10 +192,20 @@ func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) erro
 	if ok {
 		return err
 	}
-	return fmt.Errorf("pg: can't find column=%s in model=%s", colName, m.table.Type.Name())
+	return fmt.Errorf("pg: can't find column=%s in model=%s",
+		colName, m.table.Type.Name())
 }
 
-func (m *structTableModel) scanColumn(colIdx int, colName string, b []byte) (bool, error) {
+func (m *structTableModel) scanColumn(
+	colIdx int, colName string, b []byte,
+) (bool, error) {
+	// Don't init nil struct when value is NULL.
+	if b == nil &&
+		!m.structInited &&
+		m.strct.Kind() == reflect.Ptr &&
+		m.strct.IsNil() {
+		return true, nil
+	}
 	m.initStruct()
 
 	joinName, fieldName := splitColumn(colName)
