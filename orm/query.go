@@ -422,7 +422,10 @@ func (q *Query) countSelectQuery(column string) selectQuery {
 	}
 }
 
-// First selects the first row.
+// First sorts rows by primary key and selects the first row.
+// It is a shortcut for:
+//
+//    q.OrderExpr("id ASC").Limit(1)
 func (q *Query) First() error {
 	err := q.model.Table().checkPKs()
 	if err != nil {
@@ -433,7 +436,10 @@ func (q *Query) First() error {
 	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select()
 }
 
-// Last selects the last row.
+// Last sorts rows by primary key and selects the last row.
+// It is a shortcut for:
+//
+//    q.OrderExpr("id DESC").Limit(1)
 func (q *Query) Last() error {
 	err := q.model.Table().checkPKs()
 	if err != nil {
