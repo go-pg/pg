@@ -111,18 +111,16 @@ func (m *sliceTableModel) nextElem() reflect.Value {
 				elem.Set(reflect.New(elem.Type().Elem()))
 			}
 			return elem.Elem()
-		} else {
-			return elem
 		}
+		return elem
 	}
 
 	if m.sliceOfPtr {
 		elem := reflect.New(m.table.Type)
 		m.slice.Set(reflect.Append(m.slice, elem))
 		return elem.Elem()
-
-	} else {
-		m.slice.Set(reflect.Append(m.slice, m.table.zeroStruct))
-		return m.slice.Index(m.slice.Len() - 1)
 	}
+
+	m.slice.Set(reflect.Append(m.slice, m.table.zeroStruct))
+	return m.slice.Index(m.slice.Len() - 1)
 }
