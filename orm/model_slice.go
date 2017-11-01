@@ -8,8 +8,9 @@ import (
 
 type sliceModel struct {
 	hookStubs
-	slice reflect.Value
-	scan  func(reflect.Value, []byte) error
+	slice    reflect.Value
+	nextElem func() reflect.Value
+	scan     func(reflect.Value, []byte) error
 }
 
 var _ Model = (*sliceModel)(nil)
@@ -30,6 +31,9 @@ func (sliceModel) AddModel(_ ColumnScanner) error {
 }
 
 func (m *sliceModel) ScanColumn(colIdx int, _ string, b []byte) error {
-	v := internal.SliceNextElem(m.slice)
+	if m.nextElem == nil {
+		m.nextElem = internal.MakeSliceNextElemFunc(m.slice)
+	}
+	v := m.nextElem()
 	return m.scan(v, b)
 }

@@ -38,12 +38,13 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 			v.Set(reflect.MakeSlice(v.Type(), 0, 0))
 		}
 		p := parser.NewArrayParser(b)
+		next := internal.MakeSliceNextElemFunc(v)
 		for p.Valid() {
 			elem, err := p.NextElem()
 			if err != nil {
 				return err
 			}
-			elemValue := internal.SliceNextElem(v)
+			elemValue := next()
 			if err := scanElem(elemValue, elem); err != nil {
 				return err
 			}
