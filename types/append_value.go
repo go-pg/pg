@@ -80,6 +80,10 @@ func appender(typ reflect.Type, pgArray bool) AppenderFunc {
 		if pgArray {
 			return ArrayAppender(typ)
 		}
+	case reflect.Array:
+		if typ.Elem().Kind() == reflect.Uint8 {
+			return appendArrayBytesValue
+		}
 	}
 	return valueAppenders[kind]
 }
@@ -128,6 +132,10 @@ func appendFloatValue(b []byte, v reflect.Value, _ int) []byte {
 
 func appendBytesValue(b []byte, v reflect.Value, quote int) []byte {
 	return appendBytes(b, v.Bytes(), quote)
+}
+
+func appendArrayBytesValue(b []byte, v reflect.Value, quote int) []byte {
+	return appendBytes(b, v.Slice(0, v.Len()).Bytes(), quote)
 }
 
 func appendStringValue(b []byte, v reflect.Value, quote int) []byte {
