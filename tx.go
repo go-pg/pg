@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"context"
 	"errors"
 	"io"
 	"time"
@@ -298,4 +299,14 @@ func (tx *Tx) close(lastErr error) error {
 	tx.cn = nil
 
 	return err
+}
+
+func (tx *Tx) Context() context.Context {
+	return tx.db.Context()
+}
+
+func (tx *Tx) WithContext(ctx context.Context) *Tx {
+	cp := *tx
+	cp.db = cp.db.WithContext(ctx)
+	return &cp
 }
