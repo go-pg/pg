@@ -919,7 +919,7 @@ func ExampleDB_Delete() {
 func ExampleDB_Delete_multipleRows() {
 	db := modelDB()
 
-	ids := pg.In([]int{1, 2, 3})
+	ids := pg.In(1, 2, 3)
 	res, err := db.Model(&Book{}).Where("id IN (?)", ids).Delete()
 	if err != nil {
 		panic(err)
