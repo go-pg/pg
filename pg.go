@@ -42,9 +42,9 @@ func F(field string) types.ValueAppender {
 // In accepts a slice and returns a wrapper that can be used with PostgreSQL
 // IN operator:
 //
-//    Where("id IN (?)", pg.In([]int{1, 2, 3}))
-func In(slice interface{}) types.ValueAppender {
-	return types.In(slice)
+//    Where("id IN (?)", pg.In(1, 2, 3))
+func In(values ...interface{}) types.ValueAppender {
+	return types.In(values...)
 }
 
 // Array accepts a slice and returns a wrapper for working with PostgreSQL

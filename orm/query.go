@@ -299,7 +299,7 @@ func (q *Query) whereGroup(conj string, fn func(*Query) (*Query, error)) *Query 
 //
 //    WhereIn("id IN (?)", 1, 2, 3)
 func (q *Query) WhereIn(where string, params ...interface{}) *Query {
-	return q.Where(where, types.In(params))
+	return q.Where(where, types.In(params...))
 }
 
 func (q *Query) addWhere(f sepFormatAppender) {
