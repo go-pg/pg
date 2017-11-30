@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/go-pg/pg/internal"
@@ -13,7 +14,8 @@ import (
 
 var errTxDone = errors.New("pg: transaction has already been committed or rolled back")
 
-// Tx is an in-progress database transaction.
+// Tx is an in-progress database transaction. It is safe for concurrent use
+// by multiple goroutines.
 //
 // A transaction must end with a call to Commit or Rollback.
 //
@@ -24,8 +26,9 @@ var errTxDone = errors.New("pg: transaction has already been committed or rolled
 // Prepare or Stmt methods are closed by the call to Commit or Rollback.
 type Tx struct {
 	db *DB
-	cn *pool.Conn
 
+	mu    sync.Mutex
+	cn    *pool.Conn
 	stmts []*Stmt
 }
 
@@ -94,7 +97,8 @@ func (tx *Tx) conn() (*pool.Conn, error) {
 
 func (tx *Tx) freeConn(cn *pool.Conn, err error) {}
 
-// Stmt returns a transaction-specific prepared statement from an existing statement.
+// Stmt returns a transaction-specific prepared statement
+// from an existing statement.
 func (tx *Tx) Stmt(stmt *Stmt) *Stmt {
 	stmt, err := tx.Prepare(stmt.q)
 	if err != nil {
@@ -110,6 +114,9 @@ func (tx *Tx) Stmt(stmt *Stmt) *Stmt {
 //
 // To use an existing prepared statement on this transaction, see Tx.Stmt.
 func (tx *Tx) Prepare(q string) (*Stmt, error) {
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err
@@ -129,6 +136,12 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 
 // Exec is an alias for DB.Exec.
 func (tx *Tx) Exec(query interface{}, params ...interface{}) (orm.Result, error) {
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+	return tx.exec(query, params...)
+}
+
+func (tx *Tx) exec(query interface{}, params ...interface{}) (orm.Result, error) {
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err
@@ -157,6 +170,9 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (orm.Result, err
 
 // Query is an alias for DB.Query.
 func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (orm.Result, error) {
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err
@@ -237,6 +253,9 @@ func (tx *Tx) DropTable(model interface{}, opt *orm.DropTableOptions) error {
 
 // CopyFrom is an alias for DB.CopyFrom.
 func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err
@@ -249,6 +268,9 @@ func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (o
 
 // CopyTo is an alias for DB.CopyTo.
 func (tx *Tx) CopyTo(w io.Writer, query interface{}, params ...interface{}) (orm.Result, error) {
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err
@@ -273,14 +295,20 @@ func (tx *Tx) begin() error {
 
 // Commit commits the transaction.
 func (tx *Tx) Commit() error {
-	_, err := tx.Exec("COMMIT")
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+
+	_, err := tx.exec("COMMIT")
 	tx.close(err)
 	return err
 }
 
 // Rollback aborts the transaction.
 func (tx *Tx) Rollback() error {
-	_, err := tx.Exec("ROLLBACK")
+	tx.mu.Lock()
+	defer tx.mu.Unlock()
+
+	_, err := tx.exec("ROLLBACK")
 	tx.close(err)
 	return err
 }
@@ -303,10 +331,4 @@ func (tx *Tx) close(lastErr error) error {
 
 func (tx *Tx) Context() context.Context {
 	return tx.db.Context()
-}
-
-func (tx *Tx) WithContext(ctx context.Context) *Tx {
-	cp := *tx
-	cp.db = cp.db.WithContext(ctx)
-	return &cp
 }
