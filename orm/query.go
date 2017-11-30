@@ -844,14 +844,6 @@ func (q *Query) hasOtherTables() bool {
 	return len(q.tables) > 1
 }
 
-func (q *Query) modelHasData() bool {
-	if !q.hasModel() {
-		return false
-	}
-	v := q.model.Value()
-	return v.Kind() == reflect.Slice && v.Len() > 0
-}
-
 func (q *Query) appendOtherTables(b []byte) []byte {
 	tables := q.tables
 	if !q.hasModel() {

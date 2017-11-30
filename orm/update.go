@@ -55,7 +55,7 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	if q.q.hasOtherTables() || q.q.modelHasData() {
+	if q.q.hasOtherTables() || q.modelHasData() {
 		b = append(b, " FROM "...)
 		b = q.q.appendOtherTables(b)
 		b, err = q.appendModelData(b)
@@ -74,6 +74,14 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	return b, nil
+}
+
+func (q *updateQuery) modelHasData() bool {
+	if !q.q.hasModel() {
+		return false
+	}
+	v := q.q.model.Value()
+	return v.Kind() == reflect.Slice
 }
 
 func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
@@ -159,7 +167,7 @@ func (q updateQuery) appendModelData(b []byte) ([]byte, error) {
 	}
 
 	v := q.q.model.Value()
-	if v.Kind() != reflect.Slice || v.Len() == 0 {
+	if v.Kind() != reflect.Slice {
 		return b, nil
 	}
 
