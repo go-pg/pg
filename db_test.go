@@ -747,6 +747,7 @@ type Book struct {
 	EditorID  int
 	Editor    *Author // has one relation
 	CreatedAt time.Time
+	UpdatedAt time.Time
 
 	Genres       []Genre       `pg:"many2many:book_genres"` // many to many relation
 	Translations []Translation // has many relation

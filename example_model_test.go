@@ -833,19 +833,21 @@ func ExampleDB_Update_bulkUpdate() {
 	db := modelDB()
 
 	book1 := &Book{
-		Id:    1,
-		Title: "updated book 1",
+		Id:        1,
+		Title:     "updated book 1",
+		UpdatedAt: time.Now(),
 	}
 	book2 := &Book{
-		Id:    2,
-		Title: "updated book 2",
+		Id:        2,
+		Title:     "updated book 2",
+		UpdatedAt: time.Now(),
 	}
 
 	// UPDATE "books" AS "book"
 	// SET "title" = _data."title"
 	// FROM (VALUES ('updated book 1', 1), ('updated book 2', 2)) AS _data("title", "id")
 	// WHERE "book"."id" = _data."id"
-	_, err := db.Model(book1, book2).Column("title").Update()
+	_, err := db.Model(book1, book2).Column("title", "updated_at").Update()
 	if err != nil {
 		panic(err)
 	}
@@ -864,18 +866,20 @@ func ExampleDB_Update_bulkUpdateSlice() {
 	db := modelDB()
 
 	books := []Book{{
-		Id:    1,
-		Title: "updated book 1",
+		Id:        1,
+		Title:     "updated book 1",
+		UpdatedAt: time.Now(),
 	}, {
-		Id:    2,
-		Title: "updated book 2",
+		Id:        2,
+		Title:     "updated book 2",
+		UpdatedAt: time.Now(),
 	}}
 
 	// UPDATE "books" AS "book"
 	// SET "title" = _data."title"
 	// FROM (VALUES ('updated book 1', 1), ('updated book 2', 2)) AS _data("title", "id")
 	// WHERE "book"."id" = _data."id"
-	_, err := db.Model(&books).Column("title").Update()
+	_, err := db.Model(&books).Column("title", "updated_at").Update()
 	if err != nil {
 		panic(err)
 	}

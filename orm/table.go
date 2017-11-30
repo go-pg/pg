@@ -422,10 +422,10 @@ func isColumn(typ reflect.Type) bool {
 }
 
 func fieldSQLType(field *Field, sqlTag *tag) string {
-	if v, ok := sqlTag.Options["type"]; ok {
+	if typ, ok := sqlTag.Options["type"]; ok {
 		field.SetFlag(customTypeFlag)
-		v, _ := unquote(v)
-		return v
+		typ, _ := unquote(typ)
+		return typ
 	}
 
 	if field.HasFlag(ArrayFlag) {
@@ -444,6 +444,12 @@ func fieldSQLType(field *Field, sqlTag *tag) string {
 			return "bigserial"
 		}
 	}
+
+	switch sqlType {
+	case "timestamptz":
+		field.SetFlag(customTypeFlag)
+	}
+
 	return sqlType
 }
 
