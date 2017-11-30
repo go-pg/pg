@@ -28,17 +28,25 @@ var _ = Describe("Update", func() {
 	})
 
 	It("bulk updates", func() {
-		q := NewQuery(nil, &UpdateTest{}).
-			Model(&UpdateTest{
-				Id:    1,
-				Value: "hello",
-			}, &UpdateTest{
-				Id: 2,
-			})
+		q := NewQuery(nil, &UpdateTest{
+			Id:    1,
+			Value: "hello",
+		}, &UpdateTest{
+			Id: 2,
+		})
 
 		b, err := updateQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (1, 'hello'::mytype), (2, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
+	})
+
+	It("bulk updates with empty slice", func() {
+		slice := make([]UpdateTest, 0)
+		q := NewQuery(nil, &slice)
+
+		b, err := updateQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES ()) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
 	})
 
 	It("supports WITH", func() {
