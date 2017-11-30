@@ -2,6 +2,7 @@ package orm
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 
 	"github.com/go-pg/pg/internal"
@@ -81,7 +82,7 @@ func (q *updateQuery) modelHasData() bool {
 		return false
 	}
 	v := q.q.model.Value()
-	return v.Kind() == reflect.Slice
+	return v.Kind() == reflect.Slice && v.Len() > 0
 }
 
 func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
@@ -101,7 +102,11 @@ func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 	if value.Kind() == reflect.Struct {
 		b, err = q.appendSetStruct(b, value)
 	} else {
-		b, err = q.appendSetSlice(b, value)
+		if q.modelHasData() {
+			b, err = q.appendSetSlice(b, value)
+		} else {
+			err = fmt.Errorf("pg: slice %s is empty", value.Type())
+		}
 	}
 	if err != nil {
 		return nil, err
@@ -167,7 +172,7 @@ func (q updateQuery) appendModelData(b []byte) ([]byte, error) {
 	}
 
 	v := q.q.model.Value()
-	if v.Kind() != reflect.Slice {
+	if v.Kind() != reflect.Slice || v.Len() == 0 {
 		return b, nil
 	}
 
