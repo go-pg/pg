@@ -1,37 +1,29 @@
 package types
 
 import (
-	"fmt"
 	"reflect"
 )
 
-type InOp struct {
+type inOp struct {
 	slice reflect.Value
 }
 
-var _ ValueAppender = (*InOp)(nil)
+var _ ValueAppender = (*inOp)(nil)
 
-func In(values ...interface{}) *InOp {
-	var v reflect.Value
-	if len(values) == 1 {
-		v = reflect.ValueOf(values[0])
-	} else {
-		v = reflect.ValueOf(values)
+func In(values ...interface{}) ValueAppender {
+	v := reflect.ValueOf(values)
+	if v.Len() == 1 {
+		vv := v.Index(0)
+		if vv.Kind() == reflect.Slice {
+			v = vv
+		}
 	}
-
-	if !v.IsValid() {
-		panic(fmt.Errorf("pg.In(nil)"))
-	}
-	if v.Kind() != reflect.Slice {
-		panic(fmt.Errorf("pg.In(unsupported %s)", v.Type()))
-	}
-
-	return &InOp{
+	return &inOp{
 		slice: v,
 	}
 }
 
-func (in *InOp) AppendValue(b []byte, quote int) ([]byte, error) {
+func (in *inOp) AppendValue(b []byte, quote int) ([]byte, error) {
 	return appendIn(b, in.slice, quote), nil
 }
 
