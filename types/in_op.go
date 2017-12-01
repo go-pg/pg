@@ -13,7 +13,7 @@ var _ ValueAppender = (*inOp)(nil)
 func In(values ...interface{}) ValueAppender {
 	v := reflect.ValueOf(values)
 	if v.Len() == 1 {
-		vv := v.Index(0)
+		vv := v.Index(0).Elem()
 		if vv.Kind() == reflect.Slice {
 			v = vv
 		}
