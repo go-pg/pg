@@ -6,8 +6,9 @@ addons:
   postgresql: "9.6"
 
 go:
-  - 1.7
-  - 1.8
+  - 1.7.x
+  - 1.8.x
+  - 1.9.x
   - tip
 
 matrix:
