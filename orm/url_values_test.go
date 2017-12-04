@@ -86,21 +86,16 @@ var _ = Describe("URLValues", func() {
 
 var _ = Describe("Pager", func() {
 	query := `SELECT "url_values_model"."id", "url_values_model"."name" FROM "url_values_models" AS "url_values_model"`
-	urlValuesTests := []urlValuesTest{
-		{
-			url:   "http://localhost:8000/test?limit=10",
-			query: query + " LIMIT 10",
-		},
-		{
-			url:   "http://localhost:8000/test?page=5",
-			query: query + ` LIMIT 100 OFFSET 400`,
-		},
-
-		{
-			url:   "http://localhost:8000/test?page=5&limit=20",
-			query: query + ` LIMIT 20 OFFSET 80`,
-		},
-	}
+	urlValuesTests := []urlValuesTest{{
+		url:   "http://localhost:8000/test?limit=10",
+		query: query + " LIMIT 10",
+	}, {
+		url:   "http://localhost:8000/test?page=5",
+		query: query + ` LIMIT 100 OFFSET 400`,
+	}, {
+		url:   "http://localhost:8000/test?page=5&limit=20",
+		query: query + ` LIMIT 20 OFFSET 80`,
+	}}
 
 	It("adds limit and offset to the query", func() {
 		for _, urlValuesTest := range urlValuesTests {

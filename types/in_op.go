@@ -11,15 +11,14 @@ type inOp struct {
 var _ ValueAppender = (*inOp)(nil)
 
 func In(values ...interface{}) ValueAppender {
-	v := reflect.ValueOf(values)
-	if v.Len() == 1 {
-		vv := v.Index(0).Elem()
-		if vv.Kind() == reflect.Slice {
-			v = vv
-		}
-	}
 	return &inOp{
-		slice: v,
+		slice: reflect.ValueOf(values),
+	}
+}
+
+func InSlice(slice interface{}) ValueAppender {
+	return &inOp{
+		slice: reflect.ValueOf(slice),
 	}
 }
 
