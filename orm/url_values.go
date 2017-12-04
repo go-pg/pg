@@ -66,7 +66,7 @@ func forEachValue(q *Query, fieldName string, values []string, queryTemplate str
 
 func forAllValues(q *Query, fieldName string, values []string, queryTemplate, queryArrayTemplate string) *Query {
 	if len(values) > 1 {
-		q = q.Where(queryArrayTemplate, types.F(fieldName), types.In(values))
+		q = q.Where(queryArrayTemplate, types.F(fieldName), types.InSlice(values))
 	} else {
 		q = q.Where(queryTemplate, types.F(fieldName), values[0])
 	}
@@ -86,7 +86,7 @@ type Pager struct {
 }
 
 func NewPager(values url.Values) *Pager {
-	p := &Pager{}
+	p := new(Pager)
 	p.SetURLValues(values)
 	return p
 }

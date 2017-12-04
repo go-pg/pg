@@ -14,7 +14,7 @@ func TestInOp(t *testing.T) {
 		{types.In(), ""},
 		{types.In(1), "1"},
 		{types.In(1, 2, 3), "1,2,3"},
-		{types.In([]int{1, 2, 3}), "1,2,3"},
+		{types.In([]int{1, 2, 3}), "(1,2,3)"},
 		{types.In([]int{1, 2}, []int{3, 4}), "(1,2),(3,4)"},
 	}
 
