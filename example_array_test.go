@@ -28,13 +28,13 @@ func ExampleDB_Model_postgresArrayStructTag() {
 		panic(err)
 	}
 
-	var item Item
-	err = db.Model(&item).Where("id = ?", 1).Select()
+	item := new(Item)
+	err = db.Model(item).Where("id = ?", 1).Select()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(item)
-	// Output: {1 [one@example.com two@example.com] [[1 2] [3 4]]}
+	// Output: &{1 [one@example.com two@example.com] [[1 2] [3 4]]}
 }
 
 func ExampleArray() {

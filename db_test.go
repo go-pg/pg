@@ -232,6 +232,47 @@ var _ = Describe("Time", func() {
 	})
 })
 
+var _ = Describe("array model", func() {
+	type value struct {
+		Values []int16 `pg:",array"`
+	}
+
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+	})
+
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
+	It("selects values", func() {
+		model := new(value)
+		_, err := db.QueryOne(model, "SELECT ? AS values", pg.Array([]int16{1, 2}))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(model.Values).To(Equal([]int16{1, 2}))
+	})
+
+	It("selects empty values", func() {
+		model := &value{
+			Values: []int16{1, 2},
+		}
+		_, err := db.QueryOne(model, "SELECT ? AS values", pg.Array([]int16{}))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(model.Values).To(BeEmpty())
+	})
+
+	It("selects null values", func() {
+		model := &value{
+			Values: []int16{1, 2},
+		}
+		_, err := db.QueryOne(model, "SELECT NULL AS values", pg.Array([]int16{}))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(model.Values).To(BeEmpty())
+	})
+})
+
 var _ = Describe("slice model", func() {
 	type value struct {
 		Id int
@@ -248,24 +289,24 @@ var _ = Describe("slice model", func() {
 	})
 
 	It("does not error when there are no rows", func() {
-		var ints []int
+		ints := make([]int, 1)
 		_, err := db.Query(&ints, "SELECT generate_series(1, 0)")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(ints).To(BeZero())
+		Expect(ints).To(BeEmpty())
 	})
 
 	It("does not error when there are no rows", func() {
-		var slice []value
+		slice := make([]value, 1)
 		_, err := db.Query(&slice, "SELECT generate_series(1, 0)")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(slice).To(BeZero())
+		Expect(slice).To(BeEmpty())
 	})
 
 	It("does not error when there are no rows", func() {
-		var slice []*value
+		slice := make([]*value, 1)
 		_, err := db.Query(&slice, "SELECT generate_series(1, 0)")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(slice).To(BeZero())
+		Expect(slice).To(BeEmpty())
 	})
 
 	It("supports slice of structs", func() {
@@ -792,17 +833,17 @@ type Comment struct {
 }
 
 func createTestSchema(db *pg.DB) error {
-	tables := []interface{}{
-		&Image{},
-		&Author{},
-		&Book{},
-		&Genre{},
-		&BookGenre{},
-		&Translation{},
-		&Comment{},
+	models := []interface{}{
+		(*Image)(nil),
+		(*Author)(nil),
+		(*Book)(nil),
+		(*Genre)(nil),
+		(*BookGenre)(nil),
+		(*Translation)(nil),
+		(*Comment)(nil),
 	}
-	for _, table := range tables {
-		err := db.DropTable(table, &orm.DropTableOptions{
+	for _, model := range models {
+		err := db.DropTable(model, &orm.DropTableOptions{
 			IfExists: true,
 			Cascade:  true,
 		})
@@ -810,7 +851,7 @@ func createTestSchema(db *pg.DB) error {
 			return err
 		}
 
-		err = db.CreateTable(table, nil)
+		err = db.CreateTable(model, nil)
 		if err != nil {
 			return err
 		}
