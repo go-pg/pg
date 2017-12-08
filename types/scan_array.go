@@ -26,16 +26,18 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 	scanElem := scanner(elemType, true)
 	return func(v reflect.Value, b []byte) error {
 		if !v.CanSet() {
-			return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 		}
 		if b == nil {
 			if !v.IsNil() {
-				v.Set(reflect.New(v.Type()))
+				v.Set(reflect.Zero(v.Type()))
 			}
 			return nil
 		}
 		if v.IsNil() {
 			v.Set(reflect.MakeSlice(v.Type(), 0, 0))
+		} else if v.Len() > 0 {
+			v.Set(v.Slice(0, 0))
 		}
 		p := parser.NewArrayParser(b)
 		next := internal.MakeSliceNextElemFunc(v)
@@ -55,7 +57,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 
 func scanSliceStringValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	strings, err := decodeSliceString(b)
 	if err != nil {
@@ -83,7 +85,7 @@ func decodeSliceString(b []byte) ([]string, error) {
 
 func scanSliceIntValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	ints, err := decodeSliceInt(b)
 	if err != nil {
@@ -119,7 +121,7 @@ func decodeSliceInt(b []byte) ([]int, error) {
 
 func scanSliceInt64Value(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	ints, err := decodeSliceInt64(b)
 	if err != nil {
@@ -155,7 +157,7 @@ func decodeSliceInt64(b []byte) ([]int64, error) {
 
 func scanSliceFloat64Value(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	floats, err := decodeSliceFloat64(b)
 	if err != nil {

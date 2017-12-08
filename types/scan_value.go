@@ -100,14 +100,14 @@ func ptrScannerFunc(typ reflect.Type) ScannerFunc {
 				return nil
 			}
 			if !v.CanSet() {
-				return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+				return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 			}
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
 		if v.IsNil() {
 			if !v.CanSet() {
-				return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+				return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 			}
 			v.Set(reflect.New(v.Type().Elem()))
 		}
@@ -140,7 +140,7 @@ func ScanValue(v reflect.Value, b []byte) error {
 
 func scanBoolValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	if b == nil {
 		v.SetBool(false)
@@ -152,7 +152,7 @@ func scanBoolValue(v reflect.Value, b []byte) error {
 
 func scanIntValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	if b == nil {
 		v.SetInt(0)
@@ -168,7 +168,7 @@ func scanIntValue(v reflect.Value, b []byte) error {
 
 func scanUintValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	if b == nil {
 		v.SetUint(0)
@@ -184,7 +184,7 @@ func scanUintValue(v reflect.Value, b []byte) error {
 
 func scanFloatValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	if b == nil {
 		v.SetFloat(0)
@@ -200,7 +200,7 @@ func scanFloatValue(v reflect.Value, b []byte) error {
 
 func scanStringValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	v.SetString(string(b))
 	return nil
@@ -208,7 +208,7 @@ func scanStringValue(v reflect.Value, b []byte) error {
 
 func scanJSONValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	if b == nil {
 		v.Set(reflect.New(v.Type()).Elem())
@@ -221,7 +221,7 @@ var zeroTimeValue = reflect.ValueOf(time.Time{})
 
 func scanTimeValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	if b == nil {
 		v.Set(zeroTimeValue)
@@ -237,7 +237,7 @@ func scanTimeValue(v reflect.Value, b []byte) error {
 
 func scanIPValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	if b == nil {
 		return nil
@@ -254,7 +254,7 @@ var zeroIPNetValue = reflect.ValueOf(net.IPNet{})
 
 func scanIPNetValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	if b == nil {
 		v.Set(zeroIPNetValue)
@@ -270,7 +270,7 @@ func scanIPNetValue(v reflect.Value, b []byte) error {
 
 func scanBytesValue(v reflect.Value, b []byte) error {
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	if b == nil {
 		v.SetBytes(nil)
@@ -299,7 +299,7 @@ func scanSQLScannerValue(v reflect.Value, b []byte) error {
 
 func scanSQLScannerAddrValue(v reflect.Value, b []byte) error {
 	if !v.CanAddr() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 	return scanSQLScanner(v.Addr().Interface().(sql.Scanner), b)
 }
