@@ -6,12 +6,7 @@ import (
 )
 
 func Select(db DB, model interface{}) error {
-	q := NewQuery(db, model)
-	if err := q.model.Table().checkPKs(); err != nil {
-		return err
-	}
-	q.where = append(q.where, wherePKQuery{q})
-	return q.Select()
+	return NewQuery(db, model).WherePK().Select()
 }
 
 type selectQuery struct {
