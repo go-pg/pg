@@ -10,8 +10,20 @@ import (
 var ErrNoRows = internal.ErrNoRows
 var ErrMultiRows = internal.ErrMultiRows
 
+// Error represents an error returned by PostgreSQL server
+// using PostgreSQL ErrorResponse protocol.
+//
+// https://www.postgresql.org/docs/10/static/protocol-message-formats.html
 type Error interface {
+	// Field returns a string value associated with an error code.
+	//
+	// https://www.postgresql.org/docs/10/static/protocol-error-fields.html
 	Field(byte) string
+
+	// IntegrityViolation reports whether an error is a part of
+	// Integrity Constraint Violation class of errors.
+	//
+	// https://www.postgresql.org/docs/10/static/errcodes-appendix.html
 	IntegrityViolation() bool
 }
 
