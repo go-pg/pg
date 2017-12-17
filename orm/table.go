@@ -500,28 +500,6 @@ func sqlType(typ reflect.Type) string {
 	}
 }
 
-func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
-	var fks []*Field
-
-	for _, pk := range base.PKs {
-		fkName := fk + pk.GoName
-		if f := join.getField(fkName); f != nil {
-			fks = append(fks, f)
-		}
-	}
-
-	if len(fks) > 0 {
-		return fks
-	}
-
-	if fk != "" && fk != fieldName {
-		if f := join.getField(fk); f != nil {
-			fks = append(fks, f)
-		}
-	}
-	return fks
-}
-
 func (t *Table) tryHasOne(joinTable *Table, field *Field, tag *tag) bool {
 	fk, ok := tag.Options["fk"]
 	if !ok {
@@ -558,6 +536,39 @@ func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, tag *tag) bool {
 		return true
 	}
 	return false
+}
+
+func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
+	var fks []*Field
+
+	for _, pk := range base.PKs {
+		fkName := fk + pk.GoName
+		if f := join.getField(fkName); f != nil {
+			fks = append(fks, f)
+		}
+	}
+
+	if len(fks) > 0 {
+		return fks
+	}
+
+	if fk != "" && fk != fieldName {
+		f := join.getField(fk)
+		if f != nil {
+			fks = append(fks, f)
+			return fks
+		}
+	}
+
+	for _, suffix := range []string{"Id", "ID", "UUID"} {
+		f := join.getField(fk + suffix)
+		if f != nil {
+			fks = append(fks, f)
+			return fks
+		}
+	}
+
+	return nil
 }
 
 func scanJSONValue(v reflect.Value, b []byte) error {
