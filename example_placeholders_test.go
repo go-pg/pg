@@ -76,5 +76,5 @@ func Example_placeholders() {
 	// global: 3
 	// table name: "params"
 	// table alias: "params"
-	// columns: "x", "y"
+	// columns: "params"."x", "params"."y"
 }

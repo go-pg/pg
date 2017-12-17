@@ -88,6 +88,14 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal(`SELECT "has_many_model"."id", "has_many_model"."select_model_id" FROM "has_many_models" AS "has_many_model" WHERE (("has_many_model"."select_model_id") IN ((1)))`))
 	})
 
+	It("expands ?Columns", func() {
+		q := NewQuery(nil, &SelectModel{Id: 1}).ColumnExpr("?Columns")
+
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
+	})
+
 	It("supports multiple groups", func() {
 		q := NewQuery(nil).Group("one").Group("two")
 		b, err := selectQuery{q: q}.AppendQuery(nil)

@@ -253,26 +253,17 @@ func (q hasManyColumnsAppender) AppendFormat(b []byte, f QueryFormatter) []byte 
 
 	joinTable := q.JoinModel.Table()
 
-	if q.Columns == nil {
-		for i, f := range joinTable.Fields {
+	if q.Columns != nil {
+		for i, column := range q.Columns {
 			if i > 0 {
 				b = append(b, ", "...)
 			}
 			b = append(b, joinTable.Alias...)
 			b = append(b, '.')
-			b = append(b, f.Column...)
+			b = types.AppendField(b, column, 1)
 		}
 		return b
 	}
 
-	for i, column := range q.Columns {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-		b = append(b, joinTable.Alias...)
-		b = append(b, '.')
-		b = types.AppendField(b, column, 1)
-	}
-
-	return b
+	return appendTableColumns(b, joinTable)
 }

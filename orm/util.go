@@ -153,3 +153,15 @@ func appendColumns(b []byte, fields []*Field) []byte {
 	}
 	return b
 }
+
+func appendTableColumns(b []byte, table *Table) []byte {
+	for i, f := range table.Fields {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = append(b, table.Alias...)
+		b = append(b, '.')
+		b = append(b, f.Column...)
+	}
+	return b
+}
