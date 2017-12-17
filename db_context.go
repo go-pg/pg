@@ -4,6 +4,7 @@ package pg
 
 import (
 	"context"
+	"time"
 
 	"github.com/go-pg/pg/internal/pool"
 	"github.com/go-pg/pg/orm"
@@ -30,10 +31,43 @@ func (db *DB) Context() context.Context {
 }
 
 func (db *DB) WithContext(ctx context.Context) *DB {
-	if ctx == nil {
-		panic("nil context")
+	return &DB{
+		opt:   db.opt,
+		pool:  db.pool,
+		fmter: db.fmter,
+
+		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
+
+		ctx: ctx,
 	}
-	cp := *db
-	cp.ctx = ctx
-	return &cp
+}
+
+// WithTimeout returns a DB that uses d as the read/write timeout.
+func (db *DB) WithTimeout(d time.Duration) *DB {
+	newopt := *db.opt
+	newopt.ReadTimeout = d
+	newopt.WriteTimeout = d
+
+	return &DB{
+		opt:   &newopt,
+		pool:  db.pool,
+		fmter: db.fmter,
+
+		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
+
+		ctx: db.ctx,
+	}
+}
+
+// WithParam returns a DB that replaces the param with the value in queries.
+func (db *DB) WithParam(param string, value interface{}) *DB {
+	return &DB{
+		opt:   db.opt,
+		pool:  db.pool,
+		fmter: db.fmter.WithParam(param, value),
+
+		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
+
+		ctx: db.ctx,
+	}
 }

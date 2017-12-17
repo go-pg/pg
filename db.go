@@ -41,32 +41,6 @@ func (db *DB) PoolStats() *PoolStats {
 	return (*PoolStats)(stats)
 }
 
-// WithTimeout returns a DB that uses d as the read/write timeout.
-func (db *DB) WithTimeout(d time.Duration) *DB {
-	newopt := *db.opt
-	newopt.ReadTimeout = d
-	newopt.WriteTimeout = d
-
-	return &DB{
-		opt:   &newopt,
-		pool:  db.pool,
-		fmter: db.fmter,
-
-		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
-	}
-}
-
-// WithParam returns a DB that replaces the param with the value in queries.
-func (db *DB) WithParam(param string, value interface{}) *DB {
-	return &DB{
-		opt:   db.opt,
-		pool:  db.pool,
-		fmter: db.fmter.WithParam(param, value),
-
-		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
-	}
-}
-
 func (db *DB) retryBackoff(retry int) time.Duration {
 	return internal.RetryBackoff(retry, db.opt.MinRetryBackoff, db.opt.MaxRetryBackoff)
 }
