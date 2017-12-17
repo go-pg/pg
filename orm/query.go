@@ -310,6 +310,19 @@ func (q *Query) addWhere(f sepFormatAppender) {
 	}
 }
 
+func (q *Query) WherePK() *Query {
+	if q.model == nil {
+		q.stickyErr = errors.New("pg: Model is nil")
+		return q
+	}
+	if err := q.model.Table().checkPKs(); err != nil {
+		q.stickyErr = err
+		return q
+	}
+	q.where = append(q.where, wherePKQuery{q})
+	return q
+}
+
 func (q *Query) Join(join string, params ...interface{}) *Query {
 	q.joins = append(q.joins, queryParamsAppender{join, params})
 	return q
