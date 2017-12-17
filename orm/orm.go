@@ -1,6 +1,9 @@
 package orm
 
-import "io"
+import (
+	"context"
+	"io"
+)
 
 // ColumnScanner is used to scan column values.
 type ColumnScanner interface {
@@ -37,5 +40,6 @@ type DB interface {
 	CopyFrom(r io.Reader, query interface{}, params ...interface{}) (Result, error)
 	CopyTo(w io.Writer, query interface{}, params ...interface{}) (Result, error)
 
+	Context() context.Context
 	QueryFormatter
 }
