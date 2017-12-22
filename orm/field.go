@@ -33,6 +33,18 @@ type Field struct {
 	isZero func(reflect.Value) bool
 }
 
+func indexEqual(ind1, ind2 []int) bool {
+	if len(ind1) != len(ind2) {
+		return false
+	}
+	for i, ind := range ind1 {
+		if ind != ind2[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func (f *Field) Copy() *Field {
 	copy := *f
 	copy.Index = copy.Index[:len(f.Index):len(f.Index)]

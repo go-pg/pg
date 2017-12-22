@@ -193,11 +193,11 @@ type L struct {
 
 var _ = Describe("ModelId fk and anonymous model", func() {
 	It("is autodetected", func() {
-		var M struct {
+		var res struct {
 			Items []L
 		}
 
-		table := orm.Tables.Get(reflect.TypeOf(M))
+		table := orm.Tables.Get(reflect.TypeOf(res))
 		Expect(table).NotTo(BeNil())
 
 		field := table.FieldsMap["items"]
@@ -205,5 +205,28 @@ var _ = Describe("ModelId fk and anonymous model", func() {
 
 		rel := table.Relations["Items"]
 		Expect(rel).To(BeNil())
+	})
+})
+
+type M struct {
+	Id   int64
+	Name string
+}
+
+type N struct {
+	M
+	Id string
+}
+
+var _ = Describe("embedding", func() {
+	It("handles overwriting", func() {
+		table := orm.Tables.Get(reflect.TypeOf(N{}))
+		Expect(table.Fields).To(HaveLen(2))
+		Expect(table.FieldsMap).To(HaveLen(2))
+		Expect(table.PKs).To(HaveLen(1))
+		Expect(table.DataFields).To(HaveLen(1))
+
+		field := table.FieldsMap["id"]
+		Expect(field.SQLType).To(Equal("text"))
 	})
 })

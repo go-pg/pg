@@ -76,6 +76,25 @@ func (t *Table) AddField(field *Field) {
 	t.FieldsMap[field.SQLName] = field
 }
 
+func (t *Table) RemoveField(field *Field) {
+	t.Fields = removeField(t.Fields, field)
+	if field.HasFlag(PrimaryKeyFlag) {
+		t.PKs = removeField(t.PKs, field)
+	} else {
+		t.DataFields = removeField(t.DataFields, field)
+	}
+	delete(t.FieldsMap, field.SQLName)
+}
+
+func removeField(fields []*Field, field *Field) []*Field {
+	for i, f := range fields {
+		if f == field {
+			fields = append(fields[:i], fields[i+1:]...)
+		}
+	}
+	return fields
+}
+
 func (t *Table) GetField(fieldName string) (*Field, error) {
 	field, ok := t.FieldsMap[fieldName]
 	if !ok {
@@ -255,10 +274,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		sqlTag.Name = internal.Underscore(f.Name)
 	}
 
+	index = append(index, f.Index...)
 	if field, ok := t.FieldsMap[sqlTag.Name]; ok {
-		if field.GoName == f.Name {
+		if indexEqual(field.Index, index) {
 			return field
 		}
+		t.RemoveField(field)
 	}
 
 	field := Field{
@@ -268,7 +289,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		SQLName: sqlTag.Name,
 		Column:  types.Q(types.AppendField(nil, sqlTag.Name, 1)),
 
-		Index: append(index, f.Index...),
+		Index: index,
 	}
 
 	if _, ok := sqlTag.Options["notnull"]; ok {
