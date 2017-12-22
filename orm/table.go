@@ -552,7 +552,11 @@ func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
 		return fks
 	}
 
-	if fk != "" && fk != fieldName {
+	if fk == "" {
+		return nil
+	}
+
+	if fk != fieldName {
 		f := join.getField(fk)
 		if f != nil {
 			fks = append(fks, f)

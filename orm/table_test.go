@@ -166,3 +166,44 @@ var _ = Describe("model with circular reference", func() {
 		Expect(table).NotTo(BeNil())
 	})
 })
+
+type J struct {
+	JId int64
+}
+
+type K struct {
+	KId  int64
+	MyId int64
+	My   *J
+}
+
+var _ = Describe("ModelId fk", func() {
+	It("is autodetected", func() {
+		table := orm.Tables.Get(reflect.TypeOf(K{}))
+		Expect(table).NotTo(BeNil())
+
+		rel := table.Relations["My"]
+		Expect(rel).NotTo(BeNil())
+	})
+})
+
+type L struct {
+	Id int64
+}
+
+var _ = Describe("ModelId fk and anonymous model", func() {
+	It("is autodetected", func() {
+		var M struct {
+			Items []L
+		}
+
+		table := orm.Tables.Get(reflect.TypeOf(M))
+		Expect(table).NotTo(BeNil())
+
+		field := table.FieldsMap["items"]
+		Expect(field).NotTo(BeNil())
+
+		rel := table.Relations["Items"]
+		Expect(rel).To(BeNil())
+	})
+})
