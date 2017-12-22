@@ -210,6 +210,11 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 		index = append(index, baseIndex...)
 
 		if f.Anonymous {
+			sqlTag := f.Tag.Get("sql")
+			if sqlTag == "-" {
+				continue
+			}
+
 			embeddedTable := newTable(indirectType(f.Type))
 
 			pgTag := parseTag(f.Tag.Get("pg"))
