@@ -7,7 +7,7 @@ import (
 )
 
 type valuesModel struct {
-	hookStubs
+	Discard
 	values []interface{}
 }
 
@@ -25,10 +25,6 @@ func (valuesModel) useQueryOne() bool {
 
 func (m valuesModel) NewModel() ColumnScanner {
 	return m
-}
-
-func (valuesModel) AddModel(_ ColumnScanner) error {
-	return nil
 }
 
 func (m valuesModel) ScanColumn(colIdx int, colName string, b []byte) error {

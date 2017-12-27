@@ -7,7 +7,7 @@ import (
 )
 
 type sliceModel struct {
-	hookStubs
+	Discard
 	slice    reflect.Value
 	nextElem func() reflect.Value
 	scan     func(reflect.Value, []byte) error
@@ -24,10 +24,6 @@ func (m *sliceModel) Init() error {
 
 func (m *sliceModel) NewModel() ColumnScanner {
 	return m
-}
-
-func (sliceModel) AddModel(_ ColumnScanner) error {
-	return nil
 }
 
 func (m *sliceModel) ScanColumn(colIdx int, _ string, b []byte) error {

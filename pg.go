@@ -84,7 +84,7 @@ func SetLogger(logger *log.Logger) {
 
 type Strings []string
 
-var _ orm.Model = (*Strings)(nil)
+var _ orm.HooklessModel = (*Strings)(nil)
 var _ types.ValueAppender = (*Strings)(nil)
 
 func (strings *Strings) Init() error {
@@ -99,38 +99,6 @@ func (strings *Strings) NewModel() orm.ColumnScanner {
 }
 
 func (Strings) AddModel(_ orm.ColumnScanner) error {
-	return nil
-}
-
-func (Strings) AfterQuery(_ orm.DB) error {
-	return nil
-}
-
-func (Strings) AfterSelect(_ orm.DB) error {
-	return nil
-}
-
-func (Strings) BeforeInsert(_ orm.DB) error {
-	return nil
-}
-
-func (Strings) AfterInsert(_ orm.DB) error {
-	return nil
-}
-
-func (Strings) BeforeUpdate(_ orm.DB) error {
-	return nil
-}
-
-func (Strings) AfterUpdate(_ orm.DB) error {
-	return nil
-}
-
-func (Strings) BeforeDelete(_ orm.DB) error {
-	return nil
-}
-
-func (Strings) AfterDelete(_ orm.DB) error {
 	return nil
 }
 
@@ -156,7 +124,7 @@ func (strings Strings) AppendValue(dst []byte, quote int) ([]byte, error) {
 
 type Ints []int64
 
-var _ orm.Model = (*Ints)(nil)
+var _ orm.HooklessModel = (*Ints)(nil)
 var _ types.ValueAppender = (*Ints)(nil)
 
 func (ints *Ints) Init() error {
@@ -171,38 +139,6 @@ func (ints *Ints) NewModel() orm.ColumnScanner {
 }
 
 func (Ints) AddModel(_ orm.ColumnScanner) error {
-	return nil
-}
-
-func (Ints) AfterQuery(_ orm.DB) error {
-	return nil
-}
-
-func (Ints) AfterSelect(_ orm.DB) error {
-	return nil
-}
-
-func (Ints) BeforeInsert(_ orm.DB) error {
-	return nil
-}
-
-func (Ints) AfterInsert(_ orm.DB) error {
-	return nil
-}
-
-func (Ints) BeforeUpdate(_ orm.DB) error {
-	return nil
-}
-
-func (Ints) AfterUpdate(_ orm.DB) error {
-	return nil
-}
-
-func (Ints) BeforeDelete(_ orm.DB) error {
-	return nil
-}
-
-func (Ints) AfterDelete(_ orm.DB) error {
 	return nil
 }
 
@@ -232,7 +168,7 @@ func (ints Ints) AppendValue(dst []byte, quote int) ([]byte, error) {
 
 type IntSet map[int64]struct{}
 
-var _ orm.Model = (*IntSet)(nil)
+var _ orm.HooklessModel = (*IntSet)(nil)
 
 func (set *IntSet) Init() error {
 	if len(*set) > 0 {
@@ -246,38 +182,6 @@ func (set *IntSet) NewModel() orm.ColumnScanner {
 }
 
 func (IntSet) AddModel(_ orm.ColumnScanner) error {
-	return nil
-}
-
-func (IntSet) AfterQuery(_ orm.DB) error {
-	return nil
-}
-
-func (IntSet) AfterSelect(_ orm.DB) error {
-	return nil
-}
-
-func (IntSet) BeforeInsert(_ orm.DB) error {
-	return nil
-}
-
-func (IntSet) AfterInsert(_ orm.DB) error {
-	return nil
-}
-
-func (IntSet) BeforeUpdate(_ orm.DB) error {
-	return nil
-}
-
-func (IntSet) AfterUpdate(_ orm.DB) error {
-	return nil
-}
-
-func (IntSet) BeforeDelete(_ orm.DB) error {
-	return nil
-}
-
-func (IntSet) AfterDelete(_ orm.DB) error {
 	return nil
 }
 

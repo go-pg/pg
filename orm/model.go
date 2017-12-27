@@ -13,9 +13,10 @@ type useQueryOne interface {
 	useQueryOne() bool
 }
 
-type Model interface {
-	ColumnScanner
-
+type HooklessModel interface {
+	// Init is responsible to initialize/reset model state.
+	// It is guaranteed to be called once no matter how many rows
+	// were returned by database.
 	Init() error
 
 	// NewModel returns ColumnScanner that is used to scan columns
@@ -24,6 +25,12 @@ type Model interface {
 
 	// AddModel adds ColumnScanner to the Collection.
 	AddModel(ColumnScanner) error
+
+	ColumnScanner
+}
+
+type Model interface {
+	HooklessModel
 
 	AfterQuery(DB) error
 	AfterSelect(DB) error
@@ -47,6 +54,8 @@ func NewModel(values ...interface{}) (Model, error) {
 	switch v0 := v0.(type) {
 	case Model:
 		return v0, nil
+	case HooklessModel:
+		return newModelWithHookStubs(v0), nil
 	case sql.Scanner:
 		return Scan(v0), nil
 	}
@@ -85,4 +94,15 @@ func NewModel(values ...interface{}) (Model, error) {
 	}
 
 	return Scan(v0), nil
+}
+
+type modelWithHookStubs struct {
+	hookStubs
+	HooklessModel
+}
+
+func newModelWithHookStubs(m HooklessModel) Model {
+	return modelWithHookStubs{
+		HooklessModel: m,
+	}
 }

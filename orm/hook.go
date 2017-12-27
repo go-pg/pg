@@ -15,10 +15,6 @@ const (
 
 type hookStubs struct{}
 
-func (hookStubs) Init() error {
-	return nil
-}
-
 func (hookStubs) AfterQuery(_ DB) error {
 	return nil
 }

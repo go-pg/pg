@@ -588,7 +588,7 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 		return nil, err
 	}
 
-	if q.model != nil {
+	if q.model != nil && q.model.Table().HasFlag(BeforeInsertHookFlag) {
 		if err := q.model.BeforeInsert(q.db); err != nil {
 			return nil, err
 		}
