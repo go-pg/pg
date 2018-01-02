@@ -53,10 +53,12 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = q.q.appendFirstTable(b)
 	}
 
-	if q.q.hasOtherTables() && q.q.columns != nil {
-		b = append(b, " ("...)
-		b = q.q.appendColumns(b)
-		b = append(b, ")"...)
+	if q.q.hasOtherTables() {
+		if q.q.columns != nil {
+			b = append(b, " ("...)
+			b = q.q.appendColumns(b)
+			b = append(b, ")"...)
+		}
 		b = append(b, " SELECT * FROM "...)
 		b = q.q.appendOtherTables(b)
 	} else {
