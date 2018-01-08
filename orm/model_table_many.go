@@ -7,7 +7,8 @@ import (
 
 type manyModel struct {
 	*sliceTableModel
-	rel *Relation
+	baseTable *Table
+	rel       *Relation
 
 	buf       []byte
 	dstValues map[string][]reflect.Value
@@ -16,10 +17,12 @@ type manyModel struct {
 var _ tableModel = (*manyModel)(nil)
 
 func newManyModel(j *join) *manyModel {
+	baseTable := j.BaseModel.Table()
 	joinModel := j.JoinModel.(*sliceTableModel)
-	dstValues := dstValues(joinModel, j.BaseModel.Table().PKs)
+	dstValues := dstValues(joinModel, baseTable.PKs)
 	m := manyModel{
 		sliceTableModel: joinModel,
+		baseTable:       baseTable,
 		rel:             j.Rel,
 
 		dstValues: dstValues,
@@ -45,7 +48,9 @@ func (m *manyModel) AddModel(model ColumnScanner) error {
 	m.buf = modelId(m.buf[:0], m.strct, m.rel.FKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
-		return fmt.Errorf("pg: can't find dst value for model id=%q", m.buf)
+		return fmt.Errorf(
+			"pg: relation=%q has no base model=%q with id=%q (check join conditions)",
+			m.rel.Field.GoName, m.baseTable.TypeName, m.buf)
 	}
 
 	for _, v := range dstValues {

@@ -17,14 +17,14 @@ type m2mModel struct {
 
 var _ tableModel = (*m2mModel)(nil)
 
-func newM2MModel(join *join) *m2mModel {
-	baseTable := join.BaseModel.Table()
-	joinModel := join.JoinModel.(*sliceTableModel)
+func newM2MModel(j *join) *m2mModel {
+	baseTable := j.BaseModel.Table()
+	joinModel := j.JoinModel.(*sliceTableModel)
 	dstValues := dstValues(joinModel, baseTable.PKs)
 	m := &m2mModel{
 		sliceTableModel: joinModel,
 		baseTable:       baseTable,
-		rel:             join.Rel,
+		rel:             j.Rel,
 
 		dstValues: dstValues,
 		columns:   make(map[string]string),
@@ -50,7 +50,9 @@ func (m *m2mModel) AddModel(model ColumnScanner) error {
 	m.buf = modelIdMap(m.buf[:0], m.columns, m.rel.BasePrefix, m.baseTable.PKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
-		return fmt.Errorf("pg: can't find dst value for model id=%q", m.buf)
+		return fmt.Errorf(
+			"pg: relation=%q has no base model=%q with id=%q (check join conditions)",
+			m.rel.Field.GoName, m.baseTable.TypeName, m.buf)
 	}
 
 	for _, v := range dstValues {

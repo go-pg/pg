@@ -61,7 +61,7 @@ func (t *Table) HasField(field string) bool {
 
 func (t *Table) checkPKs() error {
 	if len(t.PKs) == 0 {
-		return fmt.Errorf("model=%s does not have primary keys", t.Type.Name())
+		return fmt.Errorf("model=%s does not have primary keys", t.TypeName)
 	}
 	return nil
 }
