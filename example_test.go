@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-pg/pg"
@@ -130,42 +131,17 @@ func txExample() *pg.DB {
 func ExampleDB_Begin() {
 	db := txExample()
 
-	tx, err := db.Begin()
-	if err != nil {
-		panic(err)
-	}
+	incrInTx := func(db *pg.DB) error {
+		tx, err := db.Begin()
+		if err != nil {
+			return err
+		}
+		// Rollback tx on error.
+		defer tx.Rollback()
 
-	var counter int
-	_, err = tx.QueryOne(pg.Scan(&counter), `SELECT counter FROM tx_test`)
-	if err != nil {
-		tx.Rollback()
-		panic(err)
-	}
-
-	counter++
-
-	_, err = tx.Exec(`UPDATE tx_test SET counter = ?`, counter)
-	if err != nil {
-		tx.Rollback()
-		panic(err)
-	}
-
-	err = tx.Commit()
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println(counter)
-	// Output: 1
-}
-
-func ExampleDB_RunInTransaction() {
-	db := txExample()
-
-	var counter int
-	// Transaction is automatically rollbacked on error.
-	err := db.RunInTransaction(func(tx *pg.Tx) error {
-		_, err := tx.QueryOne(pg.Scan(&counter), `SELECT counter FROM tx_test`)
+		var counter int
+		_, err = tx.QueryOne(
+			pg.Scan(&counter), `SELECT counter FROM tx_test FOR UPDATE`)
 		if err != nil {
 			return err
 		}
@@ -173,14 +149,73 @@ func ExampleDB_RunInTransaction() {
 		counter++
 
 		_, err = tx.Exec(`UPDATE tx_test SET counter = ?`, counter)
-		return err
-	})
+		if err != nil {
+			return err
+		}
+
+		return tx.Commit()
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := incrInTx(db); err != nil {
+				panic(err)
+			}
+		}()
+	}
+	wg.Wait()
+
+	var counter int
+	_, err := db.QueryOne(pg.Scan(&counter), `SELECT counter FROM tx_test`)
 	if err != nil {
 		panic(err)
 	}
-
 	fmt.Println(counter)
-	// Output: 1
+	// Output: 10
+}
+
+func ExampleDB_RunInTransaction() {
+	db := txExample()
+
+	incrInTx := func(db *pg.DB) error {
+		// Transaction is automatically rollbacked on error.
+		return db.RunInTransaction(func(tx *pg.Tx) error {
+			var counter int
+			_, err := tx.QueryOne(
+				pg.Scan(&counter), `SELECT counter FROM tx_test FOR UPDATE`)
+			if err != nil {
+				return err
+			}
+
+			counter++
+
+			_, err = tx.Exec(`UPDATE tx_test SET counter = ?`, counter)
+			return err
+		})
+	}
+
+	var wg sync.WaitGroup
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := incrInTx(db); err != nil {
+				panic(err)
+			}
+		}()
+	}
+	wg.Wait()
+
+	var counter int
+	_, err := db.QueryOne(pg.Scan(&counter), `SELECT counter FROM tx_test`)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(counter)
+	// Output: 10
 }
 
 func ExampleDB_Prepare() {
