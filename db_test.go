@@ -1021,6 +1021,21 @@ var _ = Describe("ORM", func() {
 		}}))
 	})
 
+	Describe("relation with no results", func() {
+		It("does not panic", func() {
+			tr := new(Translation)
+			tr.Id = 123
+			err := db.Insert(tr)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = db.Model(tr).
+				Column("Book.Genres", "Book.Translations", "Book.Comments").
+				WherePK().
+				Select()
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
 	Describe("struct model", func() {
 		It("fetches Book relations", func() {
 			var book Book

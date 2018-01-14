@@ -21,6 +21,9 @@ func newM2MModel(j *join) *m2mModel {
 	baseTable := j.BaseModel.Table()
 	joinModel := j.JoinModel.(*sliceTableModel)
 	dstValues := dstValues(joinModel, baseTable.PKs)
+	if len(dstValues) == 0 {
+		return nil
+	}
 	m := &m2mModel{
 		sliceTableModel: joinModel,
 		baseTable:       baseTable,
