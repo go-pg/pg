@@ -20,6 +20,9 @@ func newManyModel(j *join) *manyModel {
 	baseTable := j.BaseModel.Table()
 	joinModel := j.JoinModel.(*sliceTableModel)
 	dstValues := dstValues(joinModel, baseTable.PKs)
+	if len(dstValues) == 0 {
+		return nil
+	}
 	m := manyModel{
 		sliceTableModel: joinModel,
 		baseTable:       baseTable,

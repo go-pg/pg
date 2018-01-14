@@ -30,14 +30,18 @@ func (j *join) selectMany(db DB) error {
 	if err != nil {
 		return err
 	}
+	if q == nil {
+		return nil
+	}
 	return q.Select()
 }
 
 func (j *join) manyQuery(db DB) (*Query, error) {
-	root := j.JoinModel.Root()
-	index := j.JoinModel.ParentIndex()
-
 	manyModel := newManyModel(j)
+	if manyModel == nil {
+		return nil, nil
+	}
+
 	q := NewQuery(db, manyModel)
 	if j.ApplyQuery != nil {
 		var err error
@@ -54,7 +58,8 @@ func (j *join) manyQuery(db DB) (*Query, error) {
 	where = append(where, "("...)
 	where = columns(where, j.JoinModel.Table().Alias, "", j.Rel.FKs)
 	where = append(where, ") IN ("...)
-	where = appendChildValues(where, root, index, baseTable.PKs)
+	where = appendChildValues(
+		where, j.JoinModel.Root(), j.JoinModel.ParentIndex(), baseTable.PKs)
 	where = append(where, ")"...)
 	q = q.Where(internal.BytesToString(where))
 
@@ -74,11 +79,18 @@ func (j *join) selectM2M(db DB) error {
 	if err != nil {
 		return err
 	}
+	if q == nil {
+		return nil
+	}
 	return q.Select()
 }
 
 func (j *join) m2mQuery(db DB) (*Query, error) {
 	m2mModel := newM2MModel(j)
+	if m2mModel == nil {
+		return nil, nil
+	}
+
 	q := NewQuery(db, m2mModel)
 	if j.ApplyQuery != nil {
 		var err error
