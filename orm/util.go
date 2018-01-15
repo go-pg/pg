@@ -86,9 +86,10 @@ func visitField(v reflect.Value, index []int, fn func(reflect.Value)) {
 	v = reflect.Indirect(v)
 	if len(index) > 0 {
 		v = v.Field(index[0])
-		if !v.IsNil() {
-			walk(v, index[1:], fn)
+		if v.Kind() == reflect.Ptr && v.IsNil() {
+			return
 		}
+		walk(v, index[1:], fn)
 	} else {
 		fn(v)
 	}
