@@ -1,6 +1,10 @@
 package types
 
-import "time"
+import (
+	"time"
+
+	"github.com/go-pg/pg/internal"
+)
 
 const (
 	dateFormat         = "2006-01-02"
@@ -12,22 +16,23 @@ const (
 )
 
 func ParseTime(b []byte) (time.Time, error) {
+	s := internal.BytesToString(b)
 	switch l := len(b); {
 	case l <= len(dateFormat):
-		return time.Parse(dateFormat, string(b))
+		return time.ParseInLocation(dateFormat, s, time.UTC)
 	case l <= len(timeFormat):
-		return time.Parse(timeFormat, string(b))
+		return time.ParseInLocation(timeFormat, s, time.UTC)
 	default:
 		if c := b[len(b)-9]; c == '+' || c == '-' {
-			return time.Parse(timestamptzFormat, string(b))
+			return time.Parse(timestamptzFormat, s)
 		}
 		if c := b[len(b)-6]; c == '+' || c == '-' {
-			return time.Parse(timestamptzFormat2, string(b))
+			return time.Parse(timestamptzFormat2, s)
 		}
 		if c := b[len(b)-3]; c == '+' || c == '-' {
-			return time.Parse(timestamptzFormat3, string(b))
+			return time.Parse(timestamptzFormat3, s)
 		}
-		return time.ParseInLocation(timestampFormat, string(b), time.Local)
+		return time.ParseInLocation(timestampFormat, s, time.UTC)
 	}
 }
 
@@ -35,7 +40,7 @@ func AppendTime(b []byte, tm time.Time, quote int) []byte {
 	if quote == 1 {
 		b = append(b, '\'')
 	}
-	b = tm.AppendFormat(b, timestamptzFormat)
+	b = tm.UTC().AppendFormat(b, timestamptzFormat)
 	if quote == 1 {
 		b = append(b, '\'')
 	}
