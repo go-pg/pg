@@ -63,13 +63,14 @@ type Options struct {
 	PoolSize int
 	// Time for which client waits for free connection if all
 	// connections are busy before returning an error.
-	// Default is 30 seconds if ReadTimeOut is not defined, otherwise, ReadTimeout + 1 second.
+	// Default is 30 seconds if ReadTimeOut is not defined, otherwise,
+	// ReadTimeout + 1 second.
 	PoolTimeout time.Duration
 	// Time after which client closes idle connections.
 	// Default is to not close idle connections.
 	IdleTimeout time.Duration
 	// Connection age at which client retires (closes) the connection.
-	// Primarily useful with proxies like HAProxy.
+	// It is useful with proxies like PgBouncer and HAProxy.
 	// Default is to not close aged connections.
 	MaxAge time.Duration
 	// Frequency of idle checks.
