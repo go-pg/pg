@@ -378,6 +378,7 @@ func conversionTests() []conversionTest {
 
 func TestConversion(t *testing.T) {
 	db := pg.Connect(pgOptions())
+	defer db.Close()
 
 	for i, test := range conversionTests() {
 		test.i = i

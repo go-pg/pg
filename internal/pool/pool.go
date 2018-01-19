@@ -218,7 +218,7 @@ func (p *ConnPool) Get() (*Conn, bool, error) {
 		}
 
 		if p.isStaleConn(cn) {
-			p.CloseConn(cn)
+			_ = p.CloseConn(cn)
 			continue
 		}
 
@@ -330,20 +330,21 @@ func (p *ConnPool) Close() error {
 	return firstErr
 }
 
-func (p *ConnPool) reapStaleConn() bool {
-	if len(p.freeConns) == 0 {
-		return false
+func (p *ConnPool) reaper(frequency time.Duration) {
+	ticker := time.NewTicker(frequency)
+	defer ticker.Stop()
+
+	for _ = range ticker.C {
+		if p.closed() {
+			break
+		}
+		n, err := p.ReapStaleConns()
+		if err != nil {
+			internal.Logf("ReapStaleConns failed: %s", err)
+			continue
+		}
+		atomic.AddUint32(&p.stats.StaleConns, uint32(n))
 	}
-
-	cn := p.freeConns[0]
-	if !p.isStaleConn(cn) {
-		return false
-	}
-
-	_ = p.CloseConn(cn)
-	p.freeConns = append(p.freeConns[:0], p.freeConns[1:]...)
-
-	return true
 }
 
 func (p *ConnPool) ReapStaleConns() (int, error) {
@@ -366,19 +367,18 @@ func (p *ConnPool) ReapStaleConns() (int, error) {
 	return n, nil
 }
 
-func (p *ConnPool) reaper(frequency time.Duration) {
-	ticker := time.NewTicker(frequency)
-	defer ticker.Stop()
-
-	for _ = range ticker.C {
-		if p.closed() {
-			break
-		}
-		n, err := p.ReapStaleConns()
-		if err != nil {
-			internal.Logf("ReapStaleConns failed: %s", err)
-			continue
-		}
-		atomic.AddUint32(&p.stats.StaleConns, uint32(n))
+func (p *ConnPool) reapStaleConn() bool {
+	if len(p.freeConns) == 0 {
+		return false
 	}
+
+	cn := p.freeConns[0]
+	if !p.isStaleConn(cn) {
+		return false
+	}
+
+	_ = p.CloseConn(cn)
+	p.freeConns = append(p.freeConns[:0], p.freeConns[1:]...)
+
+	return true
 }

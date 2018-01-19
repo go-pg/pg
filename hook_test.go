@@ -163,6 +163,10 @@ var _ = Describe("OnQueryProcessed", func() {
 		count = 0
 	})
 
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
 	Describe("Query/Exec", func() {
 		BeforeEach(func() {
 			db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {

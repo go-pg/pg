@@ -64,14 +64,14 @@ func (cn *Conn) NextId() string {
 func (cn *Conn) SetTimeout(rt, wt time.Duration) {
 	cn.UsedAt = time.Now()
 	if rt > 0 {
-		cn.netConn.SetReadDeadline(cn.UsedAt.Add(rt))
+		_ = cn.netConn.SetReadDeadline(cn.UsedAt.Add(rt))
 	} else {
-		cn.netConn.SetReadDeadline(noDeadline)
+		_ = cn.netConn.SetReadDeadline(noDeadline)
 	}
 	if wt > 0 {
-		cn.netConn.SetWriteDeadline(cn.UsedAt.Add(wt))
+		_ = cn.netConn.SetWriteDeadline(cn.UsedAt.Add(wt))
 	} else {
-		cn.netConn.SetWriteDeadline(noDeadline)
+		_ = cn.netConn.SetWriteDeadline(noDeadline)
 	}
 }
 

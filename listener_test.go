@@ -20,13 +20,11 @@ var _ = Context("Listener", func() {
 		opt.PoolTimeout = time.Second
 
 		db = pg.Connect(opt)
-
 		ln = db.Listen("test.channel")
 	})
 
 	var _ = AfterEach(func() {
 		_ = ln.Close()
-
 		_ = db.Close()
 	})
 

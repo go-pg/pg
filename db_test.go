@@ -47,6 +47,8 @@ func pgOptions() *pg.Options {
 
 func TestDBString(t *testing.T) {
 	db := pg.Connect(pgOptions())
+	defer db.Close()
+
 	wanted := `DB<Addr="localhost:5432">`
 	if db.String() != wanted {
 		t.Fatalf("got %q, wanted %q", db.String(), wanted)
@@ -66,6 +68,7 @@ func TestOnConnect(t *testing.T) {
 		return err
 	}
 	db := pg.Connect(opt)
+	defer db.Close()
 
 	var name string
 	_, err := db.QueryOne(pg.Scan(&name), "SHOW application_name")
@@ -79,6 +82,7 @@ func TestOnConnect(t *testing.T) {
 
 func TestEmptyQuery(t *testing.T) {
 	db := pg.Connect(pgOptions())
+	defer db.Close()
 
 	assert := func(err error) {
 		if err == nil {
@@ -461,6 +465,10 @@ var _ = Describe("CountEstimate", func() {
 		db = pg.Connect(pgOptions())
 	})
 
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
 	It("works", func() {
 		count, err := db.Model().
 			TableExpr("generate_series(1, 10)").
@@ -507,8 +515,7 @@ var _ = Describe("DB nulls", func() {
 	})
 
 	AfterEach(func() {
-		err := db.Close()
-		Expect(err).NotTo(HaveOccurred())
+		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
 	Describe("sql.NullInt64", func() {
@@ -611,8 +618,7 @@ var _ = Describe("DB.Select", func() {
 	})
 
 	AfterEach(func() {
-		err := db.Close()
-		Expect(err).NotTo(HaveOccurred())
+		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
 	It("selects bytea", func() {
@@ -630,8 +636,7 @@ var _ = Describe("DB.Insert", func() {
 	})
 
 	AfterEach(func() {
-		err := db.Close()
-		Expect(err).NotTo(HaveOccurred())
+		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
 	It("returns an error on nil", func() {
@@ -659,8 +664,7 @@ var _ = Describe("DB.Update", func() {
 	})
 
 	AfterEach(func() {
-		err := db.Close()
-		Expect(err).NotTo(HaveOccurred())
+		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
 	It("returns an error on nil", func() {
@@ -684,8 +688,7 @@ var _ = Describe("DB.Delete", func() {
 	})
 
 	AfterEach(func() {
-		err := db.Close()
-		Expect(err).NotTo(HaveOccurred())
+		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
 	It("returns an error on nil", func() {
@@ -709,8 +712,7 @@ var _ = Describe("errors", func() {
 	})
 
 	AfterEach(func() {
-		err := db.Close()
-		Expect(err).NotTo(HaveOccurred())
+		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
 	It("unknown column error", func() {
@@ -991,6 +993,10 @@ var _ = Describe("ORM", func() {
 		err = db.Insert(&comments)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(comments).To(HaveLen(3))
+	})
+
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
 	It("multi updates", func() {
