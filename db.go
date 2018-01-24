@@ -243,8 +243,10 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res orm.Re
 		}
 
 		start := time.Now()
-		res, err = db.simpleQueryData(cn, model, query, params...)
-		db.freeConn(cn, err)
+		func() {
+			defer db.freeConn(cn, err)
+			res, err = db.simpleQueryData(cn, model, query, params...)
+		}()
 		db.queryProcessed(db, start, query, params, attempt, res, err)
 
 		if !db.shouldRetry(err) {
