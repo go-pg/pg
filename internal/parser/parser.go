@@ -88,14 +88,14 @@ func (p *Parser) ReadIdentifier() (s string, numeric bool) {
 		if isNum(ch) {
 			continue
 		}
-		if isAlpha(ch) || ch == '_' {
+		if isAlpha(ch) || (i > 0 && ch == '_') {
 			numeric = false
 			continue
 		}
 		end = i
 		break
 	}
-	if end <= 0 {
+	if end == 0 {
 		return "", false
 	}
 	b := p.b[:end]
