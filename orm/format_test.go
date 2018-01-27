@@ -71,6 +71,7 @@ var formatTests = []formatTest{
 	{q: "?", params: params{ValuerError("error")}, wanted: "?!(error)"},
 
 	{q: "?", wanted: "?"},
+	{q: "?_?", params: params{"foo", "bar"}, wanted: "'foo'_'bar'"},
 	{q: "? ? ?", params: params{"foo", "bar"}, wanted: "'foo' 'bar' ?"},
 	{q: "?0 ?1", params: params{"foo", "bar"}, wanted: "'foo' 'bar'"},
 	{q: "?0 ?1 ?2", params: params{"foo", "bar"}, wanted: "'foo' 'bar' ?2"},
