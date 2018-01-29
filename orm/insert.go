@@ -77,6 +77,10 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 		if value.Kind() == reflect.Struct {
 			b = q.appendValues(b, fields, value)
 		} else {
+			if value.Len() == 0 {
+				return nil, errors.New("pg: can't bulk-insert empty slice")
+			}
+
 			for i := 0; i < value.Len(); i++ {
 				el := value.Index(i)
 				if el.Kind() == reflect.Interface {
