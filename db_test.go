@@ -644,15 +644,21 @@ var _ = Describe("DB.Insert", func() {
 		Expect(err).To(MatchError("pg: Model(nil)"))
 	})
 
-	It("returns an errors if value is not settable", func() {
+	It("returns an error if value is not settable", func() {
 		err := db.Insert(1)
 		Expect(err).To(MatchError("pg: Model(non-pointer int)"))
 	})
 
-	It("returns an errors if value is not supported", func() {
+	It("returns an error if value is not supported", func() {
 		var v int
 		err := db.Insert(&v)
 		Expect(err).To(MatchError("pg: Model(unsupported int)"))
+	})
+
+	It("returns an error if there is no data to bulk insert", func() {
+		var slice []struct{ Id int }
+		err := db.Insert(&slice)
+		Expect(err).To(MatchError("pg: can't bulk-insert empty slice"))
 	})
 })
 
