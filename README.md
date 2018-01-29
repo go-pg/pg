@@ -35,6 +35,10 @@
 
 ## Get Started
 
+```shell
+go get -u github.com/go-pg/pg
+```
+
 - [Wiki](https://github.com/go-pg/pg/wiki)
 - [API docs](http://godoc.org/github.com/go-pg/pg)
 - [Examples](http://godoc.org/github.com/go-pg/pg#pkg-examples)
