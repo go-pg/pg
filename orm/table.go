@@ -14,6 +14,18 @@ import (
 	"github.com/go-pg/pg/types"
 )
 
+const (
+	AfterQueryHookFlag = uint16(1) << iota
+	AfterSelectHookFlag
+	BeforeInsertHookFlag
+	AfterInsertHookFlag
+	BeforeUpdateHookFlag
+	AfterUpdateHookFlag
+	BeforeDeleteHookFlag
+	AfterDeleteHookFlag
+	discardUnknownColumns
+)
+
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 var ipType = reflect.TypeOf((*net.IP)(nil)).Elem()
 var ipNetType = reflect.TypeOf((*net.IPNet)(nil)).Elem()
@@ -40,14 +52,14 @@ type Table struct {
 	Methods   map[string]*Method
 	Relations map[string]*Relation
 
-	flags uint8
+	flags uint16
 }
 
-func (t *Table) SetFlag(flag uint8) {
+func (t *Table) SetFlag(flag uint16) {
 	t.flags |= flag
 }
 
-func (t *Table) HasFlag(flag uint8) bool {
+func (t *Table) HasFlag(flag uint16) bool {
 	if t == nil {
 		return false
 	}
@@ -258,15 +270,23 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		if index != nil {
 			return nil
 		}
+
 		if sqlTag.Name != "" {
 			if isPostgresKeyword(sqlTag.Name) {
 				sqlTag.Name = `"` + sqlTag.Name + `"`
 			}
 			t.Name = types.Q(sqlTag.Name)
 		}
+
 		if alias, ok := sqlTag.Options["alias"]; ok {
 			t.Alias = types.Q(alias)
 		}
+
+		pgTag := parseTag(f.Tag.Get("pg"))
+		if _, ok := pgTag.Options["discard_unknown_columns"]; ok {
+			t.SetFlag(discardUnknownColumns)
+		}
+
 		return nil
 	}
 

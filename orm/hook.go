@@ -2,17 +2,6 @@ package orm
 
 import "reflect"
 
-const (
-	AfterQueryHookFlag = uint8(1) << iota
-	AfterSelectHookFlag
-	BeforeInsertHookFlag
-	AfterInsertHookFlag
-	BeforeUpdateHookFlag
-	AfterUpdateHookFlag
-	BeforeDeleteHookFlag
-	AfterDeleteHookFlag
-)
-
 type hookStubs struct{}
 
 func (hookStubs) AfterQuery(_ DB) error {
