@@ -998,3 +998,23 @@ func ExampleDB_jsonUseNumber() {
 	fmt.Printf("%T", event2.Data["price"])
 	// Output: json.Number
 }
+
+func ExampleDB_discardUnknownColumns() {
+	type Model1 struct {
+	}
+
+	var model1 Model1
+	_, err := db.QueryOne(&model1, "SELECT 1 AS id")
+	fmt.Printf("Model1: %v\n", err)
+
+	type Model2 struct {
+		tableName struct{} `pg:",discard_unknown_columns"`
+	}
+
+	var model2 Model2
+	_, err = db.QueryOne(&model2, "SELECT 1 AS id")
+	fmt.Printf("Model2: %v\n", err)
+
+	// Output: Model1: pg: can't find column=id in model=Model1
+	// Model2: <nil>
+}
