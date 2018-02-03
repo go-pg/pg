@@ -18,12 +18,13 @@ const (
 type Field struct {
 	Type reflect.Type
 
-	GoName  string  // struct field name, e.g. Id
-	SQLName string  // SQL name, .e.g. id
-	Column  types.Q // escaped SQL name, e.g. "id"
-	SQLType string
-	Index   []int
-	Default types.Q
+	GoName   string  // struct field name, e.g. Id
+	SQLName  string  // SQL name, .e.g. id
+	Column   types.Q // escaped SQL name, e.g. "id"
+	SQLType  string
+	Index    []int
+	Default  types.Q
+	OnDelete string
 
 	flags uint8
 

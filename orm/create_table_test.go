@@ -42,6 +42,12 @@ type CreateTableWithoutPKModel struct {
 	String string
 }
 
+type CreateTableOnDeleteModel struct {
+	Id                 int
+	CreateTableModelId int `sql:"on_delete:RESTRICT"`
+	CreateTableModel   *CreateTableModel
+}
+
 var _ = Describe("CreateTable", func() {
 	It("creates new table", func() {
 		q := NewQuery(nil, &CreateTableModel{})
@@ -66,5 +72,14 @@ var _ = Describe("CreateTable", func() {
 		b, err := createTableQuery{q: q, opt: opt}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_without_pk_models" ("string" varchar(255))`))
+	})
+
+	It("creates new table with on_delete option", func() {
+		q := NewQuery(nil, &CreateTableOnDeleteModel{})
+
+		opt := &CreateTableOptions{FKConstraints: true}
+		b, err := createTableQuery{q: q, opt: opt}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_on_delete_models" ("id" bigserial, "create_table_model_id" bigint, PRIMARY KEY ("id"), FOREIGN KEY ("create_table_model_id") REFERENCES "create_table_models" ("id") ON DELETE RESTRICT)`))
 	})
 })

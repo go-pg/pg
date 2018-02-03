@@ -234,32 +234,42 @@ func ExampleDB_Prepare() {
 }
 
 func ExampleDB_CreateTable() {
-	type Model struct {
-		Id   int
-		Name string
+	type Model1 struct {
+		Id int
 	}
 
-	err := db.CreateTable(&Model{}, &orm.CreateTableOptions{
-		Temp: true, // create temp table
-	})
-	if err != nil {
-		panic(err)
+	type Model2 struct {
+		Id   int
+		Name string
+
+		Model1Id int `sql:"on_delete:RESTRICT"`
+		Model1   *Model1
+	}
+
+	for _, model := range []interface{}{&Model1{}, &Model2{}} {
+		err := db.CreateTable(model, &orm.CreateTableOptions{
+			Temp:          true, // create temp table
+			FKConstraints: true,
+		})
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	var info []struct {
 		ColumnName string
 		DataType   string
 	}
-	_, err = db.Query(&info, `
+	_, err := db.Query(&info, `
 		SELECT column_name, data_type
 		FROM information_schema.columns
-		WHERE table_name = 'models'
+		WHERE table_name = 'model2'
 	`)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(info)
-	// Output: [{id bigint} {name text}]
+	// Output: [{id bigint} {name text} {model1_id bigint}]
 }
 
 func ExampleInts() {
