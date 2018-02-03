@@ -6,10 +6,14 @@ import (
 )
 
 type CreateTableOptions struct {
-	Temp          bool
-	IfNotExists   bool
-	Varchar       int  // replaces PostgreSQL data type `text` with `varchar(n)`
-	FKConstraints bool // whether to create foreign key constraints
+	Temp        bool
+	IfNotExists bool
+	Varchar     int // replaces PostgreSQL data type `text` with `varchar(n)`
+
+	// FKConstraints causes CreateTable to create foreign key constraints
+	// for has one relations. ON DELETE hook can be added using tag
+	// `sql:"on_delete:RESTRICT"` on foreign key field.
+	FKConstraints bool
 }
 
 func CreateTable(db DB, model interface{}, opt *CreateTableOptions) (Result, error) {
@@ -116,7 +120,21 @@ func (q createTableQuery) appendFKConstraint(b []byte, table *Table, rel *Relati
 	b = appendColumns(b, rel.JoinTable.PKs)
 	b = append(b, ")"...)
 
-	b = append(b, " ON DELETE CASCADE"...)
+	if s := onDelete(rel.FKs); s != "" {
+		b = append(b, " ON DELETE "...)
+		b = append(b, s...)
+	}
 
 	return b
+}
+
+func onDelete(fks []*Field) string {
+	var onDelete string
+	for _, f := range fks {
+		if f.OnDelete != "" {
+			onDelete = f.OnDelete
+			break
+		}
+	}
+	return onDelete
 }

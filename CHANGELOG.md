@@ -1,5 +1,9 @@
 # Changelog
 
+## v6.8
+
+- `CreateTable` no longer adds ON DELETE hook by default. To get old behavior users should add `sql:"on_delete:CASCADE"` tag on foreign key field.
+
 ## v6
 
  - `types.Result` is renamed to `orm.Result`.

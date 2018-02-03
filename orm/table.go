@@ -351,6 +351,10 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.SetFlag(ArrayFlag)
 	}
 
+	if v, ok := sqlTag.Options["on_delete"]; ok {
+		field.OnDelete = v
+	}
+
 	if _, ok := pgTag.Options["json_use_number"]; ok {
 		field.append = types.Appender(f.Type)
 		field.scan = scanJSONValue
