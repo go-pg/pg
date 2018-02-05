@@ -168,11 +168,11 @@ var _ = Describe("model with circular reference", func() {
 })
 
 type J struct {
-	JId int64
+	JId int64 `sql:",pk"`
 }
 
 type K struct {
-	KId  int64
+	KId  int64 `sql:",pk"`
 	MyId int64
 	My   *J
 }
