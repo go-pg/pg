@@ -248,20 +248,6 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 	}
 }
 
-func (t *Table) getField(name string) *Field {
-	for _, f := range t.Fields {
-		if f.GoName == name {
-			return f
-		}
-	}
-
-	f, ok := t.Type.FieldByName(name)
-	if !ok {
-		return nil
-	}
-	return t.newField(f, nil)
-}
-
 func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	sqlTag := parseTag(f.Tag.Get("sql"))
 
@@ -387,6 +373,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		if !ok {
 			fk = t.TypeName
 		}
+		if fk == "-" {
+			break
+		}
 
 		if m2mTable, _ := pgTag.Options["many2many"]; m2mTable != "" {
 			m2mTableAlias := m2mTable
@@ -485,14 +474,7 @@ func fieldSQLType(field *Field, sqlTag *tag) string {
 
 	sqlType := sqlType(field.Type)
 	if field.HasFlag(PrimaryKeyFlag) {
-		switch sqlType {
-		case "smallint":
-			return "smallserial"
-		case "integer":
-			return "serial"
-		case "bigint":
-			return "bigserial"
-		}
+		return pkSQLType(sqlType)
 	}
 
 	switch sqlType {
@@ -550,10 +532,32 @@ func sqlType(typ reflect.Type) string {
 	}
 }
 
+func pkSQLType(s string) string {
+	switch s {
+	case "smallint":
+		return "smallserial"
+	case "integer":
+		return "serial"
+	case "bigint":
+		return "bigserial"
+	}
+	return s
+}
+
+func sqlTypeEqual(a, b string) bool {
+	if a == b {
+		return true
+	}
+	return pkSQLType(a) == pkSQLType(b)
+}
+
 func (t *Table) tryHasOne(joinTable *Table, field *Field, tag *tag) bool {
 	fk, ok := tag.Options["fk"]
 	if !ok {
 		fk = field.GoName
+	}
+	if fk == "-" {
+		return false
 	}
 
 	fks := foreignKeys(joinTable, t, fk, field.GoName)
@@ -574,6 +578,9 @@ func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, tag *tag) bool {
 	if !ok {
 		fk = t.TypeName
 	}
+	if fk == "-" {
+		return false
+	}
 
 	fks := foreignKeys(t, joinTable, fk, t.TypeName)
 	if len(fks) > 0 {
@@ -593,7 +600,8 @@ func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
 
 	for _, pk := range base.PKs {
 		fkName := fk + pk.GoName
-		if f := join.getField(fkName); f != nil {
+		f := join.getField(fkName)
+		if f != nil && sqlTypeEqual(pk.SQLType, f.SQLType) {
 			fks = append(fks, f)
 		}
 	}
@@ -602,13 +610,13 @@ func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
 		return fks
 	}
 
-	if fk == "" {
+	if fk == "" || len(base.PKs) != 1 {
 		return nil
 	}
 
 	if fk != fieldName {
 		f := join.getField(fk)
-		if f != nil {
+		if f != nil && sqlTypeEqual(base.PKs[0].SQLType, f.SQLType) {
 			fks = append(fks, f)
 			return fks
 		}
@@ -616,13 +624,27 @@ func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
 
 	for _, suffix := range []string{"Id", "ID", "UUID"} {
 		f := join.getField(fk + suffix)
-		if f != nil {
+		if f != nil && sqlTypeEqual(base.PKs[0].SQLType, f.SQLType) {
 			fks = append(fks, f)
 			return fks
 		}
 	}
 
 	return nil
+}
+
+func (t *Table) getField(name string) *Field {
+	for _, f := range t.Fields {
+		if f.GoName == name {
+			return f
+		}
+	}
+
+	f, ok := t.Type.FieldByName(name)
+	if !ok {
+		return nil
+	}
+	return t.newField(f, nil)
 }
 
 func scanJSONValue(v reflect.Value, b []byte) error {
