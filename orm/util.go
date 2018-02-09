@@ -71,15 +71,20 @@ func columns(b []byte, table types.Q, fields []*Field) []byte {
 }
 
 func columnsPrefix(b []byte, table types.Q, prefix string, fields []*Field) []byte {
+	if len(fields) == 1 {
+		b = append(b, table...)
+		b = append(b, '.')
+		b = types.AppendField(b, prefix, 1)
+		return b
+	}
+
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
 
-		if len(table) > 0 {
-			b = append(b, table...)
-			b = append(b, '.')
-		}
+		b = append(b, table...)
+		b = append(b, '.')
 		b = types.AppendField(b, prefix+f.GoName_, 1)
 	}
 	return b
@@ -152,16 +157,6 @@ func modelId(b []byte, v reflect.Value, fields []*Field) []byte {
 			b = append(b, ',')
 		}
 		b = f.AppendValue(b, v, 0)
-	}
-	return b
-}
-
-func modelIdMap(b []byte, m map[string]string, prefix string, fields []*Field) []byte {
-	for i, f := range fields {
-		if i > 0 {
-			b = append(b, ',')
-		}
-		b = append(b, m[prefix+f.SQLName]...)
 	}
 	return b
 }

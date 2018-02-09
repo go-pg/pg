@@ -69,6 +69,20 @@ func (m *m2mModel) AddModel(model ColumnScanner) error {
 	return nil
 }
 
+func modelIdMap(b []byte, m map[string]string, prefix string, fields []*Field) []byte {
+	if len(fields) == 1 {
+		return append(b, m[prefix]...)
+	}
+
+	for i, f := range fields {
+		if i > 0 {
+			b = append(b, ',')
+		}
+		b = append(b, m[prefix+f.SQLName]...)
+	}
+	return b
+}
+
 func (m *m2mModel) AfterQuery(db DB) error {
 	if !m.rel.JoinTable.HasFlag(AfterQueryHookFlag) {
 		return nil

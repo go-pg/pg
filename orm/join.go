@@ -120,13 +120,22 @@ func (j *join) m2mQuery(db DB) (*Query, error) {
 	join = append(join, ")"...)
 	q = q.Join(internal.BytesToString(join))
 
-	joinAlias := j.JoinModel.Table().Alias
-	for _, pk := range j.JoinModel.Table().PKs {
+	joinTable := j.JoinModel.Table()
+	if len(joinTable.PKs) == 1 {
+		pk := joinTable.PKs[0]
 		q = q.Where(
 			"?.? = ?.?",
-			joinAlias, pk.Column,
-			j.Rel.M2MTableAlias, types.F(j.Rel.JoinPrefix+pk.GoName_),
+			joinTable.Alias, pk.Column,
+			j.Rel.M2MTableAlias, types.F(j.Rel.JoinPrefix),
 		)
+	} else {
+		for _, pk := range joinTable.PKs {
+			q = q.Where(
+				"?.? = ?.?",
+				joinTable.Alias, pk.Column,
+				j.Rel.M2MTableAlias, types.F(j.Rel.JoinPrefix+pk.GoName_),
+			)
+		}
 	}
 
 	return q, nil

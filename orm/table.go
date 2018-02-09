@@ -386,6 +386,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 			if !fkOK {
 				fk = internal.Underscore(t.TypeName) + "_"
+				if len(t.PKs) == 1 {
+					fk += t.PKs[0].GoName_
+				}
 			}
 
 			joinFK, ok := pgTag.Options["joinFK"]
@@ -393,6 +396,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 				joinFK = tryUnderscorePrefix(joinFK)
 			} else {
 				joinFK = internal.Underscore(joinTable.TypeName) + "_"
+				if len(joinTable.PKs) == 1 {
+					joinFK += joinTable.PKs[0].GoName_
+				}
 			}
 
 			t.addRelation(&Relation{
@@ -400,7 +406,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 				Field:         &field,
 				JoinTable:     joinTable,
 				M2MTableName:  types.Q(m2mTable),
-				M2MTableAlias: types.Q(m2mTableAlias),
+				M2MTableAlias: types.Q(types.AppendField(nil, m2mTableAlias, 1)),
 				BasePrefix:    fk,
 				JoinPrefix:    joinFK,
 			})
