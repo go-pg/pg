@@ -56,7 +56,7 @@ func (j *join) manyQuery(db DB) (*Query, error) {
 	baseTable := j.BaseModel.Table()
 	var where []byte
 	where = append(where, "("...)
-	where = columns(where, j.JoinModel.Table().Alias, "", j.Rel.FKs)
+	where = columns(where, j.JoinModel.Table().Alias, j.Rel.FKs)
 	where = append(where, ") IN ("...)
 	where = appendChildValues(
 		where, j.JoinModel.Root(), j.JoinModel.ParentIndex(), baseTable.PKs)
@@ -114,7 +114,7 @@ func (j *join) m2mQuery(db DB) (*Query, error) {
 	join = append(join, " AS "...)
 	join = append(join, j.Rel.M2MTableAlias...)
 	join = append(join, " ON ("...)
-	join = columns(join, j.Rel.M2MTableAlias, j.Rel.BasePrefix, baseTable.PKs)
+	join = columnsPrefix(join, j.Rel.M2MTableAlias, j.Rel.BasePrefix, baseTable.PKs)
 	join = append(join, ") IN ("...)
 	join = appendChildValues(join, j.BaseModel.Root(), index, baseTable.PKs)
 	join = append(join, ")"...)
@@ -125,7 +125,7 @@ func (j *join) m2mQuery(db DB) (*Query, error) {
 		q = q.Where(
 			"?.? = ?.?",
 			joinAlias, pk.Column,
-			j.Rel.M2MTableAlias, types.F(j.Rel.JoinPrefix+pk.SQLName),
+			j.Rel.M2MTableAlias, types.F(j.Rel.JoinPrefix+pk.GoName_),
 		)
 	}
 

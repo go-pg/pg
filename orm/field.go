@@ -19,6 +19,7 @@ type Field struct {
 	Type reflect.Type
 
 	GoName   string  // struct field name, e.g. Id
+	GoName_  string  // underscored struct field name, e.g. id
 	SQLName  string  // SQL name, .e.g. id
 	Column   types.Q // escaped SQL name, e.g. "id"
 	SQLType  string
