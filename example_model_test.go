@@ -656,7 +656,7 @@ func ExampleDB_Model_hasMany() {
 func ExampleDB_Model_hasManySelf() {
 	type Item struct {
 		Id       int
-		Items    []Item `pg:",fk:Parent"`
+		Items    []Item `pg:",fk:parent_"`
 		ParentId int
 	}
 
@@ -694,7 +694,7 @@ func ExampleDB_Model_hasManySelf() {
 func ExampleDB_Model_manyToMany() {
 	type Item struct {
 		Id    int
-		Items []Item `pg:",many2many:item_to_items,joinFK:Sub"`
+		Items []Item `pg:",many2many:item_to_items,joinFK:sub_"`
 	}
 
 	db := connect()

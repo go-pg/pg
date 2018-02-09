@@ -297,6 +297,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		Type: indirectType(f.Type),
 
 		GoName:  f.Name,
+		GoName_: internal.Underscore(f.Name),
 		SQLName: sqlTag.Name,
 		Column:  types.Q(types.AppendField(nil, sqlTag.Name, 1)),
 
@@ -369,12 +370,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		joinTable := newTable(elemType)
 
-		fk, ok := pgTag.Options["fk"]
-		if !ok {
-			fk = t.TypeName
-		}
-		if fk == "-" {
-			break
+		fk, fkOK := pgTag.Options["fk"]
+		if fkOK {
+			if fk == "-" {
+				break
+			}
+			fk = tryUnderscorePrefix(fk)
 		}
 
 		if m2mTable, _ := pgTag.Options["many2many"]; m2mTable != "" {
@@ -383,9 +384,15 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 				m2mTableAlias = m2mTable[ind+1:]
 			}
 
+			if !fkOK {
+				fk = internal.Underscore(t.TypeName) + "_"
+			}
+
 			joinFK, ok := pgTag.Options["joinFK"]
-			if !ok {
-				joinFK = joinTable.TypeName
+			if ok {
+				joinFK = tryUnderscorePrefix(joinFK)
+			} else {
+				joinFK = internal.Underscore(joinTable.TypeName) + "_"
 			}
 
 			t.addRelation(&Relation{
@@ -394,18 +401,20 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 				JoinTable:     joinTable,
 				M2MTableName:  types.Q(m2mTable),
 				M2MTableAlias: types.Q(m2mTableAlias),
-				BasePrefix:    internal.Underscore(fk + "_"),
-				JoinPrefix:    internal.Underscore(joinFK + "_"),
+				BasePrefix:    fk,
+				JoinPrefix:    joinFK,
 			})
 			return nil
 		}
 
 		s, polymorphic := pgTag.Options["polymorphic"]
 		if polymorphic {
-			fk = s
+			fk = tryUnderscorePrefix(s)
+		} else if !fkOK {
+			fk = internal.Underscore(t.TypeName) + "_"
 		}
 
-		fks := foreignKeys(t, joinTable, fk, t.TypeName)
+		fks := foreignKeys(t, joinTable, fk, fkOK || polymorphic)
 		if len(fks) > 0 {
 			t.addRelation(&Relation{
 				Type:        HasManyRelation,
@@ -413,7 +422,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 				Field:       &field,
 				FKs:         fks,
 				JoinTable:   joinTable,
-				BasePrefix:  internal.Underscore(fk + "_"),
+				BasePrefix:  fk,
 			})
 			return nil
 		}
@@ -552,15 +561,17 @@ func sqlTypeEqual(a, b string) bool {
 }
 
 func (t *Table) tryHasOne(joinTable *Table, field *Field, tag *tag) bool {
-	fk, ok := tag.Options["fk"]
-	if !ok {
-		fk = field.GoName
-	}
-	if fk == "-" {
-		return false
+	fk, fkOK := tag.Options["fk"]
+	if fkOK {
+		if fk == "-" {
+			return false
+		}
+		fk = tryUnderscorePrefix(fk)
+	} else {
+		fk = internal.Underscore(field.GoName) + "_"
 	}
 
-	fks := foreignKeys(joinTable, t, fk, field.GoName)
+	fks := foreignKeys(joinTable, t, fk, fkOK)
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
 			Type:      HasOneRelation,
@@ -574,15 +585,17 @@ func (t *Table) tryHasOne(joinTable *Table, field *Field, tag *tag) bool {
 }
 
 func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, tag *tag) bool {
-	fk, ok := tag.Options["fk"]
-	if !ok {
-		fk = t.TypeName
-	}
-	if fk == "-" {
-		return false
+	fk, fkOK := tag.Options["fk"]
+	if fkOK {
+		if fk == "-" {
+			return false
+		}
+		fk = tryUnderscorePrefix(fk)
+	} else {
+		fk = internal.Underscore(t.TypeName) + "_"
 	}
 
-	fks := foreignKeys(t, joinTable, fk, t.TypeName)
+	fks := foreignKeys(t, joinTable, fk, fkOK)
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
 			Type:      BelongsToRelation,
@@ -595,11 +608,11 @@ func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, tag *tag) bool {
 	return false
 }
 
-func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
+func foreignKeys(base, join *Table, fk string, tryFK bool) []*Field {
 	var fks []*Field
 
 	for _, pk := range base.PKs {
-		fkName := fk + pk.GoName
+		fkName := fk + pk.GoName_
 		f := join.getField(fkName)
 		if f != nil && sqlTypeEqual(pk.SQLType, f.SQLType) {
 			fks = append(fks, f)
@@ -614,7 +627,7 @@ func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
 		return nil
 	}
 
-	if fk != fieldName {
+	if tryFK {
 		f := join.getField(fk)
 		if f != nil && sqlTypeEqual(base.PKs[0].SQLType, f.SQLType) {
 			fks = append(fks, f)
@@ -622,7 +635,7 @@ func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
 		}
 	}
 
-	for _, suffix := range []string{"Id", "ID", "UUID"} {
+	for _, suffix := range []string{"id", "uuid"} {
 		f := join.getField(fk + suffix)
 		if f != nil && sqlTypeEqual(base.PKs[0].SQLType, f.SQLType) {
 			fks = append(fks, f)
@@ -634,13 +647,11 @@ func foreignKeys(base, join *Table, fk, fieldName string) []*Field {
 }
 
 func (t *Table) getField(name string) *Field {
-	for _, f := range t.Fields {
-		if f.GoName == name {
-			return f
-		}
+	if f, ok := t.FieldsMap[name]; ok {
+		return f
 	}
 
-	f, ok := t.Type.FieldByName(name)
+	f, ok := t.Type.FieldByName(internal.CamelCased(name))
 	if !ok {
 		return nil
 	}
@@ -658,4 +669,14 @@ func scanJSONValue(v reflect.Value, b []byte) error {
 	dec := json.NewDecoder(bytes.NewReader(b))
 	dec.UseNumber()
 	return dec.Decode(v.Addr().Interface())
+}
+
+func tryUnderscorePrefix(s string) string {
+	if s == "" {
+		return s
+	}
+	if c := s[0]; internal.IsUpper(c) {
+		return internal.Underscore(s) + "_"
+	}
+	return s
 }

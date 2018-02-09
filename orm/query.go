@@ -354,7 +354,7 @@ loop:
 		if ind != -1 {
 			field := order[:ind]
 			sort := order[ind+1:]
-			switch internal.ToUpper(sort) {
+			switch internal.UpperString(sort) {
 			case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
 				"ASC NULLS LAST", "DESC NULLS LAST":
 				q = q.OrderExpr("? ?", types.F(field), types.Q(sort))
@@ -445,7 +445,7 @@ func (q *Query) First() error {
 		return err
 	}
 
-	b := columns(nil, q.model.Table().Alias, "", q.model.Table().PKs)
+	b := columns(nil, q.model.Table().Alias, q.model.Table().PKs)
 	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select()
 }
 
@@ -459,7 +459,7 @@ func (q *Query) Last() error {
 		return err
 	}
 
-	b := columns(nil, q.model.Table().Alias, "", q.model.Table().PKs)
+	b := columns(nil, q.model.Table().Alias, q.model.Table().PKs)
 	b = append(b, " DESC"...)
 	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select()
 }

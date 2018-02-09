@@ -55,7 +55,7 @@ func indirectNew(v reflect.Value) reflect.Value {
 	return v
 }
 
-func columns(b []byte, table types.Q, prefix string, fields []*Field) []byte {
+func columns(b []byte, table types.Q, fields []*Field) []byte {
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)
@@ -65,7 +65,22 @@ func columns(b []byte, table types.Q, prefix string, fields []*Field) []byte {
 			b = append(b, table...)
 			b = append(b, '.')
 		}
-		b = types.AppendField(b, prefix+f.SQLName, 1)
+		b = types.AppendField(b, f.SQLName, 1)
+	}
+	return b
+}
+
+func columnsPrefix(b []byte, table types.Q, prefix string, fields []*Field) []byte {
+	for i, f := range fields {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+
+		if len(table) > 0 {
+			b = append(b, table...)
+			b = append(b, '.')
+		}
+		b = types.AppendField(b, prefix+f.GoName_, 1)
 	}
 	return b
 }

@@ -13,6 +13,7 @@ var tagTests = []struct {
 
 	{"hello", "hello", nil},
 	{",hello", "", map[string]string{"hello": ""}},
+	{"hello:", "", map[string]string{"hello": ""}},
 	{"hello:world", "", map[string]string{"hello": "world"}},
 	{"hello:world,foo:bar", "", map[string]string{"hello": "world", "foo": "bar"}},
 	{"hello:'world1,world2'", "", map[string]string{"hello": "'world1,world2'"}},

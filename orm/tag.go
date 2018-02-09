@@ -20,31 +20,37 @@ func parseTag(s string) *tag {
 type tagParser struct {
 	*parser.Parser
 
-	tag tag
-	key string
+	tag     tag
+	hasName bool
+	key     string
+}
+
+func (p *tagParser) setName(name string) {
+	if p.hasName || p.tag.Options != nil {
+		p.setTagOption(name, "")
+		return
+	}
+	p.hasName = true
+	p.tag.Name = name
 }
 
 func (p *tagParser) setTagOption(key, value string) {
 	if p.tag.Options == nil {
 		p.tag.Options = make(map[string]string)
-		if value == "" && p.tag.Name == "" {
-			p.tag.Name = key
-			return
-		}
 	}
-	if key != "" {
-		p.tag.Options[key] = value
-	}
+	p.tag.Options[key] = value
 }
 
 func (p *tagParser) parseKey() {
+	p.key = ""
+
 	var b []byte
 	for p.Valid() {
 		c := p.Read()
 		switch c {
 		case ',':
 			p.Skip(' ')
-			p.setTagOption(string(b), "")
+			p.setName(string(b))
 			p.parseKey()
 			return
 		case ':':
@@ -55,8 +61,9 @@ func (p *tagParser) parseKey() {
 			b = append(b, c)
 		}
 	}
+
 	if len(b) > 0 {
-		p.setTagOption(string(b), "")
+		p.setName(string(b))
 	}
 }
 
@@ -85,9 +92,7 @@ func (p *tagParser) parseValue() {
 			b = append(b, c)
 		}
 	}
-	if len(b) > 0 {
-		p.setTagOption(p.key, string(b))
-	}
+	p.setTagOption(p.key, string(b))
 }
 
 func (p *tagParser) parseQuotedValue() {
@@ -115,15 +120,14 @@ func (p *tagParser) parseQuotedValue() {
 
 		b = append(b, bb...)
 		b = append(b, quote)
-
-		p.setTagOption(p.key, string(b))
-		p.parseKey()
-		return
+		break
 	}
 
-	if len(b) > 0 {
-		p.setTagOption(p.key, string(b))
+	p.setTagOption(p.key, string(b))
+	if p.Skip(',') {
+		p.Skip(' ')
 	}
+	p.parseKey()
 }
 
 func unquote(s string) (string, bool) {

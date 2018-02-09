@@ -752,7 +752,7 @@ type Genre struct {
 	Books []Book `pg:"many2many:book_genres"` // many to many relation
 
 	ParentId  int
-	Subgenres []Genre `pg:"fk:Parent"` // fk specifies prefix for foreign key (ParentId)
+	Subgenres []Genre `pg:"fk:parent_"` // fk specifies prefix for foreign key (parent_id)
 }
 
 func (g Genre) String() string {
@@ -800,7 +800,7 @@ type Book struct {
 
 	Genres       []Genre       `pg:"many2many:book_genres"` // many to many relation
 	Translations []Translation // has many relation
-	Comments     []Comment     `pg:"polymorphic:Trackable"` // has many polymorphic relation
+	Comments     []Comment     `pg:"polymorphic:trackable_"` // has many polymorphic relation
 }
 
 func (b Book) String() string {
@@ -831,7 +831,7 @@ type Translation struct {
 	Book   *Book // has one relation
 	Lang   string
 
-	Comments []Comment `pg:",polymorphic:Trackable"` // has many polymorphic relation
+	Comments []Comment `pg:",polymorphic:trackable_"` // has many polymorphic relation
 }
 
 type Comment struct {
