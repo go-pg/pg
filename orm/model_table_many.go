@@ -19,7 +19,7 @@ var _ tableModel = (*manyModel)(nil)
 func newManyModel(j *join) *manyModel {
 	baseTable := j.BaseModel.Table()
 	joinModel := j.JoinModel.(*sliceTableModel)
-	dstValues := dstValues(joinModel, baseTable.PKs)
+	dstValues := dstValues(joinModel, j.Rel.FKValues)
 	if len(dstValues) == 0 {
 		return nil
 	}
