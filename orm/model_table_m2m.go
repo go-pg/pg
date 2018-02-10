@@ -54,8 +54,8 @@ func (m *m2mModel) AddModel(model ColumnScanner) error {
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
 		return fmt.Errorf(
-			"pg: relation=%q has no base model=%q with id=%q (check join conditions)",
-			m.rel.Field.GoName, m.baseTable.TypeName, m.buf)
+			"pg: relation=%q has no base %s with id=%q (check join conditions)",
+			m.rel.Field.GoName, m.baseTable, m.buf)
 	}
 
 	for _, v := range dstValues {
