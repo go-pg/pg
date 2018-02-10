@@ -551,7 +551,8 @@ func sqlType(typ reflect.Type) string {
 	case reflect.Uint32, reflect.Int64, reflect.Int:
 		return "bigint"
 	case reflect.Uint, reflect.Uint64:
-		return "decimal"
+		// The lesser of two evils.
+		return "bigint"
 	case reflect.Float32:
 		return "real"
 	case reflect.Float64:

@@ -3,6 +3,7 @@
 ## v6.9
 
 - `pg:"fk"` tag now accepts SQL names instead of Go names, e.g. `pg:"fk:ParentId"` becomes `pg:"fk:parent_id"`. Old code should continue working in most cases, but it is strongly advised to start using new convention.
+- uint and uint64 SQL type is changed from decimal to bigint according to the the lesser of two evils principle. Use `sql:"type:decimal"` to get old behavior.
 
 ## v6.8
 
