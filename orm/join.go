@@ -59,7 +59,7 @@ func (j *join) manyQuery(db DB) (*Query, error) {
 	where = columns(where, j.JoinModel.Table().Alias, j.Rel.FKs)
 	where = append(where, ") IN ("...)
 	where = appendChildValues(
-		where, j.JoinModel.Root(), j.JoinModel.ParentIndex(), baseTable.PKs)
+		where, j.JoinModel.Root(), j.JoinModel.ParentIndex(), j.Rel.FKValues)
 	where = append(where, ")"...)
 	q = q.Where(internal.BytesToString(where))
 

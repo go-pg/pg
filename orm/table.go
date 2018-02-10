@@ -55,6 +55,10 @@ type Table struct {
 	flags uint16
 }
 
+func (t *Table) String() string {
+	return "model=" + t.TypeName
+}
+
 func (t *Table) SetFlag(flag uint16) {
 	t.flags |= flag
 }
@@ -73,7 +77,7 @@ func (t *Table) HasField(field string) bool {
 
 func (t *Table) checkPKs() error {
 	if len(t.PKs) == 0 {
-		return fmt.Errorf("model=%s does not have primary keys", t.TypeName)
+		return fmt.Errorf("%s does not have primary keys", t)
 	}
 	return nil
 }
@@ -421,13 +425,34 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 
 		fks := foreignKeys(t, joinTable, fk, fkOK || polymorphic)
+		if len(fks) == 0 {
+			break
+		}
+
+		var fkValues []*Field
+		fkValue, ok := pgTag.Options["fk_value"]
+		if ok {
+			if len(fks) > 1 {
+				panic(fmt.Errorf("got fk_value, but there are %d fks", len(fks)))
+			}
+
+			f := t.getField(fkValue)
+			if f == nil {
+				panic(fmt.Errorf("fk_value=%q not found in %s", fkValue, t))
+			}
+			fkValues = append(fkValues, f)
+		} else {
+			fkValues = t.PKs
+		}
+
 		if len(fks) > 0 {
 			t.addRelation(&Relation{
 				Type:        HasManyRelation,
 				Polymorphic: polymorphic,
 				Field:       &field,
-				FKs:         fks,
 				JoinTable:   joinTable,
+				FKs:         fks,
+				FKValues:    fkValues,
 				BasePrefix:  fk,
 			})
 			return nil
@@ -657,11 +682,13 @@ func (t *Table) getField(name string) *Field {
 		return f
 	}
 
-	f, ok := t.Type.FieldByName(internal.CamelCased(name))
-	if !ok {
-		return nil
+	for i := 0; i < t.Type.NumField(); i++ {
+		f := t.Type.Field(i)
+		if internal.Underscore(f.Name) == name {
+			return t.newField(f, nil)
+		}
 	}
-	return t.newField(f, nil)
+	return nil
 }
 
 func scanJSONValue(v reflect.Value, b []byte) error {

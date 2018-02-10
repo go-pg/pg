@@ -15,6 +15,7 @@ type Relation struct {
 	Field       *Field
 	JoinTable   *Table
 	FKs         []*Field
+	FKValues    []*Field
 
 	M2MTableName  types.Q
 	M2MTableAlias types.Q
