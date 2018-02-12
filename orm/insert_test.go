@@ -55,6 +55,30 @@ var _ = Describe("Insert", func() {
 		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" ("id") VALUES (1)`))
 	})
 
+	It("supports Value", func() {
+		model := &InsertTest{
+			Id:    1,
+			Value: "hello",
+		}
+		q := NewQuery(nil, model).Value("value", "upper(?)", model.Value)
+
+		b, err := insertQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello'))`))
+	})
+
+	It("supports Value 2", func() {
+		model := &InsertTest{
+			Id:    1,
+			Value: "hello",
+		}
+		q := NewQuery(nil, model).Value("value", "upper(?value)")
+
+		b, err := insertQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello'))`))
+	})
+
 	It("multi inserts", func() {
 		q := NewQuery(nil, &InsertTest{
 			Id:    1,

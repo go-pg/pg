@@ -63,10 +63,7 @@ func isZeroAppenderValue(v reflect.Value) bool {
 	}
 
 	appender := v.Interface().(types.ValueAppender)
-	value, err := appender.AppendValue(nil, 0)
-	if err != nil {
-		return false
-	}
+	value := appender.AppendValue(nil, 0)
 	return value == nil
 }
 

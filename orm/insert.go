@@ -124,6 +124,13 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) [
 		if i > 0 {
 			b = append(b, ", "...)
 		}
+
+		app, ok := q.q.values[f.SQLName]
+		if ok {
+			b = app.AppendFormat(b, q.q)
+			continue
+		}
+
 		if f.OmitZero(v) {
 			b = append(b, "DEFAULT"...)
 			q.addReturningField(f)

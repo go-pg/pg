@@ -107,9 +107,9 @@ func (strings *Strings) ScanColumn(colIdx int, _ string, b []byte) error {
 	return nil
 }
 
-func (strings Strings) AppendValue(dst []byte, quote int) ([]byte, error) {
+func (strings Strings) AppendValue(dst []byte, quote int) []byte {
 	if len(strings) <= 0 {
-		return dst, nil
+		return dst
 	}
 
 	for _, s := range strings {
@@ -117,7 +117,7 @@ func (strings Strings) AppendValue(dst []byte, quote int) ([]byte, error) {
 		dst = append(dst, ',')
 	}
 	dst = dst[:len(dst)-1]
-	return dst, nil
+	return dst
 }
 
 //------------------------------------------------------------------------------
@@ -151,9 +151,9 @@ func (ints *Ints) ScanColumn(colIdx int, colName string, b []byte) error {
 	return nil
 }
 
-func (ints Ints) AppendValue(dst []byte, quote int) ([]byte, error) {
+func (ints Ints) AppendValue(dst []byte, quote int) []byte {
 	if len(ints) <= 0 {
-		return dst, nil
+		return dst
 	}
 
 	for _, v := range ints {
@@ -161,7 +161,7 @@ func (ints Ints) AppendValue(dst []byte, quote int) ([]byte, error) {
 		dst = append(dst, ',')
 	}
 	dst = dst[:len(dst)-1]
-	return dst, nil
+	return dst
 }
 
 //------------------------------------------------------------------------------

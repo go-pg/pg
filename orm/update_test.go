@@ -19,6 +19,30 @@ var _ = Describe("Update", func() {
 		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = NULL WHERE "update_test"."id" = NULL`))
 	})
 
+	It("supports Value", func() {
+		model := &UpdateTest{
+			Id:    1,
+			Value: "hello",
+		}
+		q := NewQuery(nil, model).Value("value", "upper(?)", model.Value)
+
+		b, err := updateQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = upper('hello') WHERE "update_test"."id" = 1`))
+	})
+
+	It("supports Value 2", func() {
+		model := &UpdateTest{
+			Id:    1,
+			Value: "hello",
+		}
+		q := NewQuery(nil, model).Value("value", "upper(?value)")
+
+		b, err := updateQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = upper('hello') WHERE "update_test"."id" = 1`))
+	})
+
 	It("omits zero", func() {
 		q := NewQuery(nil, &UpdateTest{})
 

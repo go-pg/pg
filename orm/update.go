@@ -138,7 +138,13 @@ func (q updateQuery) appendSetStruct(b []byte, strct reflect.Value) ([]byte, err
 
 		b = append(b, f.Column...)
 		b = append(b, " = "...)
-		b = f.AppendValue(b, strct, 1)
+
+		app, ok := q.q.values[f.SQLName]
+		if ok {
+			b = app.AppendFormat(b, q.q)
+		} else {
+			b = f.AppendValue(b, strct, 1)
+		}
 	}
 	return b, nil
 }

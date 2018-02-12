@@ -22,8 +22,8 @@ func InSlice(slice interface{}) ValueAppender {
 	}
 }
 
-func (in *inOp) AppendValue(b []byte, quote int) ([]byte, error) {
-	return appendIn(b, in.slice, quote), nil
+func (in *inOp) AppendValue(b []byte, quote int) []byte {
+	return appendIn(b, in.slice, quote)
 }
 
 func appendIn(b []byte, slice reflect.Value, quote int) []byte {

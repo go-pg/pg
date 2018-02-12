@@ -157,7 +157,8 @@ func (ln *Listener) Listen(channels ...string) error {
 
 func (ln *Listener) listen(cn *pool.Conn, channels ...string) error {
 	for _, channel := range channels {
-		if err := writeQueryMsg(cn.Writer, ln.db, "LISTEN ?", pgChan(channel)); err != nil {
+		err := writeQueryMsg(cn.Writer, ln.db, "LISTEN ?", pgChan(channel))
+		if err != nil {
 			return err
 		}
 	}
@@ -202,9 +203,9 @@ type pgChan string
 
 var _ types.ValueAppender = pgChan("")
 
-func (ch pgChan) AppendValue(b []byte, quote int) ([]byte, error) {
+func (ch pgChan) AppendValue(b []byte, quote int) []byte {
 	if quote == 0 {
-		return append(b, ch...), nil
+		return append(b, ch...)
 	}
 
 	b = append(b, '"')
@@ -217,5 +218,5 @@ func (ch pgChan) AppendValue(b []byte, quote int) ([]byte, error) {
 	}
 	b = append(b, '"')
 
-	return b, nil
+	return b
 }
