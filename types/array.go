@@ -40,9 +40,8 @@ func (a *Array) Value() interface{} {
 	return nil
 }
 
-func (a *Array) AppendValue(b []byte, quote int) ([]byte, error) {
-	b = a.append(b, a.v, quote)
-	return b, nil
+func (a *Array) AppendValue(b []byte, quote int) []byte {
+	return a.append(b, a.v, quote)
 }
 
 func (a *Array) Scan(b interface{}) error {

@@ -37,11 +37,11 @@ func (tm *NullTime) UnmarshalJSON(b []byte) error {
 	return tm.Time.UnmarshalJSON(b)
 }
 
-func (tm NullTime) AppendValue(b []byte, quote int) ([]byte, error) {
+func (tm NullTime) AppendValue(b []byte, quote int) []byte {
 	if tm.IsZero() {
-		return types.AppendNull(b, quote), nil
+		return types.AppendNull(b, quote)
 	}
-	return types.AppendTime(b, tm.Time, quote), nil
+	return types.AppendTime(b, tm.Time, quote)
 }
 
 func (tm *NullTime) Scan(b interface{}) error {

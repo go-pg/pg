@@ -159,7 +159,7 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 
 func (q selectQuery) isDistinct() bool {
 	for _, column := range q.q.columns {
-		column, ok := column.(queryParamsAppender)
+		column, ok := column.(*queryParamsAppender)
 		if ok {
 			if strings.Contains(column.query, "DISTINCT") ||
 				strings.Contains(column.query, "distinct") {

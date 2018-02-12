@@ -30,6 +30,7 @@ type queryParamsAppender struct {
 }
 
 var _ FormatAppender = (*queryParamsAppender)(nil)
+var _ types.ValueAppender = (*queryParamsAppender)(nil)
 
 func Q(query string, params ...interface{}) queryParamsAppender {
 	return queryParamsAppender{query, params}
@@ -39,8 +40,8 @@ func (q queryParamsAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 	return f.FormatQuery(b, q.query, q.params...)
 }
 
-func (q queryParamsAppender) AppendValue(b []byte, quote int) ([]byte, error) {
-	return q.AppendFormat(b, formatter), nil
+func (q queryParamsAppender) AppendValue(b []byte, quote int) []byte {
+	return q.AppendFormat(b, formatter)
 }
 
 //------------------------------------------------------------------------------

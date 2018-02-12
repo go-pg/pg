@@ -179,9 +179,5 @@ func appendDriverValuer(b []byte, v driver.Valuer, quote int) []byte {
 }
 
 func appendAppender(b []byte, v ValueAppender, quote int) []byte {
-	bb, err := v.AppendValue(b, quote)
-	if err != nil {
-		return AppendError(b, err)
-	}
-	return bb
+	return v.AppendValue(b, quote)
 }

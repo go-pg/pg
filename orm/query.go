@@ -29,14 +29,15 @@ type Query struct {
 	tables     []FormatAppender
 	columns    []FormatAppender
 	set        []FormatAppender
+	values     map[string]*queryParamsAppender
 	where      []sepFormatAppender
 	updWhere   []sepFormatAppender
 	joins      []FormatAppender
 	group      []FormatAppender
-	having     []queryParamsAppender
+	having     []*queryParamsAppender
 	order      []FormatAppender
 	onConflict *queryParamsAppender
-	returning  []queryParamsAppender
+	returning  []*queryParamsAppender
 	limit      int
 	offset     int
 	selFor     FormatAppender
@@ -148,7 +149,7 @@ func (q *Query) Table(tables ...string) *Query {
 }
 
 func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
-	q.tables = append(q.tables, queryParamsAppender{expr, params})
+	q.tables = append(q.tables, &queryParamsAppender{expr, params})
 	return q
 }
 
@@ -176,7 +177,7 @@ func (q *Query) Column(columns ...string) *Query {
 
 // ColumnExpr adds column expression to the Query.
 func (q *Query) ColumnExpr(expr string, params ...interface{}) *Query {
-	q.columns = append(q.columns, queryParamsAppender{expr, params})
+	q.columns = append(q.columns, &queryParamsAppender{expr, params})
 	return q
 }
 
@@ -223,7 +224,15 @@ func (q *Query) Relation(name string, apply func(*Query) (*Query, error)) *Query
 }
 
 func (q *Query) Set(set string, params ...interface{}) *Query {
-	q.set = append(q.set, queryParamsAppender{set, params})
+	q.set = append(q.set, &queryParamsAppender{set, params})
+	return q
+}
+
+func (q *Query) Value(column string, value string, params ...interface{}) *Query {
+	if q.values == nil {
+		q.values = make(map[string]*queryParamsAppender)
+	}
+	q.values[column] = &queryParamsAppender{value, params}
 	return q
 }
 
@@ -324,7 +333,7 @@ func (q *Query) WherePK() *Query {
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
-	q.joins = append(q.joins, queryParamsAppender{join, params})
+	q.joins = append(q.joins, &queryParamsAppender{join, params})
 	return q
 }
 
@@ -336,12 +345,12 @@ func (q *Query) Group(columns ...string) *Query {
 }
 
 func (q *Query) GroupExpr(group string, params ...interface{}) *Query {
-	q.group = append(q.group, queryParamsAppender{group, params})
+	q.group = append(q.group, &queryParamsAppender{group, params})
 	return q
 }
 
 func (q *Query) Having(having string, params ...interface{}) *Query {
-	q.having = append(q.having, queryParamsAppender{having, params})
+	q.having = append(q.having, &queryParamsAppender{having, params})
 	return q
 }
 
@@ -369,7 +378,7 @@ loop:
 
 // Order adds sort order to the Query.
 func (q *Query) OrderExpr(order string, params ...interface{}) *Query {
-	q.order = append(q.order, queryParamsAppender{order, params})
+	q.order = append(q.order, &queryParamsAppender{order, params})
 	return q
 }
 
@@ -394,12 +403,12 @@ func (q *Query) onConflictDoUpdate() bool {
 }
 
 func (q *Query) Returning(s string, params ...interface{}) *Query {
-	q.returning = append(q.returning, queryParamsAppender{s, params})
+	q.returning = append(q.returning, &queryParamsAppender{s, params})
 	return q
 }
 
 func (q *Query) For(s string, params ...interface{}) *Query {
-	q.selFor = queryParamsAppender{s, params}
+	q.selFor = &queryParamsAppender{s, params}
 	return q
 }
 

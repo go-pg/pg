@@ -40,9 +40,8 @@ func (h *Hstore) Value() interface{} {
 	return nil
 }
 
-func (h *Hstore) AppendValue(b []byte, quote int) ([]byte, error) {
-	b = h.append(b, h.v, quote)
-	return b, nil
+func (h *Hstore) AppendValue(b []byte, quote int) []byte {
+	return h.append(b, h.v, quote)
 }
 
 func (h *Hstore) Scan(b interface{}) error {
