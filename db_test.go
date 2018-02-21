@@ -794,8 +794,8 @@ type Book struct {
 	AuthorID  int
 	Author    Author // has one relation
 	EditorID  int
-	Editor    *Author // has one relation
-	CreatedAt time.Time
+	Editor    *Author   // has one relation
+	CreatedAt time.Time `sql:"default:now()"`
 	UpdatedAt time.Time
 
 	Genres       []Genre       `pg:"many2many:book_genres"` // many to many relation
@@ -827,9 +827,9 @@ type Translation struct {
 	tableName struct{} `sql:",alias:tr"` // custom table alias
 
 	Id     int
-	BookId int
-	Book   *Book // has one relation
-	Lang   string
+	BookId int    `sql:"unique:book_id_lang"`
+	Book   *Book  // has one relation
+	Lang   string `sql:"unique:book_id_lang"`
 
 	Comments []Comment `pg:",polymorphic:trackable_"` // has many polymorphic relation
 }

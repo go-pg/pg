@@ -82,6 +82,9 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	b = appendPKConstraint(b, table.PKs)
+	for _, fields := range table.Unique {
+		b = appendUnique(b, fields)
+	}
 
 	if q.opt != nil && q.opt.FKConstraints {
 		for _, rel := range table.Relations {
@@ -101,6 +104,13 @@ func appendPKConstraint(b []byte, pks []*Field) []byte {
 
 	b = append(b, ", PRIMARY KEY ("...)
 	b = appendColumns(b, pks)
+	b = append(b, ")"...)
+	return b
+}
+
+func appendUnique(b []byte, fields []*Field) []byte {
+	b = append(b, ", UNIQUE ("...)
+	b = appendColumns(b, fields)
 	b = append(b, ")"...)
 	return b
 }

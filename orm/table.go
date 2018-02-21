@@ -51,6 +51,7 @@ type Table struct {
 
 	Methods   map[string]*Method
 	Relations map[string]*Relation
+	Unique    map[string][]*Field
 
 	flags uint16
 }
@@ -311,8 +312,15 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	if _, ok := sqlTag.Options["notnull"]; ok {
 		field.SetFlag(NotNullFlag)
 	}
-	if _, ok := sqlTag.Options["unique"]; ok {
-		field.SetFlag(UniqueFlag)
+	if v, ok := sqlTag.Options["unique"]; ok {
+		if v == "" {
+			field.SetFlag(UniqueFlag)
+		} else {
+			if t.Unique == nil {
+				t.Unique = make(map[string][]*Field)
+			}
+			t.Unique[v] = append(t.Unique[v], &field)
+		}
 	}
 	if v, ok := sqlTag.Options["default"]; ok {
 		v, ok = unquote(v)
