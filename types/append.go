@@ -3,6 +3,7 @@ package types
 import (
 	"database/sql/driver"
 	"encoding/hex"
+	"math"
 	"reflect"
 	"strconv"
 	"time"
@@ -76,7 +77,16 @@ func appendBool(dst []byte, v bool) []byte {
 }
 
 func appendFloat(dst []byte, v float64) []byte {
-	return strconv.AppendFloat(dst, v, 'f', -1, 64)
+	switch {
+	case math.IsNaN(v):
+		return append(dst, "'NaN'"...)
+	case math.IsInf(v,1):
+		return append(dst, "'Infinity'"...)
+	case math.IsInf(v,-1):
+		return append(dst, "'-Infinity'"...)
+	default:
+		return strconv.AppendFloat(dst, v, 'f', -1, 64)
+	}
 }
 
 func AppendString(b []byte, s string, quote int) []byte {
