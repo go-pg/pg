@@ -740,6 +740,7 @@ func (q *Query) Delete(values ...interface{}) (Result, error) {
 	return res, nil
 }
 
+// CreateTable creates table for the model.
 func (q *Query) CreateTable(opt *CreateTableOptions) (Result, error) {
 	if q.stickyErr != nil {
 		return nil, q.stickyErr
