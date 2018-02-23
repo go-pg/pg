@@ -497,11 +497,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 }
 
 func isPostgresKeyword(s string) bool {
-	switch s {
-	case "user":
+	switch strings.ToLower(s) {
+	case "user", "group", "constraint", "limit", "member", "placing", "references", "table":
 		return true
+	default:
+		return false
 	}
-	return false
 }
 
 func isColumn(typ reflect.Type) bool {
