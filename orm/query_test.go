@@ -31,9 +31,9 @@ func TestQueryFormatQuery(t *testing.T) {
 	}{
 		"not_foo",
 	}
-	b := q.FormatQuery(nil, "?foo ?TableName ?TableAlias ?Columns", params)
+	b := q.FormatQuery(nil, "?foo ?TableName ?TableAlias ?TableColumns ?Columns", params)
 
-	wanted := `'not_foo' "format_models" "format_model" "format_model"."foo", "format_model"."bar"`
+	wanted := `'not_foo' "format_models" "format_model" "format_model"."foo", "format_model"."bar" "foo", "bar"`
 	if string(b) != wanted {
 		t.Fatalf("got `%s`, wanted `%s`", string(b), wanted)
 	}

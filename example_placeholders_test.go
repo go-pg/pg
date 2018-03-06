@@ -58,16 +58,17 @@ func Example_placeholders() {
 	fmt.Println("global:", num)
 
 	// Model params.
-	var tableName, tableAlias, columns string
+	var tableName, tableAlias, tableColumns, columns string
 	_, err = db.Model(&Params{}).Query(
-		pg.Scan(&tableName, &tableAlias, &columns),
-		"SELECT '?TableName', '?TableAlias', '?Columns'",
+		pg.Scan(&tableName, &tableAlias, &tableColumns, &columns),
+		"SELECT '?TableName', '?TableAlias', '?TableColumns', '?Columns'",
 	)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("table name:", tableName)
 	fmt.Println("table alias:", tableAlias)
+	fmt.Println("table columns:", tableColumns)
 	fmt.Println("columns:", columns)
 
 	// Output: simple: 42
@@ -76,5 +77,6 @@ func Example_placeholders() {
 	// global: 3
 	// table name: "params"
 	// table alias: "params"
-	// columns: "params"."x", "params"."y"
+	// table columns: "params"."x", "params"."y"
+	// columns: "x", "y"
 }

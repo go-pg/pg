@@ -1,5 +1,9 @@
 # Changelog
 
+## v6.10
+
+- `?Columns` is renamed to `?TableColumns`. `?Columns` is changed to produce column names without table alias.
+
 ## v6.9
 
 - `pg:"fk"` tag now accepts SQL names instead of Go names, e.g. `pg:"fk:ParentId"` becomes `pg:"fk:parent_id"`. Old code should continue working in most cases, but it is strongly advised to start using new convention.
