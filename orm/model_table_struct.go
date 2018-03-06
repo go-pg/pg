@@ -59,8 +59,11 @@ func (m *structTableModel) AppendParam(b []byte, f QueryFormatter, name string) 
 	case "TableAlias":
 		b = append(b, m.table.Alias...)
 		return b, true
-	case "Columns":
+	case "TableColumns":
 		b = appendTableColumns(b, m.table)
+		return b, true
+	case "Columns":
+		b = appendColumns(b, m.table.Fields)
 		return b, true
 	}
 
