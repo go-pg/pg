@@ -475,7 +475,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			ff = ff.Copy()
 			ff.SQLName = field.SQLName + "__" + ff.SQLName
 			ff.Column = types.Q(types.AppendField(nil, ff.SQLName, 1))
-			ff.Index = append(field.Index, ff.Index...)
+			ff.Index = append(field.Index[:len(field.Index):len(field.Index)], ff.Index...)
 			if _, ok := t.FieldsMap[ff.SQLName]; !ok {
 				t.FieldsMap[ff.SQLName] = ff
 			}
@@ -498,7 +498,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 func isPostgresKeyword(s string) bool {
 	switch strings.ToLower(s) {
-	case "user", "group", "constraint", "limit", "member", "placing", "references", "table":
+	case "user", "group", "constraint", "limit",
+		"member", "placing", "references", "table":
 		return true
 	default:
 		return false

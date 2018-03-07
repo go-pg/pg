@@ -2,21 +2,12 @@ package orm_test
 
 import (
 	"testing"
-	"unsafe"
 
 	"github.com/go-pg/pg/orm"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
-
-func TestQuerySize(t *testing.T) {
-	size := int(unsafe.Sizeof(orm.Query{}))
-	wanted := 368
-	if size != wanted {
-		t.Fatalf("got %d, wanted %d", size, wanted)
-	}
-}
 
 func TestQueryFormatQuery(t *testing.T) {
 	type FormatModel struct {

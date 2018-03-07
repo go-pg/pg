@@ -211,9 +211,9 @@ func conversionTests() []conversionTest {
 
 		{src: nil, dst: int(0), pgtype: "bigint", wanterr: "pg: Scan(nonsettable int)"},
 		{src: nil, dst: new(int), pgtype: "bigint", wantzero: true},
-		{src: int(math.MaxInt64), dst: new(int), pgtype: "bigint"},
-		{src: int(math.MaxInt64), dst: new(*int), pgtype: "bigint"},
-		{src: int(math.MinInt32), dst: new(int), pgtype: "bigint"},
+		{src: int64(math.MaxInt64), dst: new(int64), pgtype: "bigint"},
+		{src: int64(math.MaxInt64), dst: new(*int64), pgtype: "bigint"},
+		{src: int64(math.MinInt32), dst: new(int64), pgtype: "bigint"},
 
 		{src: nil, dst: uint8(0), pgtype: "smallint", wanterr: "pg: Scan(nonsettable uint8)"},
 		{src: nil, dst: new(uint8), pgtype: "smallint", wantzero: true},
@@ -238,9 +238,9 @@ func conversionTests() []conversionTest {
 
 		{src: nil, dst: uint(0), pgtype: "smallint", wanterr: "pg: Scan(nonsettable uint)"},
 		{src: nil, dst: new(uint), pgtype: "bigint", wantzero: true},
-		{src: uint(math.MaxUint64), dst: new(uint)},
-		{src: uint(math.MaxUint64), dst: new(*uint)},
-		{src: uint(math.MaxUint32), dst: new(uint), pgtype: "bigint"},
+		{src: uint64(math.MaxUint64), dst: new(uint64)},
+		{src: uint64(math.MaxUint64), dst: new(*uint64)},
+		{src: uint64(math.MaxUint32), dst: new(uint64), pgtype: "bigint"},
 
 		{src: nil, dst: float32(0), pgtype: "decimal", wanterr: "pg: Scan(nonsettable float32)"},
 		{src: nil, dst: new(float32), pgtype: "decimal", wantzero: true},
