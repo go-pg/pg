@@ -71,16 +71,8 @@ func (f *Field) IsZero(strct reflect.Value) bool {
 }
 
 func (f *Field) OmitZero(strct reflect.Value) bool {
-	return !f.HasFlag(NotNullFlag) && f.isZero(f.Value(strct))
-}
-
-// InsertDefault returns whether this field should be set to DEFAULT
-// when inserting strct.
-// This is the case if either the field is nullable and has its zero value
-// or the field is not nullable and the value is a nil pointer.
-func (f *Field) InsertDefault(strct reflect.Value) bool {
 	val := f.Value(strct)
-	return f.OmitZero(strct) ||
+	return (!f.HasFlag(NotNullFlag) && f.isZero(val)) ||
 		(f.HasFlag(NotNullFlag) && val.Kind() == reflect.Ptr && val.IsNil())
 }
 
