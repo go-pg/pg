@@ -71,7 +71,7 @@ func (f *Field) IsZero(strct reflect.Value) bool {
 }
 
 func (f *Field) OmitZero(strct reflect.Value) bool {
-	return !f.HasFlag(NotNullFlag) && f.isZero(f.Value(strct))
+	return (f.Default != "" || !f.HasFlag(NotNullFlag)) && f.isZero(f.Value(strct))
 }
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
