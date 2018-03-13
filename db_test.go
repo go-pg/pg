@@ -752,7 +752,7 @@ type Genre struct {
 	Books []Book `pg:"many2many:book_genres"` // many to many relation
 
 	ParentId  int
-	Subgenres []Genre `pg:"fk:parent_"` // fk specifies prefix for foreign key (parent_id)
+	Subgenres []Genre `pg:"fk:parent_id"`
 }
 
 func (g Genre) String() string {
