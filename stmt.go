@@ -179,7 +179,7 @@ func (stmt *Stmt) Close() error {
 
 	err := closeStmt(stmt._cn, stmt.name)
 	if !stmt.inTx {
-		_ = stmt.db.freeConn(stmt._cn, err)
+		stmt.db.freeConn(stmt._cn, err)
 	}
 	stmt._cn = nil
 	return err

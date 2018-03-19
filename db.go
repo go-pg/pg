@@ -151,11 +151,12 @@ func (db *DB) initConn(cn *pool.Conn) error {
 	return nil
 }
 
-func (db *DB) freeConn(cn *pool.Conn, err error) error {
+func (db *DB) freeConn(cn *pool.Conn, err error) {
 	if !isBadConn(err, false) {
-		return db.pool.Put(cn)
+		db.pool.Put(cn)
+	} else {
+		db.pool.Remove(cn)
 	}
-	return db.pool.Remove(cn)
 }
 
 func (db *DB) shouldRetry(err error) bool {

@@ -323,10 +323,10 @@ func (tx *Tx) close(lastErr error) error {
 	}
 	tx.stmts = nil
 
-	err := tx.db.freeConn(tx.cn, lastErr)
+	tx.db.freeConn(tx.cn, lastErr)
 	tx.cn = nil
 
-	return err
+	return nil
 }
 
 func (tx *Tx) Context() context.Context {
