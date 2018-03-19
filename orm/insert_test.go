@@ -161,4 +161,12 @@ var _ = Describe("Insert", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`WITH "data" AS (SELECT "insert_test"."id", "insert_test"."value" FROM "insert_tests" AS "insert_test") INSERT INTO dst (dst_col1, dst_col2) SELECT * FROM data`))
 	})
+
+	It("returns an error for empty bulk insert", func() {
+		slice := make([]InsertTest, 0)
+		q := NewQuery(nil, &slice)
+
+		_, err := insertQuery{q: q}.AppendQuery(nil)
+		Expect(err).To(MatchError("pg: can't bulk-insert empty slice []orm.InsertTest"))
+	})
 })

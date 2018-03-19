@@ -20,6 +20,16 @@ func (m *sliceTableModel) init(sliceType reflect.Type) {
 
 func (sliceTableModel) useQueryOne() {}
 
+func (m *sliceTableModel) AppendParam(b []byte, f QueryFormatter, name string) ([]byte, bool) {
+	if field, ok := m.table.FieldsMap[name]; ok {
+		b = append(b, "_data."...)
+		b = append(b, field.Column...)
+		return b, true
+	}
+
+	return m.structTableModel.AppendParam(b, f, name)
+}
+
 func (m *sliceTableModel) Join(name string, apply func(*Query) (*Query, error)) (bool, *join) {
 	return m.join(m.Value(), name, apply)
 }

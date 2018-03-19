@@ -64,12 +64,12 @@ var _ = Describe("Update", func() {
 		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (1, 'hello'::mytype), (2, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
 	})
 
-	It("bulk updates with empty slice", func() {
+	It("returns an error for empty bulk update", func() {
 		slice := make([]UpdateTest, 0)
 		q := NewQuery(nil, &slice)
 
 		_, err := updateQuery{q: q}.AppendQuery(nil)
-		Expect(err).To(MatchError("pg: slice []orm.UpdateTest is empty"))
+		Expect(err).To(MatchError("pg: can't bulk-update empty slice []orm.UpdateTest"))
 	})
 
 	It("supports WITH", func() {

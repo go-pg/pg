@@ -2,6 +2,7 @@ package orm
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 )
 
@@ -78,7 +79,8 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 			b = q.appendValues(b, fields, value)
 		} else {
 			if value.Len() == 0 {
-				return nil, errors.New("pg: can't bulk-insert empty slice")
+				err = fmt.Errorf("pg: can't bulk-insert empty slice %s", value.Type())
+				return nil, err
 			}
 
 			for i := 0; i < value.Len(); i++ {

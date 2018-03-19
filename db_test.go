@@ -654,12 +654,6 @@ var _ = Describe("DB.Insert", func() {
 		err := db.Insert(&v)
 		Expect(err).To(MatchError("pg: Model(unsupported int)"))
 	})
-
-	It("returns an error if there is no data to bulk insert", func() {
-		var slice []struct{ Id int }
-		err := db.Insert(&slice)
-		Expect(err).To(MatchError("pg: can't bulk-insert empty slice"))
-	})
 })
 
 var _ = Describe("DB.Update", func() {
@@ -1514,6 +1508,43 @@ var _ = Describe("ORM", func() {
 				Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(books).To(HaveLen(3))
+		})
+	})
+
+	Describe("bulk insert", func() {
+		It("returns an error if there is no data", func() {
+			var books []Book
+			err := db.Insert(&books)
+			Expect(err).To(MatchError("pg: can't bulk-insert empty slice []pg_test.Book"))
+		})
+	})
+
+	Describe("bulk update", func() {
+		It("returns an error if there is no data", func() {
+			var books []Book
+			_, err := db.Model(&books).Update()
+			Expect(err).To(MatchError("pg: can't bulk-update empty slice []pg_test.Book"))
+		})
+
+		It("updates books", func() {
+			var books []Book
+			err := db.Model(&books).Order("id").Select()
+			Expect(err).NotTo(HaveOccurred())
+
+			for i := range books {
+				books[i].Title = fmt.Sprintf("censored %d", i)
+			}
+
+			_, err = db.Model(&books).Set("title = ?title").Update()
+			Expect(err).NotTo(HaveOccurred())
+
+			books = make([]Book, 0)
+			err = db.Model(&books).Order("id").Select()
+			Expect(err).NotTo(HaveOccurred())
+
+			for i := range books {
+				Expect(books[i].Title).To(Equal(fmt.Sprintf("censored %d", i)))
+			}
 		})
 	})
 

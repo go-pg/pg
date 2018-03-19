@@ -85,7 +85,7 @@ func (q *updateQuery) modelHasData() bool {
 	return v.Kind() == reflect.Slice && v.Len() > 0
 }
 
-func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
+func (q *updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 	if len(q.q.set) > 0 {
 		b = q.q.appendSet(b)
 		return b, nil
@@ -105,7 +105,7 @@ func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 		if q.modelHasData() {
 			b, err = q.appendSetSlice(b, value)
 		} else {
-			err = fmt.Errorf("pg: slice %s is empty", value.Type())
+			err = fmt.Errorf("pg: can't bulk-update empty slice %s", value.Type())
 		}
 	}
 	if err != nil {
