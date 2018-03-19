@@ -345,7 +345,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.SetFlag(ArrayFlag)
 	}
 
-	field.SQLType = fieldSQLType(&field, sqlTag)
+	field.SQLType = fieldSQLType(&field, pgTag, sqlTag)
 	if strings.HasSuffix(field.SQLType, "[]") {
 		field.SetFlag(ArrayFlag)
 	}
@@ -510,11 +510,16 @@ func isColumn(typ reflect.Type) bool {
 	return typ.Implements(scannerType) || reflect.PtrTo(typ).Implements(scannerType)
 }
 
-func fieldSQLType(field *Field, sqlTag *tag) string {
+func fieldSQLType(field *Field, pgTag, sqlTag *tag) string {
 	if typ, ok := sqlTag.Options["type"]; ok {
 		field.SetFlag(customTypeFlag)
 		typ, _ := unquote(typ)
 		return typ
+	}
+
+	if _, ok := pgTag.Options["hstore"]; ok {
+		field.SetFlag(customTypeFlag)
+		return "hstore"
 	}
 
 	if field.HasFlag(ArrayFlag) {
