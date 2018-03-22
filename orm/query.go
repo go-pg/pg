@@ -18,6 +18,11 @@ type withQuery struct {
 	query *Query
 }
 
+type joinQuery struct {
+	join *queryParamsAppender
+	on   []*condAppender
+}
+
 type Query struct {
 	db        DB
 	stickyErr error
@@ -32,7 +37,7 @@ type Query struct {
 	values     map[string]*queryParamsAppender
 	where      []sepFormatAppender
 	updWhere   []sepFormatAppender
-	joins      []FormatAppender
+	joins      []*joinQuery
 	group      []FormatAppender
 	having     []*queryParamsAppender
 	order      []FormatAppender
@@ -236,19 +241,19 @@ func (q *Query) Value(column string, value string, params ...interface{}) *Query
 	return q
 }
 
-func (q *Query) Where(where string, params ...interface{}) *Query {
-	q.addWhere(&whereAppender{
-		sep:    "AND",
-		where:  where,
+func (q *Query) Where(condition string, params ...interface{}) *Query {
+	q.addWhere(&condAppender{
+		sep:    " AND ",
+		cond:   condition,
 		params: params,
 	})
 	return q
 }
 
-func (q *Query) WhereOr(where string, params ...interface{}) *Query {
-	q.addWhere(&whereAppender{
-		sep:    "OR",
-		where:  where,
+func (q *Query) WhereOr(condition string, params ...interface{}) *Query {
+	q.addWhere(&condAppender{
+		sep:    " OR ",
+		cond:   condition,
 		params: params,
 	})
 	return q
@@ -266,7 +271,7 @@ func (q *Query) WhereOr(where string, params ...interface{}) *Query {
 //
 //    WHERE TRUE AND (FALSE OR TRUE)
 func (q *Query) WhereGroup(fn func(*Query) (*Query, error)) *Query {
-	return q.whereGroup("AND", fn)
+	return q.whereGroup(" AND ", fn)
 }
 
 // WhereOrGroup encloses conditions added in the function in parentheses.
@@ -281,7 +286,7 @@ func (q *Query) WhereGroup(fn func(*Query) (*Query, error)) *Query {
 //
 //    WHERE TRUE OR (FALSE AND TRUE)
 func (q *Query) WhereOrGroup(fn func(*Query) (*Query, error)) *Query {
-	return q.whereGroup("OR", fn)
+	return q.whereGroup(" OR ", fn)
 }
 
 func (q *Query) whereGroup(conj string, fn func(*Query) (*Query, error)) *Query {
@@ -294,9 +299,9 @@ func (q *Query) whereGroup(conj string, fn func(*Query) (*Query, error)) *Query 
 		return q
 	}
 
-	f := whereGroupAppender{
-		sep:   conj,
-		where: newq.where,
+	f := &condGroupAppender{
+		sep:  conj,
+		cond: newq.where,
 	}
 	newq.where = saved
 	newq.addWhere(f)
@@ -333,7 +338,30 @@ func (q *Query) WherePK() *Query {
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
-	q.joins = append(q.joins, &queryParamsAppender{join, params})
+	q.joins = append(q.joins, &joinQuery{
+		join: &queryParamsAppender{join, params},
+	})
+	return q
+}
+
+// JoinOn appends join condition to the last join.
+func (q *Query) JoinOn(condition string, params ...interface{}) *Query {
+	j := q.joins[len(q.joins)-1]
+	j.on = append(j.on, &condAppender{
+		sep:    " AND ",
+		cond:   condition,
+		params: params,
+	})
+	return q
+}
+
+func (q *Query) JoinOnOr(condition string, params ...interface{}) *Query {
+	j := q.joins[len(q.joins)-1]
+	j.on = append(j.on, &condAppender{
+		sep:    " OR ",
+		cond:   condition,
+		params: params,
+	})
 	return q
 }
 
@@ -921,9 +949,7 @@ func (q *Query) _appendWhere(b []byte, where []sepFormatAppender) []byte {
 	b = append(b, " WHERE "...)
 	for i, f := range where {
 		if i > 0 {
-			b = append(b, ' ')
 			b = f.AppendSep(b)
-			b = append(b, ' ')
 		}
 		b = f.AppendFormat(b, q)
 	}
@@ -980,7 +1006,7 @@ type wherePKQuery struct {
 }
 
 func (wherePKQuery) AppendSep(b []byte) []byte {
-	return append(b, "AND"...)
+	return append(b, " AND "...)
 }
 
 func (q wherePKQuery) AppendFormat(b []byte, f QueryFormatter) []byte {
