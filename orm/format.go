@@ -32,39 +32,37 @@ type queryParamsAppender struct {
 var _ FormatAppender = (*queryParamsAppender)(nil)
 var _ types.ValueAppender = (*queryParamsAppender)(nil)
 
-func Q(query string, params ...interface{}) queryParamsAppender {
-	return queryParamsAppender{query, params}
+func Q(query string, params ...interface{}) *queryParamsAppender {
+	return &queryParamsAppender{query, params}
 }
 
-func (q queryParamsAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
+func (q *queryParamsAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 	return f.FormatQuery(b, q.query, q.params...)
 }
 
-func (q queryParamsAppender) AppendValue(b []byte, quote int) []byte {
+func (q *queryParamsAppender) AppendValue(b []byte, quote int) []byte {
 	return q.AppendFormat(b, formatter)
 }
 
 //------------------------------------------------------------------------------
 
-type whereGroupAppender struct {
-	sep   string
-	where []sepFormatAppender
+type condGroupAppender struct {
+	sep  string
+	cond []sepFormatAppender
 }
 
-var _ FormatAppender = (*whereAppender)(nil)
-var _ sepFormatAppender = (*whereAppender)(nil)
+var _ FormatAppender = (*condAppender)(nil)
+var _ sepFormatAppender = (*condAppender)(nil)
 
-func (q whereGroupAppender) AppendSep(b []byte) []byte {
+func (q *condGroupAppender) AppendSep(b []byte) []byte {
 	return append(b, q.sep...)
 }
 
-func (q whereGroupAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
+func (q *condGroupAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 	b = append(b, '(')
-	for i, app := range q.where {
+	for i, app := range q.cond {
 		if i > 0 {
-			b = append(b, ' ')
 			b = app.AppendSep(b)
-			b = append(b, ' ')
 		}
 		b = app.AppendFormat(b, f)
 	}
@@ -74,22 +72,22 @@ func (q whereGroupAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 
 //------------------------------------------------------------------------------
 
-type whereAppender struct {
+type condAppender struct {
 	sep    string
-	where  string
+	cond   string
 	params []interface{}
 }
 
-var _ FormatAppender = (*whereAppender)(nil)
-var _ sepFormatAppender = (*whereAppender)(nil)
+var _ FormatAppender = (*condAppender)(nil)
+var _ sepFormatAppender = (*condAppender)(nil)
 
-func (q whereAppender) AppendSep(b []byte) []byte {
+func (q *condAppender) AppendSep(b []byte) []byte {
 	return append(b, q.sep...)
 }
 
-func (q whereAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
+func (q *condAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 	b = append(b, '(')
-	b = f.FormatQuery(b, q.where, q.params...)
+	b = f.FormatQuery(b, q.cond, q.params...)
 	b = append(b, ')')
 	return b
 }
