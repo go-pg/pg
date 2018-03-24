@@ -694,20 +694,42 @@ func ExampleDB_Model_hasManySelf() {
 func ExampleDB_Model_manyToMany() {
 	type Item struct {
 		Id    int
-		Items []Item `pg:",many2many:item_to_items,joinFK:sub_id"`
+		Items []Item `pg:"many2many:item_to_items,joinFK:sub_id"`
+	}
+
+	type ItemToItem struct {
+		ItemId int
+		SubId  int
 	}
 
 	db := connect()
 	defer db.Close()
 
-	qs := []string{
-		"CREATE TEMP TABLE items (id int)",
-		"CREATE TEMP TABLE item_to_items (item_id int, sub_id int)",
-		"INSERT INTO items VALUES (1), (2), (3)",
-		"INSERT INTO item_to_items VALUES (1, 2), (1, 3)",
+	// Register many to many model so ORM can better recognize m2m relation.
+	orm.Tables.Register((*ItemToItem)(nil))
+
+	models := []interface{}{
+		(*Item)(nil),
+		(*ItemToItem)(nil),
 	}
-	for _, q := range qs {
-		_, err := db.Exec(q)
+	for _, model := range models {
+		err := db.CreateTable(model, &orm.CreateTableOptions{
+			Temp: true,
+		})
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	values := []interface{}{
+		&Item{Id: 1},
+		&Item{Id: 2},
+		&Item{Id: 3},
+		&ItemToItem{ItemId: 1, SubId: 2},
+		&ItemToItem{ItemId: 1, SubId: 3},
+	}
+	for _, v := range values {
+		err := db.Insert(v)
 		if err != nil {
 			panic(err)
 		}
