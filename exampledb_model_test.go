@@ -81,7 +81,8 @@ func ExampleDB_Model() {
 	// Select story and associated author in one query.
 	var story Story
 	err = db.Model(&story).
-		Column("story.*", "Author").
+		Column("story.*").
+		Relation("Author").
 		Where("story.id = ?", story1.Id).
 		Select()
 	if err != nil {

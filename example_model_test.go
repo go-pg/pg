@@ -532,7 +532,8 @@ func ExampleDB_Model_hasOne() {
 
 	var users []User
 	err := db.Model(&users).
-		Column("user.*", "Profile").
+		Column("user.*").
+		Relation("Profile").
 		Select()
 	if err != nil {
 		panic(err)
@@ -587,7 +588,8 @@ func ExampleDB_Model_belongsTo() {
 
 	var users []User
 	err := db.Model(&users).
-		Column("user.*", "Profile").
+		Column("user.*").
+		Relation("Profile").
 		Select()
 	if err != nil {
 		panic(err)
@@ -641,7 +643,7 @@ func ExampleDB_Model_hasMany() {
 
 	var user User
 	err := db.Model(&user).
-		Column("user.*", "Profiles").
+		Column("user.*").
 		Relation("Profiles", func(q *orm.Query) (*orm.Query, error) {
 			return q.Where("active IS TRUE"), nil
 		}).
@@ -681,7 +683,7 @@ func ExampleDB_Model_hasManySelf() {
 	// SELECT "item".* FROM "items" AS "item" WHERE (("item"."parent_id") IN ((1)))
 
 	var item Item
-	err := db.Model(&item).Column("item.*", "Items").First()
+	err := db.Model(&item).Column("item.*").Relation("Items").First()
 	if err != nil {
 		panic(err)
 	}
@@ -744,7 +746,7 @@ func ExampleDB_Model_manyToMany() {
 	// WHERE ("item"."id" = "item_to_items"."sub_id")
 
 	var item Item
-	err := db.Model(&item).Column("item.*", "Items").First()
+	err := db.Model(&item).Column("item.*").Relation("Items").First()
 	if err != nil {
 		panic(err)
 	}

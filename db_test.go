@@ -1035,7 +1035,9 @@ var _ = Describe("ORM", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			err = db.Model(tr).
-				Column("Book.Genres", "Book.Translations", "Book.Comments").
+				Relation("Book.Genres").
+				Relation("Book.Translations").
+				Relation("Book.Comments").
 				WherePK().
 				Select()
 			Expect(err).NotTo(HaveOccurred())
@@ -1046,11 +1048,15 @@ var _ = Describe("ORM", func() {
 		It("fetches Book relations", func() {
 			var book Book
 			err := db.Model(&book).
-				Column(
-					"book.id",
-					"Author", "Author.Avatar", "Editor", "Editor.Avatar",
-					"Genres", "Comments", "Translations", "Translations.Comments",
-				).
+				Column("book.id").
+				Relation("Author").
+				Relation("Author.Avatar").
+				Relation("Editor").
+				Relation("Editor.Avatar").
+				Relation("Genres").
+				Relation("Comments").
+				Relation("Translations").
+				Relation("Translations.Comments").
 				First()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(book).To(Equal(Book{
@@ -1102,12 +1108,11 @@ var _ = Describe("ORM", func() {
 		It("fetches Author relations", func() {
 			var author Author
 			err := db.Model(&author).
-				Column(
-					"author.*",
-					"Books.id", "Books.author_id", "Books.editor_id",
-					"Books.Author", "Books.Editor",
-					"Books.Translations",
-				).
+				Column("author.*").
+				Column("Books.id", "Books.author_id", "Books.editor_id").
+				Relation("Books.Author").
+				Relation("Books.Editor").
+				Relation("Books.Translations").
 				First()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(author).To(Equal(Author{
@@ -1146,7 +1151,9 @@ var _ = Describe("ORM", func() {
 		It("fetches Genre relations", func() {
 			var genre Genre
 			err := db.Model(&genre).
-				Column("genre.*", "Books.id", "Books.Translations").
+				Column("genre.*").
+				Relation("Books.id").
+				Relation("Books.Translations").
 				First()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(genre).To(Equal(Genre{
@@ -1173,7 +1180,10 @@ var _ = Describe("ORM", func() {
 		It("fetches Translation relation", func() {
 			var translation Translation
 			err := db.Model(&translation).
-				Column("tr.*", "Book.id", "Book.Author", "Book.Editor").
+				Column("tr.*").
+				Relation("Book.id").
+				Relation("Book.Author").
+				Relation("Book.Editor").
 				First()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(translation).To(Equal(Translation{
@@ -1191,7 +1201,10 @@ var _ = Describe("ORM", func() {
 		It("works when there are no results", func() {
 			var book Book
 			err := db.Model(&book).
-				Column("book.*", "Author", "Genres", "Comments").
+				Column("book.*").
+				Relation("Author").
+				Relation("Genres").
+				Relation("Comments").
 				Where("1 = 2").
 				Select()
 			Expect(err).To(Equal(pg.ErrNoRows))
@@ -1200,7 +1213,9 @@ var _ = Describe("ORM", func() {
 		It("supports overriding", func() {
 			var book BookWithCommentCount
 			err := db.Model(&book).
-				Column("book.id", "Author", "Genres").
+				Column("book.id").
+				Relation("Author").
+				Relation("Genres").
 				ColumnExpr(`(SELECT COUNT(*) FROM comments WHERE trackable_type = 'Book' AND trackable_id = book.id) AS comment_count`).
 				First()
 			Expect(err).NotTo(HaveOccurred())
@@ -1222,11 +1237,15 @@ var _ = Describe("ORM", func() {
 		It("fetches Book relations", func() {
 			var books []Book
 			err := db.Model(&books).
-				Column(
-					"book.id",
-					"Author", "Author.Avatar", "Editor", "Editor.Avatar",
-					"Genres", "Comments", "Translations", "Translations.Comments",
-				).
+				Column("book.id").
+				Relation("Author").
+				Relation("Author.Avatar").
+				Relation("Editor").
+				Relation("Editor.Avatar").
+				Relation("Genres").
+				Relation("Comments").
+				Relation("Translations").
+				Relation("Translations.Comments").
 				OrderExpr("book.id ASC").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
@@ -1332,7 +1351,10 @@ var _ = Describe("ORM", func() {
 		It("fetches Genre relations", func() {
 			var genres []Genre
 			err := db.Model(&genres).
-				Column("genre.*", "Subgenres", "Books.id", "Books.Translations").
+				Column("genre.*").
+				Relation("Subgenres").
+				Relation("Books.id").
+				Relation("Books.Translations").
 				Where("genre.parent_id IS NULL").
 				OrderExpr("genre.id").
 				Select()
@@ -1378,7 +1400,10 @@ var _ = Describe("ORM", func() {
 		It("fetches Translation relation", func() {
 			var translations []Translation
 			err := db.Model(&translations).
-				Column("tr.*", "Book.id", "Book.Author", "Book.Editor").
+				Column("tr.*").
+				Relation("Book.id").
+				Relation("Book.Author").
+				Relation("Book.Editor").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(translations).To(Equal([]Translation{{
@@ -1414,7 +1439,10 @@ var _ = Describe("ORM", func() {
 		It("works when there are no results", func() {
 			var books []Book
 			err := db.Model(&books).
-				Column("book.*", "Author", "Genres", "Comments").
+				Column("book.*").
+				Relation("Author").
+				Relation("Genres").
+				Relation("Comments").
 				Where("1 = 2").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
@@ -1424,7 +1452,9 @@ var _ = Describe("ORM", func() {
 		It("supports overriding", func() {
 			var books []BookWithCommentCount
 			err := db.Model(&books).
-				Column("book.id", "Author", "Genres").
+				Column("book.id").
+				Relation("Author").
+				Relation("Genres").
 				ColumnExpr(`(SELECT COUNT(*) FROM comments WHERE trackable_type = 'Book' AND trackable_id = book.id) AS comment_count`).
 				OrderExpr("id ASC").
 				Select()
@@ -1462,7 +1492,11 @@ var _ = Describe("ORM", func() {
 		It("supports HasOne, HasMany, HasMany2Many", func() {
 			var books []*Book
 			err := db.Model(&books).
-				Column("book.id", "Author", "Editor", "Translations", "Genres").
+				Column("book.id").
+				Relation("Author").
+				Relation("Editor").
+				Relation("Translations").
+				Relation("Genres").
 				OrderExpr("book.id ASC").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
@@ -1472,7 +1506,10 @@ var _ = Describe("ORM", func() {
 		It("fetches Genre relations", func() {
 			var genres []*Genre
 			err := db.Model(&genres).
-				Column("genre.*", "Subgenres", "Books.id", "Books.Translations").
+				Column("genre.*").
+				Relation("Subgenres").
+				Relation("Books.id").
+				Relation("Books.Translations").
 				Where("genre.parent_id IS NULL").
 				OrderExpr("genre.id").
 				Select()
@@ -1483,7 +1520,10 @@ var _ = Describe("ORM", func() {
 		It("fetches Translation relations", func() {
 			var translations []*Translation
 			err := db.Model(&translations).
-				Column("tr.*", "Book.id", "Book.Author", "Book.Editor").
+				Column("tr.*").
+				Relation("Book.id").
+				Relation("Book.Author").
+				Relation("Book.Editor").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(translations).To(HaveLen(3))
@@ -1492,7 +1532,10 @@ var _ = Describe("ORM", func() {
 		It("works when there are no results", func() {
 			var books []*Book
 			err := db.Model(&books).
-				Column("book.*", "Author", "Genres", "Comments").
+				Column("book.*").
+				Relation("Author").
+				Relation("Genres").
+				Relation("Comments").
 				Where("1 = 2").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
@@ -1502,7 +1545,8 @@ var _ = Describe("ORM", func() {
 		It("supports overriding", func() {
 			var books []*BookWithCommentCount
 			err := db.Model(&books).
-				Column("book.id", "Author").
+				Column("book.id").
+				Relation("Author").
 				ColumnExpr(`(SELECT COUNT(*) FROM comments WHERE trackable_type = 'Book' AND trackable_id = book.id) AS comment_count`).
 				OrderExpr("id ASC").
 				Select()
@@ -1551,7 +1595,8 @@ var _ = Describe("ORM", func() {
 	It("filters by HasOne", func() {
 		var books []Book
 		err := db.Model(&books).
-			Column("book.id", "Author._").
+			Column("book.id").
+			Relation("Author._").
 			Where("author.id = 10").
 			OrderExpr("book.id ASC").
 			Select()
@@ -1566,7 +1611,7 @@ var _ = Describe("ORM", func() {
 	It("supports filtering HasMany", func() {
 		var book Book
 		err := db.Model(&book).
-			Column("book.id", "Translations").
+			Column("book.id").
 			Relation("Translations", func(q *orm.Query) (*orm.Query, error) {
 				return q.Where("lang = 'ru'"), nil
 			}).
@@ -1583,7 +1628,7 @@ var _ = Describe("ORM", func() {
 	It("supports filtering HasMany2Many", func() {
 		var book Book
 		err := db.Model(&book).
-			Column("book.id", "Genres").
+			Column("book.id").
 			Relation("Genres", func(q *orm.Query) (*orm.Query, error) {
 				return q.Where("genre__rating > 999"), nil
 			}).
@@ -1634,7 +1679,7 @@ var _ = Describe("ORM", func() {
 
 		book := new(Book)
 		err = db.Model(book).
-			Column("Editor").
+			Relation("Editor").
 			Where("book.id = ?", newBook.Id).
 			Select()
 		Expect(err).NotTo(HaveOccurred())

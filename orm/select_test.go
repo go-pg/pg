@@ -54,7 +54,7 @@ var _ = Describe("Select", func() {
 	})
 
 	It("omits columns in main query", func() {
-		q := NewQuery(nil, &SelectModel{}).Column("_", "HasOne")
+		q := NewQuery(nil, &SelectModel{}).Column("_").Relation("HasOne")
 
 		b, err := selectQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -62,7 +62,7 @@ var _ = Describe("Select", func() {
 	})
 
 	It("omits columns in join query", func() {
-		q := NewQuery(nil, &SelectModel{}).Column("HasOne._")
+		q := NewQuery(nil, &SelectModel{}).Relation("HasOne._")
 
 		b, err := selectQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -70,7 +70,7 @@ var _ = Describe("Select", func() {
 	})
 
 	It("specifies all columns for has one", func() {
-		q := NewQuery(nil, &SelectModel{Id: 1}).Column("HasOne")
+		q := NewQuery(nil, &SelectModel{Id: 1}).Relation("HasOne")
 
 		b, err := selectQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -78,7 +78,7 @@ var _ = Describe("Select", func() {
 	})
 
 	It("specifies all columns for has many", func() {
-		q := NewQuery(nil, &SelectModel{Id: 1}).Column("HasMany")
+		q := NewQuery(nil, &SelectModel{Id: 1}).Relation("HasMany")
 
 		q, err := q.model.GetJoin("HasMany").manyQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -183,7 +183,7 @@ var _ = Describe("Count", func() {
 	})
 
 	It("includes has one joins", func() {
-		q := NewQuery(nil, &SelectModel{Id: 1}).Column("HasOne")
+		q := NewQuery(nil, &SelectModel{Id: 1}).Relation("HasOne")
 
 		b, err := q.countSelectQuery("count(*)").AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())

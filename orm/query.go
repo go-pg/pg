@@ -218,8 +218,15 @@ func (q *Query) _getFields(omitPKs bool) ([]*Field, error) {
 	return columns, nil
 }
 
-func (q *Query) Relation(name string, apply func(*Query) (*Query, error)) *Query {
-	if _, j := q.model.Join(name, apply); j == nil {
+func (q *Query) Relation(name string, apply ...func(*Query) (*Query, error)) *Query {
+	var fn func(*Query) (*Query, error)
+	if len(apply) == 1 {
+		fn = apply[0]
+	} else if len(apply) > 1 {
+		panic("only one apply function is supported")
+	}
+	_, join := q.model.Join(name, fn)
+	if join == nil {
 		return q.err(fmt.Errorf(
 			"model=%s does not have relation=%s",
 			q.model.Table().Type.Name(), name,
@@ -427,7 +434,7 @@ func (q *Query) OnConflict(s string, params ...interface{}) *Query {
 
 func (q *Query) onConflictDoUpdate() bool {
 	return q.onConflict != nil &&
-		strings.HasSuffix(q.onConflict.query, "DO UPDATE")
+		strings.HasSuffix(internal.UpperString(q.onConflict.query), "DO UPDATE")
 }
 
 func (q *Query) Returning(s string, params ...interface{}) *Query {
