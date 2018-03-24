@@ -11,14 +11,14 @@ const (
 
 type Relation struct {
 	Type        int
-	Polymorphic bool
 	Field       *Field
 	JoinTable   *Table
 	FKs         []*Field
+	Polymorphic *Field
 	FKValues    []*Field
 
 	M2MTableName  types.Q
 	M2MTableAlias types.Q
-	BasePrefix    string
-	JoinPrefix    string
+	BaseFKs       []string
+	JoinFKs       []string
 }

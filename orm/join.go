@@ -63,10 +63,10 @@ func (j *join) manyQuery(db DB) (*Query, error) {
 	where = append(where, ")"...)
 	q = q.Where(internal.BytesToString(where))
 
-	if j.Rel.Polymorphic {
+	if j.Rel.Polymorphic != nil {
 		q = q.Where(
 			`? IN (?, ?)`,
-			types.F(j.Rel.BasePrefix+"type"),
+			j.Rel.Polymorphic.Column,
 			baseTable.ModelName, baseTable.TypeName,
 		)
 	}
@@ -114,28 +114,30 @@ func (j *join) m2mQuery(db DB) (*Query, error) {
 	join = append(join, " AS "...)
 	join = append(join, j.Rel.M2MTableAlias...)
 	join = append(join, " ON ("...)
-	join = columnsPrefix(join, j.Rel.M2MTableAlias, j.Rel.BasePrefix, baseTable.PKs)
+	for i, col := range j.Rel.BaseFKs {
+		if i > 0 {
+			join = append(join, ", "...)
+		}
+		join = append(join, j.Rel.M2MTableAlias...)
+		join = append(join, '.')
+		join = types.AppendField(join, col, 1)
+	}
 	join = append(join, ") IN ("...)
 	join = appendChildValues(join, j.BaseModel.Root(), index, baseTable.PKs)
 	join = append(join, ")"...)
 	q = q.Join(internal.BytesToString(join))
 
 	joinTable := j.JoinModel.Table()
-	if len(joinTable.PKs) == 1 {
-		pk := joinTable.PKs[0]
+	for i, col := range j.Rel.JoinFKs {
+		if i >= len(joinTable.PKs) {
+			break
+		}
+		pk := joinTable.PKs[i]
 		q = q.Where(
 			"?.? = ?.?",
 			joinTable.Alias, pk.Column,
-			j.Rel.M2MTableAlias, types.F(j.Rel.JoinPrefix),
+			j.Rel.M2MTableAlias, types.F(col),
 		)
-	} else {
-		for _, pk := range joinTable.PKs {
-			q = q.Where(
-				"?.? = ?.?",
-				joinTable.Alias, pk.Column,
-				j.Rel.M2MTableAlias, types.F(j.Rel.JoinPrefix+pk.GoName_),
-			)
-		}
 	}
 
 	return q, nil

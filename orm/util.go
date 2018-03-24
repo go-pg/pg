@@ -85,7 +85,7 @@ func columnsPrefix(b []byte, table types.Q, prefix string, fields []*Field) []by
 
 		b = append(b, table...)
 		b = append(b, '.')
-		b = types.AppendField(b, prefix+f.GoName_, 1)
+		b = types.AppendField(b, prefix+f.SQLName, 1)
 	}
 	return b
 }
