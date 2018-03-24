@@ -55,41 +55,6 @@ func indirectNew(v reflect.Value) reflect.Value {
 	return v
 }
 
-func columns(b []byte, table types.Q, fields []*Field) []byte {
-	for i, f := range fields {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-
-		if len(table) > 0 {
-			b = append(b, table...)
-			b = append(b, '.')
-		}
-		b = types.AppendField(b, f.SQLName, 1)
-	}
-	return b
-}
-
-func columnsPrefix(b []byte, table types.Q, prefix string, fields []*Field) []byte {
-	if len(fields) == 1 {
-		b = append(b, table...)
-		b = append(b, '.')
-		b = types.AppendField(b, prefix, 1)
-		return b
-	}
-
-	for i, f := range fields {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-
-		b = append(b, table...)
-		b = append(b, '.')
-		b = types.AppendField(b, prefix+f.SQLName, 1)
-	}
-	return b
-}
-
 func walk(v reflect.Value, index []int, fn func(reflect.Value)) {
 	v = reflect.Indirect(v)
 	switch v.Kind() {
@@ -161,24 +126,17 @@ func modelId(b []byte, v reflect.Value, fields []*Field) []byte {
 	return b
 }
 
-func appendColumns(b []byte, fields []*Field) []byte {
+func appendColumns(b []byte, table types.Q, fields []*Field) []byte {
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		b = append(b, f.Column...)
-	}
-	return b
-}
 
-func appendTableColumns(b []byte, table *Table) []byte {
-	for i, f := range table.Fields {
-		if i > 0 {
-			b = append(b, ", "...)
+		if len(table) > 0 {
+			b = append(b, table...)
+			b = append(b, '.')
 		}
-		b = append(b, table.Alias...)
-		b = append(b, '.')
-		b = append(b, f.Column...)
+		b = types.AppendField(b, f.SQLName, 1)
 	}
 	return b
 }

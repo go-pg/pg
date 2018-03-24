@@ -489,7 +489,7 @@ func (q *Query) First() error {
 		return err
 	}
 
-	b := columns(nil, q.model.Table().Alias, q.model.Table().PKs)
+	b := appendColumns(nil, q.model.Table().Alias, q.model.Table().PKs)
 	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select()
 }
 
@@ -503,7 +503,8 @@ func (q *Query) Last() error {
 		return err
 	}
 
-	b := columns(nil, q.model.Table().Alias, q.model.Table().PKs)
+	// TODO: fix for multi columns
+	b := appendColumns(nil, q.model.Table().Alias, q.model.Table().PKs)
 	b = append(b, " DESC"...)
 	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select()
 }

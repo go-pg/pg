@@ -56,7 +56,7 @@ func (j *join) manyQuery(db DB) (*Query, error) {
 	baseTable := j.BaseModel.Table()
 	var where []byte
 	where = append(where, "("...)
-	where = columns(where, j.JoinModel.Table().Alias, j.Rel.FKs)
+	where = appendColumns(where, j.JoinModel.Table().Alias, j.Rel.FKs)
 	where = append(where, ") IN ("...)
 	where = appendChildValues(
 		where, j.JoinModel.Root(), j.JoinModel.ParentIndex(), j.Rel.FKValues)
@@ -288,5 +288,5 @@ func (q hasManyColumnsAppender) AppendFormat(b []byte, f QueryFormatter) []byte 
 		return b
 	}
 
-	return appendTableColumns(b, joinTable)
+	return appendColumns(b, joinTable.Alias, joinTable.Fields)
 }

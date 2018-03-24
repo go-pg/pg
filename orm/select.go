@@ -145,7 +145,8 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 	if q.q.columns != nil {
 		b = q.q.appendColumns(b)
 	} else if q.q.hasModel() {
-		b = appendTableColumns(b, q.q.model.Table())
+		table := q.q.model.Table()
+		b = appendColumns(b, table.Alias, table.Fields)
 	} else {
 		b = append(b, '*')
 	}

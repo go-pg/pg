@@ -73,7 +73,7 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 		}
 
 		b = append(b, " ("...)
-		b = appendColumns(b, fields)
+		b = appendColumns(b, "", fields)
 		b = append(b, ") VALUES ("...)
 		if value.Kind() == reflect.Struct {
 			b = q.appendValues(b, fields, value)
@@ -154,6 +154,6 @@ func (ins *insertQuery) addReturningField(field *Field) {
 
 func (insertQuery) appendReturningFields(b []byte, fields []*Field) []byte {
 	b = append(b, " RETURNING "...)
-	b = appendColumns(b, fields)
+	b = appendColumns(b, "", fields)
 	return b
 }

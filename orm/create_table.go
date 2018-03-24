@@ -103,14 +103,14 @@ func appendPKConstraint(b []byte, pks []*Field) []byte {
 	}
 
 	b = append(b, ", PRIMARY KEY ("...)
-	b = appendColumns(b, pks)
+	b = appendColumns(b, "", pks)
 	b = append(b, ")"...)
 	return b
 }
 
 func appendUnique(b []byte, fields []*Field) []byte {
 	b = append(b, ", UNIQUE ("...)
-	b = appendColumns(b, fields)
+	b = appendColumns(b, "", fields)
 	b = append(b, ")"...)
 	return b
 }
@@ -121,13 +121,13 @@ func (q createTableQuery) appendFKConstraint(b []byte, table *Table, rel *Relati
 	}
 
 	b = append(b, ", FOREIGN KEY ("...)
-	b = appendColumns(b, rel.FKs)
+	b = appendColumns(b, "", rel.FKs)
 	b = append(b, ")"...)
 
 	b = append(b, " REFERENCES "...)
 	b = q.q.FormatQuery(b, string(rel.JoinTable.Name))
 	b = append(b, " ("...)
-	b = appendColumns(b, rel.JoinTable.PKs)
+	b = appendColumns(b, "", rel.JoinTable.PKs)
 	b = append(b, ")"...)
 
 	if s := onDelete(rel.FKs); s != "" {
