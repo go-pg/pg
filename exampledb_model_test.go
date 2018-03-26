@@ -32,6 +32,7 @@ func ExampleDB_Model() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
 	})
+	defer db.Close()
 
 	err := createSchema(db)
 	if err != nil {
@@ -65,8 +66,8 @@ func ExampleDB_Model() {
 	}
 
 	// Select user by primary key.
-	user := User{Id: user1.Id}
-	err = db.Select(&user)
+	user := &User{Id: user1.Id}
+	err = db.Select(user)
 	if err != nil {
 		panic(err)
 	}
@@ -79,9 +80,8 @@ func ExampleDB_Model() {
 	}
 
 	// Select story and associated author in one query.
-	var story Story
-	err = db.Model(&story).
-		Column("story.*").
+	story := new(Story)
+	err = db.Model(story).
 		Relation("Author").
 		Where("story.id = ?", story1.Id).
 		Select()
@@ -98,7 +98,7 @@ func ExampleDB_Model() {
 }
 
 func createSchema(db *pg.DB) error {
-	for _, model := range []interface{}{&User{}, &Story{}} {
+	for _, model := range []interface{}{(*User)(nil), (*Story)(nil)} {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			Temp: true,
 		})
