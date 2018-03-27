@@ -11,10 +11,10 @@ import (
 	"github.com/go-pg/pg/orm"
 )
 
-var db *pg.DB
+var pgdb *pg.DB
 
 func init() {
-	db = connect()
+	pgdb = connect()
 }
 
 func connect() *pg.DB {
@@ -48,7 +48,7 @@ func ExampleDB_QueryOne() {
 		Name string
 	}
 
-	res, err := db.QueryOne(&user, `
+	res, err := pgdb.QueryOne(&user, `
         WITH users (name) AS (VALUES (?))
         SELECT * FROM users
     `, "admin")
@@ -62,7 +62,7 @@ func ExampleDB_QueryOne() {
 }
 
 func ExampleDB_QueryOne_returning_id() {
-	_, err := db.Exec(`CREATE TEMP TABLE users(id serial, name varchar(500))`)
+	_, err := pgdb.Exec(`CREATE TEMP TABLE users(id serial, name varchar(500))`)
 	if err != nil {
 		panic(err)
 	}
@@ -73,7 +73,7 @@ func ExampleDB_QueryOne_returning_id() {
 	}
 	user.Name = "admin"
 
-	_, err = db.QueryOne(&user, `
+	_, err = pgdb.QueryOne(&user, `
         INSERT INTO users (name) VALUES (?name) RETURNING id
     `, &user)
 	if err != nil {
@@ -84,20 +84,20 @@ func ExampleDB_QueryOne_returning_id() {
 }
 
 func ExampleDB_Exec() {
-	res, err := db.Exec(`CREATE TEMP TABLE test()`)
+	res, err := pgdb.Exec(`CREATE TEMP TABLE test()`)
 	fmt.Println(res.RowsAffected(), err)
 	// Output: -1 <nil>
 }
 
 func ExampleListener() {
-	ln := db.Listen("mychan")
+	ln := pgdb.Listen("mychan")
 	defer ln.Close()
 
 	ch := ln.Channel()
 
 	go func() {
 		time.Sleep(time.Millisecond)
-		_, err := db.Exec("NOTIFY mychan, ?", "hello world")
+		_, err := pgdb.Exec("NOTIFY mychan, ?", "hello world")
 		if err != nil {
 			panic(err)
 		}
@@ -219,7 +219,7 @@ func ExampleDB_RunInTransaction() {
 }
 
 func ExampleDB_Prepare() {
-	stmt, err := db.Prepare(`SELECT $1::text, $2::text`)
+	stmt, err := pgdb.Prepare(`SELECT $1::text, $2::text`)
 	if err != nil {
 		panic(err)
 	}
@@ -247,7 +247,7 @@ func ExampleDB_CreateTable() {
 	}
 
 	for _, model := range []interface{}{&Model1{}, &Model2{}} {
-		err := db.CreateTable(model, &orm.CreateTableOptions{
+		err := pgdb.CreateTable(model, &orm.CreateTableOptions{
 			Temp:          true, // create temp table
 			FKConstraints: true,
 		})
@@ -260,7 +260,7 @@ func ExampleDB_CreateTable() {
 		ColumnName string
 		DataType   string
 	}
-	_, err := db.Query(&info, `
+	_, err := pgdb.Query(&info, `
 		SELECT column_name, data_type
 		FROM information_schema.columns
 		WHERE table_name = 'model2'
@@ -274,14 +274,14 @@ func ExampleDB_CreateTable() {
 
 func ExampleInts() {
 	var nums pg.Ints
-	_, err := db.Query(&nums, `SELECT generate_series(0, 10)`)
+	_, err := pgdb.Query(&nums, `SELECT generate_series(0, 10)`)
 	fmt.Println(nums, err)
 	// Output: [0 1 2 3 4 5 6 7 8 9 10] <nil>
 }
 
 func ExampleStrings() {
 	var strs pg.Strings
-	_, err := db.Query(&strs, `
+	_, err := pgdb.Query(&strs, `
 		WITH users AS (VALUES ('foo'), ('bar')) SELECT * FROM users
 	`)
 	fmt.Println(strs, err)
@@ -289,19 +289,19 @@ func ExampleStrings() {
 }
 
 func ExampleDB_CopyFrom() {
-	_, err := db.Exec(`CREATE TEMP TABLE words(word text, len int)`)
+	_, err := pgdb.Exec(`CREATE TEMP TABLE words(word text, len int)`)
 	if err != nil {
 		panic(err)
 	}
 
 	r := strings.NewReader("hello,5\nfoo,3\n")
-	_, err = db.CopyFrom(r, `COPY words FROM STDIN WITH CSV`)
+	_, err = pgdb.CopyFrom(r, `COPY words FROM STDIN WITH CSV`)
 	if err != nil {
 		panic(err)
 	}
 
 	var buf bytes.Buffer
-	_, err = db.CopyTo(&buf, `COPY words TO STDOUT WITH CSV`)
+	_, err = pgdb.CopyTo(&buf, `COPY words TO STDOUT WITH CSV`)
 	if err != nil {
 		panic(err)
 	}
@@ -313,7 +313,7 @@ func ExampleDB_CopyFrom() {
 func ExampleDB_WithTimeout() {
 	var count int
 	// Use bigger timeout since this query is known to be slow.
-	_, err := db.WithTimeout(time.Minute).QueryOne(pg.Scan(&count), `
+	_, err := pgdb.WithTimeout(time.Minute).QueryOne(pg.Scan(&count), `
 		SELECT count(*) FROM big_table
 	`)
 	if err != nil {
@@ -323,7 +323,7 @@ func ExampleDB_WithTimeout() {
 
 func ExampleScan() {
 	var s1, s2 string
-	_, err := db.QueryOne(pg.Scan(&s1, &s2), `SELECT ?, ?`, "foo", "bar")
+	_, err := pgdb.QueryOne(pg.Scan(&s1, &s2), `SELECT ?, ?`, "foo", "bar")
 	fmt.Println(s1, s2, err)
 	// Output: foo bar <nil>
 }

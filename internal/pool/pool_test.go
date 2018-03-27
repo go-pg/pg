@@ -35,9 +35,9 @@ var _ = Describe("ConnPool", func() {
 		// Reserve all other connections.
 		var cns []*pool.Conn
 		for i := 0; i < 9; i++ {
-			cn, _, err := connPool.Get()
-			Expect(err).NotTo(HaveOccurred())
-			cns = append(cns, cn)
+			c, _, veterr := connPool.Get()
+			Expect(veterr).NotTo(HaveOccurred())
+			cns = append(cns, c)
 		}
 
 		started := make(chan bool, 1)
@@ -46,12 +46,12 @@ var _ = Describe("ConnPool", func() {
 			defer GinkgoRecover()
 
 			started <- true
-			_, _, err := connPool.Get()
-			Expect(err).NotTo(HaveOccurred())
+			_, _, veterr := connPool.Get()
+			Expect(veterr).NotTo(HaveOccurred())
 			done <- true
 
-			err = connPool.Put(cn)
-			Expect(err).NotTo(HaveOccurred())
+			veterr = connPool.Put(cn)
+			Expect(veterr).NotTo(HaveOccurred())
 		}()
 		<-started
 

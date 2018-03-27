@@ -546,7 +546,7 @@ func isColumn(typ reflect.Type) bool {
 func fieldSQLType(field *Field, pgTag, sqlTag *tag) string {
 	if typ, ok := sqlTag.Options["type"]; ok {
 		field.SetFlag(customTypeFlag)
-		typ, _ := unquote(typ)
+		typ, _ = unquote(typ)
 		return typ
 	}
 

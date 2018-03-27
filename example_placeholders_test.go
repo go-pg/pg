@@ -26,14 +26,14 @@ func Example_placeholders() {
 	var num int
 
 	// Simple params.
-	_, err := db.Query(pg.Scan(&num), "SELECT ?", 42)
+	_, err := pgdb.Query(pg.Scan(&num), "SELECT ?", 42)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("simple:", num)
 
 	// Indexed params.
-	_, err = db.Query(pg.Scan(&num), "SELECT ?0 + ?0", 1)
+	_, err = pgdb.Query(pg.Scan(&num), "SELECT ?0 + ?0", 1)
 	if err != nil {
 		panic(err)
 	}
@@ -44,14 +44,14 @@ func Example_placeholders() {
 		X: 1,
 		Y: 1,
 	}
-	_, err = db.Query(pg.Scan(&num), "SELECT ?x + ?y + ?Sum", params)
+	_, err = pgdb.Query(pg.Scan(&num), "SELECT ?x + ?y + ?Sum", params)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("named:", num)
 
 	// Global params.
-	_, err = db.WithParam("z", 1).Query(pg.Scan(&num), "SELECT ?x + ?y + ?z", params)
+	_, err = pgdb.WithParam("z", 1).Query(pg.Scan(&num), "SELECT ?x + ?y + ?z", params)
 	if err != nil {
 		panic(err)
 	}
@@ -59,7 +59,7 @@ func Example_placeholders() {
 
 	// Model params.
 	var tableName, tableAlias, tableColumns, columns string
-	_, err = db.Model(&Params{}).Query(
+	_, err = pgdb.Model(&Params{}).Query(
 		pg.Scan(&tableName, &tableAlias, &tableColumns, &columns),
 		"SELECT '?TableName', '?TableAlias', '?TableColumns', '?Columns'",
 	)

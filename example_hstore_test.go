@@ -12,22 +12,23 @@ func ExampleDB_Model_hstoreStructTag() {
 		Attrs map[string]string `pg:",hstore"` // marshalled as PostgreSQL hstore
 	}
 
-	_, err := db.Exec(`CREATE TEMP TABLE items (id serial, attrs hstore)`)
+	_, err := pgdb.Exec(`CREATE TEMP TABLE items (id serial, attrs hstore)`)
 	if err != nil {
 		panic(err)
 	}
-	defer db.Exec("DROP TABLE items")
+	defer pgdb.Exec("DROP TABLE items")
 
 	item1 := Item{
 		Id:    1,
 		Attrs: map[string]string{"hello": "world"},
 	}
-	if err := db.Insert(&item1); err != nil {
+	err = pgdb.Insert(&item1)
+	if err != nil {
 		panic(err)
 	}
 
 	var item Item
-	err = db.Model(&item).Where("id = ?", 1).Select()
+	err = pgdb.Model(&item).Where("id = ?", 1).Select()
 	if err != nil {
 		panic(err)
 	}
@@ -38,7 +39,7 @@ func ExampleDB_Model_hstoreStructTag() {
 func ExampleHstore() {
 	src := map[string]string{"hello": "world"}
 	var dst map[string]string
-	_, err := db.QueryOne(pg.Scan(pg.Hstore(&dst)), `SELECT ?`, pg.Hstore(src))
+	_, err := pgdb.QueryOne(pg.Scan(pg.Hstore(&dst)), `SELECT ?`, pg.Hstore(src))
 	if err != nil {
 		panic(err)
 	}

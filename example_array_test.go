@@ -13,23 +13,24 @@ func ExampleDB_Model_postgresArrayStructTag() {
 		Numbers [][]int  `pg:",array"` // marshalled as PostgreSQL array
 	}
 
-	_, err := db.Exec(`CREATE TEMP TABLE items (id serial, emails text[], numbers int[][])`)
+	_, err := pgdb.Exec(`CREATE TEMP TABLE items (id serial, emails text[], numbers int[][])`)
 	if err != nil {
 		panic(err)
 	}
-	defer db.Exec("DROP TABLE items")
+	defer pgdb.Exec("DROP TABLE items")
 
 	item1 := Item{
 		Id:      1,
 		Emails:  []string{"one@example.com", "two@example.com"},
 		Numbers: [][]int{{1, 2}, {3, 4}},
 	}
-	if err := db.Insert(&item1); err != nil {
+	err = pgdb.Insert(&item1)
+	if err != nil {
 		panic(err)
 	}
 
 	item := new(Item)
-	err = db.Model(item).Where("id = ?", 1).Select()
+	err = pgdb.Model(item).Where("id = ?", 1).Select()
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +41,7 @@ func ExampleDB_Model_postgresArrayStructTag() {
 func ExampleArray() {
 	src := []string{"one@example.com", "two@example.com"}
 	var dst []string
-	_, err := db.QueryOne(pg.Scan(pg.Array(&dst)), `SELECT ?`, pg.Array(src))
+	_, err := pgdb.QueryOne(pg.Scan(pg.Array(&dst)), `SELECT ?`, pg.Array(src))
 	if err != nil {
 		panic(err)
 	}

@@ -377,10 +377,10 @@ func ExampleDB_Select_groupBy() {
 }
 
 func ExampleDB_Select_with() {
-	authorBooks := db.Model(&Book{}).Where("author_id = ?", 1)
+	authorBooks := pgdb.Model(&Book{}).Where("author_id = ?", 1)
 
 	var books []Book
-	err := db.Model().
+	err := pgdb.Model().
 		With("author_books", authorBooks).
 		Table("author_books").
 		Select(&books)
@@ -397,7 +397,7 @@ func ExampleDB_Select_wrapWith() {
 	// )
 	// SELECT * FROM author_books
 	var books []Book
-	err := db.Model(&books).
+	err := pgdb.Model(&books).
 		Where("author_id = ?", 1).
 		WrapWith("author_books").
 		Table("author_books").
@@ -482,7 +482,7 @@ func ExampleDB_Model_nullEmptyValue() {
 	}
 
 	var str sql.NullString
-	_, err := db.QueryOne(pg.Scan(&str), "SELECT ?hello", &Example{Hello: ""})
+	_, err := pgdb.QueryOne(pg.Scan(&str), "SELECT ?hello", &Example{Hello: ""})
 	if err != nil {
 		panic(err)
 	}
@@ -965,7 +965,7 @@ func ExampleDB_discardUnknownColumns() {
 	}
 
 	var model1 Model1
-	_, err := db.QueryOne(&model1, "SELECT 1 AS id")
+	_, err := pgdb.QueryOne(&model1, "SELECT 1 AS id")
 	fmt.Printf("Model1: %v\n", err)
 
 	type Model2 struct {
@@ -973,7 +973,7 @@ func ExampleDB_discardUnknownColumns() {
 	}
 
 	var model2 Model2
-	_, err = db.QueryOne(&model2, "SELECT 1 AS id")
+	_, err = pgdb.QueryOne(&model2, "SELECT 1 AS id")
 	fmt.Printf("Model2: %v\n", err)
 
 	// Output: Model1: pg: can't find column=id in model=Model1

@@ -146,12 +146,12 @@ func authenticate(cn *pool.Conn, user, password string) error {
 		}
 		switch c {
 		case authenticationOKMsg:
-			num, err := readInt32(cn)
+			code, err := readInt32(cn)
 			if err != nil {
 				return err
 			}
-			if num != 0 {
-				return fmt.Errorf("pg: unexpected authentication code: %d", num)
+			if code != 0 {
+				return fmt.Errorf("pg: unexpected authentication code: %d", code)
 			}
 			return nil
 		case errorResponseMsg:
@@ -171,7 +171,8 @@ func authenticate(cn *pool.Conn, user, password string) error {
 
 		secret := "md5" + md5s(md5s(password+user)+string(b))
 		writePasswordMsg(cn.Writer, secret)
-		if err := cn.FlushWriter(); err != nil {
+		err = cn.FlushWriter()
+		if err != nil {
 			return err
 		}
 
@@ -181,12 +182,12 @@ func authenticate(cn *pool.Conn, user, password string) error {
 		}
 		switch c {
 		case authenticationOKMsg:
-			num, err := readInt32(cn)
+			code, err := readInt32(cn)
 			if err != nil {
 				return err
 			}
-			if num != 0 {
-				return fmt.Errorf("pg: unexpected authentication code: %d", num)
+			if code != 0 {
+				return fmt.Errorf("pg: unexpected authentication code: %d", code)
 			}
 			return nil
 		case errorResponseMsg:
@@ -298,7 +299,7 @@ func readParseDescribeSync(cn *pool.Conn) ([][]byte, error) {
 		}
 		switch c {
 		case parseCompleteMsg:
-			_, err := cn.ReadN(msgLen)
+			_, err = cn.ReadN(msgLen)
 			if err != nil {
 				return nil, err
 			}

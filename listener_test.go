@@ -155,8 +155,8 @@ var _ = Context("Listener", func() {
 			defer GinkgoRecover()
 
 			wait <- struct{}{}
-			_, _, err := ln.Receive()
-			Expect(err).NotTo(HaveOccurred())
+			_, _, lnerr := ln.Receive()
+			Expect(lnerr).NotTo(HaveOccurred())
 			wait <- struct{}{}
 		}()
 
