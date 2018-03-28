@@ -67,7 +67,8 @@ func (q *Query) CountEstimate(threshold int) (int, error) {
 		if err != nil {
 			if pgerr, ok := err.(internal.PGError); ok && pgerr.Field('C') == "42883" {
 				// undefined_function
-				if err := q.createCountEstimateFunc(); err != nil {
+				err = q.createCountEstimateFunc()
+				if err != nil {
 					return 0, err
 				}
 				continue

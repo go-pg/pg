@@ -210,7 +210,8 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 			}
 
 			if f.namedParams != nil {
-				if param, ok := f.namedParams[id]; ok {
+				param, paramOK := f.namedParams[id]
+				if paramOK {
 					dst = f.appendParam(dst, param)
 					continue
 				}

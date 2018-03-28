@@ -634,7 +634,8 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 	}
 
 	if q.model != nil && q.model.Table().HasFlag(BeforeInsertHookFlag) {
-		if err := q.model.BeforeInsert(q.db); err != nil {
+		err = q.model.BeforeInsert(q.db)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -645,7 +646,8 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 	}
 
 	if q.model != nil {
-		if err := q.model.AfterInsert(q.db); err != nil {
+		err = q.model.AfterInsert(q.db)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -654,7 +656,8 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 }
 
 // SelectOrInsert selects the model inserting one if it does not exist.
-func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, err error) {
+// It returns true when model was inserted.
+func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
 	if q.stickyErr != nil {
 		return false, q.stickyErr
 	}
@@ -698,7 +701,7 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, err error)
 		}
 	}
 
-	err = fmt.Errorf(
+	err := fmt.Errorf(
 		"pg: SelectOrInsert: select returns no rows (insert fails with err=%q)",
 		insertErr,
 	)
@@ -726,7 +729,8 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 	}
 
 	if q.model != nil {
-		if err := q.model.BeforeUpdate(q.db); err != nil {
+		err = q.model.BeforeUpdate(q.db)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -737,7 +741,8 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 	}
 
 	if q.model != nil {
-		if err := q.model.AfterUpdate(q.db); err != nil {
+		err = q.model.AfterUpdate(q.db)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -757,7 +762,8 @@ func (q *Query) Delete(values ...interface{}) (Result, error) {
 	}
 
 	if q.model != nil {
-		if err := q.model.BeforeDelete(q.db); err != nil {
+		err = q.model.BeforeDelete(q.db)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -768,7 +774,8 @@ func (q *Query) Delete(values ...interface{}) (Result, error) {
 	}
 
 	if q.model != nil {
-		if err := q.model.AfterDelete(q.db); err != nil {
+		err = q.model.AfterDelete(q.db)
+		if err != nil {
 			return nil, err
 		}
 	}

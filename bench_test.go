@@ -481,7 +481,7 @@ func _seedDB() error {
 	}
 
 	for i := 0; i < 1000; i++ {
-		_, err := db.Exec(`
+		_, err = db.Exec(`
 			INSERT INTO records (str1, str2, str3) VALUES (?, ?, ?)
 		`, randSeq(100), randSeq(200), randSeq(300))
 		if err != nil {
