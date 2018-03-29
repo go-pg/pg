@@ -881,13 +881,38 @@ func ExampleDB_Delete_multipleRows() {
 	db := modelDB()
 
 	ids := pg.In([]int{1, 2, 3})
-	res, err := db.Model(&Book{}).Where("id IN (?)", ids).Delete()
+	res, err := db.Model((*Book)(nil)).Where("id IN (?)", ids).Delete()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("deleted", res.RowsAffected())
 
-	count, err := db.Model(&Book{}).Count()
+	count, err := db.Model((*Book)(nil)).Count()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("left", count)
+
+	// Output: deleted 3
+	// left 0
+}
+
+func ExampleDB_Delete_bulkDelete() {
+	db := modelDB()
+
+	var books []Book
+	err := db.Model(&books).Select()
+	if err != nil {
+		panic(err)
+	}
+
+	res, err := db.Model(&books).Delete()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("deleted", res.RowsAffected())
+
+	count, err := db.Model((*Book)(nil)).Count()
 	if err != nil {
 		panic(err)
 	}
