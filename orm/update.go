@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/types"
 )
 
 func Update(db DB, model ...interface{}) error {
@@ -56,7 +57,8 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	if q.q.hasOtherTables() || q.modelHasData() {
+	sliceModelHasData := q.sliceModelHasData()
+	if q.q.hasOtherTables() || sliceModelHasData {
 		b = append(b, " FROM "...)
 		b = q.q.appendOtherTables(b)
 		b, err = q.appendModelData(b)
@@ -65,9 +67,14 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 		}
 	}
 
-	b, err = q.q.mustAppendWhere(b)
-	if err != nil {
-		return nil, err
+	if sliceModelHasData {
+		table := q.q.model.Table()
+		b = appendWhereColumnAndColumn(b, table.Alias, table.PKs)
+	} else {
+		b, err = q.q.mustAppendWhere(b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(q.q.returning) > 0 {
@@ -77,7 +84,7 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 	return b, nil
 }
 
-func (q *updateQuery) modelHasData() bool {
+func (q *updateQuery) sliceModelHasData() bool {
 	if !q.q.hasModel() {
 		return false
 	}
@@ -102,7 +109,7 @@ func (q *updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 	if value.Kind() == reflect.Struct {
 		b, err = q.appendSetStruct(b, value)
 	} else {
-		if q.modelHasData() {
+		if q.sliceModelHasData() {
 			b, err = q.appendSetSlice(b, value)
 		} else {
 			err = fmt.Errorf("pg: can't bulk-update empty slice %s", value.Type())
@@ -228,6 +235,21 @@ func appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
 			b = append(b, "::"...)
 			b = append(b, f.SQLType...)
 		}
+	}
+	return b
+}
+
+func appendWhereColumnAndColumn(b []byte, alias types.Q, fields []*Field) []byte {
+	b = append(b, " WHERE "...)
+	for i, f := range fields {
+		if i > 0 {
+			b = append(b, " AND "...)
+		}
+		b = append(b, alias...)
+		b = append(b, '.')
+		b = append(b, f.Column...)
+		b = append(b, " = _data."...)
+		b = append(b, f.Column...)
 	}
 	return b
 }

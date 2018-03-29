@@ -1,6 +1,8 @@
 package orm
 
 import (
+	"reflect"
+
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/types"
 )
@@ -55,9 +57,14 @@ func (j *join) manyQuery(db DB) (*Query, error) {
 
 	baseTable := j.BaseModel.Table()
 	var where []byte
-	where = append(where, "("...)
+	if len(j.Rel.FKs) > 1 {
+		where = append(where, '(')
+	}
 	where = appendColumns(where, j.JoinModel.Table().Alias, j.Rel.FKs)
-	where = append(where, ") IN ("...)
+	if len(j.Rel.FKs) > 1 {
+		where = append(where, '(')
+	}
+	where = append(where, " IN ("...)
 	where = appendChildValues(
 		where, j.JoinModel.Root(), j.JoinModel.ParentIndex(), j.Rel.FKValues)
 	where = append(where, ")"...)
@@ -289,4 +296,35 @@ func (q hasManyColumnsAppender) AppendFormat(b []byte, f QueryFormatter) []byte 
 	}
 
 	return appendColumns(b, joinTable.Alias, joinTable.Fields)
+}
+
+func appendChildValues(b []byte, v reflect.Value, index []int, fields []*Field) []byte {
+	seen := make(map[string]struct{})
+	walk(v, index, func(v reflect.Value) {
+		start := len(b)
+
+		if len(fields) > 1 {
+			b = append(b, '(')
+		}
+		for i, f := range fields {
+			if i > 0 {
+				b = append(b, ", "...)
+			}
+			b = f.AppendValue(b, v, 1)
+		}
+		if len(fields) > 1 {
+			b = append(b, ')')
+		}
+		b = append(b, ", "...)
+
+		if _, ok := seen[string(b[start:])]; ok {
+			b = b[:start]
+		} else {
+			seen[string(b[start:])] = struct{}{}
+		}
+	})
+	if len(seen) > 0 {
+		b = b[:len(b)-2] // trim ", "
+	}
+	return b
 }

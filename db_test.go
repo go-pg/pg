@@ -1592,6 +1592,29 @@ var _ = Describe("ORM", func() {
 		})
 	})
 
+	Describe("bulk delete", func() {
+		It("deletes books when slice is empty", func() {
+			var books []Book
+			res, err := db.Model(&books).Delete()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.RowsAffected()).To(Equal(0))
+		})
+
+		It("deletes books", func() {
+			var books []Book
+			err := db.Model(&books).Order("id").Select()
+			Expect(err).NotTo(HaveOccurred())
+
+			res, err := db.Model(&books).Delete()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.RowsAffected()).To(Equal(3))
+
+			books = make([]Book, 0)
+			n, err := db.Model(&books).Count()
+			Expect(n).To(Equal(0))
+		})
+	})
+
 	It("filters by HasOne", func() {
 		var books []Book
 		err := db.Model(&books).
