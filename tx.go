@@ -75,12 +75,12 @@ func (tx *Tx) Begin() (*Tx, error) {
 func (tx *Tx) RunInTransaction(fn func(*Tx) error) error {
 	defer func() {
 		if err := recover(); err != nil {
-			tx.Rollback()
+			_ = tx.Rollback()
 			panic(err)
 		}
 	}()
 	if err := fn(tx); err != nil {
-		tx.Rollback()
+		_ = tx.Rollback()
 		return err
 	}
 	return tx.Commit()
@@ -313,9 +313,9 @@ func (tx *Tx) Rollback() error {
 	return err
 }
 
-func (tx *Tx) close(lastErr error) error {
+func (tx *Tx) close(lastErr error) {
 	if tx.cn == nil {
-		return errTxDone
+		return
 	}
 
 	for _, stmt := range tx.stmts {
@@ -325,8 +325,6 @@ func (tx *Tx) close(lastErr error) error {
 
 	tx.db.freeConn(tx.cn, lastErr)
 	tx.cn = nil
-
-	return nil
 }
 
 func (tx *Tx) Context() context.Context {
