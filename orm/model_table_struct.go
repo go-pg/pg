@@ -82,6 +82,10 @@ func (m *structTableModel) ParentIndex() []int {
 	return m.index[:len(m.index)-len(m.rel.Field.Index)]
 }
 
+func (m *structTableModel) Kind() reflect.Kind {
+	return reflect.Struct
+}
+
 func (m *structTableModel) Value() reflect.Value {
 	return m.strct
 }

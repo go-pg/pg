@@ -9,8 +9,8 @@ import (
 	"github.com/go-pg/pg/types"
 )
 
-func Update(db DB, model ...interface{}) error {
-	res, err := NewQuery(db, model...).Update()
+func Update(db DB, model interface{}) error {
+	res, err := NewQuery(db, model).WherePK().Update()
 	if err != nil {
 		return err
 	}
@@ -57,19 +57,28 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	sliceModelHasData := q.sliceModelHasData()
-	if q.q.hasOtherTables() || sliceModelHasData {
+	isSliceModel := q.q.isSliceModel()
+	if q.q.hasOtherTables() || isSliceModel {
 		b = append(b, " FROM "...)
 		b = q.q.appendOtherTables(b)
-		b, err = q.appendModelData(b)
-		if err != nil {
-			return nil, err
+
+		if isSliceModel {
+			b, err = q.appendModelData(b)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
-	if sliceModelHasData {
+	b = append(b, " WHERE "...)
+	if isSliceModel {
 		table := q.q.model.Table()
 		b = appendWhereColumnAndColumn(b, table.Alias, table.PKs)
+
+		if len(q.q.where) > 0 {
+			b = append(b, " AND "...)
+			b = q.q.appendWhere(b)
+		}
 	} else {
 		b, err = q.q.mustAppendWhere(b)
 		if err != nil {
@@ -84,22 +93,14 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 	return b, nil
 }
 
-func (q *updateQuery) sliceModelHasData() bool {
-	if !q.q.hasModel() {
-		return false
-	}
-	v := q.q.model.Value()
-	return v.Kind() == reflect.Slice && v.Len() > 0
-}
-
-func (q *updateQuery) mustAppendSet(b []byte) ([]byte, error) {
+func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 	if len(q.q.set) > 0 {
 		b = q.q.appendSet(b)
 		return b, nil
 	}
 
 	if q.q.model == nil {
-		return nil, errors.New("pg: Model is nil")
+		return nil, errors.New("pg: Model(nil)")
 	}
 
 	b = append(b, " SET "...)
@@ -109,7 +110,7 @@ func (q *updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 	if value.Kind() == reflect.Struct {
 		b, err = q.appendSetStruct(b, value)
 	} else {
-		if q.sliceModelHasData() {
+		if value.Len() > 0 {
 			b, err = q.appendSetSlice(b, value)
 		} else {
 			err = fmt.Errorf("pg: can't bulk-update empty slice %s", value.Type())
@@ -180,15 +181,6 @@ func (q updateQuery) appendSetSlice(b []byte, slice reflect.Value) ([]byte, erro
 }
 
 func (q updateQuery) appendModelData(b []byte) ([]byte, error) {
-	if !q.q.hasModel() {
-		return b, nil
-	}
-
-	v := q.q.model.Value()
-	if v.Kind() != reflect.Slice || v.Len() == 0 {
-		return b, nil
-	}
-
 	columns, err := q.q.getDataFields()
 	if err != nil {
 		return nil, err
@@ -200,7 +192,7 @@ func (q updateQuery) appendModelData(b []byte) ([]byte, error) {
 		columns = q.q.model.Table().Fields
 	}
 
-	return appendSliceValues(b, columns, v), nil
+	return appendSliceValues(b, columns, q.q.model.Value()), nil
 }
 
 func appendSliceValues(b []byte, fields []*Field, slice reflect.Value) []byte {
@@ -240,7 +232,6 @@ func appendValues(b []byte, fields []*Field, v reflect.Value) []byte {
 }
 
 func appendWhereColumnAndColumn(b []byte, alias types.Q, fields []*Field) []byte {
-	b = append(b, " WHERE "...)
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, " AND "...)

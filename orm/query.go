@@ -331,9 +331,17 @@ func (q *Query) addWhere(f sepFormatAppender) {
 	}
 }
 
+// WherePK adds condition based on the model primary key.
+// Typically it is the same as:
+//
+//    Where("id = ?id")
 func (q *Query) WherePK() *Query {
-	if q.model == nil {
-		q.stickyErr = errors.New("pg: Model is nil")
+	if !q.hasModel() {
+		q.stickyErr = errors.New("pg: Model(nil)")
+		return q
+	}
+	if q.model.Kind() == reflect.Slice {
+		q.stickyErr = errors.New("pg: WherePK requires struct Model")
 		return q
 	}
 	if err := q.model.Table().checkPKs(); err != nil {
@@ -941,15 +949,11 @@ func (q *Query) mustAppendWhere(b []byte) ([]byte, error) {
 	}
 
 	if q.model == nil {
-		return nil, errors.New("pg: Model is nil")
+		return nil, errors.New("pg: Model(nil)")
 	}
-
-	if err := q.model.Table().checkPKs(); err != nil {
-		return nil, err
-	}
-
-	b = append(b, " WHERE "...)
-	return wherePKQuery{q}.AppendFormat(b, nil), nil
+	err := errors.New(
+		"pg: Update and Delete queries require Where clause (try WherePK)")
+	return nil, err
 }
 
 func (q *Query) appendWhere(b []byte) []byte {
@@ -961,7 +965,6 @@ func (q *Query) appendUpdWhere(b []byte) []byte {
 }
 
 func (q *Query) _appendWhere(b []byte, where []sepFormatAppender) []byte {
-	b = append(b, " WHERE "...)
 	for i, f := range where {
 		if i > 0 {
 			b = f.AppendSep(b)
@@ -1014,6 +1017,13 @@ func (q *Query) appendWith(b []byte) ([]byte, error) {
 	return b, nil
 }
 
+func (q *Query) isSliceModel() bool {
+	if !q.hasModel() {
+		return false
+	}
+	return q.model.Kind() == reflect.Slice && q.model.Value().Len() > 0
+}
+
 //------------------------------------------------------------------------------
 
 type wherePKQuery struct {
@@ -1027,11 +1037,7 @@ func (wherePKQuery) AppendSep(b []byte) []byte {
 func (q wherePKQuery) AppendFormat(b []byte, f QueryFormatter) []byte {
 	table := q.model.Table()
 	value := q.model.Value()
-	if value.Kind() == reflect.Struct {
-		return appendColumnAndValue(b, value, table.Alias, table.PKs)
-	} else {
-		return appendColumnAndSliceValue(b, value, table.Alias, table.PKs)
-	}
+	return appendColumnAndValue(b, value, table.Alias, table.PKs)
 }
 
 func appendColumnAndValue(b []byte, v reflect.Value, alias types.Q, fields []*Field) []byte {
