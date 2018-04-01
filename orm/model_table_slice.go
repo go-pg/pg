@@ -38,6 +38,10 @@ func (m *sliceTableModel) Bind(bind reflect.Value) {
 	m.slice = bind.Field(m.index[len(m.index)-1])
 }
 
+func (m *sliceTableModel) Kind() reflect.Kind {
+	return reflect.Slice
+}
+
 func (m *sliceTableModel) Value() reflect.Value {
 	return m.slice
 }

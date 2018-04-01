@@ -1593,11 +1593,10 @@ var _ = Describe("ORM", func() {
 	})
 
 	Describe("bulk delete", func() {
-		It("deletes books when slice is empty", func() {
+		It("returns an error when slice is empty", func() {
 			var books []Book
-			res, err := db.Model(&books).Delete()
-			Expect(err).NotTo(HaveOccurred())
-			Expect(res.RowsAffected()).To(Equal(0))
+			_, err := db.Model(&books).Delete()
+			Expect(err).To(MatchError("pg: Update and Delete queries require Where clause (try WherePK)"))
 		})
 
 		It("deletes books", func() {
@@ -1669,7 +1668,7 @@ var _ = Describe("ORM", func() {
 		book := &Book{
 			Id: 100,
 		}
-		res, err := db.Model(book).Returning("title").Delete()
+		res, err := db.Model(book).WherePK().Returning("title").Delete()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.RowsAffected()).To(Equal(1))
 		Expect(book).To(Equal(&Book{
@@ -1680,14 +1679,14 @@ var _ = Describe("ORM", func() {
 
 	It("deletes books returning id", func() {
 		var ids []int
-		res, err := db.Model(&Book{}).Where("TRUE").Returning("id").Delete(&ids)
+		res, err := db.Model((*Book)(nil)).Where("TRUE").Returning("id").Delete(&ids)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(res.RowsAffected()).To(Equal(3))
 		Expect(ids).To(Equal([]int{100, 101, 102}))
 	})
 
 	It("supports Exec & Query", func() {
-		_, err := db.Model(&Book{}).Exec("DROP TABLE ?TableName CASCADE")
+		_, err := db.Model((*Book)(nil)).Exec("DROP TABLE ?TableName CASCADE")
 		Expect(err).NotTo(HaveOccurred())
 
 		var num int

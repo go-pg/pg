@@ -230,8 +230,8 @@ func (tx *Tx) Insert(model ...interface{}) error {
 }
 
 // Update is an alias for DB.Update.
-func (tx *Tx) Update(model ...interface{}) error {
-	return orm.Update(tx, model...)
+func (tx *Tx) Update(model interface{}) error {
+	return orm.Update(tx, model)
 }
 
 // Delete is an alias for DB.Delete.

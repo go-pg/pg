@@ -12,7 +12,7 @@ type UpdateTest struct {
 
 var _ = Describe("Update", func() {
 	It("updates model", func() {
-		q := NewQuery(nil, &UpdateTest{})
+		q := NewQuery(nil, &UpdateTest{}).WherePK()
 
 		b, err := updateQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -24,7 +24,7 @@ var _ = Describe("Update", func() {
 			Id:    1,
 			Value: "hello",
 		}
-		q := NewQuery(nil, model).Value("value", "upper(?)", model.Value)
+		q := NewQuery(nil, model).Value("value", "upper(?)", model.Value).WherePK()
 
 		b, err := updateQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -36,7 +36,7 @@ var _ = Describe("Update", func() {
 			Id:    1,
 			Value: "hello",
 		}
-		q := NewQuery(nil, model).Value("value", "upper(?value)")
+		q := NewQuery(nil, model).Value("value", "upper(?value)").WherePK()
 
 		b, err := updateQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
@@ -44,7 +44,7 @@ var _ = Describe("Update", func() {
 	})
 
 	It("omits zero", func() {
-		q := NewQuery(nil, &UpdateTest{})
+		q := NewQuery(nil, &UpdateTest{}).WherePK()
 
 		b, err := updateQuery{q: q, omitZero: true}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())

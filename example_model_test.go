@@ -724,7 +724,7 @@ func ExampleDB_Update_notNull() {
 		Id:    1,
 		Title: "updated book 1",
 	}
-	_, err := db.Model(book).UpdateNotNull()
+	_, err := db.Model(book).WherePK().UpdateNotNull()
 	if err != nil {
 		panic(err)
 	}
@@ -747,7 +747,7 @@ func ExampleDB_Update_someColumns() {
 		Title:    "updated book 1", // only this column is going to be updated
 		AuthorID: 2,
 	}
-	_, err := db.Model(&book).Column("title").Returning("*").Update()
+	_, err := db.Model(&book).Column("title").WherePK().Returning("*").Update()
 	if err != nil {
 		panic(err)
 	}
@@ -764,7 +764,7 @@ func ExampleDB_Update_someColumns2() {
 		Title:    "updated book 1",
 		AuthorID: 2, // this column will not be updated
 	}
-	_, err := db.Model(&book).Set("title = ?title").Returning("*").Update()
+	_, err := db.Model(&book).Set("title = ?title").WherePK().Returning("*").Update()
 	if err != nil {
 		panic(err)
 	}

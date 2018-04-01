@@ -384,8 +384,8 @@ func (db *DB) Insert(model ...interface{}) error {
 }
 
 // Update updates the model by primary key.
-func (db *DB) Update(model ...interface{}) error {
-	return orm.Update(db, model...)
+func (db *DB) Update(model interface{}) error {
+	return orm.Update(db, model)
 }
 
 // Delete deletes the model by primary key.

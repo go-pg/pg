@@ -6,8 +6,8 @@ import (
 	"reflect"
 )
 
-func Insert(db DB, v ...interface{}) error {
-	_, err := NewQuery(db, v...).Insert()
+func Insert(db DB, model ...interface{}) error {
+	_, err := NewQuery(db, model...).Insert()
 	return err
 }
 
@@ -33,7 +33,7 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 		return nil, q.q.stickyErr
 	}
 	if q.q.model == nil {
-		return nil, errors.New("pg: Model is nil")
+		return nil, errors.New("pg: Model(nil)")
 	}
 
 	table := q.q.model.Table()
@@ -107,6 +107,7 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 			}
 
 			if len(q.q.updWhere) > 0 {
+				b = append(b, " WHERE "...)
 				b = q.q.appendUpdWhere(b)
 			}
 		}

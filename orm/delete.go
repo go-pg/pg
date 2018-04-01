@@ -5,7 +5,7 @@ import (
 )
 
 func Delete(db DB, model interface{}) error {
-	res, err := NewQuery(db, model).Delete()
+	res, err := NewQuery(db, model).WherePK().Delete()
 	if err != nil {
 		return err
 	}
@@ -50,9 +50,21 @@ func (q deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = q.q.appendOtherTables(b)
 	}
 
-	b, err = q.q.mustAppendWhere(b)
-	if err != nil {
-		return nil, err
+	b = append(b, " WHERE "...)
+	value := q.q.model.Value()
+	if q.q.isSliceModel() {
+		table := q.q.model.Table()
+		b = appendColumnAndSliceValue(b, value, table.Alias, table.PKs)
+
+		if len(q.q.where) > 0 {
+			b = append(b, " AND "...)
+			b = q.q.appendWhere(b)
+		}
+	} else {
+		b, err = q.q.mustAppendWhere(b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(q.q.returning) > 0 {
