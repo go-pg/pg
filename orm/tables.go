@@ -9,13 +9,15 @@ import (
 var Tables = newTables()
 
 type tables struct {
-	mu     sync.RWMutex
-	tables map[reflect.Type]*Table
+	mu         sync.RWMutex
+	inProgress map[reflect.Type]*Table
+	tables     map[reflect.Type]*Table
 }
 
 func newTables() *tables {
 	return &tables{
-		tables: make(map[reflect.Type]*Table),
+		inProgress: make(map[reflect.Type]*Table),
+		tables:     make(map[reflect.Type]*Table),
 	}
 }
 
@@ -27,7 +29,7 @@ func (t *tables) Register(strct interface{}) {
 	_ = t.Get(typ)
 }
 
-func (t *tables) Get(typ reflect.Type) *Table {
+func (t *tables) get(typ reflect.Type, inProgress bool) *Table {
 	if typ.Kind() != reflect.Struct {
 		panic(fmt.Errorf("got %s, wanted %s", typ.Kind(), reflect.Struct))
 	}
@@ -39,24 +41,41 @@ func (t *tables) Get(typ reflect.Type) *Table {
 		return table
 	}
 
+	var dup bool
 	t.mu.Lock()
 	table, ok = t.tables[typ]
 	if !ok {
-		table = &Table{
-			Type: typ,
+		if inProgress {
+			table, ok = t.inProgress[typ]
 		}
-		t.tables[typ] = table
+		if !ok {
+			table = newTable(typ)
+			_, dup = t.inProgress[typ]
+			if !dup {
+				t.inProgress[typ] = table
+			}
+		}
 	}
 	t.mu.Unlock()
 
 	if !ok {
 		table.init()
+		if !dup {
+			t.mu.Lock()
+			delete(t.inProgress, typ)
+			t.tables[typ] = table
+			t.mu.Unlock()
+		}
 	}
 
 	return table
 }
 
-func (t *tables) GetByName(name string) *Table {
+func (t *tables) Get(typ reflect.Type) *Table {
+	return t.get(typ, false)
+}
+
+func (t *tables) getByName(name string) *Table {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 

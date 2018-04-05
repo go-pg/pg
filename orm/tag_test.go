@@ -12,6 +12,7 @@ var tagTests = []struct {
 	{"", "", nil},
 
 	{"hello", "hello", nil},
+	{"'hello,world'", "'hello,world'", nil},
 	{",hello", "", map[string]string{"hello": ""}},
 	{"hello:", "", map[string]string{"hello": ""}},
 	{"hello:world", "", map[string]string{"hello": "world"}},
@@ -35,7 +36,11 @@ func TestTagParser(t *testing.T) {
 		}
 
 		for k, v := range test.opts {
-			if tag.Options[k] != v {
+			s, ok := tag.Options[k]
+			if !ok {
+				t.Fatalf("option=%q does not exist (tag=%q)", k, test.tag)
+			}
+			if s != v {
 				t.Fatalf("got %s=%q, wanted %q (tag=%q)", k, tag.Options[k], v, test.tag)
 			}
 		}
