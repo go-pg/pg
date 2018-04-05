@@ -1,5 +1,9 @@
 # Changelog
 
+## v6.11
+
+- `db.Model(&strct).Update()` and `db.Model(&strct).Delete()` no longer adds WHERE condition based on primary key when there are no conditions. Instead you should use `db.Update(&strct)` or `db.Model(&strct).WherePK().Update()`.
+
 ## v6.10
 
 - `?Columns` is renamed to `?TableColumns`. `?Columns` is changed to produce column names without table alias.
