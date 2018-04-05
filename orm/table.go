@@ -56,6 +56,13 @@ type Table struct {
 	flags uint16
 }
 
+func newTable(typ reflect.Type) *Table {
+	t := &Table{
+		Type: typ,
+	}
+	return t
+}
+
 func (t *Table) String() string {
 	return "model=" + t.TypeName
 }
@@ -219,7 +226,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 				continue
 			}
 
-			embeddedTable := Tables.Get(indirectType(f.Type))
+			embeddedTable := Tables.get(indirectType(f.Type), true)
 
 			pgTag := parseTag(f.Tag.Get("pg"))
 			if _, ok := pgTag.Options["override"]; ok {
@@ -253,7 +260,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			if isPostgresKeyword(sqlTag.Name) {
 				sqlTag.Name = `"` + sqlTag.Name + `"`
 			}
-			t.Name = types.Q(sqlTag.Name)
+			s, _ := unquote(sqlTag.Name)
+			t.Name = types.Q(s)
 		}
 
 		if alias, ok := sqlTag.Options["alias"]; ok {
@@ -372,7 +380,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			break
 		}
 
-		joinTable := Tables.Get(elemType)
+		joinTable := Tables.get(elemType, true)
 
 		fk, fkOK := pgTag.Options["fk"]
 		if fkOK {
@@ -383,7 +391,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 
 		if m2mTableName, _ := pgTag.Options["many2many"]; m2mTableName != "" {
-			m2mTable := Tables.GetByName(m2mTableName)
+			m2mTable := Tables.getByName(m2mTableName)
 
 			var m2mTableAlias types.Q
 			if m2mTable != nil {
@@ -499,7 +507,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			return nil
 		}
 	case reflect.Struct:
-		joinTable := Tables.Get(field.Type)
+		joinTable := Tables.get(field.Type, true)
 		if len(joinTable.Fields) == 0 {
 			break
 		}

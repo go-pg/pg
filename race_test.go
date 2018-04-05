@@ -139,7 +139,7 @@ var _ = Describe("DB race", func() {
 			}
 		})
 
-		count, err := db.Model(&Author{}).Count()
+		count, err := db.Model((*Author)(nil)).Count()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(count).To(Equal(1))
 	})
@@ -168,8 +168,20 @@ var _ = Describe("DB race", func() {
 			}
 		})
 
-		count, err := db.Model(&Author{}).Count()
+		count, err := db.Model((*Author)(nil)).Count()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(count).To(Equal(1))
+	})
+
+	It("fully initializes model table", func() {
+		type TestTable struct {
+			tableName struct{} `sql:"'generate_series(0, 9)'"`
+		}
+
+		perform(C, func(id int) {
+			n, err := db.Model((*TestTable)(nil)).Count()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(n).To(Equal(10))
+		})
 	})
 })
