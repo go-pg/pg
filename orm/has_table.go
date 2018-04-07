@@ -29,8 +29,14 @@ func (q hasTableQuery) AppendQuery(b []byte) ([]byte, error) {
 		return nil, errors.New("pg: Model(nil)")
 	}
 
+	tableName := strings.Replace(string(q.q.model.Table().Name), `"`, "'", -1)
+
+	if !strings.HasPrefix(tableName, "'") {
+		tableName = "'" + tableName + "'"
+	}
+
 	b = append(b, "SELECT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = "...)
-	b = append(b, strings.Replace(string(q.q.model.Table().Name), `"`, "'", -1)...)
+	b = append(b, tableName...)
 	b = append(b, ");"...)
 
 	return b, nil
