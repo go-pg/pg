@@ -812,6 +812,18 @@ func (q *Query) DropTable(opt *DropTableOptions) (Result, error) {
 	})
 }
 
+func (q *Query) HasTable() (bool, error) {
+	if q.stickyErr != nil {
+		return false, q.stickyErr
+	}
+
+	var exists bool
+	_, err := q.db.QueryOne(Scan(&exists), hasTableQuery{
+		q: q,
+	})
+	return exists, err
+}
+
 // Exec is an alias for DB.Exec.
 func (q *Query) Exec(query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)
