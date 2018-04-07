@@ -408,6 +408,10 @@ func (db *DB) DropTable(model interface{}, opt *orm.DropTableOptions) error {
 	return err
 }
 
+func (db *DB) HasTable(model interface{}) (bool, error) {
+	return orm.HasTable(db, model)
+}
+
 func (db *DB) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
 	return db.fmter.Append(dst, query, params...)
 }
