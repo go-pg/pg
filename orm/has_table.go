@@ -2,7 +2,6 @@ package orm
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -30,11 +29,9 @@ func (q hasTableQuery) AppendQuery(b []byte) ([]byte, error) {
 		return nil, errors.New("pg: Model(nil)")
 	}
 
-
-	b = append(b, fmt.Sprintf(
-		"SELECT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = %s);", strings.Replace(
-			string(q.q.model.Table().Name), `"`, "'", -1),
-	)...)
+	b = append(b, "SELECT EXISTS (SELECT 1 FROM pg_tables WHERE schemaname = 'public' AND tablename = "...)
+	b = append(b, strings.Replace(string(q.q.model.Table().Name), `"`, "'", -1)...)
+	b = append(b, ");"...)
 
 	return b, nil
 }
