@@ -812,6 +812,46 @@ func (q *Query) DropTable(opt *DropTableOptions) (Result, error) {
 	})
 }
 
+func (q *Query) HasTable() (bool, error) {
+	if q.stickyErr != nil {
+		return false, q.stickyErr
+	}
+
+	var count int
+	_, err := q.db.QueryOne(Scan(&count), hasTableQuery{
+		q: q,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	if count > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (q *Query) HasColumn(clm string) (bool, error) {
+	if q.stickyErr != nil {
+		return false, q.stickyErr
+	}
+
+	var count int
+	_, err := q.db.QueryOne(Scan(&count), hasColumnQuery{
+		q: q,
+		clmName: clm,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	if count > 0 {
+		return true, nil
+	}
+
+	return false, nil
+}
+
 // Exec is an alias for DB.Exec.
 func (q *Query) Exec(query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)
