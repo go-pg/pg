@@ -791,27 +791,6 @@ func (q *Query) Delete(values ...interface{}) (Result, error) {
 	return res, nil
 }
 
-// CreateTable creates table for the model.
-func (q *Query) CreateTable(opt *CreateTableOptions) (Result, error) {
-	if q.stickyErr != nil {
-		return nil, q.stickyErr
-	}
-	return q.db.Exec(createTableQuery{
-		q:   q,
-		opt: opt,
-	})
-}
-
-func (q *Query) DropTable(opt *DropTableOptions) (Result, error) {
-	if q.stickyErr != nil {
-		return nil, q.stickyErr
-	}
-	return q.db.Exec(dropTableQuery{
-		q:   q,
-		opt: opt,
-	})
-}
-
 // Exec is an alias for DB.Exec.
 func (q *Query) Exec(query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)

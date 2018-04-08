@@ -8,7 +8,12 @@ type DropTableOptions struct {
 }
 
 func DropTable(db DB, model interface{}, opt *DropTableOptions) (Result, error) {
-	return NewQuery(db, model).DropTable(opt)
+	q := NewQuery(db, model)
+
+	return q.db.Exec(dropTableQuery{
+		q:   q,
+		opt: opt,
+	})
 }
 
 type dropTableQuery struct {
