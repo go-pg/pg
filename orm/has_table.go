@@ -6,7 +6,20 @@ import (
 )
 
 func HasTable(db DB, model interface{}) (bool, error) {
-	return NewQuery(db, model).HasTable()
+	q := NewQuery(db, model)
+
+	var count int
+	_, err := q.db.QueryOne(Scan(&count), hasTableQuery{
+		q: q,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	if count > 0 {
+		return true, nil
+	}
+	return false, nil
 }
 
 type hasTableQuery struct {
@@ -35,7 +48,7 @@ func (q hasTableQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	b = append(b, "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = '"...)
 	b = append(b, tableName...)
-	b = append(b, "';"...)
+	b = append(b, "'"...)
 
 	return b, nil
 }

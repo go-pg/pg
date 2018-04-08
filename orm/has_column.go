@@ -6,7 +6,22 @@ import (
 )
 
 func HasColumn(db DB, model interface{}, clm string) (bool, error) {
-	return NewQuery(db, model).HasColumn(clm)
+	q := NewQuery(db, model)
+
+	var count int
+	_, err := q.db.QueryOne(Scan(&count), hasColumnQuery{
+		q: q,
+		clmName: clm,
+	})
+	if err != nil {
+		return false, err
+	}
+
+	if count > 0 {
+		return true, nil
+	}
+
+	return false, nil
 }
 
 type hasColumnQuery struct {
@@ -38,7 +53,7 @@ func (q hasColumnQuery) AppendQuery(b []byte) ([]byte, error) {
 	b = append(b, tableName...)
 	b = append(b, "' AND column_name='"...)
 	b = append(b, q.clmName...)
-	b = append(b, "';"...)
+	b = append(b, "'"...)
 
 	return b, nil
 }

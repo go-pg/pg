@@ -17,13 +17,14 @@ var _ = Describe("HasTable", func() {
 
 		b, err := hasTableQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal("SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'has_table_models';"))
+		Expect(string(b)).To(Equal("SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'has_table_models'"))
 	})
+
 	It("has table with custom name", func() {
 		q := NewQuery(nil, &HasTableModelWithName{})
 
 		b, err := hasTableQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal("SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'custom_name';"))
+		Expect(string(b)).To(Equal("SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'custom_name'"))
 	})
 })

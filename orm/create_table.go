@@ -17,7 +17,12 @@ type CreateTableOptions struct {
 }
 
 func CreateTable(db DB, model interface{}, opt *CreateTableOptions) (Result, error) {
-	return NewQuery(db, model).CreateTable(opt)
+	q := NewQuery(db, model)
+
+	return q.db.Exec(createTableQuery{
+		q:   q,
+		opt: opt,
+	})
 }
 
 type createTableQuery struct {
