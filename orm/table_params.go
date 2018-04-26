@@ -19,7 +19,7 @@ func newTableParams(strct interface{}) (*tableParams, bool) {
 	}
 
 	return &tableParams{
-		table: Tables.Get(v.Type()),
+		table: GetTable(v.Type()),
 		strct: v,
 	}, true
 }

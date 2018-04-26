@@ -27,7 +27,7 @@ var _ = Describe("embedded Model", func() {
 
 	BeforeEach(func() {
 		strct = reflect.ValueOf(B{A: A{Id: 1}})
-		table = orm.Tables.Get(strct.Type())
+		table = orm.GetTable(strct.Type())
 	})
 
 	It("has fields", func() {
@@ -67,7 +67,7 @@ var _ = Describe("primary key annotation", func() {
 
 	BeforeEach(func() {
 		strct := reflect.ValueOf(C{})
-		table = orm.Tables.Get(strct.Type())
+		table = orm.GetTable(strct.Type())
 	})
 
 	It("has precedence over auto-detection", func() {
@@ -85,7 +85,7 @@ var _ = Describe("uuid field", func() {
 
 	BeforeEach(func() {
 		strct := reflect.ValueOf(D{})
-		table = orm.Tables.Get(strct.Type())
+		table = orm.GetTable(strct.Type())
 	})
 
 	It("is detected as primary key", func() {
@@ -107,7 +107,7 @@ var _ = Describe("struct field", func() {
 
 	BeforeEach(func() {
 		strct := reflect.ValueOf(E{})
-		table = orm.Tables.Get(strct.Type())
+		table = orm.GetTable(strct.Type())
 	})
 
 	It("is present in the list", func() {
@@ -132,7 +132,7 @@ type g struct {
 var _ = Describe("unexported types", func() {
 	It("work with belongs to relation", func() {
 		strct := reflect.ValueOf(f{})
-		table := orm.Tables.Get(strct.Type())
+		table := orm.GetTable(strct.Type())
 
 		rel, ok := table.Relations["G"]
 		Expect(ok).To(BeTrue())
@@ -141,7 +141,7 @@ var _ = Describe("unexported types", func() {
 
 	It("work with has one relation", func() {
 		strct := reflect.ValueOf(g{})
-		table := orm.Tables.Get(strct.Type())
+		table := orm.GetTable(strct.Type())
 
 		rel, ok := table.Relations["F"]
 		Expect(ok).To(BeTrue())
@@ -159,10 +159,10 @@ type I struct {
 
 var _ = Describe("model with circular reference", func() {
 	It("works", func() {
-		table := orm.Tables.Get(reflect.TypeOf(H{}))
+		table := orm.GetTable(reflect.TypeOf(H{}))
 		Expect(table).NotTo(BeNil())
 
-		table = orm.Tables.Get(reflect.TypeOf(I{}))
+		table = orm.GetTable(reflect.TypeOf(I{}))
 		Expect(table).NotTo(BeNil())
 	})
 })
@@ -179,7 +179,7 @@ type K struct {
 
 var _ = Describe("ModelId fk", func() {
 	It("is autodetected", func() {
-		table := orm.Tables.Get(reflect.TypeOf(K{}))
+		table := orm.GetTable(reflect.TypeOf(K{}))
 		Expect(table).NotTo(BeNil())
 
 		rel := table.Relations["My"]
@@ -197,7 +197,7 @@ var _ = Describe("ModelId fk and anonymous model", func() {
 			Items []L
 		}
 
-		table := orm.Tables.Get(reflect.TypeOf(res))
+		table := orm.GetTable(reflect.TypeOf(res))
 		Expect(table).NotTo(BeNil())
 
 		field := table.FieldsMap["items"]
@@ -220,7 +220,7 @@ type N struct {
 
 var _ = Describe("embedding", func() {
 	It("handles overwriting", func() {
-		table := orm.Tables.Get(reflect.TypeOf(N{}))
+		table := orm.GetTable(reflect.TypeOf(N{}))
 		Expect(table.Fields).To(HaveLen(2))
 		Expect(table.FieldsMap).To(HaveLen(2))
 		Expect(table.PKs).To(HaveLen(1))

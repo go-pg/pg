@@ -35,6 +35,7 @@ var nullFloatType = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
 var nullIntType = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
 var nullStringType = reflect.TypeOf((*sql.NullString)(nil)).Elem()
 
+// Table represents a SQL table created from Go struct.
 type Table struct {
 	Type       reflect.Type
 	zeroStruct reflect.Value
@@ -226,7 +227,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 				continue
 			}
 
-			embeddedTable := Tables.get(indirectType(f.Type), true)
+			embeddedTable := _tables.get(indirectType(f.Type), true)
 
 			pgTag := parseTag(f.Tag.Get("pg"))
 			if _, ok := pgTag.Options["override"]; ok {
@@ -380,7 +381,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			break
 		}
 
-		joinTable := Tables.get(elemType, true)
+		joinTable := _tables.get(elemType, true)
 
 		fk, fkOK := pgTag.Options["fk"]
 		if fkOK {
@@ -391,7 +392,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 
 		if m2mTableName, _ := pgTag.Options["many2many"]; m2mTableName != "" {
-			m2mTable := Tables.getByName(m2mTableName)
+			m2mTable := _tables.getByName(m2mTableName)
 
 			var m2mTableAlias types.Q
 			if m2mTable != nil {
@@ -507,7 +508,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			return nil
 		}
 	case reflect.Struct:
-		joinTable := Tables.get(field.Type, true)
+		joinTable := _tables.get(field.Type, true)
 		if len(joinTable.Fields) == 0 {
 			break
 		}

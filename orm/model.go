@@ -15,15 +15,15 @@ type useQueryOne interface {
 
 type HooklessModel interface {
 	// Init is responsible to initialize/reset model state.
-	// It is guaranteed to be called once no matter how many rows
+	// It is called only once no matter how many rows
 	// were returned by database.
 	Init() error
 
 	// NewModel returns ColumnScanner that is used to scan columns
-	// from the current row.
+	// from the current row. It is called once for every row.
 	NewModel() ColumnScanner
 
-	// AddModel adds ColumnScanner to the Collection.
+	// AddModel adds ColumnScanner created by NewModel to the Collection.
 	AddModel(ColumnScanner) error
 
 	ColumnScanner
@@ -78,7 +78,7 @@ func NewModel(values ...interface{}) (Model, error) {
 		if structType.Kind() == reflect.Struct && structType != timeType {
 			m := sliceTableModel{
 				structTableModel: structTableModel{
-					table: Tables.Get(structType),
+					table: GetTable(structType),
 					root:  v,
 				},
 				slice: v,

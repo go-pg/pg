@@ -10,7 +10,7 @@ import (
 func init() {
 	// Register many to many model so ORM can better recognize m2m relation.
 	// This should be done before dependant models are used.
-	orm.Tables.Register((*ItemToItem)(nil))
+	orm.RegisterTable((*ItemToItem)(nil))
 }
 
 type Item struct {

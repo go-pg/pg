@@ -22,7 +22,7 @@ var _ tableModel = (*structTableModel)(nil)
 
 func newStructTableModelValue(v reflect.Value) *structTableModel {
 	return &structTableModel{
-		table: Tables.Get(v.Type()),
+		table: GetTable(v.Type()),
 		root:  v,
 		strct: v,
 	}
@@ -30,7 +30,7 @@ func newStructTableModelValue(v reflect.Value) *structTableModel {
 
 func newStructTableModelType(typ reflect.Type) *structTableModel {
 	return &structTableModel{
-		table: Tables.Get(typ),
+		table: GetTable(typ),
 	}
 }
 

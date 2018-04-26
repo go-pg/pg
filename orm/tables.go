@@ -6,7 +6,19 @@ import (
 	"sync"
 )
 
-var Tables = newTables()
+var _tables = newTables()
+
+// GetTable returns a Table for a struct type.
+func GetTable(typ reflect.Type) *Table {
+	return _tables.Get(typ)
+}
+
+// RegisterTable registers a struct as SQL table.
+// It is usually used to register intermediate table
+// in many to many relationship.
+func RegisterTable(strct interface{}) {
+	_tables.Register(strct)
+}
 
 type tables struct {
 	mu         sync.RWMutex

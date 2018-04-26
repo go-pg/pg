@@ -61,7 +61,7 @@ func newTableModelValue(v reflect.Value) (tableModel, error) {
 		if structType.Kind() == reflect.Struct {
 			m := sliceTableModel{
 				structTableModel: structTableModel{
-					table: Tables.Get(structType),
+					table: GetTable(structType),
 					root:  v,
 				},
 				slice: v,
@@ -79,7 +79,7 @@ func newTableModelIndex(root reflect.Value, index []int, rel *Relation) (tableMo
 
 	if typ.Kind() == reflect.Struct {
 		return &structTableModel{
-			table: Tables.Get(typ),
+			table: GetTable(typ),
 			rel:   rel,
 
 			root:  root,
@@ -92,7 +92,7 @@ func newTableModelIndex(root reflect.Value, index []int, rel *Relation) (tableMo
 		if structType.Kind() == reflect.Struct {
 			m := sliceTableModel{
 				structTableModel: structTableModel{
-					table: Tables.Get(structType),
+					table: GetTable(structType),
 					rel:   rel,
 
 					root:  root,
