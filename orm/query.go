@@ -621,6 +621,15 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
 	return count, err
 }
 
+// ForEach calls the function for each row returned by the query
+// without loading all rows into the memory.
+// Function accepts a struct, pointer to a struct, orm.Model,
+// or values for columns in a row. Function must return an error.
+func (q *Query) ForEach(fn interface{}) error {
+	m := newFuncModel(fn)
+	return q.Select(m)
+}
+
 func (q *Query) forEachHasOneJoin(fn func(*join)) {
 	if q.model == nil {
 		return

@@ -41,7 +41,7 @@ END;
 $$ LANGUAGE plpgsql;
 `, placeholder)
 
-// CountEstimate uses EXPLAIN to get estimated number of rows matching the query.
+// CountEstimate uses EXPLAIN to get estimated number of rows returned the query.
 // If that number is bigger than the threshold it returns the estimation.
 // Otherwise it executes another query using count aggregate function and
 // returns the result.

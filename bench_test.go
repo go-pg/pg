@@ -546,3 +546,58 @@ func _seedDB() error {
 
 	return nil
 }
+
+func BenchmarkForEachReal(b *testing.B) {
+	const N = 100000
+
+	type Model struct {
+		Id int
+		_  [1000]byte
+	}
+
+	db := benchmarkDB()
+	defer db.Close()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var i int
+		err := db.Model().
+			TableExpr("generate_series(1, ?) as id", N).
+			ForEach(func(m *Model) error {
+				i++
+				return nil
+			})
+		if err != nil {
+			b.Fatal(err)
+		}
+		if i != N {
+			b.Fatalf("got %d, wanted %d", i, N)
+		}
+	}
+}
+
+func BenchmarkForEachInMemory(b *testing.B) {
+	const N = 100000
+
+	type Model struct {
+		Id int
+		_  [1000]byte
+	}
+
+	db := benchmarkDB()
+	defer db.Close()
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		var model []Model
+		err := db.Model().
+			TableExpr("generate_series(1, ?) as id", N).
+			Select(&model)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if len(model) != N {
+			b.Fatalf("got %d, wanted %d", len(model), N)
+		}
+	}
+}
