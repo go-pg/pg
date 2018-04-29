@@ -7,7 +7,12 @@ import (
 	"github.com/go-pg/pg/internal"
 )
 
+// ErrNoRows is returned by QueryOne and ExecOne when query returned zero rows
+// but at least one row is expected.
 var ErrNoRows = internal.ErrNoRows
+
+// ErrMultiRows is returned by QueryOne and ExecOne when query returned
+// multiple rows but exactly one row is expected.
 var ErrMultiRows = internal.ErrMultiRows
 
 // Error represents an error returned by PostgreSQL server

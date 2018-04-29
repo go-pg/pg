@@ -47,6 +47,7 @@ func (db *DB) Options() *Options {
 	return db.opt
 }
 
+// Context returns DB context.
 func (db *DB) Context() context.Context {
 	if db.ctx != nil {
 		return db.ctx
@@ -54,6 +55,7 @@ func (db *DB) Context() context.Context {
 	return context.Background()
 }
 
+// WithContext copies the DB, sets context and returns copied DB.
 func (db *DB) WithContext(ctx context.Context) *DB {
 	return &DB{
 		opt:   db.opt,

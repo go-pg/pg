@@ -158,8 +158,14 @@ func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
 	return q
 }
 
-// Column adds column to the Query quoting it according to PostgreSQL rules.
-// ColumnExpr can be used to bypass quoting restriction.
+// Column adds a column to the Query quoting it according to PostgreSQL rules.
+// ColumnExpr can be used to bypass quoting restriction. Column name can be:
+//   - column_name,
+//   - table_alias.column_name,
+//   - table_alias.*,
+//   - RelationName,
+//   - RelationName.column_name,
+//   - RelationName._ to join relation without selecting relation data.
 func (q *Query) Column(columns ...string) *Query {
 	for _, column := range columns {
 		if column == "_" {
