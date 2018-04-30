@@ -149,6 +149,11 @@ func (f *Formatter) WithParam(param string, value interface{}) Formatter {
 	return cp
 }
 
+func (f Formatter) Param(param string) (interface{}, bool) {
+	v, ok := f.namedParams[param]
+	return v, ok
+}
+
 func (f Formatter) Append(dst []byte, src string, params ...interface{}) []byte {
 	if (params == nil && f.namedParams == nil) || strings.IndexByte(src, '?') == -1 {
 		return append(dst, src...)
@@ -210,7 +215,7 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 			}
 
 			if f.namedParams != nil {
-				param, paramOK := f.namedParams[id]
+				param, paramOK := f.Param(id)
 				if paramOK {
 					dst = f.appendParam(dst, param)
 					continue
