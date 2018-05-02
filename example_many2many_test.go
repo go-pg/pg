@@ -10,23 +10,28 @@ import (
 func init() {
 	// Register many to many model so ORM can better recognize m2m relation.
 	// This should be done before dependant models are used.
-	orm.RegisterTable((*ItemToItem)(nil))
+	orm.RegisterTable((*OrderToItem)(nil))
+}
+
+type Order struct {
+	Id    int
+	Items []Item `pg:"many2many:order_to_items"`
 }
 
 type Item struct {
-	Id    int
-	Items []Item `pg:"many2many:item_to_items,joinFK:sub_id"`
+	Id int
 }
 
-type ItemToItem struct {
-	ItemId int
-	SubId  int
+type OrderToItem struct {
+	OrderId int
+	ItemId  int
 }
 
 func createManyToManyTables(db *pg.DB) error {
 	models := []interface{}{
+		(*Order)(nil),
 		(*Item)(nil),
-		(*ItemToItem)(nil),
+		(*OrderToItem)(nil),
 	}
 	for _, model := range models {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
@@ -50,9 +55,9 @@ func ExampleDB_Model_manyToMany() {
 	values := []interface{}{
 		&Item{Id: 1},
 		&Item{Id: 2},
-		&Item{Id: 3},
-		&ItemToItem{ItemId: 1, SubId: 2},
-		&ItemToItem{ItemId: 1, SubId: 3},
+		&Order{Id: 1},
+		&OrderToItem{OrderId: 1, ItemId: 1},
+		&OrderToItem{OrderId: 1, ItemId: 2},
 	}
 	for _, v := range values {
 		err := db.Insert(v)
@@ -61,21 +66,21 @@ func ExampleDB_Model_manyToMany() {
 		}
 	}
 
-	// Select item and all subitems with following queries:
+	// Select order and all items with following queries:
 	//
-	// SELECT "item".* FROM "items" AS "item" ORDER BY "item"."id" LIMIT 1
+	// SELECT "order"."id" FROM "orders" AS "order" ORDER BY "order"."id" LIMIT 1
 	//
-	// SELECT * FROM "items" AS "item"
-	// JOIN "item_to_items" ON ("item_to_items"."item_id") IN ((1))
-	// WHERE ("item"."id" = "item_to_items"."sub_id")
+	// SELECT order_to_items.*, "item"."id" FROM "items" AS "item"
+	// JOIN order_to_items AS order_to_items ON (order_to_items."order_id") IN (1)
+	// WHERE ("item"."id" = order_to_items."item_id")
 
-	var item Item
-	err := db.Model(&item).Column("item.*").Relation("Items").First()
+	order := new(Order)
+	err := db.Model(order).Relation("Items").First()
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Item", item.Id)
-	fmt.Println("Subitems", item.Items[0].Id, item.Items[1].Id)
-	// Output: Item 1
-	// Subitems 2 3
+	fmt.Println("Order", order.Id)
+	fmt.Println("Items", order.Items[0].Id, order.Items[1].Id)
+	// Output: Order 1
+	// Items 1 2
 }
