@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/parser"
 	"github.com/go-pg/pg/types"
 )
@@ -42,6 +43,11 @@ func (q *queryParamsAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 
 func (q *queryParamsAppender) AppendValue(b []byte, quote int) []byte {
 	return q.AppendFormat(b, formatter)
+}
+
+func (q *queryParamsAppender) Value() types.Q {
+	b := q.AppendValue(nil, 1)
+	return types.Q(internal.BytesToString(b))
 }
 
 //------------------------------------------------------------------------------
