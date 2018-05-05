@@ -79,8 +79,29 @@ func ExampleDB_Model_manyToMany() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Order", order.Id)
-	fmt.Println("Items", order.Items[0].Id, order.Items[1].Id)
-	// Output: Order 1
-	// Items 1 2
+	fmt.Println("Order", order.Id, "Items", order.Items[0].Id, order.Items[1].Id)
+
+	// Select order and all items sorted by id with following queries:
+	//
+	// SELECT "order"."id" FROM "orders" AS "order" ORDER BY "order"."id" LIMIT 1
+	//
+	// SELECT order_to_items.*, "item"."id" FROM "items" AS "item"
+	// JOIN order_to_items AS order_to_items ON (order_to_items."order_id") IN (1)
+	// WHERE ("item"."id" = order_to_items."item_id")
+	// ORDER BY item.id DESC
+
+	order = new(Order)
+	err = db.Model(order).
+		Relation("Items", func(q *orm.Query) (*orm.Query, error) {
+			q = q.OrderExpr("item.id DESC")
+			return q, nil
+		}).
+		First()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Order", order.Id, "Items", order.Items[0].Id, order.Items[1].Id)
+
+	// Output: Order 1 Items 1 2
+	// Order 1 Items 2 1
 }
