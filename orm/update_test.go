@@ -24,7 +24,9 @@ var _ = Describe("Update", func() {
 			Id:    1,
 			Value: "hello",
 		}
-		q := NewQuery(nil, model).Value("value", "upper(?)", model.Value).WherePK()
+		q := NewQuery(nil, model).
+			Value("value", "upper(?)", model.Value).
+			WherePK()
 
 		b, err := updateQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
