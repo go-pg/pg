@@ -147,13 +147,14 @@ func (q updateQuery) appendSetStruct(b []byte, strct reflect.Value) ([]byte, err
 		b = append(b, f.Column...)
 		b = append(b, " = "...)
 
-		app, ok := q.q.values[f.SQLName]
+		app, ok := q.q.modelValues[f.SQLName]
 		if ok {
 			b = app.AppendFormat(b, q.q)
 		} else {
 			b = f.AppendValue(b, strct, 1)
 		}
 	}
+
 	return b, nil
 }
 
@@ -177,6 +178,7 @@ func (q updateQuery) appendSetSlice(b []byte, slice reflect.Value) ([]byte, erro
 		b = append(b, "_data."...)
 		b = append(b, f.Column...)
 	}
+
 	return b, nil
 }
 

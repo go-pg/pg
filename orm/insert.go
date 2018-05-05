@@ -128,7 +128,7 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) [
 			b = append(b, ", "...)
 		}
 
-		app, ok := q.q.values[f.SQLName]
+		app, ok := q.q.modelValues[f.SQLName]
 		if ok {
 			b = app.AppendFormat(b, q.q)
 			continue
