@@ -64,6 +64,11 @@ func (db *DB) RunInTransaction(fn func(*Tx) error) error {
 	return tx.RunInTransaction(fn)
 }
 
+// DB returns a DB which started the Tx.
+func (tx *Tx) DB() *DB {
+	return tx.db
+}
+
 // Begin returns the transaction.
 func (tx *Tx) Begin() (*Tx, error) {
 	return tx, nil
