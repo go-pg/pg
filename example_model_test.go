@@ -490,6 +490,21 @@ func ExampleDB_Model_nullEmptyValue() {
 	// Output: false
 }
 
+func ExampleDB_Model_forEach() {
+	err := pgdb.Model((*Book)(nil)).
+		OrderExpr("id ASC").
+		ForEach(func(b *Book) error {
+			fmt.Println(b)
+			return nil
+		})
+	if err != nil {
+		panic(err)
+	}
+	// Output: Book<Id=1 Title="book 1">
+	// Book<Id=2 Title="book 2">
+	// Book<Id=3 Title="book 3">
+}
+
 func ExampleDB_Model_hasOne() {
 	type Profile struct {
 		Id   int

@@ -1707,4 +1707,78 @@ var _ = Describe("ORM", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(book.Editor).To(BeNil())
 	})
+
+	Describe("ForEach", func() {
+		It("works with a struct ptr", func() {
+			q := db.Model((*Book)(nil)).
+				Order("id ASC")
+
+			var books []Book
+			err := q.Select(&books)
+			Expect(err).NotTo(HaveOccurred())
+
+			var count int
+			err = q.ForEach(func(b *Book) error {
+				book := &books[count]
+				Expect(book).To(Equal(b))
+				count++
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(3))
+		})
+
+		It("works with a struct", func() {
+			q := db.Model((*Book)(nil)).
+				Order("id ASC")
+
+			var books []Book
+			err := q.Select(&books)
+			Expect(err).NotTo(HaveOccurred())
+
+			var count int
+			err = q.ForEach(func(b Book) error {
+				book := &books[count]
+				Expect(book).To(Equal(&b))
+				count++
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(3))
+		})
+
+		It("works with a model", func() {
+			q := db.Model((*Book)(nil)).
+				Order("id ASC")
+
+			var count int
+			err := q.ForEach(func(_ orm.Discard) error {
+				count++
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(3))
+		})
+
+		It("works with scalars", func() {
+			q := db.Model((*Book)(nil)).
+				ColumnExpr("id, title").
+				Order("id ASC")
+
+			var books []Book
+			err := q.Select(&books)
+			Expect(err).NotTo(HaveOccurred())
+
+			var count int
+			err = q.ForEach(func(id int, title string) error {
+				book := &books[count]
+				Expect(id).To(Equal(book.Id))
+				Expect(title).To(Equal(book.Title))
+				count++
+				return nil
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(3))
+		})
+	})
 })

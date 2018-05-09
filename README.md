@@ -29,6 +29,7 @@
 - ORM supports [has one](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasOne), [belongs to](https://godoc.org/github.com/go-pg/pg#example-DB-Model-BelongsTo), [has many](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasMany), and [many to many](https://godoc.org/github.com/go-pg/pg#example-DB-Model-ManyToMany) with composite/multi-column primary keys.
 - [Creating tables from structs](https://godoc.org/github.com/go-pg/pg#example-DB-CreateTable).
 - [Pagination](https://godoc.org/github.com/go-pg/pg/orm#Pagination) and [URL filters](https://godoc.org/github.com/go-pg/pg/orm#URLFilters) helpers.
+- [ForEach](https://godoc.org/github.com/go-pg/pg#example-DB-Model-ForEach) that calls a function for each row returned by the query without loading all rows into the memory.
 - Works with PgBouncer in transaction pooling mode.
 - [Migrations](https://github.com/go-pg/migrations).
 - [Sharding](https://github.com/go-pg/sharding).
