@@ -42,15 +42,23 @@ func F(field string) types.ValueAppender {
 // In accepts a slice and returns a wrapper that can be used with PostgreSQL
 // IN operator:
 //
-//    Where("id IN (?)", pg.In(1, 2, 3))
+//    Where("id IN (?)", pg.In([]int{1, 2, 3, 4}))
+//
+// produces
+//
+//    WHERE id IN (1, 2, 3, 4)
 func In(slice interface{}) types.ValueAppender {
 	return types.InSlice(slice)
 }
 
-// In accepts multiple values and returns a wrapper that can be used
+// InMulti accepts multiple values and returns a wrapper that can be used
 // with PostgreSQL IN operator:
 //
-//    Where("id IN (?)", pg.In(1, 2, 3))
+//    Where("(id1, id2) IN (?)", pg.InMulti([]int{1, 2}, []int{3, 4}))
+//
+// produces
+//
+//    WHERE (id1, id2) IN ((1, 2), (3, 4))
 func InMulti(values ...interface{}) types.ValueAppender {
 	return types.In(values...)
 }
