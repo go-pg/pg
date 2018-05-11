@@ -331,6 +331,11 @@ func (q *Query) whereGroup(conj string, fn func(*Query) (*Query, error)) *Query 
 		return q
 	}
 
+	if len(newq.where) == 0 {
+		newq.where = saved
+		return newq
+	}
+
 	f := &condGroupAppender{
 		sep:  conj,
 		cond: newq.where,
