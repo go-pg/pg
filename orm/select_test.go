@@ -154,6 +154,15 @@ var _ = Describe("Select", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT * WHERE (TRUE) OR ((FALSE) AND (TRUE))`))
 	})
+
+	It("supports empty WhereGroup", func() {
+		q := NewQuery(nil).Where("TRUE").WhereGroup(func(q *Query) (*Query, error) {
+			return q, nil
+		})
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT * WHERE (TRUE)`))
+	})
 })
 
 var _ = Describe("Count", func() {
