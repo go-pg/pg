@@ -41,7 +41,7 @@ func (t *tables) Register(strct interface{}) {
 	_ = t.Get(typ)
 }
 
-func (t *tables) get(typ reflect.Type, inProgress bool) *Table {
+func (t *tables) get(typ reflect.Type, allowInProgress bool) *Table {
 	if typ.Kind() != reflect.Struct {
 		panic(fmt.Errorf("got %s, wanted %s", typ.Kind(), reflect.Struct))
 	}
@@ -53,31 +53,36 @@ func (t *tables) get(typ reflect.Type, inProgress bool) *Table {
 		return table
 	}
 
-	var dup bool
 	t.mu.Lock()
+
 	table, ok = t.tables[typ]
-	if !ok {
-		if inProgress {
-			table, ok = t.inProgress[typ]
-		}
-		if !ok {
-			table = newTable(typ)
-			_, dup = t.inProgress[typ]
-			if !dup {
-				t.inProgress[typ] = table
-			}
+	if ok {
+		t.mu.Unlock()
+		return table
+	}
+
+	if allowInProgress {
+		table, ok = t.inProgress[typ]
+		if ok {
+			t.mu.Unlock()
+			return table
 		}
 	}
-	t.mu.Unlock()
 
-	if !ok {
-		table.init()
-		if !dup {
-			t.mu.Lock()
-			delete(t.inProgress, typ)
-			t.tables[typ] = table
-			t.mu.Unlock()
-		}
+	table = newTable(typ)
+	_, dup := t.inProgress[typ]
+	if !dup {
+		t.inProgress[typ] = table
+	}
+
+	t.mu.Unlock()
+	table.init()
+
+	if !dup {
+		t.mu.Lock()
+		delete(t.inProgress, typ)
+		t.tables[typ] = table
+		t.mu.Unlock()
 	}
 
 	return table
