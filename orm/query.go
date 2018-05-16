@@ -782,7 +782,8 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 		}
 	}
 
-	res, err := q.db.Query(model, updateQuery{q: q, omitZero: omitZero}, q.model)
+	query := updateQuery{q: q, omitZero: omitZero}
+	res, err := q.returningQuery(model, query)
 	if err != nil {
 		return nil, err
 	}
@@ -795,6 +796,16 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 	}
 
 	return res, nil
+}
+
+func (q *Query) returningQuery(model Model, query interface{}) (Result, error) {
+	if q.returning == nil {
+		return q.db.Exec(query, q.model)
+	}
+	if _, ok := model.(useQueryOne); ok {
+		return q.db.QueryOne(model, query, q.model)
+	}
+	return q.db.Query(model, query, q.model)
 }
 
 // Delete deletes the model.
@@ -815,7 +826,7 @@ func (q *Query) Delete(values ...interface{}) (Result, error) {
 		}
 	}
 
-	res, err := q.db.Query(model, deleteQuery{q}, q.model)
+	res, err := q.returningQuery(model, deleteQuery{q})
 	if err != nil {
 		return nil, err
 	}

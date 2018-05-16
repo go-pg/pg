@@ -1045,9 +1045,35 @@ var _ = Describe("ORM", func() {
 	})
 
 	Describe("struct model", func() {
+		It("Select returns pg.ErrNoRows", func() {
+			book := new(Book)
+			err := db.Model(book).
+				Where("1 = 2").
+				Select()
+			Expect(err).To(Equal(pg.ErrNoRows))
+		})
+
+		It("Update returns pg.ErrNoRows", func() {
+			book := new(Book)
+			_, err := db.Model(book).
+				Where("1 = 2").
+				Returning("*").
+				Update()
+			Expect(err).To(Equal(pg.ErrNoRows))
+		})
+
+		It("Delete returns pg.ErrNoRows", func() {
+			book := new(Book)
+			_, err := db.Model(book).
+				Where("1 = 2").
+				Returning("*").
+				Delete()
+			Expect(err).To(Equal(pg.ErrNoRows))
+		})
+
 		It("fetches Book relations", func() {
-			var book Book
-			err := db.Model(&book).
+			book := new(Book)
+			err := db.Model(book).
 				Column("book.id").
 				Relation("Author").
 				Relation("Author.Avatar").
@@ -1059,7 +1085,7 @@ var _ = Describe("ORM", func() {
 				Relation("Translations.Comments").
 				First()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(book).To(Equal(Book{
+			Expect(book).To(Equal(&Book{
 				Id:    100,
 				Title: "",
 				Author: Author{
@@ -1199,8 +1225,8 @@ var _ = Describe("ORM", func() {
 		})
 
 		It("works when there are no results", func() {
-			var book Book
-			err := db.Model(&book).
+			book := new(Book)
+			err := db.Model(book).
 				Column("book.*").
 				Relation("Author").
 				Relation("Genres").
@@ -1211,15 +1237,17 @@ var _ = Describe("ORM", func() {
 		})
 
 		It("supports overriding", func() {
-			var book BookWithCommentCount
-			err := db.Model(&book).
+			book := new(BookWithCommentCount)
+			err := db.Model(book).
 				Column("book.id").
 				Relation("Author").
 				Relation("Genres").
-				ColumnExpr(`(SELECT COUNT(*) FROM comments WHERE trackable_type = 'Book' AND trackable_id = book.id) AS comment_count`).
+				ColumnExpr(`(SELECT COUNT(*) FROM comments
+					WHERE trackable_type = 'Book' AND
+					trackable_id = book.id) AS comment_count`).
 				First()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(book).To(Equal(BookWithCommentCount{
+			Expect(book).To(Equal(&BookWithCommentCount{
 				Book: Book{
 					Id:     100,
 					Author: Author{ID: 10, Name: "author 1", AvatarId: 1},
