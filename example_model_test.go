@@ -1016,6 +1016,6 @@ func ExampleDB_discardUnknownColumns() {
 	_, err = pgdb.QueryOne(&model2, "SELECT 1 AS id")
 	fmt.Printf("Model2: %v\n", err)
 
-	// Output: Model1: pg: can't find column=id in model=Model1
+	// Output: Model1: pg: can't find column=id in model=Model1 (try discard_unknown_columns)
 	// Model2: <nil>
 }

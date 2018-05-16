@@ -202,8 +202,8 @@ func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) erro
 	if m.table.HasFlag(discardUnknownColumns) {
 		return nil
 	}
-	return fmt.Errorf("pg: can't find column=%s in model=%s",
-		colName, m.table.Type.Name())
+	return fmt.Errorf("pg: can't find column=%s in %s (try discard_unknown_columns)",
+		colName, m.table)
 }
 
 func (m *structTableModel) scanColumn(
