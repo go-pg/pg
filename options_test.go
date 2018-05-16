@@ -126,6 +126,15 @@ func TestParseURL(t *testing.T) {
 			nil,
 		},
 		{
+			"postgresql://somewhere.at.amazonaws.com:5432/postgres",
+			"somewhere.at.amazonaws.com:5432",
+			"postgres",
+			"",
+			"postgres",
+			true,
+			nil,
+		},
+		{
 			"http://google.com/test",
 			"google.com:5432",
 			"postgres",
