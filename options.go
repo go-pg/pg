@@ -134,7 +134,7 @@ func ParseURL(sURL string) (*Options, error) {
 	}
 
 	// scheme
-	if parsedUrl.Scheme != "postgres" {
+	if parsedUrl.Scheme != "postgres" && parsedUrl.Scheme != "postgresql" {
 		return nil, errors.New("pg: invalid scheme: " + parsedUrl.Scheme)
 	}
 
