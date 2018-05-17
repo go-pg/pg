@@ -1053,6 +1053,18 @@ var _ = Describe("ORM", func() {
 			Expect(err).To(Equal(pg.ErrNoRows))
 		})
 
+		It("Insert returns pg.ErrNoRows", func() {
+			book := new(Book)
+			err := db.Model(book).First()
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = db.Model(book).
+				OnConflict("DO NOTHING").
+				Returning("*").
+				Insert()
+			Expect(err).To(Equal(pg.ErrNoRows))
+		})
+
 		It("Update returns pg.ErrNoRows", func() {
 			book := new(Book)
 			_, err := db.Model(book).

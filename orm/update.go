@@ -18,8 +18,7 @@ func Update(db DB, model interface{}) error {
 }
 
 type updateQuery struct {
-	q *Query
-
+	q        *Query
 	omitZero bool
 }
 

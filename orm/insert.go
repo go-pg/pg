@@ -18,17 +18,17 @@ type insertQuery struct {
 
 var _ QueryAppender = (*insertQuery)(nil)
 
-func (q insertQuery) Copy() QueryAppender {
-	return insertQuery{
+func (q *insertQuery) Copy() QueryAppender {
+	return &insertQuery{
 		q: q.q.Copy(),
 	}
 }
 
-func (q insertQuery) Query() *Query {
+func (q *insertQuery) Query() *Query {
 	return q.q
 }
 
-func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
+func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
@@ -116,7 +116,7 @@ func (q insertQuery) AppendQuery(b []byte) ([]byte, error) {
 	if len(q.q.returning) > 0 {
 		b = q.q.appendReturning(b)
 	} else if len(q.returningFields) > 0 {
-		b = q.appendReturningFields(b, q.returningFields)
+		b = appendReturningFields(b, q.returningFields)
 	}
 
 	return b, nil
@@ -153,7 +153,7 @@ func (ins *insertQuery) addReturningField(field *Field) {
 	ins.returningFields = append(ins.returningFields, field)
 }
 
-func (insertQuery) appendReturningFields(b []byte, fields []*Field) []byte {
+func appendReturningFields(b []byte, fields []*Field) []byte {
 	b = append(b, " RETURNING "...)
 	b = appendColumns(b, "", fields)
 	return b
