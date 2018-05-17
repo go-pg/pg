@@ -687,7 +687,8 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 		}
 	}
 
-	res, err := q.db.Query(model, insertQuery{q: q}, q.model)
+	query := &insertQuery{q: q}
+	res, err := q.returningQuery(model, query)
 	if err != nil {
 		return nil, err
 	}
@@ -732,6 +733,9 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
 		res, err := insertq.Insert(values...)
 		if err != nil {
 			insertErr = err
+			if err == internal.ErrNoRows {
+				continue
+			}
 			if pgErr, ok := err.(internal.PGError); ok {
 				if pgErr.IntegrityViolation() {
 					continue
@@ -799,8 +803,8 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 }
 
 func (q *Query) returningQuery(model Model, query interface{}) (Result, error) {
-	if q.returning == nil {
-		return q.db.Exec(query, q.model)
+	if len(q.returning) == 0 {
+		return q.db.Query(model, query, q.model)
 	}
 	if _, ok := model.(useQueryOne); ok {
 		return q.db.QueryOne(model, query, q.model)
