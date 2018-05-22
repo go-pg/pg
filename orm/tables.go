@@ -8,6 +8,11 @@ import (
 
 var _tables = newTables()
 
+type tableInProgress struct {
+	table *Table
+	wg    sync.WaitGroup
+}
+
 // GetTable returns a Table for a struct type.
 func GetTable(typ reflect.Type) *Table {
 	return _tables.Get(typ)
@@ -22,13 +27,13 @@ func RegisterTable(strct interface{}) {
 
 type tables struct {
 	mu         sync.RWMutex
-	inProgress map[reflect.Type]*Table
+	inProgress map[reflect.Type]*tableInProgress
 	tables     map[reflect.Type]*Table
 }
 
 func newTables() *tables {
 	return &tables{
-		inProgress: make(map[reflect.Type]*Table),
+		inProgress: make(map[reflect.Type]*tableInProgress),
 		tables:     make(map[reflect.Type]*Table),
 	}
 }
@@ -61,30 +66,31 @@ func (t *tables) get(typ reflect.Type, allowInProgress bool) *Table {
 		return table
 	}
 
-	if allowInProgress {
-		table, ok = t.inProgress[typ]
-		if ok {
-			t.mu.Unlock()
-			return table
+	inProgress := t.inProgress[typ]
+	if inProgress != nil {
+		t.mu.Unlock()
+		if !allowInProgress {
+			inProgress.wg.Wait()
 		}
+		return inProgress.table
 	}
 
 	table = newTable(typ)
-	_, dup := t.inProgress[typ]
-	if !dup {
-		t.inProgress[typ] = table
+	inProgress = &tableInProgress{
+		table: table,
 	}
+	inProgress.wg.Add(1)
+	t.inProgress[typ] = inProgress
 
 	t.mu.Unlock()
 	table.init()
+	inProgress.wg.Done()
+	t.mu.Lock()
 
-	if !dup {
-		t.mu.Lock()
-		delete(t.inProgress, typ)
-		t.tables[typ] = table
-		t.mu.Unlock()
-	}
+	delete(t.inProgress, typ)
+	t.tables[typ] = table
 
+	t.mu.Unlock()
 	return table
 }
 
