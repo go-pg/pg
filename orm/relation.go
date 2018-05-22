@@ -1,6 +1,10 @@
 package orm
 
-import "github.com/go-pg/pg/types"
+import (
+	"fmt"
+
+	"github.com/go-pg/pg/types"
+)
 
 const (
 	HasOneRelation = 1 << iota
@@ -21,4 +25,8 @@ type Relation struct {
 	M2MTableAlias types.Q
 	BaseFKs       []string
 	JoinFKs       []string
+}
+
+func (r *Relation) String() string {
+	return fmt.Sprintf("relation=%s", r.Field.GoName)
 }

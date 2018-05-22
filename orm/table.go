@@ -545,22 +545,21 @@ func (t *Table) tryRelationStruct(field *Field) bool {
 		return false
 	}
 
-	for _, ff := range joinTable.FieldsMap {
-		ff = ff.Copy()
-		ff.SQLName = field.SQLName + "__" + ff.SQLName
-		ff.Column = types.Q(types.AppendField(nil, ff.SQLName, 1))
-		ff.Index = appendNew(field.Index, ff.Index...)
-		if _, ok := t.FieldsMap[ff.SQLName]; !ok {
-			t.FieldsMap[ff.SQLName] = ff
+	res := t.tryHasOne(joinTable, field, pgTag) ||
+		t.tryBelongsToOne(joinTable, field, pgTag)
+
+	for _, f := range joinTable.FieldsMap {
+		f = f.Copy()
+		f.GoName = field.GoName + "_" + f.GoName
+		f.SQLName = field.SQLName + "__" + f.SQLName
+		f.Column = types.Q(types.AppendField(nil, f.SQLName, 1))
+		f.Index = appendNew(field.Index, f.Index...)
+		if _, ok := t.FieldsMap[f.SQLName]; !ok {
+			t.FieldsMap[f.SQLName] = f
 		}
 	}
 
-	if t.tryHasOne(joinTable, field, pgTag) ||
-		t.tryBelongsToOne(joinTable, field, pgTag) {
-		return true
-	}
-
-	return false
+	return res
 }
 
 func isPostgresKeyword(s string) bool {
@@ -725,6 +724,10 @@ func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, tag *tag) bool {
 func (t *Table) addRelation(rel *Relation) {
 	if t.Relations == nil {
 		t.Relations = make(map[string]*Relation)
+	}
+	_, ok := t.Relations[rel.Field.GoName]
+	if ok {
+		panic(fmt.Errorf("%s already has %s", t, rel))
 	}
 	t.Relations[rel.Field.GoName] = rel
 }
