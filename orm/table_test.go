@@ -2,6 +2,8 @@ package orm_test
 
 import (
 	"reflect"
+	"sync"
+	"testing"
 
 	"github.com/go-pg/pg/orm"
 
@@ -230,3 +232,42 @@ var _ = Describe("embedding", func() {
 		Expect(field.SQLType).To(Equal("text"))
 	})
 })
+
+type TableInitRace struct {
+	HasOne1Id int
+	HasOne1   *TableInitRace1
+
+	HasOne2Id int
+	HasOne2   *TableInitRace2
+
+	HasOne3Id int
+	HasOne3   *TableInitRace3
+}
+
+type TableInitRace1 struct {
+	Id int
+}
+
+type TableInitRace2 struct {
+	Id int
+}
+
+type TableInitRace3 struct {
+	Id int
+}
+
+func TestTableInitRace(t *testing.T) {
+	const C = 10
+
+	typ := reflect.TypeOf((*TableInitRace)(nil)).Elem()
+
+	var wg sync.WaitGroup
+	wg.Add(C)
+	for i := 0; i < C; i++ {
+		go func() {
+			_ = orm.GetTable(typ)
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
