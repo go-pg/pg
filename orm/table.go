@@ -58,10 +58,48 @@ type Table struct {
 }
 
 func newTable(typ reflect.Type) *Table {
-	t := &Table{
-		Type: typ,
+	t := new(Table)
+	t.Type = typ
+	t.zeroStruct = reflect.Zero(t.Type)
+	t.TypeName = internal.ToExported(t.Type.Name())
+	t.ModelName = internal.Underscore(t.Type.Name())
+	t.Name = types.Q(types.AppendField(nil, tableNameInflector(t.ModelName), 1))
+	t.Alias = types.Q(types.AppendField(nil, t.ModelName, 1))
+
+	typ = reflect.PtrTo(t.Type)
+	if typ.Implements(afterQueryHookType) {
+		t.SetFlag(AfterQueryHookFlag)
 	}
+	if typ.Implements(afterSelectHookType) {
+		t.SetFlag(AfterSelectHookFlag)
+	}
+	if typ.Implements(beforeInsertHookType) {
+		t.SetFlag(BeforeInsertHookFlag)
+	}
+	if typ.Implements(afterInsertHookType) {
+		t.SetFlag(AfterInsertHookFlag)
+	}
+	if typ.Implements(beforeUpdateHookType) {
+		t.SetFlag(BeforeUpdateHookFlag)
+	}
+	if typ.Implements(afterUpdateHookType) {
+		t.SetFlag(AfterUpdateHookFlag)
+	}
+	if typ.Implements(beforeDeleteHookType) {
+		t.SetFlag(BeforeDeleteHookFlag)
+	}
+	if typ.Implements(afterDeleteHookType) {
+		t.SetFlag(AfterDeleteHookFlag)
+	}
+
+	t.initFields()
+	t.initMethods()
+
 	return t
+}
+
+func (t *Table) init() {
+	t.initRelations()
 }
 
 func (t *Table) String() string {
@@ -129,12 +167,14 @@ func (t *Table) GetField(fieldName string) (*Field, error) {
 }
 
 func (t *Table) AppendParam(b []byte, strct reflect.Value, name string) ([]byte, bool) {
-	if field, ok := t.FieldsMap[name]; ok {
+	field, ok := t.FieldsMap[name]
+	if ok {
 		b = field.AppendValue(b, strct, 1)
 		return b, true
 	}
 
-	if method, ok := t.Methods[name]; ok {
+	method, ok := t.Methods[name]
+	if ok {
 		b = method.AppendValue(b, strct.Addr(), 1)
 		return b, true
 	}
@@ -142,75 +182,10 @@ func (t *Table) AppendParam(b []byte, strct reflect.Value, name string) ([]byte,
 	return b, false
 }
 
-func (t *Table) addRelation(rel *Relation) {
-	if t.Relations == nil {
-		t.Relations = make(map[string]*Relation)
-	}
-	t.Relations[rel.Field.GoName] = rel
-}
-
-func (t *Table) init() {
-	t.zeroStruct = reflect.Zero(t.Type)
-	t.TypeName = internal.ToExported(t.Type.Name())
-	t.ModelName = internal.Underscore(t.Type.Name())
-	t.Name = types.Q(types.AppendField(nil, tableNameInflector(t.ModelName), 1))
-	t.Alias = types.Q(types.AppendField(nil, t.ModelName, 1))
-
+func (t *Table) initFields() {
 	t.Fields = make([]*Field, 0, t.Type.NumField())
 	t.FieldsMap = make(map[string]*Field, t.Type.NumField())
-
 	t.addFields(t.Type, nil)
-	typ := reflect.PtrTo(t.Type)
-
-	if typ.Implements(afterQueryHookType) {
-		t.SetFlag(AfterQueryHookFlag)
-	}
-	if typ.Implements(afterSelectHookType) {
-		t.SetFlag(AfterSelectHookFlag)
-	}
-	if typ.Implements(beforeInsertHookType) {
-		t.SetFlag(BeforeInsertHookFlag)
-	}
-	if typ.Implements(afterInsertHookType) {
-		t.SetFlag(AfterInsertHookFlag)
-	}
-	if typ.Implements(beforeUpdateHookType) {
-		t.SetFlag(BeforeUpdateHookFlag)
-	}
-	if typ.Implements(afterUpdateHookType) {
-		t.SetFlag(AfterUpdateHookFlag)
-	}
-	if typ.Implements(beforeDeleteHookType) {
-		t.SetFlag(BeforeDeleteHookFlag)
-	}
-	if typ.Implements(afterDeleteHookType) {
-		t.SetFlag(AfterDeleteHookFlag)
-	}
-
-	if t.Methods == nil {
-		t.Methods = make(map[string]*Method)
-	}
-	for i := 0; i < typ.NumMethod(); i++ {
-		m := typ.Method(i)
-		if m.PkgPath != "" {
-			continue
-		}
-		if m.Type.NumIn() > 1 {
-			continue
-		}
-		if m.Type.NumOut() != 1 {
-			continue
-		}
-
-		retType := m.Type.Out(0)
-		method := Method{
-			Index: m.Index,
-
-			appender: types.Appender(retType),
-		}
-
-		t.Methods[m.Name] = &method
-	}
 }
 
 func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
@@ -218,8 +193,8 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 		f := typ.Field(i)
 
 		// Make a copy so slice is not shared between fields.
-		var index []int
-		index = append(index, baseIndex...)
+		index := make([]int, len(baseIndex))
+		copy(index, baseIndex)
 
 		if f.Anonymous {
 			sqlTag := f.Tag.Get("sql")
@@ -227,17 +202,18 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 				continue
 			}
 
-			embeddedTable := _tables.get(indirectType(f.Type), true)
+			fieldType := indirectType(f.Type)
+			t.addFields(fieldType, append(index, f.Index...))
 
 			pgTag := parseTag(f.Tag.Get("pg"))
 			if _, ok := pgTag.Options["override"]; ok {
+				embeddedTable := newTable(fieldType)
 				t.TypeName = embeddedTable.TypeName
 				t.Name = embeddedTable.Name
 				t.Alias = embeddedTable.Alias
 				t.ModelName = embeddedTable.ModelName
 			}
 
-			t.addFields(embeddedTable.Type, append(index, f.Index...))
 			continue
 		}
 
@@ -253,7 +229,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	switch f.Name {
 	case "tableName", "TableName":
-		if index != nil {
+		if len(index) > 0 {
 			return nil
 		}
 
@@ -294,8 +270,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		t.RemoveField(field)
 	}
 
-	field := Field{
-		Type: indirectType(f.Type),
+	field := &Field{
+		Field: f,
+		Type:  indirectType(f.Type),
 
 		GoName:  f.Name,
 		SQLName: sqlTag.Name,
@@ -314,7 +291,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			if t.Unique == nil {
 				t.Unique = make(map[string][]*Field)
 			}
-			t.Unique[v] = append(t.Unique[v], &field)
+			t.Unique[v] = append(t.Unique[v], field)
 		}
 	}
 	if v, ok := sqlTag.Options["default"]; ok {
@@ -346,7 +323,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.SetFlag(ArrayFlag)
 	}
 
-	field.SQLType = fieldSQLType(&field, pgTag, sqlTag)
+	field.SQLType = fieldSQLType(field, pgTag, sqlTag)
 	if strings.HasSuffix(field.SQLType, "[]") {
 		field.SetFlag(ArrayFlag)
 	}
@@ -370,172 +347,218 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 	field.isZero = isZeroFunc(f.Type)
 
-	if !skip && isColumn(f.Type) {
-		return &field
+	if skip {
+		t.FieldsMap[field.SQLName] = field
+		return nil
+	}
+	return field
+}
+
+func (t *Table) initMethods() {
+	t.Methods = make(map[string]*Method)
+	typ := reflect.PtrTo(t.Type)
+	for i := 0; i < typ.NumMethod(); i++ {
+		m := typ.Method(i)
+		if m.PkgPath != "" {
+			continue
+		}
+		if m.Type.NumIn() > 1 {
+			continue
+		}
+		if m.Type.NumOut() != 1 {
+			continue
+		}
+
+		retType := m.Type.Out(0)
+		t.Methods[m.Name] = &Method{
+			Index: m.Index,
+
+			appender: types.Appender(retType),
+		}
+	}
+}
+
+func (t *Table) initRelations() {
+	for i := 0; i < len(t.DataFields); i++ {
+		field := t.DataFields[i]
+		if t.tryRelation(field) {
+			t.DataFields = append(t.DataFields[:i], t.DataFields[i+1:]...)
+			t.Fields = removeField(t.Fields, field)
+			i--
+		}
+	}
+}
+
+func (t *Table) tryRelation(field *Field) bool {
+	if isColumn(field.Type) {
+		return false
 	}
 
 	switch field.Type.Kind() {
 	case reflect.Slice:
-		elemType := indirectType(field.Type.Elem())
-		if elemType.Kind() != reflect.Struct {
-			break
+		return t.tryRelationSlice(field)
+	case reflect.Struct:
+		return t.tryRelationStruct(field)
+	}
+	return false
+}
+
+func (t *Table) tryRelationSlice(field *Field) bool {
+	elemType := indirectType(field.Type.Elem())
+	if elemType.Kind() != reflect.Struct {
+		return false
+	}
+
+	pgTag := parseTag(field.Field.Tag.Get("pg"))
+	joinTable := _tables.get(elemType, true)
+
+	fk, fkOK := pgTag.Options["fk"]
+	if fkOK {
+		if fk == "-" {
+			return false
+		}
+		fk = tryUnderscorePrefix(fk)
+	}
+
+	if m2mTableName, _ := pgTag.Options["many2many"]; m2mTableName != "" {
+		m2mTable := _tables.getByName(m2mTableName)
+
+		var m2mTableAlias types.Q
+		if m2mTable != nil {
+			m2mTableAlias = m2mTable.Alias
+		} else if ind := strings.IndexByte(m2mTableName, '.'); ind >= 0 {
+			m2mTableAlias = types.Q(m2mTableName[ind+1:])
+		} else {
+			m2mTableAlias = types.Q(m2mTableName)
 		}
 
-		joinTable := _tables.get(elemType, true)
-
-		fk, fkOK := pgTag.Options["fk"]
-		if fkOK {
-			if fk == "-" {
-				break
-			}
-			fk = tryUnderscorePrefix(fk)
-		}
-
-		if m2mTableName, _ := pgTag.Options["many2many"]; m2mTableName != "" {
-			m2mTable := _tables.getByName(m2mTableName)
-
-			var m2mTableAlias types.Q
-			if m2mTable != nil {
-				m2mTableAlias = m2mTable.Alias
-			} else if ind := strings.IndexByte(m2mTableName, '.'); ind >= 0 {
-				m2mTableAlias = types.Q(m2mTableName[ind+1:])
-			} else {
-				m2mTableAlias = types.Q(m2mTableName)
-			}
-
-			var fks []string
-			if !fkOK {
-				fk = t.ModelName + "_"
-			}
-			if m2mTable != nil {
-				keys := foreignKeys(t, m2mTable, fk, fkOK)
-				if len(keys) == 0 {
-					break
-				}
-				for _, fk := range keys {
-					fks = append(fks, fk.SQLName)
-				}
-			} else {
-				if fkOK && len(t.PKs) == 1 {
-					fks = append(fks, fk)
-				} else {
-					for _, pk := range t.PKs {
-						fks = append(fks, fk+pk.SQLName)
-					}
-				}
-			}
-
-			joinFK, joinFKOK := pgTag.Options["joinFK"]
-			if joinFKOK {
-				joinFK = tryUnderscorePrefix(joinFK)
-			} else {
-				joinFK = joinTable.ModelName + "_"
-			}
-			var joinFKs []string
-			if m2mTable != nil {
-				keys := foreignKeys(joinTable, m2mTable, joinFK, joinFKOK)
-				if len(keys) == 0 {
-					break
-				}
-				for _, fk := range keys {
-					joinFKs = append(joinFKs, fk.SQLName)
-				}
-			} else {
-				if joinFKOK && len(joinTable.PKs) == 1 {
-					joinFKs = append(joinFKs, joinFK)
-				} else {
-					for _, pk := range joinTable.PKs {
-						joinFKs = append(joinFKs, joinFK+pk.SQLName)
-					}
-				}
-			}
-
-			t.addRelation(&Relation{
-				Type:          Many2ManyRelation,
-				Field:         &field,
-				JoinTable:     joinTable,
-				M2MTableName:  types.Q(m2mTableName),
-				M2MTableAlias: m2mTableAlias,
-				BaseFKs:       fks,
-				JoinFKs:       joinFKs,
-			})
-			return nil
-		}
-
-		s, polymorphic := pgTag.Options["polymorphic"]
-		var typeField *Field
-		if polymorphic {
-			fk = tryUnderscorePrefix(s)
-
-			typeField = joinTable.getField(fk + "type")
-			if typeField == nil {
-				break
-			}
-		} else if !fkOK {
+		var fks []string
+		if !fkOK {
 			fk = t.ModelName + "_"
 		}
-
-		fks := foreignKeys(t, joinTable, fk, fkOK || polymorphic)
-		if len(fks) == 0 {
-			break
-		}
-
-		var fkValues []*Field
-		fkValue, ok := pgTag.Options["fk_value"]
-		if ok {
-			if len(fks) > 1 {
-				panic(fmt.Errorf("got fk_value, but there are %d fks", len(fks)))
+		if m2mTable != nil {
+			keys := foreignKeys(t, m2mTable, fk, fkOK)
+			if len(keys) == 0 {
+				return false
 			}
-
-			f := t.getField(fkValue)
-			if f == nil {
-				panic(fmt.Errorf("fk_value=%q not found in %s", fkValue, t))
+			for _, fk := range keys {
+				fks = append(fks, fk.SQLName)
 			}
-			fkValues = append(fkValues, f)
 		} else {
-			fkValues = t.PKs
-		}
-
-		if len(fks) > 0 {
-			t.addRelation(&Relation{
-				Type:        HasManyRelation,
-				Field:       &field,
-				JoinTable:   joinTable,
-				FKs:         fks,
-				Polymorphic: typeField,
-				FKValues:    fkValues,
-			})
-			return nil
-		}
-	case reflect.Struct:
-		joinTable := _tables.get(field.Type, true)
-		if len(joinTable.Fields) == 0 {
-			break
-		}
-
-		for _, ff := range joinTable.FieldsMap {
-			ff = ff.Copy()
-			ff.SQLName = field.SQLName + "__" + ff.SQLName
-			ff.Column = types.Q(types.AppendField(nil, ff.SQLName, 1))
-			ff.Index = append(field.Index[:len(field.Index):len(field.Index)], ff.Index...)
-			if _, ok := t.FieldsMap[ff.SQLName]; !ok {
-				t.FieldsMap[ff.SQLName] = ff
+			if fkOK && len(t.PKs) == 1 {
+				fks = append(fks, fk)
+			} else {
+				for _, pk := range t.PKs {
+					fks = append(fks, fk+pk.SQLName)
+				}
 			}
 		}
 
-		if t.tryHasOne(joinTable, &field, pgTag) ||
-			t.tryBelongsToOne(joinTable, &field, pgTag) {
-			t.FieldsMap[field.SQLName] = &field
-			return nil
+		joinFK, joinFKOK := pgTag.Options["joinFK"]
+		if joinFKOK {
+			joinFK = tryUnderscorePrefix(joinFK)
+		} else {
+			joinFK = joinTable.ModelName + "_"
+		}
+		var joinFKs []string
+		if m2mTable != nil {
+			keys := foreignKeys(joinTable, m2mTable, joinFK, joinFKOK)
+			if len(keys) == 0 {
+				return false
+			}
+			for _, fk := range keys {
+				joinFKs = append(joinFKs, fk.SQLName)
+			}
+		} else {
+			if joinFKOK && len(joinTable.PKs) == 1 {
+				joinFKs = append(joinFKs, joinFK)
+			} else {
+				for _, pk := range joinTable.PKs {
+					joinFKs = append(joinFKs, joinFK+pk.SQLName)
+				}
+			}
+		}
+
+		t.addRelation(&Relation{
+			Type:          Many2ManyRelation,
+			Field:         field,
+			JoinTable:     joinTable,
+			M2MTableName:  types.Q(m2mTableName),
+			M2MTableAlias: m2mTableAlias,
+			BaseFKs:       fks,
+			JoinFKs:       joinFKs,
+		})
+		return true
+	}
+
+	s, polymorphic := pgTag.Options["polymorphic"]
+	var typeField *Field
+	if polymorphic {
+		fk = tryUnderscorePrefix(s)
+
+		typeField = joinTable.getField(fk + "type")
+		if typeField == nil {
+			return false
+		}
+	} else if !fkOK {
+		fk = t.ModelName + "_"
+	}
+
+	fks := foreignKeys(t, joinTable, fk, fkOK || polymorphic)
+	if len(fks) == 0 {
+		return false
+	}
+
+	var fkValues []*Field
+	fkValue, ok := pgTag.Options["fk_value"]
+	if ok {
+		if len(fks) > 1 {
+			panic(fmt.Errorf("got fk_value, but there are %d fks", len(fks)))
+		}
+
+		f := t.getField(fkValue)
+		if f == nil {
+			panic(fmt.Errorf("fk_value=%q not found in %s", fkValue, t))
+		}
+		fkValues = append(fkValues, f)
+	} else {
+		fkValues = t.PKs
+	}
+
+	if len(fks) > 0 {
+		t.addRelation(&Relation{
+			Type:        HasManyRelation,
+			Field:       field,
+			JoinTable:   joinTable,
+			FKs:         fks,
+			Polymorphic: typeField,
+			FKValues:    fkValues,
+		})
+		return true
+	}
+
+	return false
+}
+
+func (t *Table) tryRelationStruct(field *Field) bool {
+	pgTag := parseTag(field.Field.Tag.Get("pg"))
+	joinTable := _tables.get(field.Type, true)
+	if len(joinTable.Fields) == 0 {
+		return false
+	}
+
+	for _, ff := range joinTable.FieldsMap {
+		ff = ff.Copy()
+		ff.SQLName = field.SQLName + "__" + ff.SQLName
+		ff.Column = types.Q(types.AppendField(nil, ff.SQLName, 1))
+		ff.Index = append(field.Index[:len(field.Index):len(field.Index)], ff.Index...)
+		if _, ok := t.FieldsMap[ff.SQLName]; !ok {
+			t.FieldsMap[ff.SQLName] = ff
 		}
 	}
 
-	if skip {
-		t.FieldsMap[field.SQLName] = &field
-		return nil
-	}
-
-	return &field
+	return t.tryHasOne(joinTable, field, pgTag) ||
+		t.tryBelongsToOne(joinTable, field, pgTag)
 }
 
 func isPostgresKeyword(s string) bool {
@@ -697,6 +720,13 @@ func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, tag *tag) bool {
 	return false
 }
 
+func (t *Table) addRelation(rel *Relation) {
+	if t.Relations == nil {
+		t.Relations = make(map[string]*Relation)
+	}
+	t.Relations[rel.Field.GoName] = rel
+}
+
 func foreignKeys(base, join *Table, fk string, tryFK bool) []*Field {
 	var fks []*Field
 
@@ -749,17 +779,7 @@ func foreignKeys(base, join *Table, fk string, tryFK bool) []*Field {
 }
 
 func (t *Table) getField(name string) *Field {
-	if f, ok := t.FieldsMap[name]; ok {
-		return f
-	}
-
-	for i := 0; i < t.Type.NumField(); i++ {
-		f := t.Type.Field(i)
-		if internal.Underscore(f.Name) == name {
-			return t.newField(f, nil)
-		}
-	}
-	return nil
+	return t.FieldsMap[name]
 }
 
 func scanJSONValue(v reflect.Value, b []byte) error {

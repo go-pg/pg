@@ -16,7 +16,8 @@ const (
 )
 
 type Field struct {
-	Type reflect.Type
+	Field reflect.StructField
+	Type  reflect.Type
 
 	GoName   string  // struct field name, e.g. Id
 	SQLName  string  // SQL name, .e.g. id
