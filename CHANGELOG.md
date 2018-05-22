@@ -1,9 +1,5 @@
 # Changelog
 
-## v6.13
-
-- Fields ignored with `sql:"-"` tag are no longer considered by ORM relation detector.
-
 ## v6.12
 
 - `Insert`, `Update`, and `Delete` can return `pg.ErrNoRows` and `pg.ErrMultiRows` when `Returning` is used and model expects single row.

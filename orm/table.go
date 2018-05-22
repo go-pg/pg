@@ -379,12 +379,10 @@ func (t *Table) initMethods() {
 }
 
 func (t *Table) initRelations() {
-	for i := 0; i < len(t.DataFields); i++ {
-		field := t.DataFields[i]
+	for _, field := range t.FieldsMap {
 		if t.tryRelation(field) {
-			t.DataFields = append(t.DataFields[:i], t.DataFields[i+1:]...)
+			t.DataFields = removeField(t.DataFields, field)
 			t.Fields = removeField(t.Fields, field)
-			i--
 		}
 	}
 }
@@ -551,14 +549,18 @@ func (t *Table) tryRelationStruct(field *Field) bool {
 		ff = ff.Copy()
 		ff.SQLName = field.SQLName + "__" + ff.SQLName
 		ff.Column = types.Q(types.AppendField(nil, ff.SQLName, 1))
-		ff.Index = append(field.Index[:len(field.Index):len(field.Index)], ff.Index...)
+		ff.Index = appendNew(field.Index, ff.Index...)
 		if _, ok := t.FieldsMap[ff.SQLName]; !ok {
 			t.FieldsMap[ff.SQLName] = ff
 		}
 	}
 
-	return t.tryHasOne(joinTable, field, pgTag) ||
-		t.tryBelongsToOne(joinTable, field, pgTag)
+	if t.tryHasOne(joinTable, field, pgTag) ||
+		t.tryBelongsToOne(joinTable, field, pgTag) {
+		return true
+	}
+
+	return false
 }
 
 func isPostgresKeyword(s string) bool {
@@ -803,4 +805,11 @@ func tryUnderscorePrefix(s string) string {
 		return internal.Underscore(s) + "_"
 	}
 	return s
+}
+
+func appendNew(dst []int, src ...int) []int {
+	cp := make([]int, len(dst)+len(src))
+	copy(cp, dst)
+	copy(cp[len(dst):], src)
+	return cp
 }
