@@ -26,10 +26,12 @@ type tagParser struct {
 }
 
 func (p *tagParser) setTagOption(key, value string) {
-	if !p.hasName && key == "" {
+	if !p.hasName {
 		p.hasName = true
-		p.tag.Name = value
-		return
+		if key == "" {
+			p.tag.Name = value
+			return
+		}
 	}
 	if p.tag.Options == nil {
 		p.tag.Options = make(map[string]string)
