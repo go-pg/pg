@@ -239,7 +239,7 @@ var _ = Describe("With", func() {
 		Expect(string(b)).To(Equal(`WITH "q2" AS (WITH "q1" AS (SELECT * FROM "q1") SELECT * FROM "q2", "q1") SELECT * FROM "q3", "q2"`))
 	})
 
-	It("supports Join.On.OnOr", func() {
+	It("supports Join.JoinOn.JoinOnOr", func() {
 		q := NewQuery(nil).Table("t1").
 			Join("JOIN t2").JoinOn("t2.c1 = t1.c1").JoinOn("t2.c2 = t1.c1").
 			Join("JOIN t3").JoinOn("t3.c1 = t3.c2").JoinOnOr("t3.c2 = t1.c2")
@@ -247,6 +247,15 @@ var _ = Describe("With", func() {
 		b, err := selectQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT * FROM "t1" JOIN t2 ON (t2.c1 = t1.c1) AND (t2.c2 = t1.c1) JOIN t3 ON (t3.c1 = t3.c2) OR (t3.c2 = t1.c2)`))
+	})
+
+	It("excludes a column", func() {
+		q := NewQuery(nil, &SelectModel{}).
+			ExcludeColumn("has_one_id")
+
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT "id", "name" FROM "select_models" AS "select_model"`))
 	})
 })
 
