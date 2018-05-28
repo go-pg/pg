@@ -132,7 +132,7 @@ func (p *tagParser) parseQuotedValue() {
 	p.parseKey()
 }
 
-func unquote(s string) (string, bool) {
+func unquoteTagValue(s string) (string, bool) {
 	const quote = '\''
 
 	if len(s) < 2 {
