@@ -172,10 +172,7 @@ func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
 // ColumnExpr can be used to bypass quoting restriction. Column name can be:
 //   - column_name,
 //   - table_alias.column_name,
-//   - table_alias.*,
-//   - RelationName,
-//   - RelationName.column_name,
-//   - RelationName._ to join relation without selecting relation data.
+//   - table_alias.*.
 func (q *Query) Column(columns ...string) *Query {
 	for _, column := range columns {
 		if column == "_" {
@@ -200,6 +197,33 @@ func (q *Query) Column(columns ...string) *Query {
 func (q *Query) ColumnExpr(expr string, params ...interface{}) *Query {
 	q.columns = append(q.columns, &queryParamsAppender{expr, params})
 	return q
+}
+
+// ExcludeColumn excludes a column from the list of to be selected columns.
+func (q *Query) ExcludeColumn(columns ...string) *Query {
+	if q.columns == nil {
+		for _, f := range q.model.Table().Fields {
+			q.columns = append(q.columns, fieldAppender{f.SQLName})
+		}
+	}
+
+	for _, col := range columns {
+		if !q.excludeColumn(col) {
+			return q.err(fmt.Errorf("pg: can't find column=%q", col))
+		}
+	}
+	return q
+}
+
+func (q *Query) excludeColumn(column string) bool {
+	for i := 0; i < len(q.columns); i++ {
+		app, ok := q.columns[i].(fieldAppender)
+		if ok && app.field == column {
+			q.columns = append(q.columns[:i], q.columns[i+1:]...)
+			return true
+		}
+	}
+	return false
 }
 
 func (q *Query) getFields() ([]*Field, error) {
@@ -233,6 +257,10 @@ func (q *Query) _getFields(omitPKs bool) ([]*Field, error) {
 	return columns, nil
 }
 
+// Relation adds a relation to the query. Relation name can be:
+//   - RelationName to select all columns,
+//   - RelationName.column_name,
+//   - RelationName._ to join relation without selecting relation columns.
 func (q *Query) Relation(name string, apply ...func(*Query) (*Query, error)) *Query {
 	var fn func(*Query) (*Query, error)
 	if len(apply) == 1 {
