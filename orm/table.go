@@ -237,7 +237,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			if isPostgresKeyword(sqlTag.Name) {
 				sqlTag.Name = `"` + sqlTag.Name + `"`
 			}
-			s, _ := unquote(sqlTag.Name)
+			s, _ := unquoteTagValue(sqlTag.Name)
 			t.Name = types.Q(s)
 		}
 
@@ -295,7 +295,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 	}
 	if v, ok := sqlTag.Options["default"]; ok {
-		v, ok = unquote(v)
+		v, ok = unquoteTagValue(v)
 		if ok {
 			field.Default = types.Q(types.AppendString(nil, v, 1))
 		} else {
@@ -579,7 +579,7 @@ func isColumn(typ reflect.Type) bool {
 func fieldSQLType(field *Field, pgTag, sqlTag *tag) string {
 	if typ, ok := sqlTag.Options["type"]; ok {
 		field.SetFlag(customTypeFlag)
-		typ, _ = unquote(typ)
+		typ, _ = unquoteTagValue(typ)
 		return typ
 	}
 
