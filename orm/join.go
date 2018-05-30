@@ -53,7 +53,9 @@ func (j *join) manyQuery(db DB) (*Query, error) {
 		}
 	}
 
-	q.columns = append(q.columns, hasManyColumnsAppender{j})
+	if len(q.columns) == 0 {
+		q.columns = append(q.columns, hasManyColumnsAppender{j})
+	}
 
 	baseTable := j.BaseModel.Table()
 	var where []byte
@@ -107,7 +109,9 @@ func (j *join) m2mQuery(db DB) (*Query, error) {
 		}
 	}
 
-	q.columns = append(q.columns, hasManyColumnsAppender{j})
+	if len(q.columns) == 0 {
+		q.columns = append(q.columns, hasManyColumnsAppender{j})
+	}
 
 	index := j.JoinModel.ParentIndex()
 	baseTable := j.BaseModel.Table()

@@ -88,6 +88,21 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal(`SELECT "has_many_model"."id", "has_many_model"."select_model_id" FROM "has_many_models" AS "has_many_model" WHERE ("has_many_model"."select_model_id" IN (1))`))
 	})
 
+	It("overwrites columns for has many", func() {
+		q := NewQuery(nil, &SelectModel{Id: 1}).
+			Relation("HasMany", func(q *Query) (*Query, error) {
+				q = q.ColumnExpr("expr")
+				return q, nil
+			})
+
+		q, err := q.model.GetJoin("HasMany").manyQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT expr FROM "has_many_models" AS "has_many_model" WHERE ("has_many_model"."select_model_id" IN (1))`))
+	})
+
 	It("expands ?TableColumns", func() {
 		q := NewQuery(nil, &SelectModel{Id: 1}).ColumnExpr("?TableColumns")
 
