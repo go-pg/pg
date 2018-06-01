@@ -1136,7 +1136,8 @@ func appendColumnAndSliceValue(b []byte, slice reflect.Value, alias types.Q, fie
 		}
 
 		el := slice.Index(i)
-		if el.Kind() == reflect.Interface {
+		switch el.Kind() {
+		case reflect.Interface, reflect.Ptr:
 			el = el.Elem()
 		}
 
