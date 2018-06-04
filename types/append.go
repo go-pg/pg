@@ -44,7 +44,7 @@ func Append(b []byte, v interface{}, quote int) []byte {
 	case time.Time:
 		return AppendTime(b, v, quote)
 	case []byte:
-		return appendBytes(b, v, quote)
+		return AppendBytes(b, v, quote)
 	case ValueAppender:
 		return appendAppender(b, v, quote)
 	case driver.Valuer:
@@ -80,9 +80,9 @@ func appendFloat(dst []byte, v float64) []byte {
 	switch {
 	case math.IsNaN(v):
 		return append(dst, "'NaN'"...)
-	case math.IsInf(v,1):
+	case math.IsInf(v, 1):
 		return append(dst, "'Infinity'"...)
-	case math.IsInf(v,-1):
+	case math.IsInf(v, -1):
 		return append(dst, "'-Infinity'"...)
 	default:
 		return strconv.AppendFloat(dst, v, 'f', -1, 64)
@@ -133,7 +133,7 @@ func AppendString(b []byte, s string, quote int) []byte {
 	return b
 }
 
-func appendBytes(b []byte, bytes []byte, quote int) []byte {
+func AppendBytes(b []byte, bytes []byte, quote int) []byte {
 	if bytes == nil {
 		return AppendNull(b, quote)
 	}

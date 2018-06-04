@@ -131,11 +131,11 @@ func appendFloatValue(b []byte, v reflect.Value, _ int) []byte {
 }
 
 func appendBytesValue(b []byte, v reflect.Value, quote int) []byte {
-	return appendBytes(b, v.Bytes(), quote)
+	return AppendBytes(b, v.Bytes(), quote)
 }
 
 func appendArrayBytesValue(b []byte, v reflect.Value, quote int) []byte {
-	return appendBytes(b, v.Slice(0, v.Len()).Bytes(), quote)
+	return AppendBytes(b, v.Slice(0, v.Len()).Bytes(), quote)
 }
 
 func appendStringValue(b []byte, v reflect.Value, quote int) []byte {
