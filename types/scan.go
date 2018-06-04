@@ -23,7 +23,7 @@ func Scan(v interface{}, b []byte) error {
 			return nil
 		}
 		var err error
-		*v, err = scanBytes(b)
+		*v, err = ScanBytes(b)
 		return err
 	case *int:
 		if b == nil {
@@ -72,7 +72,7 @@ func scanSQLScanner(scanner sql.Scanner, b []byte) error {
 	return scanner.Scan(b)
 }
 
-func scanBytes(b []byte) ([]byte, error) {
+func ScanBytes(b []byte) ([]byte, error) {
 	if len(b) < 2 {
 		return nil, fmt.Errorf("pg: can't parse bytes: %q", b)
 	}

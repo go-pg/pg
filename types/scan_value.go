@@ -276,7 +276,7 @@ func scanBytesValue(v reflect.Value, b []byte) error {
 		v.SetBytes(nil)
 		return nil
 	}
-	bs, err := scanBytes(b)
+	bs, err := ScanBytes(b)
 	if err != nil {
 		return err
 	}
