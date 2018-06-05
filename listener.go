@@ -40,7 +40,9 @@ func (ln *Listener) conn(readTimeout time.Duration) (*pool.Conn, error) {
 			_ = ln.Close()
 			return nil, errListenerClosed
 		}
-		internal.Logf("pg: Listen failed: %s", err)
+		if err != errListenerClosed {
+			internal.Logf("pg: Listen failed: %s", err)
+		}
 		return nil, err
 	}
 
