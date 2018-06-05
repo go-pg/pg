@@ -40,6 +40,7 @@ func (ln *Listener) conn(readTimeout time.Duration) (*pool.Conn, error) {
 			_ = ln.Close()
 			return nil, errListenerClosed
 		}
+		internal.Logf("pg: Listen failed: %s", err)
 		return nil, err
 	}
 
@@ -118,6 +119,8 @@ func (ln *Listener) Close() error {
 }
 
 // Channel returns a channel for concurrently receiving notifications.
+// Receive can't be used after Channel is called.
+//
 // The channel is closed with Listener.
 func (ln *Listener) Channel() <-chan *Notification {
 	ch := make(chan *Notification, 100)
@@ -127,6 +130,9 @@ func (ln *Listener) Channel() <-chan *Notification {
 			if err != nil {
 				if err == errListenerClosed {
 					break
+				}
+				if isBadConn(err, true) {
+					time.Sleep(100 * time.Millisecond)
 				}
 				continue
 			}
