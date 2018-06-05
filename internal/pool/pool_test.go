@@ -29,13 +29,13 @@ var _ = Describe("ConnPool", func() {
 
 	It("should unblock client when conn is removed", func() {
 		// Reserve one connection.
-		cn, _, err := connPool.Get()
+		cn, err := connPool.Get()
 		Expect(err).NotTo(HaveOccurred())
 
 		// Reserve all other connections.
 		var cns []*pool.Conn
 		for i := 0; i < 9; i++ {
-			c, _, veterr := connPool.Get()
+			c, veterr := connPool.Get()
 			Expect(veterr).NotTo(HaveOccurred())
 			cns = append(cns, c)
 		}
@@ -46,12 +46,11 @@ var _ = Describe("ConnPool", func() {
 			defer GinkgoRecover()
 
 			started <- true
-			_, _, veterr := connPool.Get()
+			_, veterr := connPool.Get()
 			Expect(veterr).NotTo(HaveOccurred())
 			done <- true
 
-			veterr = connPool.Put(cn)
-			Expect(veterr).NotTo(HaveOccurred())
+			connPool.Put(cn)
 		}()
 		<-started
 
@@ -63,8 +62,7 @@ var _ = Describe("ConnPool", func() {
 			// ok
 		}
 
-		err = connPool.Remove(cn)
-		Expect(err).NotTo(HaveOccurred())
+		connPool.Remove(cn)
 
 		// Check that Ping is unblocked.
 		select {
@@ -75,8 +73,7 @@ var _ = Describe("ConnPool", func() {
 		}
 
 		for _, cn := range cns {
-			err = connPool.Put(cn)
-			Expect(err).NotTo(HaveOccurred())
+			connPool.Put(cn)
 		}
 	})
 })
@@ -109,11 +106,11 @@ var _ = Describe("conns reaper", func() {
 			// add stale connections
 			staleConns = nil
 			for i := 0; i < 3; i++ {
-				cn, _, err := connPool.Get()
+				cn, err := connPool.Get()
 				Expect(err).NotTo(HaveOccurred())
 				switch typ {
 				case "idle":
-					cn.UsedAt = time.Now().Add(-2 * idleTimeout)
+					cn.SetUsedAt(time.Now().Add(-2 * idleTimeout))
 				case "aged":
 					cn.InitedAt = time.Now().Add(-2 * maxAge)
 				}
@@ -123,7 +120,7 @@ var _ = Describe("conns reaper", func() {
 
 			// add fresh connections
 			for i := 0; i < 3; i++ {
-				cn, _, err := connPool.Get()
+				cn, err := connPool.Get()
 				Expect(err).NotTo(HaveOccurred())
 				conns = append(conns, cn)
 			}
@@ -132,11 +129,11 @@ var _ = Describe("conns reaper", func() {
 				if cn.InitedAt.IsZero() {
 					cn.InitedAt = time.Now()
 				}
-				Expect(connPool.Put(cn)).NotTo(HaveOccurred())
+				connPool.Put(cn)
 			}
 
 			Expect(connPool.Len()).To(Equal(6))
-			Expect(connPool.FreeLen()).To(Equal(6))
+			Expect(connPool.IdleLen()).To(Equal(6))
 
 			n, err := connPool.ReapStaleConns()
 			Expect(err).NotTo(HaveOccurred())
@@ -146,14 +143,14 @@ var _ = Describe("conns reaper", func() {
 		AfterEach(func() {
 			_ = connPool.Close()
 			Expect(connPool.Len()).To(Equal(0))
-			Expect(connPool.FreeLen()).To(Equal(0))
+			Expect(connPool.IdleLen()).To(Equal(0))
 			Expect(len(closedConns)).To(Equal(len(conns)))
 			Expect(closedConns).To(ConsistOf(conns))
 		})
 
 		It("reaps stale connections", func() {
 			Expect(connPool.Len()).To(Equal(3))
-			Expect(connPool.FreeLen()).To(Equal(3))
+			Expect(connPool.IdleLen()).To(Equal(3))
 		})
 
 		It("does not reap fresh connections", func() {
@@ -171,36 +168,34 @@ var _ = Describe("conns reaper", func() {
 			for j := 0; j < 3; j++ {
 				var freeCns []*pool.Conn
 				for i := 0; i < 3; i++ {
-					cn, _, err := connPool.Get()
+					cn, err := connPool.Get()
 					Expect(err).NotTo(HaveOccurred())
 					Expect(cn).NotTo(BeNil())
 					freeCns = append(freeCns, cn)
 				}
 
 				Expect(connPool.Len()).To(Equal(3))
-				Expect(connPool.FreeLen()).To(Equal(0))
+				Expect(connPool.IdleLen()).To(Equal(0))
 
-				cn, _, err := connPool.Get()
+				cn, err := connPool.Get()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(cn).NotTo(BeNil())
 				conns = append(conns, cn)
 
 				Expect(connPool.Len()).To(Equal(4))
-				Expect(connPool.FreeLen()).To(Equal(0))
+				Expect(connPool.IdleLen()).To(Equal(0))
 
-				err = connPool.Remove(cn)
-				Expect(err).NotTo(HaveOccurred())
+				connPool.Remove(cn)
 
 				Expect(connPool.Len()).To(Equal(3))
-				Expect(connPool.FreeLen()).To(Equal(0))
+				Expect(connPool.IdleLen()).To(Equal(0))
 
 				for _, cn := range freeCns {
-					err := connPool.Put(cn)
-					Expect(err).NotTo(HaveOccurred())
+					connPool.Put(cn)
 				}
 
 				Expect(connPool.Len()).To(Equal(3))
-				Expect(connPool.FreeLen()).To(Equal(3))
+				Expect(connPool.IdleLen()).To(Equal(3))
 			}
 		})
 	}
@@ -236,18 +231,18 @@ var _ = Describe("race", func() {
 
 		perform(C, func(id int) {
 			for i := 0; i < N; i++ {
-				cn, _, err := connPool.Get()
+				cn, err := connPool.Get()
 				Expect(err).NotTo(HaveOccurred())
 				if err == nil {
-					Expect(connPool.Put(cn)).NotTo(HaveOccurred())
+					connPool.Put(cn)
 				}
 			}
 		}, func(id int) {
 			for i := 0; i < N; i++ {
-				cn, _, err := connPool.Get()
+				cn, err := connPool.Get()
 				Expect(err).NotTo(HaveOccurred())
 				if err == nil {
-					Expect(connPool.Remove(cn)).NotTo(HaveOccurred())
+					connPool.Remove(cn)
 				}
 			}
 		})

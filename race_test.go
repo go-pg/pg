@@ -29,7 +29,7 @@ var _ = Describe("DB timeout race", func() {
 	AfterEach(func() {
 		pool := db.Pool()
 		Expect(pool.Len()).To(Equal(0))
-		Expect(pool.FreeLen()).To(Equal(0))
+		Expect(pool.IdleLen()).To(Equal(0))
 
 		err := db.Close()
 		Expect(err).NotTo(HaveOccurred())

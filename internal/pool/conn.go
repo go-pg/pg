@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"strconv"
+	"sync/atomic"
 	"time"
 )
 
@@ -22,7 +23,7 @@ type Conn struct {
 	Writer *WriteBuffer
 
 	InitedAt time.Time
-	UsedAt   time.Time
+	usedAt   atomic.Value
 
 	ProcessId int32
 	SecretKey int32
@@ -36,11 +37,18 @@ func NewConn(netConn net.Conn) *Conn {
 		readBuf: make([]byte, 0, 512),
 
 		Writer: NewWriteBuffer(),
-
-		UsedAt: time.Now(),
 	}
 	cn.SetNetConn(netConn)
+	cn.SetUsedAt(time.Now())
 	return cn
+}
+
+func (cn *Conn) UsedAt() time.Time {
+	return cn.usedAt.Load().(time.Time)
+}
+
+func (cn *Conn) SetUsedAt(tm time.Time) {
+	cn.usedAt.Store(tm)
 }
 
 func (cn *Conn) RemoteAddr() net.Addr {
@@ -62,14 +70,15 @@ func (cn *Conn) NextId() string {
 }
 
 func (cn *Conn) SetTimeout(rt, wt time.Duration) {
-	cn.UsedAt = time.Now()
+	now := time.Now()
+	cn.SetUsedAt(now)
 	if rt > 0 {
-		_ = cn.netConn.SetReadDeadline(cn.UsedAt.Add(rt))
+		_ = cn.netConn.SetReadDeadline(now.Add(rt))
 	} else {
 		_ = cn.netConn.SetReadDeadline(noDeadline)
 	}
 	if wt > 0 {
-		_ = cn.netConn.SetWriteDeadline(cn.UsedAt.Add(wt))
+		_ = cn.netConn.SetWriteDeadline(now.Add(wt))
 	} else {
 		_ = cn.netConn.SetWriteDeadline(noDeadline)
 	}
