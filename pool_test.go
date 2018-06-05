@@ -31,7 +31,7 @@ func (t *PoolTest) TestPoolReusesConnection(c *C) {
 	}
 
 	c.Assert(t.db.Pool().Len(), Equals, 1)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 1)
+	c.Assert(t.db.Pool().IdleLen(), Equals, 1)
 }
 
 func (t *PoolTest) TestPoolMaxSize(c *C) {
@@ -43,7 +43,7 @@ func (t *PoolTest) TestPoolMaxSize(c *C) {
 	})
 
 	c.Assert(t.db.Pool().Len(), Equals, 10)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 10)
+	c.Assert(t.db.Pool().IdleLen(), Equals, 10)
 }
 
 func (t *PoolTest) TestCloseClosesAllConnections(c *C) {
@@ -74,14 +74,14 @@ func (t *PoolTest) TestCloseClosesAllConnections(c *C) {
 	}
 
 	c.Assert(t.db.Pool().Len(), Equals, 0)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
+	c.Assert(t.db.Pool().IdleLen(), Equals, 0)
 }
 
 func (t *PoolTest) TestClosedDB(c *C) {
 	c.Assert(t.db.Close(), IsNil)
 
 	c.Assert(t.db.Pool().Len(), Equals, 0)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
+	c.Assert(t.db.Pool().IdleLen(), Equals, 0)
 
 	err := t.db.Close()
 	c.Assert(err, Not(IsNil))
@@ -96,12 +96,12 @@ func (t *PoolTest) TestClosedListener(c *C) {
 	ln := t.db.Listen("test_channel")
 
 	c.Assert(t.db.Pool().Len(), Equals, 1)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
+	c.Assert(t.db.Pool().IdleLen(), Equals, 0)
 
 	c.Assert(ln.Close(), IsNil)
 
 	c.Assert(t.db.Pool().Len(), Equals, 0)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
+	c.Assert(t.db.Pool().IdleLen(), Equals, 0)
 
 	err := ln.Close()
 	c.Assert(err, Not(IsNil))
@@ -117,12 +117,12 @@ func (t *PoolTest) TestClosedTx(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(t.db.Pool().Len(), Equals, 1)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
+	c.Assert(t.db.Pool().IdleLen(), Equals, 0)
 
 	c.Assert(tx.Rollback(), IsNil)
 
 	c.Assert(t.db.Pool().Len(), Equals, 1)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 1)
+	c.Assert(t.db.Pool().IdleLen(), Equals, 1)
 
 	err = tx.Rollback()
 	c.Assert(err, Not(IsNil))
@@ -138,12 +138,12 @@ func (t *PoolTest) TestClosedStmt(c *C) {
 	c.Assert(err, IsNil)
 
 	c.Assert(t.db.Pool().Len(), Equals, 1)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 0)
+	c.Assert(t.db.Pool().IdleLen(), Equals, 0)
 
 	c.Assert(stmt.Close(), IsNil)
 
 	c.Assert(t.db.Pool().Len(), Equals, 1)
-	c.Assert(t.db.Pool().FreeLen(), Equals, 1)
+	c.Assert(t.db.Pool().IdleLen(), Equals, 1)
 
 	err = stmt.Close()
 	c.Assert(err, Not(IsNil))

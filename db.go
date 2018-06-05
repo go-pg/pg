@@ -117,7 +117,7 @@ func (db *DB) retryBackoff(retry int) time.Duration {
 }
 
 func (db *DB) conn() (*pool.Conn, error) {
-	cn, _, err := db.pool.Get()
+	cn, err := db.pool.Get()
 	if err != nil {
 		return nil, err
 	}
@@ -126,8 +126,9 @@ func (db *DB) conn() (*pool.Conn, error) {
 
 	if cn.InitedAt.IsZero() {
 		cn.InitedAt = time.Now()
-		if err := db.initConn(cn); err != nil {
-			_ = db.pool.Remove(cn)
+		err = db.initConn(cn)
+		if err != nil {
+			db.pool.Remove(cn)
 			return nil, err
 		}
 	}
