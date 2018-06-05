@@ -1,12 +1,11 @@
 package internal
 
 import (
-	"errors"
 	"fmt"
 )
 
-var ErrNoRows = errors.New("pg: no rows in result set")
-var ErrMultiRows = errors.New("pg: multiple rows in result set")
+var ErrNoRows = Errorf("pg: no rows in result set")
+var ErrMultiRows = Errorf("pg: multiple rows in result set")
 
 type Error struct {
 	s string
