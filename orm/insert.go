@@ -84,11 +84,8 @@ func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 			}
 
 			for i := 0; i < value.Len(); i++ {
-				el := value.Index(i)
-				if el.Kind() == reflect.Interface {
-					el = el.Elem()
-				}
-				b = q.appendValues(b, fields, reflect.Indirect(el))
+				el := indirect(value.Index(i))
+				b = q.appendValues(b, fields, el)
 				if i != value.Len()-1 {
 					b = append(b, "), ("...)
 				}

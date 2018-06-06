@@ -162,6 +162,23 @@ var _ = Describe("Insert", func() {
 		Expect(string(b)).To(Equal(`WITH "data" AS (SELECT "insert_test"."id", "insert_test"."value" FROM "insert_tests" AS "insert_test") INSERT INTO dst (dst_col1, dst_col2) SELECT * FROM data`))
 	})
 
+	It("bulk inserts", func() {
+		q := NewQuery(nil, &InsertTest{}, &InsertTest{})
+
+		b, err := (&insertQuery{q: q}).AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (DEFAULT, DEFAULT), (DEFAULT, DEFAULT) RETURNING "id", "value"`))
+	})
+
+	It("bulk inserts overriding column value", func() {
+		q := NewQuery(nil, &InsertTest{}, &InsertTest{}).
+			Value("id", "123")
+
+		b, err := (&insertQuery{q: q}).AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (123, DEFAULT), (123, DEFAULT) RETURNING "value"`))
+	})
+
 	It("returns an error for empty bulk insert", func() {
 		slice := make([]InsertTest, 0)
 		q := NewQuery(nil, &slice)
