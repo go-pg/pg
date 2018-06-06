@@ -6,6 +6,17 @@ import (
 	"github.com/go-pg/pg/types"
 )
 
+func indirect(v reflect.Value) reflect.Value {
+	switch v.Kind() {
+	case reflect.Interface:
+		return indirect(v.Elem())
+	case reflect.Ptr:
+		return v.Elem()
+	default:
+		return v
+	}
+}
+
 func indirectType(t reflect.Type) reflect.Type {
 	if t.Kind() == reflect.Ptr {
 		t = t.Elem()
@@ -16,7 +27,7 @@ func indirectType(t reflect.Type) reflect.Type {
 func sliceElemType(v reflect.Value) reflect.Type {
 	elemType := v.Type().Elem()
 	if elemType.Kind() == reflect.Interface && v.Len() > 0 {
-		return reflect.Indirect(v.Index(0).Elem()).Type()
+		return indirect(v.Index(0).Elem()).Type()
 	} else {
 		return indirectType(elemType)
 	}

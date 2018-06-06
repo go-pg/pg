@@ -112,6 +112,7 @@ func (m *structTableModel) initStruct() {
 			m.strct = m.strct.Elem()
 		}
 	}
+
 	m.mountJoins()
 }
 

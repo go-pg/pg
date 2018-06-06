@@ -1135,11 +1135,7 @@ func appendColumnAndSliceValue(b []byte, slice reflect.Value, alias types.Q, fie
 			b = append(b, ", "...)
 		}
 
-		el := slice.Index(i)
-		switch el.Kind() {
-		case reflect.Interface, reflect.Ptr:
-			el = el.Elem()
-		}
+		el := indirect(slice.Index(i))
 
 		if len(fields) > 1 {
 			b = append(b, '(')
