@@ -17,19 +17,25 @@ const (
 
 func ParseTime(b []byte) (time.Time, error) {
 	s := internal.BytesToString(b)
-	switch l := len(b); {
+	return ParseTimeString(s)
+}
+
+func ParseTimeString(s string) (time.Time, error) {
+	switch l := len(s); {
 	case l <= len(dateFormat):
 		return time.ParseInLocation(dateFormat, s, time.UTC)
 	case l <= len(timeFormat):
 		return time.ParseInLocation(timeFormat, s, time.UTC)
 	default:
-		if c := b[len(b)-9]; c == '+' || c == '-' {
+		if c := s[len(s)-9]; c == '+' || c == '-' {
 			return time.Parse(timestamptzFormat, s)
 		}
-		if c := b[len(b)-6]; c == '+' || c == '-' {
+		if c := s[len(s)-6]; c == '+' || c == '-' {
 			return time.Parse(timestamptzFormat2, s)
+		} else if c == 'Z' {
+			return time.Parse(time.RFC3339Nano, s)
 		}
-		if c := b[len(b)-3]; c == '+' || c == '-' {
+		if c := s[len(s)-3]; c == '+' || c == '-' {
 			return time.Parse(timestamptzFormat3, s)
 		}
 		return time.ParseInLocation(timestampFormat, s, time.UTC)
