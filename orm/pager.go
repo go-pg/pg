@@ -92,6 +92,9 @@ func (p *Pager) GetPage() int {
 }
 
 func (p *Pager) Paginate(q *Query) (*Query, error) {
+	if p == nil {
+		return q, nil
+	}
 	if p.stickyErr != nil {
 		return nil, p.stickyErr
 	}

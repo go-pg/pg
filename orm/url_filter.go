@@ -49,6 +49,10 @@ func (f *URLFilter) isAllowed(filter string) bool {
 }
 
 func (f *URLFilter) Filters(q *Query) (*Query, error) {
+	if f == nil {
+		return q, nil
+	}
+
 	for filter, values := range f.values {
 		if !f.isAllowed(filter) {
 			continue
