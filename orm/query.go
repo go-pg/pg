@@ -460,6 +460,9 @@ func (q *Query) Having(having string, params ...interface{}) *Query {
 func (q *Query) Order(orders ...string) *Query {
 loop:
 	for _, order := range orders {
+		if order == "" {
+			continue
+		}
 		ind := strings.Index(order, " ")
 		if ind != -1 {
 			field := order[:ind]
@@ -479,7 +482,9 @@ loop:
 
 // Order adds sort order to the Query.
 func (q *Query) OrderExpr(order string, params ...interface{}) *Query {
-	q.order = append(q.order, &queryParamsAppender{order, params})
+	if order != "" {
+		q.order = append(q.order, &queryParamsAppender{order, params})
+	}
 	return q
 }
 
