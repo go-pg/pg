@@ -27,16 +27,19 @@ func ParseTimeString(s string) (time.Time, error) {
 	case l <= len(timeFormat):
 		return time.ParseInLocation(timeFormat, s, time.UTC)
 	default:
-		if c := s[len(s)-9]; c == '+' || c == '-' {
+		if c := s[l-9]; c == '+' || c == '-' {
 			return time.Parse(timestamptzFormat, s)
 		}
-		if c := s[len(s)-6]; c == '+' || c == '-' {
+		if c := s[l-6]; c == '+' || c == '-' {
 			return time.Parse(timestamptzFormat2, s)
 		} else if c == 'Z' {
 			return time.Parse(time.RFC3339Nano, s)
 		}
-		if c := s[len(s)-3]; c == '+' || c == '-' {
+		if c := s[l-3]; c == '+' || c == '-' {
 			return time.Parse(timestamptzFormat3, s)
+		}
+		if s[l-1] == 'Z' {
+			return time.Parse(time.RFC3339Nano, s)
 		}
 		return time.ParseInLocation(timestampFormat, s, time.UTC)
 	}
