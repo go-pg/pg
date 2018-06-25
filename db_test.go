@@ -999,34 +999,6 @@ var _ = Describe("ORM", func() {
 		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
-	It("multi updates", func() {
-		books := []Book{{
-			Id:    100,
-			Title: " suffix",
-		}, {
-			Id: 101,
-		}}
-		res, err := db.Model(&books).
-			Set("title = book.title || COALESCE(_data.title, '')").
-			Update()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(res.RowsAffected()).To(Equal(2))
-
-		books = nil
-		err = db.Model(&books).Column("id", "title").Order("id").Select()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(books).To(Equal([]Book{{
-			Id:    100,
-			Title: "book 1 suffix",
-		}, {
-			Id:    101,
-			Title: "book 2",
-		}, {
-			Id:    102,
-			Title: "book 3",
-		}}))
-	})
-
 	Describe("relation with no results", func() {
 		It("does not panic", func() {
 			tr := new(Translation)
@@ -1622,13 +1594,40 @@ var _ = Describe("ORM", func() {
 			_, err = db.Model(&books).Set("title = ?title").Update()
 			Expect(err).NotTo(HaveOccurred())
 
-			books = make([]Book, 0)
+			books = nil
 			err = db.Model(&books).Order("id").Select()
 			Expect(err).NotTo(HaveOccurred())
 
 			for i := range books {
 				Expect(books[i].Title).To(Equal(fmt.Sprintf("censored %d", i)))
 			}
+		})
+		It("updates books using Set", func() {
+			books := []Book{{
+				Id:    100,
+				Title: " suffix",
+			}, {
+				Id: 101,
+			}}
+			res, err := db.Model(&books).
+				Set("title = book.title || COALESCE(_data.title, '')").
+				Update()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.RowsAffected()).To(Equal(2))
+
+			books = nil
+			err = db.Model(&books).Column("id", "title").Order("id").Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(books).To(Equal([]Book{{
+				Id:    100,
+				Title: "book 1 suffix",
+			}, {
+				Id:    101,
+				Title: "book 2",
+			}, {
+				Id:    102,
+				Title: "book 3",
+			}}))
 		})
 	})
 
@@ -1833,6 +1832,24 @@ var _ = Describe("ORM", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			Expect(count).To(Equal(3))
+		})
+	})
+
+	Describe("SelectAndCount", func() {
+		It("selects and counts books", func() {
+			var books []Book
+			count, err := db.Model(&books).SelectAndCount()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(3))
+			Expect(books).To(HaveLen(3))
+		})
+
+		It("works with Limit=-1", func() {
+			var books []Book
+			count, err := db.Model(&books).Limit(-1).SelectAndCount()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(3))
+			Expect(books).To(HaveLen(0))
 		})
 	})
 })

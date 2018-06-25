@@ -625,38 +625,91 @@ func (q *Query) query(model Model, query interface{}) (Result, error) {
 }
 
 // SelectAndCount runs Select and Count in two goroutines,
-// waits for them to finish and returns the result.
-func (q *Query) SelectAndCount(values ...interface{}) (count int, err error) {
+// waits for them to finish and returns the result. If query limit is -1
+// it does not select any data and only counts the results.
+func (q *Query) SelectAndCount(values ...interface{}) (count int, firstErr error) {
 	if q.stickyErr != nil {
 		return 0, q.stickyErr
 	}
 
 	var wg sync.WaitGroup
-	wg.Add(2)
 	var mu sync.Mutex
 
-	go func() {
-		defer wg.Done()
-		if e := q.Select(values...); e != nil {
-			mu.Lock()
-			err = e
-			mu.Unlock()
-		}
-	}()
+	if q.limit >= 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := q.Select(values...)
+			if err != nil {
+				mu.Lock()
+				if firstErr == nil {
+					firstErr = err
+				}
+				mu.Unlock()
+			}
+		}()
+	}
 
+	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		var e error
-		count, e = q.Count()
-		if e != nil {
+		var err error
+		count, err = q.Count()
+		if err != nil {
 			mu.Lock()
-			err = e
+			if firstErr == nil {
+				firstErr = err
+			}
 			mu.Unlock()
 		}
 	}()
 
 	wg.Wait()
-	return count, err
+	return count, firstErr
+}
+
+// SelectAndCountEstimate runs Select and CountEstimate in two goroutines,
+// waits for them to finish and returns the result. If query limit is -1
+// it does not select any data and only counts the results.
+func (q *Query) SelectAndCountEstimate(threshold int, values ...interface{}) (count int, firstErr error) {
+	if q.stickyErr != nil {
+		return 0, q.stickyErr
+	}
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+
+	if q.limit >= 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := q.Select(values...)
+			if err != nil {
+				mu.Lock()
+				if firstErr == nil {
+					firstErr = err
+				}
+				mu.Unlock()
+			}
+		}()
+	}
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var err error
+		count, err = q.CountEstimate(threshold)
+		if err != nil {
+			mu.Lock()
+			if firstErr == nil {
+				firstErr = err
+			}
+			mu.Unlock()
+		}
+	}()
+
+	wg.Wait()
+	return count, firstErr
 }
 
 // ForEach calls the function for each row returned by the query
