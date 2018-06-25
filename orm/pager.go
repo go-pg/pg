@@ -61,7 +61,10 @@ func (p *Pager) maxOffset() int {
 func (p *Pager) GetLimit() int {
 	const defaultLimit = 100
 
-	if p.Limit <= 0 {
+	if p.Limit < 0 {
+		return p.Limit
+	}
+	if p.Limit == 0 {
 		return defaultLimit
 	}
 	if p.Limit > p.maxLimit() {
@@ -74,10 +77,7 @@ func (p *Pager) GetOffset() int {
 	if p.Offset > p.maxOffset() {
 		return p.maxOffset()
 	}
-	if p.Offset > 0 {
-		return p.Offset
-	}
-	return 0
+	return p.Offset
 }
 
 func (p *Pager) SetPage(page int) {
