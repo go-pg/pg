@@ -22,24 +22,23 @@ func ParseTime(b []byte) (time.Time, error) {
 
 func ParseTimeString(s string) (time.Time, error) {
 	switch l := len(s); {
-	case l <= len(dateFormat):
-		return time.ParseInLocation(dateFormat, s, time.UTC)
 	case l <= len(timeFormat):
-		return time.ParseInLocation(timeFormat, s, time.UTC)
+		if s[2] == ':' {
+			return time.ParseInLocation(timeFormat, s, time.UTC)
+		}
+		return time.ParseInLocation(dateFormat, s, time.UTC)
 	default:
+		if s[10] == 'T' {
+			return time.Parse(time.RFC3339Nano, s)
+		}
 		if c := s[l-9]; c == '+' || c == '-' {
 			return time.Parse(timestamptzFormat, s)
 		}
 		if c := s[l-6]; c == '+' || c == '-' {
 			return time.Parse(timestamptzFormat2, s)
-		} else if c == 'Z' {
-			return time.Parse(time.RFC3339Nano, s)
 		}
 		if c := s[l-3]; c == '+' || c == '-' {
 			return time.Parse(timestamptzFormat3, s)
-		}
-		if s[l-1] == 'Z' {
-			return time.Parse(time.RFC3339Nano, s)
 		}
 		return time.ParseInLocation(timestampFormat, s, time.UTC)
 	}
