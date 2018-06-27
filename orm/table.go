@@ -379,10 +379,13 @@ func (t *Table) initMethods() {
 }
 
 func (t *Table) initRelations() {
-	for _, field := range t.FieldsMap {
-		if t.tryRelation(field) {
-			t.DataFields = removeField(t.DataFields, field)
-			t.Fields = removeField(t.Fields, field)
+	for i := 0; i < len(t.Fields); {
+		f := t.Fields[i]
+		if t.tryRelation(f) {
+			t.DataFields = removeField(t.DataFields, f)
+			t.Fields = removeField(t.Fields, f)
+		} else {
+			i++
 		}
 	}
 }
@@ -548,7 +551,7 @@ func (t *Table) tryRelationStruct(field *Field) bool {
 	res := t.tryHasOne(joinTable, field, pgTag) ||
 		t.tryBelongsToOne(joinTable, field, pgTag)
 
-	for _, f := range joinTable.FieldsMap {
+	for _, f := range joinTable.Fields {
 		f = f.Copy()
 		f.GoName = field.GoName + "_" + f.GoName
 		f.SQLName = field.SQLName + "__" + f.SQLName
