@@ -100,7 +100,7 @@ func (db *DB) WithParam(param string, value interface{}) *DB {
 }
 
 // Param returns value for the param.
-func (db *DB) Param(param string) (interface{}, bool) {
+func (db *DB) Param(param string) interface{} {
 	return db.fmter.Param(param)
 }
 
