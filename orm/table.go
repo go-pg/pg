@@ -45,10 +45,11 @@ type Table struct {
 	Alias     types.Q
 	ModelName string
 
-	Fields     []*Field // PKs + DataFields
-	PKs        []*Field
-	DataFields []*Field
-	FieldsMap  map[string]*Field
+	Fields        []*Field // PKs + DataFields
+	PKs           []*Field
+	DataFields    []*Field
+	SkippedFields []*Field
+	FieldsMap     map[string]*Field // all of the above
 
 	Methods   map[string]*Method
 	Relations map[string]*Relation
@@ -349,6 +350,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	if skip {
 		t.FieldsMap[field.SQLName] = field
+		t.SkippedFields = append(t.SkippedFields, field)
 		return nil
 	}
 	return field
@@ -386,6 +388,13 @@ func (t *Table) initRelations() {
 			t.Fields = removeField(t.Fields, f)
 		} else {
 			i++
+		}
+	}
+
+	for _, f := range t.SkippedFields {
+		if f.Type.Kind() == reflect.Struct {
+			joinTable := _tables.get(f.Type, true)
+			t.inlineFields(f, joinTable.Fields)
 		}
 	}
 }
@@ -550,19 +559,28 @@ func (t *Table) tryRelationStruct(field *Field) bool {
 
 	res := t.tryHasOne(joinTable, field, pgTag) ||
 		t.tryBelongsToOne(joinTable, field, pgTag)
+	t.inlineFields(field, joinTable.Fields)
+	return res
+}
 
-	for _, f := range joinTable.Fields {
+func (t *Table) inlineFields(strct *Field, structFields []*Field) {
+	for _, f := range structFields {
 		f = f.Copy()
-		f.GoName = field.GoName + "_" + f.GoName
-		f.SQLName = field.SQLName + "__" + f.SQLName
+		f.GoName = strct.GoName + "_" + f.GoName
+		f.SQLName = strct.SQLName + "__" + f.SQLName
 		f.Column = types.Q(types.AppendField(nil, f.SQLName, 1))
-		f.Index = appendNew(field.Index, f.Index...)
+		f.Index = appendNew(strct.Index, f.Index...)
 		if _, ok := t.FieldsMap[f.SQLName]; !ok {
 			t.FieldsMap[f.SQLName] = f
 		}
 	}
+}
 
-	return res
+func appendNew(dst []int, src ...int) []int {
+	cp := make([]int, len(dst)+len(src))
+	copy(cp, dst)
+	copy(cp[len(dst):], src)
+	return cp
 }
 
 func isPostgresKeyword(s string) bool {
@@ -811,11 +829,4 @@ func tryUnderscorePrefix(s string) string {
 		return internal.Underscore(s) + "_"
 	}
 	return s
-}
-
-func appendNew(dst []int, src ...int) []int {
-	cp := make([]int, len(dst)+len(src))
-	copy(cp, dst)
-	copy(cp[len(dst):], src)
-	return cp
 }
