@@ -45,11 +45,13 @@ type Table struct {
 	Alias     types.Q
 	ModelName string
 
-	Fields        []*Field // PKs + DataFields
-	PKs           []*Field
-	DataFields    []*Field
-	SkippedFields []*Field
-	FieldsMap     map[string]*Field // all of the above
+	allFields     []*Field // read only
+	skippedFields []*Field
+
+	Fields     []*Field // PKs + DataFields
+	PKs        []*Field
+	DataFields []*Field
+	FieldsMap  map[string]*Field
 
 	Methods   map[string]*Method
 	Relations map[string]*Relation
@@ -99,10 +101,6 @@ func newTable(typ reflect.Type) *Table {
 	return t
 }
 
-func (t *Table) init() {
-	t.initRelations()
-}
-
 func (t *Table) String() string {
 	return "model=" + t.TypeName
 }
@@ -131,6 +129,7 @@ func (t *Table) checkPKs() error {
 }
 
 func (t *Table) AddField(field *Field) {
+	t.allFields = append(t.allFields, field)
 	t.Fields = append(t.Fields, field)
 	if field.HasFlag(PrimaryKeyFlag) {
 		t.PKs = append(t.PKs, field)
@@ -349,8 +348,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	field.isZero = isZeroFunc(f.Type)
 
 	if skip {
+		t.skippedFields = append(t.skippedFields, field)
 		t.FieldsMap[field.SQLName] = field
-		t.SkippedFields = append(t.SkippedFields, field)
 		return nil
 	}
 	return field
@@ -380,21 +379,28 @@ func (t *Table) initMethods() {
 	}
 }
 
+func (t *Table) init() {
+	t.initRelations()
+	t.initInlines()
+}
+
 func (t *Table) initRelations() {
 	for i := 0; i < len(t.Fields); {
 		f := t.Fields[i]
 		if t.tryRelation(f) {
-			t.DataFields = removeField(t.DataFields, f)
 			t.Fields = removeField(t.Fields, f)
+			t.DataFields = removeField(t.DataFields, f)
 		} else {
 			i++
 		}
 	}
+}
 
-	for _, f := range t.SkippedFields {
+func (t *Table) initInlines() {
+	for _, f := range t.skippedFields {
 		if f.Type.Kind() == reflect.Struct {
 			joinTable := _tables.get(f.Type, true)
-			t.inlineFields(f, joinTable.Fields)
+			t.inlineFields(f, joinTable.allFields)
 		}
 	}
 }
@@ -553,13 +559,13 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 func (t *Table) tryRelationStruct(field *Field) bool {
 	pgTag := parseTag(field.Field.Tag.Get("pg"))
 	joinTable := _tables.get(field.Type, true)
-	if len(joinTable.Fields) == 0 {
+	if len(joinTable.allFields) == 0 {
 		return false
 	}
 
 	res := t.tryHasOne(joinTable, field, pgTag) ||
 		t.tryBelongsToOne(joinTable, field, pgTag)
-	t.inlineFields(field, joinTable.Fields)
+	t.inlineFields(field, joinTable.allFields)
 	return res
 }
 

@@ -7,8 +7,7 @@ import (
 )
 
 type TableInitRace struct {
-	Id int
-
+	Id  int
 	Foo int
 
 	HasSelf   *TableInitRace
@@ -20,24 +19,26 @@ type TableInitRace struct {
 	HasAnother1   *TableInitRace1
 	HasAnother1Id int
 
-	HasOne2   *TableInitRace2
-	HasOne2Id int
-
-	HasOne3   *TableInitRace3
-	HasOne3Id int
-
 	Bar int
 }
 
 type TableInitRace1 struct {
 	Id  int
 	Foo int
+
+	HasOne2   *TableInitRace2
+	HasOne2Id int
+
 	Bar int
 }
 
 type TableInitRace2 struct {
 	Id  int
 	Foo int
+
+	HasOne3   *TableInitRace3
+	HasOne3Id int
+
 	Bar int
 }
 
