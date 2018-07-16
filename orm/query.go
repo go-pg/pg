@@ -470,7 +470,7 @@ loop:
 			switch internal.UpperString(sort) {
 			case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
 				"ASC NULLS LAST", "DESC NULLS LAST":
-				q = q.OrderExpr("? ?", types.F(field), types.Q(sort))
+				q = q.OrderExpr(field+" ?", types.Q(sort))
 				continue loop
 			}
 		}
