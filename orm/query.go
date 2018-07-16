@@ -475,7 +475,7 @@ loop:
 			}
 		}
 
-		q.order = append(q.order, fieldAppender{order})
+		q.order = append(q.order, &queryParamsAppender{order, nil})
 	}
 	return q
 }
