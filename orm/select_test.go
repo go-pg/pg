@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -188,7 +187,6 @@ var _ = Describe("Select", func() {
 
 		b, err := selectQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		fmt.Println(string(b))
 		Expect(string(b)).To(Equal(`SELECT "id" FROM "select_models" AS "select_model" WHERE ("select_model".name > '2006-02-03 10:30:35.987654321+00:00:00')`))
 	})
 })
