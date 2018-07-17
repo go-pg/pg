@@ -1,6 +1,8 @@
 package orm
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -177,6 +179,15 @@ var _ = Describe("Select", func() {
 		b, err := selectQuery{q: q}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT * WHERE (TRUE)`))
+	})
+
+	It("expands ?TableAlias in Where with structs", func() {
+		t := time.Date(2006, 2, 3, 10, 30, 35, 987654321, time.UTC)
+		q := NewQuery(nil, &SelectModel{}).Column("id").Where("?TableAlias.name > ?", t)
+
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT "id" FROM "select_models" AS "select_model" WHERE ("select_model".name > '2006-02-03 10:30:35.987654321+00:00:00')`))
 	})
 })
 

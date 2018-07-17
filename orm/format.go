@@ -229,12 +229,7 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 
 			if !namedParamsOnce && len(params) > 0 {
 				namedParamsOnce = true
-				if len(params) > 0 {
-					tableParams, ok = newTableParams(params[len(params)-1])
-					if ok {
-						params = params[:len(params)-1]
-					}
-				}
+				tableParams, _ = newTableParams(params[len(params)-1])
 			}
 
 			if tableParams != nil {
