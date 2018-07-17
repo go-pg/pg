@@ -214,7 +214,7 @@ var _ = Describe("Count", func() {
 
 		b, err := q.countSelectQuery("count(*)").AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "col1", "col2" ORDER BY "order" LIMIT 1 OFFSET 2) SELECT count(*) FROM "wrapper"`))
+		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "col1", "col2" ORDER BY order LIMIT 1 OFFSET 2) SELECT count(*) FROM "wrapper"`))
 	})
 
 	It("includes has one joins", func() {
@@ -291,22 +291,37 @@ type orderTest struct {
 }
 
 var _ = Describe("Select Order", func() {
-	orderTests := []orderTest{
-		{"id", `"id"`},
-		{"id asc", `"id" asc`},
-		{"id desc", `"id" desc`},
-		{"id ASC", `"id" ASC`},
-		{"id DESC", `"id" DESC`},
-		{"id ASC NULLS FIRST", `"id" ASC NULLS FIRST`},
-	}
-
 	It("sets order", func() {
+		orderTests := []orderTest{
+			{"id", `id`},
+			{"id asc", `id asc`},
+			{"id desc", `id desc`},
+			{"id ASC", `id ASC`},
+			{"id DESC", `id DESC`},
+			{"id ASC NULLS FIRST", `id ASC NULLS FIRST`},
+		}
+
 		for _, test := range orderTests {
 			q := NewQuery(nil).Order(test.order)
 
 			b, err := selectQuery{q: q}.AppendQuery(nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(b)).To(Equal(`SELECT * ORDER BY ` + test.query))
+		}
+	})
+
+	It("expands params", func() {
+		orderTests := []orderTest{
+			{"?TableAlias.id", `"select_model".id`},
+			{"?TableAlias.id ASC", `"select_model".id ASC`},
+		}
+
+		for _, test := range orderTests {
+			q := NewQuery(nil, &SelectModel{}).Order(test.order)
+
+			b, err := selectQuery{q: q}.AppendQuery(nil)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(string(b)).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" ORDER BY ` + test.query))
 		}
 	})
 })
