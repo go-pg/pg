@@ -168,8 +168,8 @@ func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
 	return q
 }
 
-// Column adds a column to the Query quoting it according to PostgreSQL rules.
-// ColumnExpr can be used to bypass quoting restriction. Column name can be:
+// Column adds a column to the Query quoting it according to PostgreSQL rules. Does not expand params like ?TableAlias etc.
+// ColumnExpr can be used to bypass quoting restriction or for params expansion. Column name can be:
 //   - column_name,
 //   - table_alias.column_name,
 //   - table_alias.*.
@@ -455,8 +455,8 @@ func (q *Query) Having(having string, params ...interface{}) *Query {
 	return q
 }
 
-// Order adds sort order to the Query quoting column name.
-// OrderExpr can be used to bypass quoting restriction.
+// Order adds sort order to the Query quoting column name. Does not expand params like ?TableAlias etc.
+// OrderExpr can be used to bypass quoting restriction or for params expansion.
 func (q *Query) Order(orders ...string) *Query {
 loop:
 	for _, order := range orders {
