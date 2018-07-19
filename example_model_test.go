@@ -480,22 +480,13 @@ func ExampleDB_Model_exists() {
 	db := modelDB()
 
 	var books []Book
-	exists, err := db.Model(&books).OrderExpr("id ASC").Limit(2).Exists()
+	exists, err := db.Model(&books).Where("author_id = ?", 1).Exists()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(exists)
-	fmt.Println(books)
-
-	exists, err = db.Model(&books).OrderExpr("id ASC").Limit(2).Where("id = 0").Exists()
-	if err != nil {
-		panic(err)
-	}
 	fmt.Println(exists)
 	// Output: true
-	// []
-	// false
 }
 
 func ExampleDB_Model_nullEmptyValue() {
