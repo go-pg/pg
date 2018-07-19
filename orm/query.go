@@ -975,6 +975,19 @@ func (q *Query) FormatQuery(b []byte, query string, params ...interface{}) []byt
 	return formatter.Append(b, query, params...)
 }
 
+func (q *Query) Exists() (bool, error) {
+	cp := q.Copy() // copy to not change original query
+	cp.columns = []FormatAppender{&queryParamsAppender{"1", nil}}
+	cp.order = nil
+	cp.limit = 1
+	var exists bool
+	err := cp.Select(&exists)
+	if err == internal.ErrNoRows {
+		return exists, nil
+	}
+	return exists, err
+}
+
 func (q *Query) hasModel() bool {
 	return !q.ignoreModel && q.model != nil
 }

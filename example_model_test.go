@@ -476,6 +476,28 @@ func ExampleDB_Model_selectAndCount() {
 	// [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
 }
 
+func ExampleDB_Model_exists() {
+	db := modelDB()
+
+	var books []Book
+	exists, err := db.Model(&books).OrderExpr("id ASC").Limit(2).Exists()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(exists)
+	fmt.Println(books)
+
+	exists, err = db.Model(&books).OrderExpr("id ASC").Limit(2).Where("id = 0").Exists()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(exists)
+	// Output: true
+	// []
+	// false
+}
+
 func ExampleDB_Model_nullEmptyValue() {
 	type Example struct {
 		Hello string
