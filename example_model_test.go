@@ -476,6 +476,19 @@ func ExampleDB_Model_selectAndCount() {
 	// [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
 }
 
+func ExampleDB_Model_exists() {
+	db := modelDB()
+
+	var books []Book
+	exists, err := db.Model(&books).Where("author_id = ?", 1).Exists()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(exists)
+	// Output: true
+}
+
 func ExampleDB_Model_nullEmptyValue() {
 	type Example struct {
 		Hello string

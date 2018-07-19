@@ -1852,4 +1852,22 @@ var _ = Describe("ORM", func() {
 			Expect(books).To(HaveLen(0))
 		})
 	})
+
+	Describe("Exists", func() {
+		It("returns true for existing rows", func() {
+			var books []Book
+			exists, err := db.Model(&books).Exists()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(exists).To(Equal(true))
+			Expect(books).To(HaveLen(0))
+		})
+
+		It("returns false otherwise", func() {
+			var books []Book
+			exists, err := db.Model(&books).Where("id = 0").Exists()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(exists).To(Equal(false))
+			Expect(books).To(HaveLen(0))
+		})
+	})
 })
