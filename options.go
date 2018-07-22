@@ -174,6 +174,8 @@ func ParseURL(sURL string) (*Options, error) {
 
 	if sslMode, ok := query["sslmode"]; ok && len(sslMode) > 0 {
 		switch sslMode[0] {
+		case "required":
+			fallthrough
 		case "allow":
 			fallthrough
 		case "prefer":
