@@ -202,7 +202,11 @@ func (opt *Options) getDialer() func() (net.Conn, error) {
 		}
 	}
 	return func() (net.Conn, error) {
-		return net.DialTimeout(opt.Network, opt.Addr, opt.DialTimeout)
+		netDialer := &net.Dialer{
+			Timeout:   opt.DialTimeout,
+			KeepAlive: 5 * time.Minute,
+		}
+		return netDialer.Dial(opt.Network, opt.Addr)
 	}
 }
 
