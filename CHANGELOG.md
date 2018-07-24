@@ -1,5 +1,8 @@
 # Changelog
 
+## v6.15
+- Dialer.KeepAlive is set to 5 minutes by default.
+
 ## v6.14
 
 - Fields ignored with `sql:"-"` tag are no longer considered by ORM relation detector.
