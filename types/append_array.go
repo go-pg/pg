@@ -173,7 +173,7 @@ func appendSliceFloat64(b []byte, floats []float64, quote int) []byte {
 
 	b = append(b, '{')
 	for _, n := range floats {
-		b = appendFloat(b, n)
+		b = appendFloat(b, n, 2)
 		b = append(b, ',')
 	}
 	if len(floats) > 0 {
