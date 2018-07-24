@@ -50,9 +50,10 @@ type conversionTest struct {
 	src, dst, wanted interface{}
 	pgtype           string
 
-	wanterr  string
-	wantnil  bool
-	wantzero bool
+	wanterr     string
+	wantnil     bool
+	wantzero    bool
+	wantnothing bool
 }
 
 func unwrap(v interface{}) interface{} {
@@ -94,6 +95,10 @@ func (test *conversionTest) Assert(t *testing.T, err error) {
 
 	if err != nil {
 		t.Fatalf("got error %q, wanted nil (%s)", err, test)
+	}
+
+	if test.wantnothing {
+		return
 	}
 
 	dst := reflect.Indirect(reflect.ValueOf(unwrap(test.dst))).Interface()
@@ -277,6 +282,7 @@ func conversionTests() []conversionTest {
 		{src: pg.Array([]float64(nil)), dst: pg.Array(new([]float64)), pgtype: "decimal[]", wantnil: true},
 		{src: pg.Array([]float64{}), dst: pg.Array(new([]float64)), pgtype: "decimal[]"},
 		{src: pg.Array([]float64{1.1, 2.22, 3.333}), dst: pg.Array(new([]float64)), pgtype: "decimal[]"},
+		{src: pg.Array([]float64{math.NaN(), math.Inf(+1), math.Inf(-1)}), dst: pg.Array(new([]float64)), pgtype: "float[]", wantnothing: true},
 
 		{src: nil, dst: pg.Array([]string(nil)), pgtype: "text[]", wanterr: "pg: Scan(nonsettable []string)"},
 		{src: nil, dst: pg.Array(new([]string)), pgtype: "text[]", wantnil: true},

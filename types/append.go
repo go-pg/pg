@@ -36,9 +36,9 @@ func Append(b []byte, v interface{}, quote int) []byte {
 	case uint:
 		return strconv.AppendUint(b, uint64(v), 10)
 	case float32:
-		return appendFloat(b, float64(v))
+		return appendFloat(b, float64(v), quote)
 	case float64:
-		return appendFloat(b, v)
+		return appendFloat(b, v, quote)
 	case string:
 		return AppendString(b, v, quote)
 	case time.Time:
@@ -76,14 +76,23 @@ func appendBool(dst []byte, v bool) []byte {
 	return append(dst, "FALSE"...)
 }
 
-func appendFloat(dst []byte, v float64) []byte {
+func appendFloat(dst []byte, v float64, quote int) []byte {
 	switch {
 	case math.IsNaN(v):
-		return append(dst, "'NaN'"...)
+		if quote == 1 {
+			return append(dst, "'NaN'"...)
+		}
+		return append(dst, "NaN"...)
 	case math.IsInf(v, 1):
-		return append(dst, "'Infinity'"...)
+		if quote == 1 {
+			return append(dst, "'Infinity'"...)
+		}
+		return append(dst, "Infinity"...)
 	case math.IsInf(v, -1):
-		return append(dst, "'-Infinity'"...)
+		if quote == 1 {
+			return append(dst, "'-Infinity'"...)
+		}
+		return append(dst, "-Infinity"...)
 	default:
 		return strconv.AppendFloat(dst, v, 'f', -1, 64)
 	}

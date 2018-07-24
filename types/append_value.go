@@ -126,8 +126,8 @@ func appendUintValue(b []byte, v reflect.Value, _ int) []byte {
 	return strconv.AppendUint(b, v.Uint(), 10)
 }
 
-func appendFloatValue(b []byte, v reflect.Value, _ int) []byte {
-	return appendFloat(b, v.Float())
+func appendFloatValue(b []byte, v reflect.Value, quote int) []byte {
+	return appendFloat(b, v.Float(), quote)
 }
 
 func appendBytesValue(b []byte, v reflect.Value, quote int) []byte {
