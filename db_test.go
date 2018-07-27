@@ -1582,7 +1582,7 @@ var _ = Describe("ORM", func() {
 			Expect(err).To(MatchError("pg: can't bulk-update empty slice []pg_test.Book"))
 		})
 
-		It("updates books", func() {
+		It("updates books using Set", func() {
 			var books []Book
 			err := db.Model(&books).Order("id").Select()
 			Expect(err).NotTo(HaveOccurred())
@@ -1602,7 +1602,8 @@ var _ = Describe("ORM", func() {
 				Expect(books[i].Title).To(Equal(fmt.Sprintf("censored %d", i)))
 			}
 		})
-		It("updates books using Set", func() {
+
+		It("updates books using Set expression", func() {
 			books := []Book{{
 				Id:    100,
 				Title: " suffix",
@@ -1628,6 +1629,27 @@ var _ = Describe("ORM", func() {
 				Id:    102,
 				Title: "book 3",
 			}}))
+		})
+
+		It("updates books using Column", func() {
+			var books []Book
+			err := db.Model(&books).Order("id").Select()
+			Expect(err).NotTo(HaveOccurred())
+
+			for i := range books {
+				books[i].Title = fmt.Sprintf("censored %d", i)
+			}
+
+			_, err = db.Model(&books).Column("title").Update()
+			Expect(err).NotTo(HaveOccurred())
+
+			books = nil
+			err = db.Model(&books).Order("id").Select()
+			Expect(err).NotTo(HaveOccurred())
+
+			for i := range books {
+				Expect(books[i].Title).To(Equal(fmt.Sprintf("censored %d", i)))
+			}
 		})
 	})
 
