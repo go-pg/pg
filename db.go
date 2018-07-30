@@ -294,6 +294,7 @@ func (db *DB) Listen(channels ...string) *Listener {
 	ln := &Listener{
 		db: db,
 	}
+	ln.init()
 	_ = ln.Listen(channels...)
 	return ln
 }
