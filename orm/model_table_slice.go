@@ -30,7 +30,7 @@ func (m *sliceTableModel) AppendParam(b []byte, f QueryFormatter, name string) (
 	return m.structTableModel.AppendParam(b, f, name)
 }
 
-func (m *sliceTableModel) Join(name string, apply func(*Query) (*Query, error)) (bool, *join) {
+func (m *sliceTableModel) Join(name string, apply func(*Query) (*Query, error)) *join {
 	return m.join(m.Value(), name, apply)
 }
 

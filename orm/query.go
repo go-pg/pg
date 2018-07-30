@@ -183,7 +183,7 @@ func (q *Query) Column(columns ...string) *Query {
 		}
 
 		if q.model != nil {
-			if _, j := q.model.Join(column, nil); j != nil {
+			if j := q.model.Join(column, nil); j != nil {
 				continue
 			}
 		}
@@ -269,7 +269,7 @@ func (q *Query) Relation(name string, apply ...func(*Query) (*Query, error)) *Qu
 		panic("only one apply function is supported")
 	}
 
-	_, join := q.model.Join(name, fn)
+	join := q.model.Join(name, fn)
 	if join == nil {
 		return q.err(fmt.Errorf("%s does not have relation=%q",
 			q.model.Table(), name))
