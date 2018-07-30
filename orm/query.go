@@ -268,12 +268,23 @@ func (q *Query) Relation(name string, apply ...func(*Query) (*Query, error)) *Qu
 	} else if len(apply) > 1 {
 		panic("only one apply function is supported")
 	}
+
 	_, join := q.model.Join(name, fn)
 	if join == nil {
 		return q.err(fmt.Errorf("%s does not have relation=%q",
 			q.model.Table(), name))
 	}
-	return q
+
+	if fn == nil {
+		return q
+	}
+
+	switch join.Rel.Type {
+	case HasOneRelation, BelongsToRelation:
+		return q.Apply(fn)
+	default:
+		return q
+	}
 }
 
 func (q *Query) Set(set string, params ...interface{}) *Query {
