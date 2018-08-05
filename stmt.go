@@ -187,8 +187,10 @@ func (stmt *Stmt) Close() error {
 
 func prepare(db *DB, cn *pool.Conn, q string) (*Stmt, error) {
 	name := cn.NextId()
-	writeParseDescribeSyncMsg(cn.Writer, name, q)
-	if err := cn.FlushWriter(); err != nil {
+	buf := cn.PrepareWriteBuffer()
+	writeParseDescribeSyncMsg(buf, name, q)
+	err := cn.FlushWriteBuffer(buf)
+	if err != nil {
 		db.freeConn(cn, err)
 		return nil, err
 	}
@@ -210,10 +212,13 @@ func prepare(db *DB, cn *pool.Conn, q string) (*Stmt, error) {
 }
 
 func extQuery(cn *pool.Conn, name string, params ...interface{}) (orm.Result, error) {
-	if err := writeBindExecuteMsg(cn.Writer, name, params...); err != nil {
+	buf := cn.PrepareWriteBuffer()
+	err := writeBindExecuteMsg(buf, name, params...)
+	if err != nil {
 		return nil, err
 	}
-	if err := cn.FlushWriter(); err != nil {
+	err = cn.FlushWriteBuffer(buf)
+	if err != nil {
 		return nil, err
 	}
 	return readExtQuery(cn)
@@ -222,19 +227,24 @@ func extQuery(cn *pool.Conn, name string, params ...interface{}) (orm.Result, er
 func extQueryData(
 	cn *pool.Conn, name string, model interface{}, columns [][]byte, params ...interface{},
 ) (orm.Result, error) {
-	if err := writeBindExecuteMsg(cn.Writer, name, params...); err != nil {
+	buf := cn.PrepareWriteBuffer()
+	err := writeBindExecuteMsg(buf, name, params...)
+	if err != nil {
 		return nil, err
 	}
-	if err := cn.FlushWriter(); err != nil {
+	err = cn.FlushWriteBuffer(buf)
+	if err != nil {
 		return nil, err
 	}
 	return readExtQueryData(cn, model, columns)
 }
 
 func closeStmt(cn *pool.Conn, name string) error {
-	writeCloseMsg(cn.Writer, name)
-	writeFlushMsg(cn.Writer)
-	if err := cn.FlushWriter(); err != nil {
+	buf := cn.PrepareWriteBuffer()
+	writeCloseMsg(buf, name)
+	writeFlushMsg(buf)
+	err := cn.FlushWriteBuffer(buf)
+	if err != nil {
 		return err
 	}
 	return readCloseCompleteMsg(cn)

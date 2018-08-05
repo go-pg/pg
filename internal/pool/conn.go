@@ -1,10 +1,8 @@
 package pool
 
 import (
-	"bufio"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"net"
 	"strconv"
 	"sync/atomic"
@@ -16,11 +14,11 @@ var noDeadline = time.Time{}
 type Conn struct {
 	netConn net.Conn
 
-	Reader  *bufio.Reader
-	readBuf []byte
+	Reader  *BufioReader
 	Columns [][]byte
 
-	Writer *WriteBuffer
+	wb               *WriteBuffer
+	concurrentWrites bool
 
 	InitedAt time.Time
 	usedAt   atomic.Value
@@ -33,10 +31,8 @@ type Conn struct {
 
 func NewConn(netConn net.Conn) *Conn {
 	cn := &Conn{
-		Reader:  bufio.NewReader(netConn),
-		readBuf: make([]byte, 0, 512),
-
-		Writer: NewWriteBuffer(),
+		Reader: NewBufioReader(netConn),
+		wb:     NewWriteBuffer(),
 	}
 	cn.SetNetConn(netConn)
 	cn.SetUsedAt(time.Now())
@@ -84,20 +80,24 @@ func (cn *Conn) SetTimeout(rt, wt time.Duration) {
 	}
 }
 
-func (cn *Conn) ReadN(n int) ([]byte, error) {
-	if d := n - cap(cn.readBuf); d > 0 {
-		cn.readBuf = cn.readBuf[:cap(cn.readBuf)]
-		cn.readBuf = append(cn.readBuf, make([]byte, d)...)
-	} else {
-		cn.readBuf = cn.readBuf[:n]
-	}
-	_, err := io.ReadFull(cn.Reader, cn.readBuf)
-	return cn.readBuf, err
+func (cn *Conn) EnableConcurrentWrites() {
+	cn.concurrentWrites = true
+	cn.wb.Bytes = make([]byte, defaultBufSize)
 }
 
-func (cn *Conn) FlushWriter() error {
-	_, err := cn.netConn.Write(cn.Writer.Bytes)
-	cn.Writer.Reset()
+func (cn *Conn) PrepareWriteBuffer() *WriteBuffer {
+	if !cn.concurrentWrites {
+		cn.wb.Bytes = cn.Reader.Buffer()
+	}
+	cn.wb.Reset()
+	return cn.wb
+}
+
+func (cn *Conn) FlushWriteBuffer(buf *WriteBuffer) error {
+	_, err := cn.netConn.Write(buf.Bytes)
+	if !cn.concurrentWrites {
+		cn.Reader.ResetBuffer(cn.wb.Bytes[:cap(cn.wb.Bytes)])
+	}
 	return err
 }
 
@@ -106,9 +106,8 @@ func (cn *Conn) Close() error {
 }
 
 func (cn *Conn) CheckHealth() error {
-	if cn.Reader.Buffered() != 0 {
-		b, _ := cn.Reader.Peek(cn.Reader.Buffered())
-		err := fmt.Errorf("connection has unread data:\n%s", hex.Dump(b))
+	if buf := cn.Reader.Bytes(); len(buf) > 0 {
+		err := fmt.Errorf("connection has unread data:\n%s", hex.Dump(buf))
 		return err
 	}
 	return nil

@@ -20,7 +20,7 @@ var _ = Context("Listener", func() {
 		opt.PoolTimeout = time.Second
 
 		db = pg.Connect(opt)
-		ln = db.Listen("test.channel")
+		ln = db.Listen("test_channel")
 	})
 
 	var _ = AfterEach(func() {
@@ -51,7 +51,7 @@ var _ = Context("Listener", func() {
 			wait <- struct{}{}
 			channel, payload, err := ln.Receive()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(channel).To(Equal("test.channel"))
+			Expect(channel).To(Equal("test_channel"))
 			Expect(payload).To(Equal(""))
 			wait <- struct{}{}
 		}()
@@ -63,7 +63,7 @@ var _ = Context("Listener", func() {
 			Fail("timeout")
 		}
 
-		_, err := db.Exec(`NOTIFY "test.channel"`)
+		_, err := db.Exec("NOTIFY test_channel")
 		Expect(err).NotTo(HaveOccurred())
 
 		select {
@@ -174,13 +174,45 @@ var _ = Context("Listener", func() {
 			// ok
 		}
 
-		_, err = db.Exec(`NOTIFY "test.channel"`)
+		_, err = db.Exec("NOTIFY test_channel")
 		Expect(err).NotTo(HaveOccurred())
 
 		select {
 		case <-wait:
 			// ok
 		case <-time.After(3 * time.Second):
+			Fail("timeout")
+		}
+	})
+
+	It("supports concurrent Listen and Receive", func() {
+		const N = 100
+
+		wg := performAsync(N, func(_ int) {
+			_, err := db.Exec("NOTIFY test_channel")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		done := make(chan struct{})
+		go func() {
+			defer GinkgoRecover()
+
+			for i := 0; i < N; i++ {
+				_, _, err := ln.ReceiveTimeout(5 * time.Second)
+				Expect(err).NotTo(HaveOccurred())
+			}
+			close(done)
+		}()
+
+		for i := 0; i < N; i++ {
+			err := ln.Listen("test_channel")
+			Expect(err).NotTo(HaveOccurred())
+		}
+
+		select {
+		case <-done:
+			wg.Wait()
+		case <-time.After(30 * time.Second):
 			Fail("timeout")
 		}
 	})

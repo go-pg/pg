@@ -76,6 +76,7 @@ func (ln *Listener) _conn() (*pool.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+	cn.EnableConcurrentWrites()
 
 	if cn.InitedAt.IsZero() {
 		err := ln.db.initConn(cn)
@@ -158,13 +159,14 @@ func (ln *Listener) Listen(channels ...string) error {
 }
 
 func (ln *Listener) listen(cn *pool.Conn, channels ...string) error {
+	buf := cn.PrepareWriteBuffer()
 	for _, channel := range channels {
-		err := writeQueryMsg(cn.Writer, ln.db, "LISTEN ?", pgChan(channel))
+		err := writeQueryMsg(buf, ln.db, "LISTEN ?", pgChan(channel))
 		if err != nil {
 			return err
 		}
 	}
-	return cn.FlushWriter()
+	return cn.FlushWriteBuffer(buf)
 }
 
 // Receive indefinitely waits for a notification. This is low-level API
