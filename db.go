@@ -312,33 +312,41 @@ func (db *DB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (o
 }
 
 func (db *DB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
-	if err := writeQueryMsg(cn.Writer, db, query, params...); err != nil {
+	buf := cn.PrepareWriteBuffer()
+	err := writeQueryMsg(buf, db, query, params...)
+	if err != nil {
+		return nil, err
+	}
+	err = cn.FlushWriteBuffer(buf)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := cn.FlushWriter(); err != nil {
-		return nil, err
-	}
-
-	if err := readCopyInResponse(cn); err != nil {
+	err = readCopyInResponse(cn)
+	if err != nil {
 		return nil, err
 	}
 
 	for {
-		if err := writeCopyData(cn.Writer, r); err != nil {
+		buf = cn.PrepareWriteBuffer()
+		err = writeCopyData(buf, r)
+		if err != nil {
 			if err == io.EOF {
 				break
 			}
 			return nil, err
 		}
 
-		if err := cn.FlushWriter(); err != nil {
+		err = cn.FlushWriteBuffer(buf)
+		if err != nil {
 			return nil, err
 		}
 	}
 
-	writeCopyDone(cn.Writer)
-	if err := cn.FlushWriter(); err != nil {
+	buf = cn.PrepareWriteBuffer()
+	writeCopyDone(buf)
+	err = cn.FlushWriteBuffer(buf)
+	if err != nil {
 		return nil, err
 	}
 
@@ -363,11 +371,14 @@ func (db *DB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (orm
 }
 
 func (db *DB) copyTo(cn *pool.Conn, w io.Writer, query interface{}, params ...interface{}) (orm.Result, error) {
-	if err := writeQueryMsg(cn.Writer, db, query, params...); err != nil {
+	buf := cn.PrepareWriteBuffer()
+	err := writeQueryMsg(buf, db, query, params...)
+	if err != nil {
 		return nil, err
 	}
 
-	if err := cn.FlushWriter(); err != nil {
+	err = cn.FlushWriteBuffer(buf)
+	if err != nil {
 		return nil, err
 	}
 
@@ -428,8 +439,10 @@ func (db *DB) cancelRequest(processId, secretKey int32) error {
 		return err
 	}
 
-	writeCancelRequestMsg(cn.Writer, processId, secretKey)
-	if err = cn.FlushWriter(); err != nil {
+	buf := cn.PrepareWriteBuffer()
+	writeCancelRequestMsg(buf, processId, secretKey)
+	err = cn.FlushWriteBuffer(buf)
+	if err != nil {
 		return err
 	}
 	cn.Close()
@@ -440,11 +453,13 @@ func (db *DB) cancelRequest(processId, secretKey int32) error {
 func (db *DB) simpleQuery(
 	cn *pool.Conn, query interface{}, params ...interface{},
 ) (orm.Result, error) {
-	if err := writeQueryMsg(cn.Writer, db, query, params...); err != nil {
+	buf := cn.PrepareWriteBuffer()
+	err := writeQueryMsg(buf, db, query, params...)
+	if err != nil {
 		return nil, err
 	}
-
-	if err := cn.FlushWriter(); err != nil {
+	err = cn.FlushWriteBuffer(buf)
+	if err != nil {
 		return nil, err
 	}
 
@@ -459,11 +474,13 @@ func (db *DB) simpleQuery(
 func (db *DB) simpleQueryData(
 	cn *pool.Conn, model, query interface{}, params ...interface{},
 ) (orm.Result, error) {
-	if err := writeQueryMsg(cn.Writer, db, query, params...); err != nil {
+	buf := cn.PrepareWriteBuffer()
+	err := writeQueryMsg(buf, db, query, params...)
+	if err != nil {
 		return nil, err
 	}
-
-	if err := cn.FlushWriter(); err != nil {
+	err = cn.FlushWriteBuffer(buf)
+	if err != nil {
 		return nil, err
 	}
 

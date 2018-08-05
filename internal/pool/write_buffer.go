@@ -12,9 +12,11 @@ type WriteBuffer struct {
 }
 
 func NewWriteBuffer() *WriteBuffer {
-	return &WriteBuffer{
-		Bytes: make([]byte, 0, 4096),
-	}
+	return new(WriteBuffer)
+}
+
+func (buf *WriteBuffer) Reset() {
+	buf.Bytes = buf.Bytes[:0]
 }
 
 func (buf *WriteBuffer) StartMessage(c byte) {
@@ -77,10 +79,6 @@ func (buf *WriteBuffer) WriteBytes(b []byte) {
 func (buf *WriteBuffer) WriteByte(c byte) error {
 	buf.Bytes = append(buf.Bytes, c)
 	return nil
-}
-
-func (buf *WriteBuffer) Reset() {
-	buf.Bytes = buf.Bytes[:0]
 }
 
 func (buf *WriteBuffer) ReadFrom(r io.Reader) (int64, error) {
