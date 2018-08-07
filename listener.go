@@ -103,7 +103,7 @@ func (ln *Listener) releaseConn(cn *pool.Conn, err error, allowTimeout bool) {
 	ln.mu.Lock()
 	if ln.cn == cn {
 		if isBadConn(err, allowTimeout) {
-			ln._reconnect(errPingTimeout)
+			ln._reconnect(err)
 		}
 	}
 	ln.mu.Unlock()
@@ -258,7 +258,10 @@ func (ln *Listener) initChannel() {
 			case <-timer.C:
 				if hasPing {
 					hasPing = false
-					_ = ln.ping()
+					err := ln.ping()
+					if err != nil {
+						internal.Logf("pg.Listener: ping failed: %s", err)
+					}
 				} else {
 					ln.mu.Lock()
 					ln._reconnect(errPingTimeout)
