@@ -171,6 +171,18 @@ var _ = Describe("DB", func() {
 			Expect(err).To(Equal(pg.ErrNoRows))
 		})
 	})
+
+	Describe("Prepare", func() {
+		It("returns an error when query can't be prepared", func() {
+			for i := 0; i < 3; i++ {
+				_, err := db.Prepare("totally invalid sql")
+				Expect(err).To(MatchError(`ERROR #42601 syntax error at or near "totally" (addr="127.0.0.1:5432")`))
+
+				_, err = db.Exec("SELECT 1")
+				Expect(err).NotTo(HaveOccurred())
+			}
+		})
+	})
 })
 
 var _ = Describe("Time", func() {
