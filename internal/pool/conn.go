@@ -14,11 +14,11 @@ var noDeadline = time.Time{}
 type Conn struct {
 	netConn net.Conn
 
-	Reader  *BufioReader
+	Reader  *ElasticBufReader
 	Columns [][]byte
 
-	wb               *WriteBuffer
-	concurrentWrites bool
+	wb                  *WriteBuffer
+	concurrentReadWrite bool
 
 	InitedAt time.Time
 	usedAt   atomic.Value
@@ -31,7 +31,7 @@ type Conn struct {
 
 func NewConn(netConn net.Conn) *Conn {
 	cn := &Conn{
-		Reader: NewBufioReader(netConn),
+		Reader: NewElasticBufReader(netConn),
 		wb:     NewWriteBuffer(),
 	}
 	cn.SetNetConn(netConn)
@@ -80,13 +80,13 @@ func (cn *Conn) SetTimeout(rt, wt time.Duration) {
 	}
 }
 
-func (cn *Conn) EnableConcurrentWrites() {
-	cn.concurrentWrites = true
+func (cn *Conn) EnableConcurrentReadWrite() {
+	cn.concurrentReadWrite = true
 	cn.wb.Bytes = make([]byte, defaultBufSize)
 }
 
 func (cn *Conn) PrepareWriteBuffer() *WriteBuffer {
-	if !cn.concurrentWrites {
+	if !cn.concurrentReadWrite {
 		cn.wb.Bytes = cn.Reader.Buffer()
 	}
 	cn.wb.Reset()
@@ -95,8 +95,8 @@ func (cn *Conn) PrepareWriteBuffer() *WriteBuffer {
 
 func (cn *Conn) FlushWriteBuffer(buf *WriteBuffer) error {
 	_, err := cn.netConn.Write(buf.Bytes)
-	if !cn.concurrentWrites {
-		cn.Reader.ResetBuffer(cn.wb.Bytes[:cap(cn.wb.Bytes)])
+	if !cn.concurrentReadWrite {
+		cn.Reader.ResetBuffer(cn.wb.Buffer())
 	}
 	return err
 }

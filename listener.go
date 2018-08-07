@@ -76,7 +76,7 @@ func (ln *Listener) _conn() (*pool.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	cn.EnableConcurrentWrites()
+	cn.EnableConcurrentReadWrite()
 
 	if cn.InitedAt.IsZero() {
 		err := ln.db.initConn(cn)

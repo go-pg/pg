@@ -15,6 +15,10 @@ func NewWriteBuffer() *WriteBuffer {
 	return new(WriteBuffer)
 }
 
+func (buf *WriteBuffer) Buffer() []byte {
+	return buf.Bytes[:cap(buf.Bytes)]
+}
+
 func (buf *WriteBuffer) Reset() {
 	buf.Bytes = buf.Bytes[:0]
 }
