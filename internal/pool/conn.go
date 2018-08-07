@@ -2,11 +2,12 @@ package pool
 
 import (
 	"encoding/hex"
-	"fmt"
 	"net"
 	"strconv"
 	"sync/atomic"
 	"time"
+
+	"github.com/go-pg/pg/internal"
 )
 
 var noDeadline = time.Time{}
@@ -87,6 +88,9 @@ func (cn *Conn) EnableConcurrentReadWrite() {
 
 func (cn *Conn) PrepareWriteBuffer() *WriteBuffer {
 	if !cn.concurrentReadWrite {
+		if buf := cn.Reader.Bytes(); len(buf) > 0 {
+			internal.Logf("connection has unread data:\n%s", hex.Dump(buf))
+		}
 		cn.wb.Bytes = cn.Reader.Buffer()
 	}
 	cn.wb.Reset()
@@ -103,12 +107,4 @@ func (cn *Conn) FlushWriteBuffer(buf *WriteBuffer) error {
 
 func (cn *Conn) Close() error {
 	return cn.netConn.Close()
-}
-
-func (cn *Conn) CheckHealth() error {
-	if buf := cn.Reader.Bytes(); len(buf) > 0 {
-		err := fmt.Errorf("connection has unread data:\n%s", hex.Dump(buf))
-		return err
-	}
-	return nil
 }

@@ -1,6 +1,7 @@
 package pool
 
 import (
+	"encoding/hex"
 	"errors"
 	"net"
 	"sync"
@@ -256,8 +257,8 @@ func (p *ConnPool) freeTurn() {
 }
 
 func (p *ConnPool) Put(cn *Conn) {
-	if err := cn.CheckHealth(); err != nil {
-		internal.Logf(err.Error())
+	if buf := cn.Reader.Bytes(); len(buf) > 0 {
+		internal.Logf("connection has unread data:\n%s", hex.Dump(buf))
 		p.Remove(cn)
 		return
 	}

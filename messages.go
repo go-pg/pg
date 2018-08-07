@@ -299,6 +299,7 @@ func writeParseDescribeSyncMsg(buf *pool.WriteBuffer, name, q string) {
 
 func readParseDescribeSync(cn *pool.Conn) ([][]byte, error) {
 	var columns [][]byte
+	var firstErr error
 	for {
 		c, msgLen, err := readMessageType(cn)
 		if err != nil {
@@ -327,13 +328,21 @@ func readParseDescribeSync(cn *pool.Conn) ([][]byte, error) {
 			}
 		case readyForQueryMsg:
 			_, err := cn.Reader.ReadN(msgLen)
+			if err != nil {
+				return nil, err
+			}
+			if firstErr != nil {
+				return nil, firstErr
+			}
 			return columns, err
 		case errorResponseMsg:
 			e, err := readError(cn)
 			if err != nil {
 				return nil, err
 			}
-			return nil, e
+			if firstErr == nil {
+				firstErr = e
+			}
 		case noticeResponseMsg:
 			if err := logNotice(cn, msgLen); err != nil {
 				return nil, err
