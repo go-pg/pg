@@ -245,7 +245,7 @@ func (ln *Listener) initChannel() {
 		timer := time.NewTimer(timeout)
 		timer.Stop()
 
-		var healthy bool
+		healthy := true
 		var pingErr error
 		for {
 			timer.Reset(timeout)
@@ -256,9 +256,9 @@ func (ln *Listener) initChannel() {
 					<-timer.C
 				}
 			case <-timer.C:
+				pingErr = ln.ping()
 				if healthy {
 					healthy = false
-					pingErr = ln.ping()
 				} else {
 					ln.mu.Lock()
 					ln._reconnect(pingErr)
