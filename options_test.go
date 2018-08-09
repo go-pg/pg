@@ -51,7 +51,7 @@ func TestParseURL(t *testing.T) {
 			"pupkin",
 			"postgres",
 			true,
-			errors.New("pg: sslmode 'require' is not supported"),
+			nil,
 		},
 		{
 			"postgres://vasya:pupkin@somewhere.at.amazonaws.com:5432/postgres?sslmode=verify-ca",

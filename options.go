@@ -174,9 +174,7 @@ func ParseURL(sURL string) (*Options, error) {
 
 	if sslMode, ok := query["sslmode"]; ok && len(sslMode) > 0 {
 		switch sslMode[0] {
-		case "allow":
-			fallthrough
-		case "prefer":
+		case "allow", "prefer", "require":
 			options.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 		case "disable":
 			options.TLSConfig = nil
