@@ -99,4 +99,17 @@ var _ = Describe("Update", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`WITH "wrapper" AS (SELECT "update_test"."id", "update_test"."value" FROM "update_tests" AS "update_test") UPDATE "update_tests" AS "update_test" SET "value" = NULL FROM "wrapper" WHERE (update_test.id = wrapper.id)`))
 	})
+
+	It("supports notnull and default", func() {
+		type Model struct {
+			Id   int
+			Bool bool `sql:",notnull,default:_"`
+		}
+
+		q := NewQuery(nil, &Model{}).WherePK()
+
+		b, err := updateQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`UPDATE "models" AS "model" SET "bool" = FALSE WHERE "model"."id" = NULL`))
+	})
 })
