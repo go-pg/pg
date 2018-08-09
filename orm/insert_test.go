@@ -186,4 +186,17 @@ var _ = Describe("Insert", func() {
 		_, err := (&insertQuery{q: q}).AppendQuery(nil)
 		Expect(err).To(MatchError("pg: can't bulk-insert empty slice []orm.InsertTest"))
 	})
+
+	It("supports notnull and default", func() {
+		type Model struct {
+			Id   int
+			Bool bool `sql:",notnull,default:_"`
+		}
+
+		q := NewQuery(nil, &Model{}) //.WherePK()
+
+		b, err := (&insertQuery{q: q}).AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "models" ("id", "bool") VALUES (DEFAULT, DEFAULT) RETURNING "id", "bool"`))
+	})
 })
