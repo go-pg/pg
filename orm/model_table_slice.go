@@ -56,7 +56,6 @@ func (m *sliceTableModel) Init() error {
 func (m *sliceTableModel) NewModel() ColumnScanner {
 	m.strct = m.nextElem()
 	m.structInited = false
-	m.structTableModel.NewModel()
 	return m
 }
 

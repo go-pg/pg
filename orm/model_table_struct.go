@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -14,8 +15,9 @@ type structTableModel struct {
 	root  reflect.Value
 	index []int
 
-	strct        reflect.Value
-	structInited bool
+	strct         reflect.Value
+	structInited  bool
+	structInitErr error
 }
 
 var _ tableModel = (*structTableModel)(nil)
@@ -95,15 +97,20 @@ func (m *structTableModel) Mount(host reflect.Value) {
 	m.structInited = false
 }
 
-func (m *structTableModel) initStruct() {
+func (m *structTableModel) initStruct() error {
 	if m.structInited {
-		return
+		return m.structInitErr
 	}
 	m.structInited = true
 
-	if m.strct.Kind() == reflect.Interface {
+	switch m.strct.Kind() {
+	case reflect.Invalid:
+		m.structInitErr = errors.New("pg: Model(nil)")
+		return m.structInitErr
+	case reflect.Interface:
 		m.strct = m.strct.Elem()
 	}
+
 	if m.strct.Kind() == reflect.Ptr {
 		if m.strct.IsNil() {
 			m.strct.Set(reflect.New(m.strct.Type().Elem()))
@@ -114,6 +121,8 @@ func (m *structTableModel) initStruct() {
 	}
 
 	m.mountJoins()
+
+	return nil
 }
 
 func (m *structTableModel) mountJoins() {
@@ -131,7 +140,6 @@ func (structTableModel) Init() error {
 }
 
 func (m *structTableModel) NewModel() ColumnScanner {
-	m.initStruct()
 	return m
 }
 
@@ -217,7 +225,11 @@ func (m *structTableModel) scanColumn(
 		m.strct.IsNil() {
 		return true, nil
 	}
-	m.initStruct()
+
+	err := m.initStruct()
+	if err != nil {
+		return true, err
+	}
 
 	joinName, fieldName := splitColumn(colName)
 	if joinName != "" {
