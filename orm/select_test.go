@@ -63,6 +63,18 @@ var _ = Describe("Select", func() {
 		Expect(string(b)).To(Equal(`SELECT "has_one"."id" AS "has_one__id" FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
 	})
 
+	It("adds JoinOn", func() {
+		q := NewQuery(nil, &SelectModel{}).
+			Relation("HasOne", func(q *Query) (*Query, error) {
+				q = q.JoinOn("1 = 2")
+				return q, nil
+			})
+
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id", "has_one"."id" AS "has_one__id" FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id" AND (1 = 2)`))
+	})
+
 	It("omits columns in join query", func() {
 		q := NewQuery(nil, &SelectModel{}).Relation("HasOne._")
 

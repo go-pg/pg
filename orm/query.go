@@ -23,6 +23,10 @@ type joinQuery struct {
 	on   []*condAppender
 }
 
+func (q *joinQuery) AppendOn(app *condAppender) {
+	q.on = append(q.on, app)
+}
+
 type Query struct {
 	db        DB
 	stickyErr error
@@ -30,22 +34,24 @@ type Query struct {
 	model       tableModel
 	ignoreModel bool
 
-	with        []withQuery
-	tables      []FormatAppender
-	columns     []FormatAppender
-	set         []FormatAppender
-	modelValues map[string]*queryParamsAppender
-	where       []sepFormatAppender
-	updWhere    []sepFormatAppender
-	joins       []*joinQuery
-	group       []FormatAppender
-	having      []*queryParamsAppender
-	order       []FormatAppender
-	onConflict  *queryParamsAppender
-	returning   []*queryParamsAppender
-	limit       int
-	offset      int
-	selFor      *queryParamsAppender
+	with         []withQuery
+	tables       []FormatAppender
+	columns      []FormatAppender
+	set          []FormatAppender
+	modelValues  map[string]*queryParamsAppender
+	where        []sepFormatAppender
+	updWhere     []sepFormatAppender
+	joins        []*joinQuery
+	joinAppendOn func(app *condAppender)
+	joinOn       []*condAppender
+	group        []FormatAppender
+	having       []*queryParamsAppender
+	order        []FormatAppender
+	onConflict   *queryParamsAppender
+	returning    []*queryParamsAppender
+	limit        int
+	offset       int
+	selFor       *queryParamsAppender
 }
 
 var _ queryAppender = (*Query)(nil)
@@ -281,8 +287,10 @@ func (q *Query) Relation(name string, apply ...func(*Query) (*Query, error)) *Qu
 
 	switch join.Rel.Type {
 	case HasOneRelation, BelongsToRelation:
+		q.joinAppendOn = join.AppendOn
 		return q.Apply(fn)
 	default:
+		q.joinAppendOn = nil
 		return q
 	}
 }
@@ -422,16 +430,21 @@ func (q *Query) WherePK() *Query {
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
-	q.joins = append(q.joins, &joinQuery{
+	j := &joinQuery{
 		join: &queryParamsAppender{join, params},
-	})
+	}
+	q.joins = append(q.joins, j)
+	q.joinAppendOn = j.AppendOn
 	return q
 }
 
 // JoinOn appends join condition to the last join.
 func (q *Query) JoinOn(condition string, params ...interface{}) *Query {
-	j := q.joins[len(q.joins)-1]
-	j.on = append(j.on, &condAppender{
+	if q.joinAppendOn == nil {
+		q.err(errors.New("pg: no joins to apply JoinOn"))
+		return q
+	}
+	q.joinAppendOn(&condAppender{
 		sep:    " AND ",
 		cond:   condition,
 		params: params,
@@ -440,8 +453,11 @@ func (q *Query) JoinOn(condition string, params ...interface{}) *Query {
 }
 
 func (q *Query) JoinOnOr(condition string, params ...interface{}) *Query {
-	j := q.joins[len(q.joins)-1]
-	j.on = append(j.on, &condAppender{
+	if q.joinAppendOn == nil {
+		q.err(errors.New("pg: no joins to apply JoinOn"))
+		return q
+	}
+	q.joinAppendOn(&condAppender{
 		sep:    " OR ",
 		cond:   condition,
 		params: params,
