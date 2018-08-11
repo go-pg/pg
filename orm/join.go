@@ -8,13 +8,18 @@ import (
 )
 
 type join struct {
-	Parent     *join
-	BaseModel  tableModel
-	JoinModel  tableModel
-	Rel        *Relation
-	ApplyQuery func(*Query) (*Query, error)
+	Parent    *join
+	BaseModel tableModel
+	JoinModel tableModel
+	Rel       *Relation
 
-	Columns []string
+	ApplyQuery func(*Query) (*Query, error)
+	Columns    []string
+	on         []*condAppender
+}
+
+func (j *join) AppendOn(app *condAppender) {
+	j.on = append(j.on, app)
 }
 
 func (j *join) Select(db DB) error {
@@ -73,11 +78,9 @@ func (j *join) manyQuery(db DB) (*Query, error) {
 	q = q.Where(internal.BytesToString(where))
 
 	if j.Rel.Polymorphic != nil {
-		q = q.Where(
-			`? IN (?, ?)`,
+		q = q.Where(`? IN (?, ?)`,
 			j.Rel.Polymorphic.Column,
-			baseTable.ModelName, baseTable.TypeName,
-		)
+			baseTable.ModelName, baseTable.TypeName)
 	}
 
 	return q, nil
@@ -144,11 +147,9 @@ func (j *join) m2mQuery(db DB) (*Query, error) {
 			break
 		}
 		pk := joinTable.PKs[i]
-		q = q.Where(
-			"?.? = ?.?",
+		q = q.Where("?.? = ?.?",
 			joinTable.Alias, pk.Column,
-			j.Rel.M2MTableAlias, types.F(col),
-		)
+			j.Rel.M2MTableAlias, types.F(col))
 	}
 
 	return q, nil
@@ -231,17 +232,17 @@ func (j *join) appendHasOneColumns(b []byte) []byte {
 	return b
 }
 
-func (j *join) appendHasOneJoin(db DB, b []byte) []byte {
+func (j *join) appendHasOneJoin(q *Query, b []byte) []byte {
 	b = append(b, "LEFT JOIN "...)
-	if db != nil {
-		b = db.FormatQuery(b, string(j.JoinModel.Table().Name))
-	} else {
-		b = append(b, j.JoinModel.Table().Name...)
-	}
+	b = q.FormatQuery(b, string(j.JoinModel.Table().Name))
 	b = append(b, " AS "...)
 	b = j.appendAlias(b)
 
 	b = append(b, " ON "...)
+
+	if len(j.Rel.FKs) > 1 {
+		b = append(b, '(')
+	}
 	if j.Rel.Type == HasOneRelation {
 		joinTable := j.Rel.JoinTable
 		for i, fk := range j.Rel.FKs {
@@ -270,6 +271,14 @@ func (j *join) appendHasOneJoin(db DB, b []byte) []byte {
 			b = append(b, '.')
 			b = append(b, baseTable.PKs[i].Column...)
 		}
+	}
+	if len(j.Rel.FKs) > 1 {
+		b = append(b, ')')
+	}
+
+	for _, on := range j.on {
+		b = on.AppendSep(b)
+		b = on.AppendFormat(b, q)
 	}
 
 	return b
