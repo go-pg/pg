@@ -61,20 +61,26 @@ type Options struct {
 	// Maximum number of socket connections.
 	// Default is 10 connections per every CPU as reported by runtime.NumCPU.
 	PoolSize int
+	// Minimum number of idle connections which is useful when establishing
+	// new connection is slow.
+	MinIdleConns int
+	// Connection age at which client retires (closes) the connection.
+	// It is useful with proxies like PgBouncer and HAProxy.
+	// Default is to not close aged connections.
+	MaxConnAge time.Duration
 	// Time for which client waits for free connection if all
 	// connections are busy before returning an error.
 	// Default is 30 seconds if ReadTimeOut is not defined, otherwise,
 	// ReadTimeout + 1 second.
 	PoolTimeout time.Duration
-	// Time after which client closes idle connections.
-	// Default is to not close idle connections.
+	// Amount of time after which client closes idle connections.
+	// Should be less than server's timeout.
+	// Default is 5 minutes. -1 disables idle timeout check.
 	IdleTimeout time.Duration
-	// Connection age at which client retires (closes) the connection.
-	// It is useful with proxies like PgBouncer and HAProxy.
-	// Default is to not close aged connections.
-	MaxAge time.Duration
-	// Frequency of idle checks.
-	// Default is 1 minute.
+	// Frequency of idle checks made by idle connections reaper.
+	// Default is 1 minute. -1 disables idle connections reaper,
+	// but idle connections are still discarded by the client
+	// if IdleTimeout is set.
 	IdleCheckFrequency time.Duration
 }
 
@@ -108,6 +114,9 @@ func (opt *Options) init() {
 		opt.DialTimeout = 5 * time.Second
 	}
 
+	if opt.IdleTimeout == 0 {
+		opt.IdleTimeout = 5 * time.Minute
+	}
 	if opt.IdleCheckFrequency == 0 {
 		opt.IdleCheckFrequency = time.Minute
 	}

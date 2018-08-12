@@ -1,6 +1,13 @@
 # Changelog
 
+## Unreleased
+
+- Added Options.MinIdleConns.
+- Options.MaxAge renamed to Options.MaxConnAge.
+- PoolStats.FreeConns is renamed to PoolStats.IdleConns.
+
 ## v6.15
+
 - Dialer.KeepAlive is set to 5 minutes by default.
 
 ## v6.14

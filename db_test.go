@@ -38,9 +38,9 @@ func pgOptions() *pg.Options {
 		WriteTimeout: 10 * time.Second,
 
 		PoolSize:           10,
+		MaxConnAge:         10 * time.Second,
 		PoolTimeout:        30 * time.Second,
 		IdleTimeout:        10 * time.Second,
-		MaxAge:             10 * time.Second,
 		IdleCheckFrequency: 100 * time.Millisecond,
 	}
 }
@@ -442,7 +442,7 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 		Expect(st.Misses).To(Equal(uint32(1)))
 		Expect(st.Timeouts).To(Equal(uint32(0)))
 		Expect(st.TotalConns).To(Equal(uint32(1)))
-		Expect(st.FreeConns).To(Equal(uint32(1)))
+		Expect(st.IdleConns).To(Equal(uint32(1)))
 
 		var count int
 		_, err = db.QueryOne(pg.Scan(&count), "SELECT count(*) FROM copy_dst")
@@ -461,7 +461,7 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 		Expect(st.Misses).To(Equal(uint32(1)))
 		Expect(st.Timeouts).To(Equal(uint32(0)))
 		Expect(st.TotalConns).To(Equal(uint32(1)))
-		Expect(st.FreeConns).To(Equal(uint32(1)))
+		Expect(st.IdleConns).To(Equal(uint32(1)))
 
 		var count int
 		_, err = db.QueryOne(pg.Scan(&count), "SELECT count(*) FROM copy_dst")

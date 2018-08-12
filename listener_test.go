@@ -40,7 +40,7 @@ var _ = Context("Listener", func() {
 		Expect(st.Misses).To(Equal(uint32(0)))
 		Expect(st.Timeouts).To(Equal(uint32(0)))
 		Expect(st.TotalConns).To(Equal(uint32(1)))
-		Expect(st.FreeConns).To(Equal(uint32(0)))
+		Expect(st.IdleConns).To(Equal(uint32(0)))
 	})
 
 	It("listens for notifications", func() {

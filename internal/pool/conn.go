@@ -22,6 +22,7 @@ type Conn struct {
 	concurrentReadWrite bool
 
 	InitedAt time.Time
+	pooled   bool
 	usedAt   atomic.Value
 
 	ProcessId int32
