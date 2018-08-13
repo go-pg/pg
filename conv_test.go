@@ -34,13 +34,6 @@ func (m JSONMap) Value() (driver.Value, error) {
 	return string(b), nil
 }
 
-type (
-	StringSlice  []string
-	IntSlice     []int
-	Int64Slice   []int64
-	Float64Slice []float64
-)
-
 type Struct struct {
 	Foo string
 }
@@ -264,7 +257,6 @@ func conversionTests() []conversionTest {
 		{src: []int(nil), dst: new([]int), pgtype: "jsonb", wantnil: true},
 		{src: []int{}, dst: new([]int), pgtype: "jsonb", wantzero: true},
 		{src: []int{1, 2, 3}, dst: new([]int), pgtype: "jsonb"},
-		{src: IntSlice{1, 2, 3}, dst: new(IntSlice), pgtype: "jsonb"},
 
 		{src: nil, dst: pg.Array([]int(nil)), pgtype: "int[]", wanterr: "pg: Scan(nonsettable []int)"},
 		{src: pg.Array([]int(nil)), dst: pg.Array(new([]int)), pgtype: "int[]", wantnil: true},

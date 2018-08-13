@@ -6,7 +6,6 @@ import (
 	"net"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -209,27 +208,4 @@ func performAsync(n int, cbs ...func(int)) *sync.WaitGroup {
 func perform(n int, cbs ...func(int)) {
 	wg := performAsync(n, cbs...)
 	wg.Wait()
-}
-
-func eventually(fn func() error, timeout time.Duration) (err error) {
-	done := make(chan struct{})
-	var exit int32
-	go func() {
-		for atomic.LoadInt32(&exit) == 0 {
-			err = fn()
-			if err == nil {
-				close(done)
-				return
-			}
-			time.Sleep(timeout / 100)
-		}
-	}()
-
-	select {
-	case <-done:
-		return nil
-	case <-time.After(timeout):
-		atomic.StoreInt32(&exit, 1)
-		return err
-	}
 }

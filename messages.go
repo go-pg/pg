@@ -1,7 +1,6 @@
 package pg
 
 import (
-	"bufio"
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/binary"
@@ -1067,20 +1066,6 @@ func readString(cn *pool.Conn) (string, error) {
 		return "", err
 	}
 	return string(b[:len(b)-1]), nil
-}
-
-func readBytes(cn *pool.Conn, b []byte) ([]byte, error) {
-	for {
-		line, err := cn.Reader.ReadSlice(0)
-		if err != nil && err != bufio.ErrBufferFull {
-			return nil, err
-		}
-		b = append(b, line...)
-		if err == nil {
-			break
-		}
-	}
-	return b[:len(b)-1], nil
 }
 
 func readError(cn *pool.Conn) (error, error) {

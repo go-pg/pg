@@ -43,7 +43,6 @@ type Query struct {
 	updWhere     []sepFormatAppender
 	joins        []*joinQuery
 	joinAppendOn func(app *condAppender)
-	joinOn       []*condAppender
 	group        []FormatAppender
 	having       []*queryParamsAppender
 	order        []FormatAppender
