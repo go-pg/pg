@@ -23,6 +23,10 @@ func (buf *WriteBuffer) Reset() {
 	buf.Bytes = buf.Bytes[:0]
 }
 
+func (buf *WriteBuffer) ResetBuffer(b []byte) {
+	buf.Bytes = b[:0]
+}
+
 func (buf *WriteBuffer) StartMessage(c byte) {
 	if c == 0 {
 		buf.msgStart = len(buf.Bytes)

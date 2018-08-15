@@ -122,8 +122,6 @@ func (db *DB) conn() (*pool.Conn, error) {
 		return nil, err
 	}
 
-	cn.SetTimeout(db.opt.ReadTimeout, db.opt.WriteTimeout)
-
 	if cn.InitedAt.IsZero() {
 		cn.InitedAt = time.Now()
 		err = db.initConn(cn)
@@ -138,12 +136,13 @@ func (db *DB) conn() (*pool.Conn, error) {
 
 func (db *DB) initConn(cn *pool.Conn) error {
 	if db.opt.TLSConfig != nil {
-		if err := enableSSL(cn, db.opt.TLSConfig); err != nil {
+		err := db.enableSSL(cn, db.opt.TLSConfig)
+		if err != nil {
 			return err
 		}
 	}
 
-	err := startup(cn, db.opt.User, db.opt.Password, db.opt.Database)
+	err := db.startup(cn, db.opt.User, db.opt.Password, db.opt.Database)
 	if err != nil {
 		return err
 	}
@@ -312,45 +311,50 @@ func (db *DB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (o
 }
 
 func (db *DB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
-	buf := cn.PrepareWriteBuffer()
-	err := writeQueryMsg(buf, db, query, params...)
-	if err != nil {
-		return nil, err
-	}
-	err = cn.FlushWriteBuffer(buf)
+	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		return writeQueryMsg(wb, db, query, params...)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	err = readCopyInResponse(cn)
+	err = cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+		return readCopyInResponse(rd)
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	for {
-		buf = cn.PrepareWriteBuffer()
-		err = writeCopyData(buf, r)
+		err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+			return writeCopyData(wb, r)
+		})
 		if err != nil {
 			if err == io.EOF {
 				break
 			}
 			return nil, err
 		}
-
-		err = cn.FlushWriteBuffer(buf)
-		if err != nil {
-			return nil, err
-		}
 	}
 
-	buf = cn.PrepareWriteBuffer()
-	writeCopyDone(buf)
-	err = cn.FlushWriteBuffer(buf)
+	err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		writeCopyDone(wb)
+		return nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	return readReadyForQuery(cn)
+	var res orm.Result
+	err = cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+		res, err = readReadyForQuery(rd)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 // CopyTo copies data from a table to writer.
@@ -371,22 +375,28 @@ func (db *DB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (orm
 }
 
 func (db *DB) copyTo(cn *pool.Conn, w io.Writer, query interface{}, params ...interface{}) (orm.Result, error) {
-	buf := cn.PrepareWriteBuffer()
-	err := writeQueryMsg(buf, db, query, params...)
+	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		return writeQueryMsg(wb, db, query, params...)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	err = cn.FlushWriteBuffer(buf)
+	var res orm.Result
+	err = cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+		err := readCopyOutResponse(rd)
+		if err != nil {
+			return err
+		}
+
+		res, err = readCopyData(rd, w)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	if err := readCopyOutResponse(cn); err != nil {
-		return nil, err
-	}
-
-	return readCopyData(cn, w)
+	return res, nil
 }
 
 // Model returns new query for the model.
@@ -439,31 +449,33 @@ func (db *DB) cancelRequest(processId, secretKey int32) error {
 		return err
 	}
 
-	buf := cn.PrepareWriteBuffer()
-	writeCancelRequestMsg(buf, processId, secretKey)
-	err = cn.FlushWriteBuffer(buf)
+	err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		writeCancelRequestMsg(wb, processId, secretKey)
+		return nil
+	})
 	if err != nil {
 		return err
 	}
-	cn.Close()
 
+	cn.Close()
 	return nil
 }
 
 func (db *DB) simpleQuery(
 	cn *pool.Conn, query interface{}, params ...interface{},
 ) (orm.Result, error) {
-	buf := cn.PrepareWriteBuffer()
-	err := writeQueryMsg(buf, db, query, params...)
-	if err != nil {
-		return nil, err
-	}
-	err = cn.FlushWriteBuffer(buf)
+	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		return writeQueryMsg(wb, db, query, params...)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := readSimpleQuery(cn)
+	var res orm.Result
+	err = cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+		res, err = readSimpleQuery(rd)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -474,17 +486,18 @@ func (db *DB) simpleQuery(
 func (db *DB) simpleQueryData(
 	cn *pool.Conn, model, query interface{}, params ...interface{},
 ) (orm.Result, error) {
-	buf := cn.PrepareWriteBuffer()
-	err := writeQueryMsg(buf, db, query, params...)
-	if err != nil {
-		return nil, err
-	}
-	err = cn.FlushWriteBuffer(buf)
+	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		return writeQueryMsg(wb, db, query, params...)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := readSimpleQueryData(cn, model)
+	var res orm.Result
+	err = cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+		res, err = readSimpleQueryData(rd, model)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}

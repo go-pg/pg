@@ -42,14 +42,13 @@ func (ln *Listener) init() {
 	ln.exit = make(chan struct{})
 }
 
-func (ln *Listener) conn(readTimeout time.Duration) (*pool.Conn, error) {
+func (ln *Listener) conn() (*pool.Conn, error) {
 	ln.mu.Lock()
 	cn, err := ln._conn()
 	ln.mu.Unlock()
 
 	switch err {
 	case nil:
-		cn.SetTimeout(readTimeout, ln.db.opt.WriteTimeout)
 		return cn, nil
 	case errListenerClosed:
 		return nil, err
@@ -75,7 +74,7 @@ func (ln *Listener) _conn() (*pool.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	cn.EnableConcurrentReadWrite()
+	cn.LockReaderBuffer()
 
 	if cn.InitedAt.IsZero() {
 		err := ln.db.initConn(cn)
@@ -142,7 +141,7 @@ func (ln *Listener) Close() error {
 
 // Listen starts listening for notifications on channels.
 func (ln *Listener) Listen(channels ...string) error {
-	cn, err := ln.conn(ln.db.opt.ReadTimeout)
+	cn, err := ln.conn()
 	if err != nil {
 		return err
 	}
@@ -158,14 +157,16 @@ func (ln *Listener) Listen(channels ...string) error {
 }
 
 func (ln *Listener) listen(cn *pool.Conn, channels ...string) error {
-	buf := cn.PrepareWriteBuffer()
-	for _, channel := range channels {
-		err := writeQueryMsg(buf, ln.db, "LISTEN ?", pgChan(channel))
-		if err != nil {
-			return err
+	err := cn.WithWriter(ln.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		for _, channel := range channels {
+			err := writeQueryMsg(wb, ln.db, "LISTEN ?", pgChan(channel))
+			if err != nil {
+				return err
+			}
 		}
-	}
-	return cn.FlushWriteBuffer(buf)
+		return nil
+	})
+	return err
 }
 
 // Receive indefinitely waits for a notification. This is low-level API
@@ -177,12 +178,15 @@ func (ln *Listener) Receive() (channel string, payload string, err error) {
 // ReceiveTimeout waits for a notification until timeout is reached.
 // This is low-level API and in most cases Channel should be used instead.
 func (ln *Listener) ReceiveTimeout(timeout time.Duration) (channel, payload string, err error) {
-	cn, err := ln.conn(timeout)
+	cn, err := ln.conn()
 	if err != nil {
 		return "", "", err
 	}
 
-	channel, payload, err = readNotification(cn)
+	err = cn.WithReader(timeout, func(rd *pool.Reader) error {
+		channel, payload, err = readNotification(rd)
+		return err
+	})
 	if err != nil {
 		ln.releaseConn(cn, err, timeout > 0)
 		return "", "", err

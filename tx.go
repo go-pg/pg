@@ -95,8 +95,6 @@ func (tx *Tx) conn() (*pool.Conn, error) {
 	if tx.cn == nil {
 		return nil, errTxDone
 	}
-
-	tx.cn.SetTimeout(tx.db.opt.ReadTimeout, tx.db.opt.WriteTimeout)
 	return tx.cn, nil
 }
 

@@ -36,7 +36,14 @@ func (db *DB) Prepare(q string) (*Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return prepare(db, cn, q)
+
+	stmt, err := prepare(db, cn, q)
+	if err != nil {
+		db.freeConn(cn, err)
+		return nil, err
+	}
+
+	return stmt, nil
 }
 
 func (stmt *Stmt) conn() (*pool.Conn, error) {
@@ -46,8 +53,6 @@ func (stmt *Stmt) conn() (*pool.Conn, error) {
 		}
 		return nil, errStmtClosed
 	}
-
-	stmt._cn.SetTimeout(stmt.db.opt.ReadTimeout, stmt.db.opt.WriteTimeout)
 	return stmt._cn, nil
 }
 
@@ -59,7 +64,7 @@ func (stmt *Stmt) exec(params ...interface{}) (orm.Result, error) {
 	if err != nil {
 		return nil, err
 	}
-	return extQuery(cn, stmt.name, params...)
+	return stmt.extQuery(cn, stmt.name, params...)
 }
 
 // Exec executes a prepared statement with the given parameters.
@@ -107,7 +112,7 @@ func (stmt *Stmt) query(model interface{}, params ...interface{}) (orm.Result, e
 		return nil, err
 	}
 
-	res, err := extQueryData(cn, stmt.name, model, stmt.columns, params...)
+	res, err := stmt.extQueryData(cn, stmt.name, model, stmt.columns, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +182,7 @@ func (stmt *Stmt) Close() error {
 		return errStmtClosed
 	}
 
-	err := closeStmt(stmt._cn, stmt.name)
+	err := stmt.closeStmt(stmt._cn, stmt.name)
 	if !stmt.inTx {
 		stmt.db.freeConn(stmt._cn, err)
 	}
@@ -187,17 +192,20 @@ func (stmt *Stmt) Close() error {
 
 func prepare(db *DB, cn *pool.Conn, q string) (*Stmt, error) {
 	name := cn.NextId()
-	buf := cn.PrepareWriteBuffer()
-	writeParseDescribeSyncMsg(buf, name, q)
-	err := cn.FlushWriteBuffer(buf)
+	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		writeParseDescribeSyncMsg(wb, name, q)
+		return nil
+	})
 	if err != nil {
-		db.freeConn(cn, err)
 		return nil, err
 	}
 
-	columns, err := readParseDescribeSync(cn)
+	var columns [][]byte
+	cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+		columns, err = readParseDescribeSync(rd)
+		return err
+	})
 	if err != nil {
-		db.freeConn(cn, err)
 		return nil, err
 	}
 
@@ -211,41 +219,60 @@ func prepare(db *DB, cn *pool.Conn, q string) (*Stmt, error) {
 	return stmt, nil
 }
 
-func extQuery(cn *pool.Conn, name string, params ...interface{}) (orm.Result, error) {
-	buf := cn.PrepareWriteBuffer()
-	err := writeBindExecuteMsg(buf, name, params...)
+func (stmt *Stmt) extQuery(cn *pool.Conn, name string, params ...interface{}) (orm.Result, error) {
+	err := cn.WithWriter(stmt.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		return writeBindExecuteMsg(wb, name, params...)
+	})
 	if err != nil {
 		return nil, err
 	}
-	err = cn.FlushWriteBuffer(buf)
+
+	var res orm.Result
+	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *pool.Reader) error {
+		res, err = readExtQuery(rd)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
-	return readExtQuery(cn)
+
+	return res, nil
 }
 
-func extQueryData(
+func (stmt *Stmt) extQueryData(
 	cn *pool.Conn, name string, model interface{}, columns [][]byte, params ...interface{},
 ) (orm.Result, error) {
-	buf := cn.PrepareWriteBuffer()
-	err := writeBindExecuteMsg(buf, name, params...)
+	err := cn.WithWriter(stmt.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		return writeBindExecuteMsg(wb, name, params...)
+	})
 	if err != nil {
 		return nil, err
 	}
-	err = cn.FlushWriteBuffer(buf)
+
+	var res orm.Result
+	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *pool.Reader) error {
+		res, err = readExtQueryData(rd, model, columns)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
-	return readExtQueryData(cn, model, columns)
+
+	return res, nil
 }
 
-func closeStmt(cn *pool.Conn, name string) error {
-	buf := cn.PrepareWriteBuffer()
-	writeCloseMsg(buf, name)
-	writeFlushMsg(buf)
-	err := cn.FlushWriteBuffer(buf)
+func (stmt *Stmt) closeStmt(cn *pool.Conn, name string) error {
+	err := cn.WithWriter(stmt.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		writeCloseMsg(wb, name)
+		writeFlushMsg(wb)
+		return nil
+	})
 	if err != nil {
 		return err
 	}
-	return readCloseCompleteMsg(cn)
+
+	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *pool.Reader) error {
+		return readCloseCompleteMsg(rd)
+	})
+	return err
 }
