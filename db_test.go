@@ -176,7 +176,7 @@ var _ = Describe("DB", func() {
 		It("returns an error when query can't be prepared", func() {
 			for i := 0; i < 3; i++ {
 				_, err := db.Prepare("totally invalid sql")
-				Expect(err).To(MatchError(`ERROR #42601 syntax error at or near "totally" (addr="127.0.0.1:5432")`))
+				Expect(err).To(MatchError(`ERROR #42601 syntax error at or near "totally"`))
 
 				_, err = db.Exec("SELECT 1")
 				Expect(err).NotTo(HaveOccurred())
@@ -453,7 +453,7 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 	It("copies corrupted data to a table", func() {
 		buf := bytes.NewBufferString("corrupted,data\nrow,two\r\nrow three")
 		res, err := db.CopyFrom(buf, "COPY copy_dst FROM STDIN WITH FORMAT csv")
-		Expect(err).To(MatchError(`ERROR #42601 syntax error at or near "FORMAT" (addr="127.0.0.1:5432")`))
+		Expect(err).To(MatchError(`ERROR #42601 syntax error at or near "FORMAT"`))
 		Expect(res).To(BeNil())
 
 		st := db.Pool().Stats()
@@ -1778,7 +1778,7 @@ var _ = Describe("ORM", func() {
 
 		var num int
 		_, err = db.Model(&Book{}).QueryOne(pg.Scan(&num), "SELECT 1 FROM ?TableName")
-		Expect(err).To(MatchError(`ERROR #42P01 relation "books" does not exist (addr="127.0.0.1:5432")`))
+		Expect(err).To(MatchError(`ERROR #42P01 relation "books" does not exist`))
 	})
 
 	It("does not create zero model for null relation", func() {

@@ -43,10 +43,8 @@ func (err PGError) IntegrityViolation() bool {
 }
 
 func (err PGError) Error() string {
-	return fmt.Sprintf(
-		"%s #%s %s (addr=%q)",
-		err.Field('S'), err.Field('C'), err.Field('M'), err.Field('a'),
-	)
+	return fmt.Sprintf("%s #%s %s",
+		err.Field('S'), err.Field('C'), err.Field('M'))
 }
 
 func AssertOneRow(l int) error {
