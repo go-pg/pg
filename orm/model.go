@@ -33,6 +33,8 @@ type Model interface {
 	HooklessModel
 
 	AfterQuery(DB) error
+
+	BeforeSelectQuery(DB, *Query) (*Query, error)
 	AfterSelect(DB) error
 
 	BeforeInsert(DB) error

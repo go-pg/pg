@@ -154,6 +154,13 @@ func (m *structTableModel) AfterQuery(db DB) error {
 	return callAfterQueryHook(m.strct.Addr(), db)
 }
 
+func (m *structTableModel) BeforeSelectQuery(db DB, q *Query) (*Query, error) {
+	if !m.table.HasFlag(BeforeSelectQueryHookFlag) {
+		return q, nil
+	}
+	return callBeforeSelectQueryHook(m.table.zeroStruct.Addr(), db, q)
+}
+
 func (m *structTableModel) AfterSelect(db DB) error {
 	if !m.table.HasFlag(AfterSelectHookFlag) {
 		return nil

@@ -1,6 +1,8 @@
 package pg_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -85,7 +87,7 @@ var _ = Describe("HookTest", func() {
 		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
-	It("calls AfterQuery for struct", func() {
+	It("calls AfterQuery for a struct", func() {
 		var hook HookTest
 		_, err := db.QueryOne(&hook, "SELECT 1 AS id")
 		Expect(err).NotTo(HaveOccurred())
@@ -93,7 +95,7 @@ var _ = Describe("HookTest", func() {
 		Expect(hook.afterSelect).To(Equal(0))
 	})
 
-	It("calls AfterQuery and AfterSelect for struct model", func() {
+	It("calls AfterQuery and AfterSelect for a struct model", func() {
 		var hook HookTest
 		err := db.Model(&hook).Select()
 		Expect(err).NotTo(HaveOccurred())
@@ -101,7 +103,7 @@ var _ = Describe("HookTest", func() {
 		Expect(hook.afterSelect).To(Equal(1))
 	})
 
-	It("calls AfterQuery for slice", func() {
+	It("calls AfterQuery for a slice", func() {
 		var hooks []HookTest
 		_, err := db.Query(&hooks, "SELECT 1 AS id")
 		Expect(err).NotTo(HaveOccurred())
@@ -110,7 +112,7 @@ var _ = Describe("HookTest", func() {
 		Expect(hooks[0].afterSelect).To(Equal(0))
 	})
 
-	It("calls AfterQuery and AfterSelect for slice model", func() {
+	It("calls AfterQuery and AfterSelect for a slice model", func() {
 		var hooks []HookTest
 		err := db.Model(&hooks).Select()
 		Expect(err).NotTo(HaveOccurred())
@@ -236,5 +238,48 @@ var _ = Describe("OnQueryProcessed", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(count).To(Equal(1))
 		})
+	})
+})
+
+type BeforeSelectQueryModel struct {
+	Id        int
+	DeletedAt time.Time
+}
+
+func (BeforeSelectQueryModel) BeforeSelectQuery(db orm.DB, q *orm.Query) (*orm.Query, error) {
+	q = q.Where("?TableAlias.deleted_at IS NULL")
+	return q, nil
+}
+
+var _ = Describe("BeforeSelectQueryModel", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+
+		err := db.CreateTable((*BeforeSelectQueryModel)(nil), &orm.CreateTableOptions{
+			Temp: true,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		models := []BeforeSelectQueryModel{
+			{Id: 1},
+			{Id: 2, DeletedAt: time.Now()},
+		}
+		_, err = db.Model(&models).Insert()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
+	It("applies BeforeSelectQuery hook", func() {
+		var models []BeforeSelectQueryModel
+		err := db.Model(&models).Select()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(models).To(Equal([]BeforeSelectQueryModel{
+			{Id: 1},
+		}))
 	})
 })

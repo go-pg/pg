@@ -16,6 +16,7 @@ import (
 
 const (
 	AfterQueryHookFlag = uint16(1) << iota
+	BeforeSelectQueryHookFlag
 	AfterSelectHookFlag
 	BeforeInsertHookFlag
 	AfterInsertHookFlag
@@ -63,7 +64,7 @@ type Table struct {
 func newTable(typ reflect.Type) *Table {
 	t := new(Table)
 	t.Type = typ
-	t.zeroStruct = reflect.Zero(t.Type)
+	t.zeroStruct = reflect.New(t.Type).Elem()
 	t.TypeName = internal.ToExported(t.Type.Name())
 	t.ModelName = internal.Underscore(t.Type.Name())
 	t.Name = types.Q(types.AppendField(nil, tableNameInflector(t.ModelName), 1))
@@ -72,6 +73,9 @@ func newTable(typ reflect.Type) *Table {
 	typ = reflect.PtrTo(t.Type)
 	if typ.Implements(afterQueryHookType) {
 		t.SetFlag(AfterQueryHookFlag)
+	}
+	if typ.Implements(beforeSelectQueryHookType) {
+		t.SetFlag(BeforeSelectQueryHookFlag)
 	}
 	if typ.Implements(afterSelectHookType) {
 		t.SetFlag(AfterSelectHookFlag)
