@@ -110,56 +110,25 @@ func (t *LoaderTest) TestQueryStrings(c *C) {
 	c.Assert(strings, DeepEquals, pg.Strings{"hello"})
 }
 
-type errLoader string
-
-var _ orm.Model = errLoader("")
-
-func (errLoader) Init() error {
-	return nil
+type errLoader struct {
+	orm.Discard
+	err error
 }
 
-func (m errLoader) NewModel() orm.ColumnScanner {
+var _ orm.Model = (*errLoader)(nil)
+
+func newErrLoader(err error) *errLoader {
+	return &errLoader{
+		err: err,
+	}
+}
+
+func (m *errLoader) NewModel() orm.ColumnScanner {
 	return m
 }
 
-func (errLoader) AddModel(_ orm.ColumnScanner) error {
-	return nil
-}
-
-func (errLoader) AfterQuery(_ orm.DB) error {
-	return nil
-}
-
-func (errLoader) AfterSelect(_ orm.DB) error {
-	return nil
-}
-
-func (errLoader) BeforeInsert(_ orm.DB) error {
-	return nil
-}
-
-func (errLoader) AfterInsert(_ orm.DB) error {
-	return nil
-}
-
-func (errLoader) BeforeUpdate(_ orm.DB) error {
-	return nil
-}
-
-func (errLoader) AfterUpdate(_ orm.DB) error {
-	return nil
-}
-
-func (errLoader) BeforeDelete(_ orm.DB) error {
-	return nil
-}
-
-func (errLoader) AfterDelete(_ orm.DB) error {
-	return nil
-}
-
-func (m errLoader) ScanColumn(int, string, []byte) error {
-	return errors.New(string(m))
+func (m *errLoader) ScanColumn(int, string, []byte) error {
+	return m.err
 }
 
 func (t *LoaderTest) TestLoaderError(c *C) {
@@ -167,8 +136,9 @@ func (t *LoaderTest) TestLoaderError(c *C) {
 	c.Assert(err, IsNil)
 	defer tx.Rollback()
 
-	loader := errLoader("my error")
+	loader := newErrLoader(errors.New("my error"))
 	_, err = tx.QueryOne(loader, "SELECT 1, 2")
+	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "my error")
 
 	// Verify that client is still functional.

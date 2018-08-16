@@ -617,6 +617,11 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
+	q, err = model.BeforeSelectQuery(q.db, q)
+	if err != nil {
+		return err
+	}
+
 	res, err := q.query(model, selectQuery{q: q})
 	if err != nil {
 		return err
