@@ -5,6 +5,8 @@
 - Added Options.MinIdleConns.
 - Options.MaxAge renamed to Options.MaxConnAge.
 - PoolStats.FreeConns is renamed to PoolStats.IdleConns.
+- New hook BeforeSelectQuery.
+- `,override` is renamed to `,inherit`.
 
 ## v6.15
 
