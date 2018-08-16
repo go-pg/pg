@@ -821,10 +821,10 @@ func (b *Book) BeforeInsert(db orm.DB) error {
 }
 
 // BookWithCommentCount is like Book model, but has additional CommentCount
-// field that is used to select data into it. The use of `pg:",override"` tag
-// is essential here and it overrides internal model properties such as table name.
+// field that is used to select data into it. The use of `pg:",inherit"` tag
+// is essential here so it inherits internal model properties such as table name.
 type BookWithCommentCount struct {
-	Book `pg:",override"`
+	Book `pg:",inherit"`
 
 	CommentCount int
 }

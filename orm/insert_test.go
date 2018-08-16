@@ -25,8 +25,8 @@ type EmbeddedInsertTest struct {
 	Field2 int
 }
 
-type OverrideInsertTest struct {
-	EmbeddingTest `pg:",override"`
+type InheritInsertTest struct {
+	EmbeddingTest `pg:",inherit"`
 	Field2        int
 }
 
@@ -123,8 +123,8 @@ var _ = Describe("Insert", func() {
 		Expect(string(b)).To(Equal(`INSERT INTO my_name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
 	})
 
-	It("overrides table name with embedded struct", func() {
-		q := NewQuery(nil, &OverrideInsertTest{})
+	It("inherits table name from embedded struct", func() {
+		q := NewQuery(nil, &InheritInsertTest{})
 
 		b, err := (&insertQuery{q: q}).AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())

@@ -210,7 +210,9 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 			t.addFields(fieldType, append(index, f.Index...))
 
 			pgTag := parseTag(f.Tag.Get("pg"))
-			if _, ok := pgTag.Options["override"]; ok {
+			_, inherit := pgTag.Options["inherit"]
+			_, override := pgTag.Options["override"]
+			if inherit || override {
 				embeddedTable := newTable(fieldType)
 				t.TypeName = embeddedTable.TypeName
 				t.Name = embeddedTable.Name
