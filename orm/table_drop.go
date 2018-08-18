@@ -7,13 +7,13 @@ type DropTableOptions struct {
 	Cascade  bool
 }
 
-func DropTable(db DB, model interface{}, opt *DropTableOptions) (Result, error) {
+func DropTable(db DB, model interface{}, opt *DropTableOptions) error {
 	q := NewQuery(db, model)
-
-	return q.db.Exec(dropTableQuery{
+	_, err := q.db.Exec(dropTableQuery{
 		q:   q,
 		opt: opt,
 	})
+	return err
 }
 
 type dropTableQuery struct {

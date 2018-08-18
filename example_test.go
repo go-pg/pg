@@ -21,6 +21,12 @@ func connect() *pg.DB {
 	return pg.Connect(pgOptions())
 }
 
+func panicIf(err error) {
+	if err != nil {
+		panic(err)
+	}
+}
+
 func ExampleConnect() {
 	db := pg.Connect(&pg.Options{
 		User:     "postgres",

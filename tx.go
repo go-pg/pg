@@ -244,14 +244,12 @@ func (tx *Tx) Delete(model interface{}) error {
 
 // CreateTable is an alias for DB.CreateTable.
 func (tx *Tx) CreateTable(model interface{}, opt *orm.CreateTableOptions) error {
-	_, err := orm.CreateTable(tx, model, opt)
-	return err
+	return orm.CreateTable(tx, model, opt)
 }
 
 // DropTable is an alias for DB.DropTable.
 func (tx *Tx) DropTable(model interface{}, opt *orm.DropTableOptions) error {
-	_, err := orm.DropTable(tx, model, opt)
-	return err
+	return orm.DropTable(tx, model, opt)
 }
 
 // CopyFrom is an alias for DB.CopyFrom.

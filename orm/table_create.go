@@ -16,13 +16,13 @@ type CreateTableOptions struct {
 	FKConstraints bool
 }
 
-func CreateTable(db DB, model interface{}, opt *CreateTableOptions) (Result, error) {
+func CreateTable(db DB, model interface{}, opt *CreateTableOptions) error {
 	q := NewQuery(db, model)
-
-	return q.db.Exec(createTableQuery{
+	_, err := q.db.Exec(createTableQuery{
 		q:   q,
 		opt: opt,
 	})
+	return err
 }
 
 type createTableQuery struct {
@@ -60,6 +60,10 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	b = append(b, " ("...)
 
 	for i, field := range table.Fields {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+
 		b = append(b, field.Column...)
 		b = append(b, " "...)
 		if q.opt != nil && q.opt.Varchar > 0 &&
@@ -79,10 +83,6 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 		if field.Default != "" {
 			b = append(b, " DEFAULT "...)
 			b = append(b, field.Default...)
-		}
-
-		if i != len(table.Fields)-1 {
-			b = append(b, ", "...)
 		}
 	}
 
