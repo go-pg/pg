@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"reflect"
-	"strconv"
 	"time"
 
 	"github.com/go-pg/pg/internal"
@@ -158,7 +157,7 @@ func scanIntValue(v reflect.Value, b []byte) error {
 		v.SetInt(0)
 		return nil
 	}
-	n, err := strconv.ParseInt(internal.BytesToString(b), 10, 64)
+	n, err := internal.ParseInt(b, 10, 64)
 	if err != nil {
 		return err
 	}
@@ -174,7 +173,7 @@ func scanUintValue(v reflect.Value, b []byte) error {
 		v.SetUint(0)
 		return nil
 	}
-	n, err := strconv.ParseUint(internal.BytesToString(b), 10, 64)
+	n, err := internal.ParseUint(b, 10, 64)
 	if err != nil {
 		return err
 	}
@@ -190,7 +189,7 @@ func scanFloatValue(v reflect.Value, b []byte) error {
 		v.SetFloat(0)
 		return nil
 	}
-	n, err := strconv.ParseFloat(internal.BytesToString(b), 64)
+	n, err := internal.ParseFloat(b, 64)
 	if err != nil {
 		return err
 	}

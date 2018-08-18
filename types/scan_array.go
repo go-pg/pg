@@ -3,7 +3,6 @@ package types
 import (
 	"fmt"
 	"reflect"
-	"strconv"
 
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/parser"
@@ -28,29 +27,35 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 		if !v.CanSet() {
 			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 		}
+
 		if b == nil {
 			if !v.IsNil() {
 				v.Set(reflect.Zero(v.Type()))
 			}
 			return nil
 		}
+
 		if v.IsNil() {
 			v.Set(reflect.MakeSlice(v.Type(), 0, 0))
 		} else if v.Len() > 0 {
 			v.Set(v.Slice(0, 0))
 		}
+
 		p := parser.NewArrayParser(b)
-		next := internal.MakeSliceNextElemFunc(v)
+		nextValue := internal.MakeSliceNextElemFunc(v)
 		for p.Valid() {
 			elem, err := p.NextElem()
 			if err != nil {
 				return err
 			}
-			elemValue := next()
-			if err := scanElem(elemValue, elem); err != nil {
+
+			elemValue := nextValue()
+			err = scanElem(elemValue, elem)
+			if err != nil {
 				return err
 			}
 		}
+
 		return nil
 	}
 }
@@ -110,7 +115,7 @@ func decodeSliceInt(b []byte) ([]int, error) {
 			slice = append(slice, 0)
 			continue
 		}
-		n, err := strconv.Atoi(string(elem))
+		n, err := internal.Atoi(elem)
 		if err != nil {
 			return nil, err
 		}
@@ -146,7 +151,7 @@ func decodeSliceInt64(b []byte) ([]int64, error) {
 			slice = append(slice, 0)
 			continue
 		}
-		n, err := strconv.ParseInt(internal.BytesToString(elem), 10, 64)
+		n, err := internal.ParseInt(elem, 10, 64)
 		if err != nil {
 			return nil, err
 		}
@@ -182,7 +187,7 @@ func decodeSliceFloat64(b []byte) ([]float64, error) {
 			slice = append(slice, 0)
 			continue
 		}
-		n, err := strconv.ParseFloat(internal.BytesToString(elem), 64)
+		n, err := internal.ParseFloat(elem, 64)
 		if err != nil {
 			return nil, err
 		}

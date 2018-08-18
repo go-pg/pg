@@ -429,14 +429,20 @@ func (db *DB) Delete(model interface{}) error {
 //   - unique - sets UNIQUE constraint.
 //   - default:value - sets default value.
 func (db *DB) CreateTable(model interface{}, opt *orm.CreateTableOptions) error {
-	_, err := orm.CreateTable(db, model, opt)
-	return err
+	return orm.CreateTable(db, model, opt)
 }
 
 // DropTable drops table for the model.
 func (db *DB) DropTable(model interface{}, opt *orm.DropTableOptions) error {
-	_, err := orm.DropTable(db, model, opt)
-	return err
+	return orm.DropTable(db, model, opt)
+}
+
+func (db *DB) CreateComposite(model interface{}, opt *orm.CreateCompositeOptions) error {
+	return orm.CreateComposite(db, model, opt)
+}
+
+func (db *DB) DropComposite(model interface{}, opt *orm.DropCompositeOptions) error {
+	return orm.DropComposite(db, model, opt)
 }
 
 func (db *DB) FormatQuery(dst []byte, query string, params ...interface{}) []byte {

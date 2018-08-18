@@ -2,6 +2,7 @@ package parser
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 
 	"github.com/go-pg/pg/internal"
@@ -32,7 +33,7 @@ func (p *Parser) Valid() bool {
 func (p *Parser) Read() byte {
 	if p.Valid() {
 		c := p.b[0]
-		p.Skip(c)
+		p.Advance()
 		return c
 	}
 	return 0
@@ -55,6 +56,13 @@ func (p *Parser) Skip(c byte) bool {
 		return true
 	}
 	return false
+}
+
+func (p *Parser) MustSkip(c byte) error {
+	if p.Skip(c) {
+		return nil
+	}
+	return fmt.Errorf("expecting '%c', got %q", c, p.Bytes())
 }
 
 func (p *Parser) SkipBytes(b []byte) bool {
@@ -119,6 +127,15 @@ func (p *Parser) ReadNumber() int {
 	return n
 }
 
+func (p *Parser) ReadString() ([]byte, error) {
+	quote := p.Read()
+	b, ok := p.ReadSep(quote)
+	if !ok {
+		return nil, fmt.Errorf("can't find closing quote")
+	}
+	return b, nil
+}
+
 func (p *Parser) readSubstring() []byte {
 	var b []byte
 	for p.Valid() {
@@ -139,7 +156,7 @@ func (p *Parser) readSubstring() []byte {
 			switch p.Peek() {
 			case '\'':
 				b = append(b, '\'')
-				p.Skip(c)
+				p.Advance()
 			default:
 				b = append(b, c)
 			}
