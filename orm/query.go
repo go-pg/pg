@@ -1058,23 +1058,7 @@ func (q *Query) appendFirstTableWithAlias(b []byte) []byte {
 	return b
 }
 
-func (q *Query) appendTables(b []byte) []byte {
-	if q.hasModel() {
-		b = q.appendTableNameWithAlias(b)
-		if len(q.tables) > 0 {
-			b = append(b, ", "...)
-		}
-	}
-	for i, f := range q.tables {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-		b = f.AppendFormat(b, q)
-	}
-	return b
-}
-
-func (q *Query) hasOtherTables() bool {
+func (q *Query) hasMultiTables() bool {
 	if q.hasModel() {
 		return len(q.tables) > 0
 	}

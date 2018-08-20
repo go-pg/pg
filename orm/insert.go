@@ -54,7 +54,7 @@ func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = q.q.appendFirstTable(b)
 	}
 
-	if q.q.hasOtherTables() {
+	if q.q.hasMultiTables() {
 		if q.q.columns != nil {
 			b = append(b, " ("...)
 			b = q.q.appendColumns(b)
