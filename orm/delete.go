@@ -45,7 +45,7 @@ func (q deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 	b = append(b, "DELETE FROM "...)
 	b = q.q.appendFirstTableWithAlias(b)
 
-	if q.q.hasOtherTables() {
+	if q.q.hasMultiTables() {
 		b = append(b, " USING "...)
 		b = q.q.appendOtherTables(b)
 	}

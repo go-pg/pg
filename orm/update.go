@@ -57,7 +57,7 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	isSliceModel := q.q.isSliceModel()
-	if q.q.hasOtherTables() || isSliceModel {
+	if q.q.hasMultiTables() || isSliceModel {
 		b = append(b, " FROM "...)
 		b = q.q.appendOtherTables(b)
 
