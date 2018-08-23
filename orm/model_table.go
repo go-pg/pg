@@ -25,6 +25,7 @@ type tableModel interface {
 	Kind() reflect.Kind
 	Value() reflect.Value
 
+	setDeletedAt()
 	scanColumn(int, string, []byte) (bool, error)
 }
 

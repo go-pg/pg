@@ -1,6 +1,9 @@
 package orm
 
-import "reflect"
+import (
+	"reflect"
+	"time"
+)
 
 type sliceTableModel struct {
 	structTableModel
@@ -136,4 +139,14 @@ func (m *sliceTableModel) nextElem() reflect.Value {
 
 	m.slice.Set(reflect.Append(m.slice, m.table.zeroStruct))
 	return m.slice.Index(m.slice.Len() - 1)
+}
+
+func (m *sliceTableModel) setDeletedAt() {
+	field := m.table.FieldsMap["deleted_at"]
+	now := time.Now()
+	for i := 0; i < m.slice.Len(); i++ {
+		strct := indirect(m.slice.Index(i))
+		value := field.Value(strct)
+		value.Set(reflect.ValueOf(now))
+	}
 }

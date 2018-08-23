@@ -74,7 +74,7 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 		table := q.q.model.Table()
 		b = appendWhereColumnAndColumn(b, table.Alias, table.PKs)
 
-		if len(q.q.where) > 0 {
+		if q.q.hasWhere() {
 			b = append(b, " AND "...)
 			b = q.q.appendWhere(b)
 		}

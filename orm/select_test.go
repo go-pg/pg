@@ -106,7 +106,7 @@ var _ = Describe("Select", func() {
 	It("specifies all columns for has many", func() {
 		q := NewQuery(nil, &SelectModel{Id: 1}).Relation("HasMany")
 
-		q, err := q.model.GetJoin("HasMany").manyQuery(nil)
+		q, err := q.model.GetJoin("HasMany").manyQuery(q.New())
 		Expect(err).NotTo(HaveOccurred())
 
 		b, err := selectQuery{q: q}.AppendQuery(nil)
@@ -121,7 +121,7 @@ var _ = Describe("Select", func() {
 				return q, nil
 			})
 
-		q, err := q.model.GetJoin("HasMany").manyQuery(nil)
+		q, err := q.model.GetJoin("HasMany").manyQuery(q.New())
 		Expect(err).NotTo(HaveOccurred())
 
 		b, err := selectQuery{q: q}.AppendQuery(nil)
@@ -332,5 +332,20 @@ var _ = Describe("Select Order", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(b)).To(Equal(`SELECT * ORDER BY ` + test.query))
 		}
+	})
+})
+
+type SoftDeleteModel struct {
+	Id        int
+	DeletedAt time.Time
+}
+
+var _ = Describe("SoftDeleteModel", func() {
+	It("works with User model", func() {
+		q := NewQuery(nil, &SoftDeleteModel{})
+
+		b, err := selectQuery{q: q}.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`SELECT "soft_delete_model"."id", "soft_delete_model"."deleted_at" FROM "soft_delete_models" AS "soft_delete_model" WHERE "soft_delete_model".deleted_at IS NULL`))
 	})
 })

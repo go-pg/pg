@@ -25,6 +25,7 @@ const (
 	BeforeDeleteHookFlag
 	AfterDeleteHookFlag
 	discardUnknownColumns
+	softDelete
 )
 
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
@@ -134,7 +135,14 @@ func (t *Table) HasField(field string) bool {
 
 func (t *Table) checkPKs() error {
 	if len(t.PKs) == 0 {
-		return fmt.Errorf("%s does not have primary keys", t)
+		return fmt.Errorf("pg: %s does not have primary keys", t)
+	}
+	return nil
+}
+
+func (t *Table) mustSoftDelete() error {
+	if !t.HasFlag(softDelete) {
+		return fmt.Errorf("pg: %s does not support soft deletes", t)
 	}
 	return nil
 }
@@ -373,6 +381,14 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		t.FieldsMap[field.SQLName] = field
 		return nil
 	}
+
+	switch field.SQLName {
+	case "deleted_at":
+		if field.Type == timeType {
+			t.SetFlag(softDelete)
+		}
+	}
+
 	return field
 }
 

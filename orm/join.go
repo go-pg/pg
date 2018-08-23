@@ -22,18 +22,18 @@ func (j *join) AppendOn(app *condAppender) {
 	j.on = append(j.on, app)
 }
 
-func (j *join) Select(db DB) error {
+func (j *join) Select(q *Query) error {
 	switch j.Rel.Type {
 	case HasManyRelation:
-		return j.selectMany(db)
+		return j.selectMany(q)
 	case Many2ManyRelation:
-		return j.selectM2M(db)
+		return j.selectM2M(q)
 	}
 	panic("not reached")
 }
 
-func (j *join) selectMany(db DB) error {
-	q, err := j.manyQuery(db)
+func (j *join) selectMany(q *Query) error {
+	q, err := j.manyQuery(q)
 	if err != nil {
 		return err
 	}
@@ -43,13 +43,13 @@ func (j *join) selectMany(db DB) error {
 	return q.Select()
 }
 
-func (j *join) manyQuery(db DB) (*Query, error) {
+func (j *join) manyQuery(q *Query) (*Query, error) {
 	manyModel := newManyModel(j)
 	if manyModel == nil {
 		return nil, nil
 	}
 
-	q := NewQuery(db, manyModel)
+	q = q.Model(manyModel)
 	if j.ApplyQuery != nil {
 		var err error
 		q, err = j.ApplyQuery(q)
@@ -86,8 +86,8 @@ func (j *join) manyQuery(db DB) (*Query, error) {
 	return q, nil
 }
 
-func (j *join) selectM2M(db DB) error {
-	q, err := j.m2mQuery(db)
+func (j *join) selectM2M(q *Query) error {
+	q, err := j.m2mQuery(q)
 	if err != nil {
 		return err
 	}
@@ -97,13 +97,13 @@ func (j *join) selectM2M(db DB) error {
 	return q.Select()
 }
 
-func (j *join) m2mQuery(db DB) (*Query, error) {
+func (j *join) m2mQuery(q *Query) (*Query, error) {
 	m2mModel := newM2MModel(j)
 	if m2mModel == nil {
 		return nil, nil
 	}
 
-	q := NewQuery(db, m2mModel)
+	q = q.Model(m2mModel)
 	if j.ApplyQuery != nil {
 		var err error
 		q, err = j.ApplyQuery(q)
@@ -120,11 +120,7 @@ func (j *join) m2mQuery(db DB) (*Query, error) {
 	baseTable := j.BaseModel.Table()
 	var join []byte
 	join = append(join, "JOIN "...)
-	if db != nil {
-		join = db.FormatQuery(join, string(j.Rel.M2MTableName))
-	} else {
-		join = append(join, j.Rel.M2MTableName...)
-	}
+	join = q.FormatQuery(join, string(j.Rel.M2MTableName))
 	join = append(join, " AS "...)
 	join = append(join, j.Rel.M2MTableAlias...)
 	join = append(join, " ON ("...)
@@ -279,6 +275,12 @@ func (j *join) appendHasOneJoin(q *Query, b []byte) []byte {
 	for _, on := range j.on {
 		b = on.AppendSep(b)
 		b = on.AppendFormat(b, q)
+	}
+
+	if q.softDelete() {
+		b = append(b, " AND "...)
+		b = j.appendBaseAlias(b)
+		b = q.appendSoftDelete(b)
 	}
 
 	return b
