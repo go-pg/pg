@@ -1908,7 +1908,7 @@ var _ = Describe("ORM", func() {
 
 type SoftDeleteModel struct {
 	Id        int
-	DeletedAt time.Time
+	DeletedAt time.Time `pg:",soft_delete"`
 }
 
 var _testDB *pg.DB
@@ -1961,6 +1961,7 @@ var _ = Describe("soft deletes", func() {
 		err := db.Model(model).Deleted().Select()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(model.Id).To(Equal(1))
+		Expect(model.DeletedAt).To(BeTemporally("~", time.Now()))
 
 		n, err := db.Model((*SoftDeleteModel)(nil)).Deleted().Count()
 		Expect(err).NotTo(HaveOccurred())

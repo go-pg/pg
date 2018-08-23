@@ -337,7 +337,7 @@ var _ = Describe("Select Order", func() {
 
 type SoftDeleteModel struct {
 	Id        int
-	DeletedAt time.Time
+	DeletedAt time.Time `pg:",soft_delete"`
 }
 
 var _ = Describe("SoftDeleteModel", func() {

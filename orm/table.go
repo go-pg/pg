@@ -384,7 +384,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	switch field.SQLName {
 	case "deleted_at":
-		if field.Type == timeType {
+		if _, ok := pgTag.Options["soft_delete"]; ok && field.Type == timeType {
 			t.SetFlag(softDelete)
 		}
 	}
