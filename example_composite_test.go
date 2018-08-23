@@ -48,15 +48,11 @@ func ExampleDB_Model_compositeType() {
 		},
 		Count: 1000,
 	})
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	onHand := new(OnHand)
 	err = db.Model(onHand).Select()
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	fmt.Println(onHand.Item.Name, onHand.Item.Price, onHand.Count)
 	// Output: fuzzy dice 1.99 1000

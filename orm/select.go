@@ -79,7 +79,7 @@ func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
 		}
 	}
 
-	if len(q.q.where) > 0 {
+	if q.q.hasWhere() {
 		b = append(b, " WHERE "...)
 		b = q.q.appendWhere(b)
 	}

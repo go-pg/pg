@@ -424,6 +424,11 @@ func (db *DB) Delete(model interface{}) error {
 	return orm.Delete(db, model)
 }
 
+// Delete forces delete of the model with deleted_at column.
+func (db *DB) ForceDelete(model interface{}) error {
+	return orm.ForceDelete(db, model)
+}
+
 // CreateTable creates table for the model. It recognizes following field tags:
 //   - notnull - sets NOT NULL constraint.
 //   - unique - sets UNIQUE constraint.

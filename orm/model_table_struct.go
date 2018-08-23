@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 )
 
 type structTableModel struct {
@@ -340,6 +341,12 @@ func (m *structTableModel) join(
 	}
 
 	return lastJoin
+}
+
+func (m *structTableModel) setDeletedAt() {
+	field := m.table.FieldsMap["deleted_at"]
+	value := field.Value(m.strct)
+	value.Set(reflect.ValueOf(time.Now()))
 }
 
 func splitColumn(s string) (string, string) {
