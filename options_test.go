@@ -14,6 +14,7 @@ func TestParseURL(t *testing.T) {
 		user     string
 		password string
 		database string
+		appName  string
 		tls      bool
 		err      error
 	}{
@@ -23,6 +24,7 @@ func TestParseURL(t *testing.T) {
 			"vasya",
 			"pupkin",
 			"postgres",
+			"",
 			true,
 			nil,
 		},
@@ -32,6 +34,7 @@ func TestParseURL(t *testing.T) {
 			"vasya",
 			"pupkin",
 			"postgres",
+			"",
 			true,
 			nil,
 		},
@@ -41,6 +44,7 @@ func TestParseURL(t *testing.T) {
 			"vasya",
 			"pupkin",
 			"postgres",
+			"",
 			true,
 			nil,
 		},
@@ -50,6 +54,7 @@ func TestParseURL(t *testing.T) {
 			"vasya",
 			"pupkin",
 			"postgres",
+			"",
 			true,
 			nil,
 		},
@@ -59,6 +64,7 @@ func TestParseURL(t *testing.T) {
 			"vasya",
 			"pupkin",
 			"postgres",
+			"",
 			true,
 			errors.New("pg: sslmode 'verify-ca' is not supported"),
 		},
@@ -68,6 +74,7 @@ func TestParseURL(t *testing.T) {
 			"vasya",
 			"pupkin",
 			"postgres",
+			"",
 			true,
 			errors.New("pg: sslmode 'verify-full' is not supported"),
 		},
@@ -77,6 +84,27 @@ func TestParseURL(t *testing.T) {
 			"vasya",
 			"pupkin",
 			"postgres",
+			"",
+			false,
+			nil,
+		},
+		{
+			"postgres://vasya:pupkin@somewhere.at.amazonaws.com:5432/postgres?sslmode=disable&application_name=myApp",
+			"somewhere.at.amazonaws.com:5432",
+			"vasya",
+			"pupkin",
+			"postgres",
+			"myApp",
+			false,
+			nil,
+		},
+		{
+			"postgres://vasya:pupkin@somewhere.at.amazonaws.com:5432/postgres?application_name=myApp",
+			"somewhere.at.amazonaws.com:5432",
+			"vasya",
+			"pupkin",
+			"postgres",
+			"myApp",
 			false,
 			nil,
 		},
@@ -85,6 +113,7 @@ func TestParseURL(t *testing.T) {
 			"somewhere.at.amazonaws.com:5432",
 			"vasya",
 			"pupkin",
+			"",
 			"",
 			true,
 			errors.New("pg: database name not provided"),
@@ -95,6 +124,7 @@ func TestParseURL(t *testing.T) {
 			"vasya",
 			"pupkin",
 			"postgres",
+			"",
 			true,
 			nil,
 		},
@@ -104,8 +134,9 @@ func TestParseURL(t *testing.T) {
 			"vasya",
 			"pupkin",
 			"postgres",
+			"",
 			true,
-			errors.New("pg: options other than 'sslmode' are not supported"),
+			errors.New("pg: options other than 'sslmode' and 'application_name' are not supported"),
 		},
 		{
 			"postgres://vasya@somewhere.at.amazonaws.com:5432/postgres",
@@ -113,6 +144,7 @@ func TestParseURL(t *testing.T) {
 			"vasya",
 			"",
 			"postgres",
+			"",
 			true,
 			nil,
 		},
@@ -122,6 +154,7 @@ func TestParseURL(t *testing.T) {
 			"postgres",
 			"",
 			"postgres",
+			"",
 			true,
 			nil,
 		},
@@ -131,6 +164,7 @@ func TestParseURL(t *testing.T) {
 			"postgres",
 			"",
 			"postgres",
+			"",
 			true,
 			nil,
 		},
@@ -140,6 +174,7 @@ func TestParseURL(t *testing.T) {
 			"postgres",
 			"",
 			"test",
+			"",
 			true,
 			errors.New("pg: invalid scheme: http"),
 		},
@@ -172,6 +207,9 @@ func TestParseURL(t *testing.T) {
 			}
 			if o.Database != c.database {
 				t.Errorf("database: got %q, want %q", o.Database, c.database)
+			}
+			if o.ApplicationName != c.appName {
+				t.Errorf("appName: got %q, want %q", o.ApplicationName, c.appName)
 			}
 
 			if c.tls {
