@@ -25,6 +25,11 @@ const (
 	passwordMessageMsg  = 'p'
 	terminateMsg        = 'X'
 
+	authenticationOK                = 0
+	authenticationCleartextPassword = 3
+	authenticationMD5Password       = 5
+	authenticationSASL              = 10
+
 	notificationResponseMsg = 'A'
 
 	describeMsg             = 'D'
@@ -91,7 +96,7 @@ func (db *DB) startup(cn *pool.Conn, user, password, database string) error {
 					return err
 				}
 			case authenticationOKMsg:
-				err := db.authenticate(cn, rd, user, password)
+				err := db.auth(cn, rd, user, password)
 				if err != nil {
 					return err
 				}
@@ -140,89 +145,103 @@ func (db *DB) enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
 	return nil
 }
 
-func (db *DB) authenticate(cn *pool.Conn, rd *pool.Reader, user, password string) error {
+func (db *DB) auth(cn *pool.Conn, rd *pool.Reader, user, password string) error {
 	num, err := rd.ReadInt32()
 	if err != nil {
 		return err
 	}
 
 	switch num {
-	case 0:
+	case authenticationOK:
 		return nil
-	case 3:
-		err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
-			writePasswordMsg(wb, password)
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-
-		c, _, err := rd.ReadMessageType()
-		if err != nil {
-			return err
-		}
-
-		switch c {
-		case authenticationOKMsg:
-			code, err := rd.ReadInt32()
-			if err != nil {
-				return err
-			}
-			if code != 0 {
-				return fmt.Errorf("pg: unexpected authentication code: %d", code)
-			}
-			return nil
-		case errorResponseMsg:
-			e, err := rd.ReadError()
-			if err != nil {
-				return err
-			}
-			return e
-		default:
-			return fmt.Errorf("pg: unknown password message response: %q", c)
-		}
-	case 5:
-		b, err := rd.ReadN(4)
-		if err != nil {
-			return err
-		}
-
-		secret := "md5" + md5s(md5s(password+user)+string(b))
-		err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
-			writePasswordMsg(wb, secret)
-			return nil
-		})
-		if err != nil {
-			return err
-		}
-
-		c, _, err := rd.ReadMessageType()
-		if err != nil {
-			return err
-		}
-		switch c {
-		case authenticationOKMsg:
-			code, err := rd.ReadInt32()
-			if err != nil {
-				return err
-			}
-			if code != 0 {
-				return fmt.Errorf("pg: unexpected authentication code: %d", code)
-			}
-			return nil
-		case errorResponseMsg:
-			e, err := rd.ReadError()
-			if err != nil {
-				return err
-			}
-			return e
-		default:
-			return fmt.Errorf("pg: unknown password message response: %q", c)
-		}
+	case authenticationCleartextPassword:
+		return db.authCleartext(cn, rd, password)
+	case authenticationMD5Password:
+		return db.authMD5(cn, rd, user, password)
+	case authenticationSASL:
+		return db.authSASL(cn, rd, user, password)
 	default:
 		return fmt.Errorf("pg: unknown authentication message response: %d", num)
 	}
+}
+
+func (db *DB) authCleartext(cn *pool.Conn, rd *pool.Reader, password string) error {
+	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		writePasswordMsg(wb, password)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	c, _, err := rd.ReadMessageType()
+	if err != nil {
+		return err
+	}
+
+	switch c {
+	case authenticationOKMsg:
+		code, err := rd.ReadInt32()
+		if err != nil {
+			return err
+		}
+		if code != 0 {
+			return fmt.Errorf("pg: unexpected authentication code: %d", code)
+		}
+		return nil
+	case errorResponseMsg:
+		e, err := rd.ReadError()
+		if err != nil {
+			return err
+		}
+		return e
+	default:
+		return fmt.Errorf("pg: unknown password message response: %q", c)
+	}
+}
+
+func (db *DB) authMD5(cn *pool.Conn, rd *pool.Reader, user, password string) error {
+	b, err := rd.ReadN(4)
+	if err != nil {
+		return err
+	}
+
+	secret := "md5" + md5s(md5s(password+user)+string(b))
+	err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		writePasswordMsg(wb, secret)
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	c, _, err := rd.ReadMessageType()
+	if err != nil {
+		return err
+	}
+	switch c {
+	case authenticationOKMsg:
+		code, err := rd.ReadInt32()
+		if err != nil {
+			return err
+		}
+		if code != 0 {
+			return fmt.Errorf("pg: unexpected authentication code: %d", code)
+		}
+		return nil
+	case errorResponseMsg:
+		e, err := rd.ReadError()
+		if err != nil {
+			return err
+		}
+		return e
+	default:
+		return fmt.Errorf("pg: unknown password message response: %q", c)
+	}
+}
+
+func (db *DB) authSASL(cn *pool.Conn, rd *pool.Reader, user, password string) error {
+	return fmt.Errorf("pg: SASL authentication is not supported")
 }
 
 func md5s(s string) string {
