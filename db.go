@@ -142,7 +142,7 @@ func (db *DB) initConn(cn *pool.Conn) error {
 		}
 	}
 
-	err := db.startup(cn, db.opt.User, db.opt.Password, db.opt.Database)
+	err := db.startup(cn, db.opt.User, db.opt.Password, db.opt.Database, db.opt.ApplicationName)
 	if err != nil {
 		return err
 	}

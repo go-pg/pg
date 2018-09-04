@@ -32,6 +32,10 @@ type Options struct {
 	Password string
 	Database string
 
+	// ApplicationName is the application name. Used in logs on Pg side.
+	// Only availaible from pg-9.0.
+	ApplicationName string
+
 	// TLS config for secure connections.
 	TLSConfig *tls.Config
 
@@ -195,8 +199,15 @@ func ParseURL(sURL string) (*Options, error) {
 	}
 
 	delete(query, "sslmode")
+
+	if appName, ok := query["application_name"]; ok && len(appName) > 0 {
+		options.ApplicationName = appName[0]
+	}
+
+	delete(query, "application_name")
+
 	if len(query) > 0 {
-		return nil, errors.New("pg: options other than 'sslmode' are not supported")
+		return nil, errors.New("pg: options other than 'sslmode' and 'application_name' are not supported")
 	}
 
 	return options, nil
