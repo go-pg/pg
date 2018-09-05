@@ -955,7 +955,11 @@ func (q *Query) returningQuery(model Model, query interface{}) (Result, error) {
 func (q *Query) Delete(values ...interface{}) (Result, error) {
 	if q.softDelete() {
 		q.model.setDeletedAt()
-		return q.Update(values...)
+		columns := q.columns
+		q.columns = nil
+		res, err := q.Column("deleted_at").Update(values...)
+		q.columns = columns
+		return res, err
 	}
 	return q.ForceDelete(values...)
 }
