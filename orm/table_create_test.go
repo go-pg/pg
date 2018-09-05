@@ -32,9 +32,9 @@ type CreateTableModel struct {
 	NullInt64    sql.NullInt64
 	NullString   sql.NullString
 	Slice        []int
-	SliceArray   []int `pg:",array"`
+	SliceArray   []int `sql:",array"`
 	Map          map[int]int
-	MapHstore    map[int]int `pg:",hstore"`
+	MapHstore    map[int]int `sql:",hstore"`
 	Struct       struct{}
 	StructPtr    *struct{}
 	Unique       int `sql:",unique"`

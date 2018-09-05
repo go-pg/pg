@@ -250,7 +250,7 @@ var _ = Describe("Time", func() {
 
 var _ = Describe("array model", func() {
 	type value struct {
-		Values []int16 `pg:",array"`
+		Values []int16 `sql:",array"`
 	}
 
 	var db *pg.DB

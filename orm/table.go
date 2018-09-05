@@ -344,7 +344,10 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 
 	pgTag := parseTag(f.Tag.Get("pg"))
-	if _, ok := pgTag.Options["array"]; ok {
+
+	if _, ok := sqlTag.Options["array"]; ok {
+		field.SetFlag(ArrayFlag)
+	} else if _, ok := pgTag.Options["array"]; ok {
 		field.SetFlag(ArrayFlag)
 	}
 
@@ -367,6 +370,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	} else if field.HasFlag(ArrayFlag) {
 		field.append = types.ArrayAppender(f.Type)
 		field.scan = types.ArrayScanner(f.Type)
+	} else if _, ok := sqlTag.Options["hstore"]; ok {
+		field.append = types.HstoreAppender(f.Type)
+		field.scan = types.HstoreScanner(f.Type)
 	} else if _, ok := pgTag.Options["hstore"]; ok {
 		field.append = types.HstoreAppender(f.Type)
 		field.scan = types.HstoreScanner(f.Type)
