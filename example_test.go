@@ -15,6 +15,15 @@ var pgdb *pg.DB
 
 func init() {
 	pgdb = connect()
+
+	err := pgdb.DropTable((*Flight)(nil), &orm.DropTableOptions{
+		IfExists: true,
+		Cascade:  true,
+	})
+	panicIf(err)
+
+	err = pgdb.CreateTable((*Flight)(nil), nil)
+	panicIf(err)
 }
 
 func connect() *pg.DB {

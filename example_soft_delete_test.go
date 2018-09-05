@@ -3,49 +3,41 @@ package pg_test
 import (
 	"fmt"
 	"time"
-
-	"github.com/go-pg/pg/orm"
 )
 
 type Flight struct {
 	Id        int
+	Name      string
 	DeletedAt time.Time `pg:",soft_delete"`
 }
 
 func ExampleDB_Model_softDelete() {
-	db := connect()
-	defer db.Close()
-
-	err := db.DropTable((*Flight)(nil), &orm.DropTableOptions{
-		IfExists: true,
-		Cascade:  true,
-	})
-	panicIf(err)
-
-	err = db.CreateTable((*Flight)(nil), nil)
-	panicIf(err)
-
 	flight1 := &Flight{
 		Id: 1,
 	}
-	err = db.Insert(flight1)
+	err := pgdb.Insert(flight1)
 	panicIf(err)
 
-	err = db.Delete(flight1)
+	// Soft delete.
+	err = pgdb.Delete(flight1)
 	panicIf(err)
 
-	count, err := db.Model((*Flight)(nil)).Count()
+	// Count visible flights.
+	count, err := pgdb.Model((*Flight)(nil)).Count()
 	panicIf(err)
 	fmt.Println("count", count)
 
-	deletedCount, err := db.Model((*Flight)(nil)).Deleted().Count()
+	// Count soft deleted flights.
+	deletedCount, err := pgdb.Model((*Flight)(nil)).Deleted().Count()
 	panicIf(err)
 	fmt.Println("deleted count", deletedCount)
 
-	err = db.ForceDelete(flight1)
+	// Actually delete the flight.
+	err = pgdb.ForceDelete(flight1)
 	panicIf(err)
 
-	deletedCount, err = db.Model((*Flight)(nil)).Deleted().Count()
+	// Count soft deleted flights.
+	deletedCount, err = pgdb.Model((*Flight)(nil)).Deleted().Count()
 	panicIf(err)
 	fmt.Println("deleted count", deletedCount)
 
