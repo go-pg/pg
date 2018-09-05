@@ -346,7 +346,12 @@ func (m *structTableModel) join(
 func (m *structTableModel) setDeletedAt() {
 	field := m.table.FieldsMap["deleted_at"]
 	value := field.Value(m.strct)
-	value.Set(reflect.ValueOf(time.Now()))
+	if value.Kind() == reflect.Ptr {
+		now := time.Now()
+		value.Set(reflect.ValueOf(&now))
+	} else {
+		value.Set(reflect.ValueOf(time.Now()))
+	}
 }
 
 func splitColumn(s string) (string, string) {
