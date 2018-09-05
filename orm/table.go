@@ -653,7 +653,10 @@ func fieldSQLType(field *Field, pgTag, sqlTag *tag) string {
 		return typ
 	}
 
-	if _, ok := pgTag.Options["hstore"]; ok {
+	if _, ok := sqlTag.Options["hstore"]; ok {
+		field.SetFlag(customTypeFlag)
+		return "hstore"
+	} else if _, ok := pgTag.Options["hstore"]; ok {
 		field.SetFlag(customTypeFlag)
 		return "hstore"
 	}
