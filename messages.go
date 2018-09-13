@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/vmihailenco/sasl"
+
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/pool"
 	"github.com/go-pg/pg/orm"
@@ -24,6 +26,11 @@ const (
 	noDataMsg           = 'n'
 	passwordMessageMsg  = 'p'
 	terminateMsg        = 'X'
+
+	saslInitialResponseMsg        = 'p'
+	authenticationSASLContinueMsg = 'R'
+	saslResponseMsg               = 'p'
+	authenticationSASLFinalMsg    = 'R'
 
 	authenticationOK                = 0
 	authenticationCleartextPassword = 3
@@ -173,31 +180,7 @@ func (db *DB) authCleartext(cn *pool.Conn, rd *pool.Reader, password string) err
 	if err != nil {
 		return err
 	}
-
-	c, _, err := rd.ReadMessageType()
-	if err != nil {
-		return err
-	}
-
-	switch c {
-	case authenticationOKMsg:
-		code, err := rd.ReadInt32()
-		if err != nil {
-			return err
-		}
-		if code != 0 {
-			return fmt.Errorf("pg: unexpected authentication code: %d", code)
-		}
-		return nil
-	case errorResponseMsg:
-		e, err := rd.ReadError()
-		if err != nil {
-			return err
-		}
-		return e
-	default:
-		return fmt.Errorf("pg: unknown password message response: %q", c)
-	}
+	return readAuthOK(rd)
 }
 
 func (db *DB) authMD5(cn *pool.Conn, rd *pool.Reader, user, password string) error {
@@ -215,10 +198,15 @@ func (db *DB) authMD5(cn *pool.Conn, rd *pool.Reader, user, password string) err
 		return err
 	}
 
+	return readAuthOK(rd)
+}
+
+func readAuthOK(rd *pool.Reader) error {
 	c, _, err := rd.ReadMessageType()
 	if err != nil {
 		return err
 	}
+
 	switch c {
 	case authenticationOKMsg:
 		code, err := rd.ReadInt32()
@@ -241,7 +229,134 @@ func (db *DB) authMD5(cn *pool.Conn, rd *pool.Reader, user, password string) err
 }
 
 func (db *DB) authSASL(cn *pool.Conn, rd *pool.Reader, user, password string) error {
-	return fmt.Errorf("pg: SASL authentication is not supported")
+	s, err := rd.ReadString()
+	if err != nil {
+		return err
+	}
+	if s != "SCRAM-SHA-256" {
+		return fmt.Errorf("pg: SASL: got %q, wanted %q", s, "SCRAM-SHA-256")
+	}
+
+	c, err := rd.ReadByte()
+	if err != nil {
+		return err
+	}
+	if c != 0 {
+		return fmt.Errorf("pg: SASL: got %q, wanted %q", c, 0)
+	}
+
+	creds := sasl.Credentials(func() (Username, Password, Identity []byte) {
+		return []byte(user), []byte(password), nil
+	})
+	client := sasl.NewClient(sasl.ScramSha256, creds)
+
+	_, resp, err := client.Step(nil)
+	if err != nil {
+		return err
+	}
+
+	err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		wb.StartMessage(saslInitialResponseMsg)
+		wb.WriteString("SCRAM-SHA-256")
+		wb.WriteInt32(int32(len(resp)))
+		wb.Write(resp)
+		wb.FinishMessage()
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	c, n, err := rd.ReadMessageType()
+	if err != nil {
+		return err
+	}
+
+	switch c {
+	case authenticationSASLContinueMsg:
+		c11, err := rd.ReadInt32()
+		if err != nil {
+			return err
+		}
+		if c11 != 11 {
+			return fmt.Errorf("pg: SASL: got %q, wanted %q", c, 11)
+		}
+
+		b, err := rd.ReadN(n - 4)
+		if err != nil {
+			return err
+		}
+
+		_, resp, err = client.Step(b)
+		if err != nil {
+			return err
+		}
+
+		err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+			wb.StartMessage(saslResponseMsg)
+			wb.Write(resp)
+			wb.FinishMessage()
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return readAuthSASLFinal(rd, client)
+	case errorResponseMsg:
+		e, err := rd.ReadError()
+		if err != nil {
+			return err
+		}
+		return e
+	default:
+		return fmt.Errorf(
+			"pg: SASL: got %q, wanted %q", c, authenticationSASLContinueMsg)
+	}
+}
+
+func readAuthSASLFinal(rd *pool.Reader, client *sasl.Negotiator) error {
+	c, n, err := rd.ReadMessageType()
+	if err != nil {
+		return err
+	}
+
+	switch c {
+	case authenticationSASLFinalMsg:
+		c12, err := rd.ReadInt32()
+		if err != nil {
+			return err
+		}
+		if c12 != 12 {
+			return fmt.Errorf("pg: SASL: got %q, wanted %q", c, 12)
+		}
+
+		b, err := rd.ReadN(n - 4)
+		if err != nil {
+			return err
+		}
+
+		_, _, err = client.Step(b)
+		if err != nil {
+			return err
+		}
+
+		if client.State() != sasl.ValidServerResponse {
+			return fmt.Errorf("pg: SASL: state=%q, wanted %q",
+				client.State(), sasl.ValidServerResponse)
+		}
+	case errorResponseMsg:
+		e, err := rd.ReadError()
+		if err != nil {
+			return err
+		}
+		return e
+	default:
+		return fmt.Errorf(
+			"pg: SASL: got %q, wanted %q", c, authenticationSASLFinalMsg)
+	}
+
+	return readAuthOK(rd)
 }
 
 func md5s(s string) string {
