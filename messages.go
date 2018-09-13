@@ -168,7 +168,7 @@ func (db *DB) auth(cn *pool.Conn, rd *pool.Reader, user, password string) error 
 	case authenticationSASL:
 		return db.authSASL(cn, rd, user, password)
 	default:
-		return fmt.Errorf("pg: unknown authentication message response: %d", num)
+		return fmt.Errorf("pg: unknown authentication message response: %q", num)
 	}
 }
 
@@ -209,12 +209,12 @@ func readAuthOK(rd *pool.Reader) error {
 
 	switch c {
 	case authenticationOKMsg:
-		code, err := rd.ReadInt32()
+		c0, err := rd.ReadInt32()
 		if err != nil {
 			return err
 		}
-		if code != 0 {
-			return fmt.Errorf("pg: unexpected authentication code: %d", code)
+		if c0 != 0 {
+			return fmt.Errorf("pg: unexpected authentication code: %q", c0)
 		}
 		return nil
 	case errorResponseMsg:
@@ -237,12 +237,12 @@ func (db *DB) authSASL(cn *pool.Conn, rd *pool.Reader, user, password string) er
 		return fmt.Errorf("pg: SASL: got %q, wanted %q", s, "SCRAM-SHA-256")
 	}
 
-	c, err := rd.ReadByte()
+	c0, err := rd.ReadByte()
 	if err != nil {
 		return err
 	}
-	if c != 0 {
-		return fmt.Errorf("pg: SASL: got %q, wanted %q", c, 0)
+	if c0 != 0 {
+		return fmt.Errorf("pg: SASL: got %q, wanted %q", c0, 0)
 	}
 
 	creds := sasl.Credentials(func() (Username, Password, Identity []byte) {
@@ -504,7 +504,7 @@ func readParseDescribeSync(rd *pool.Reader) ([][]byte, error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readParseDescribeSync: unexpected message %#x", c)
+			return nil, fmt.Errorf("pg: readParseDescribeSync: unexpected message %q", c)
 		}
 	}
 }
@@ -571,7 +571,7 @@ func readCloseCompleteMsg(rd *pool.Reader) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("pg: readCloseCompleteMsg: unexpected message %#x", c)
+			return fmt.Errorf("pg: readCloseCompleteMsg: unexpected message %q", c)
 		}
 	}
 }
@@ -635,7 +635,7 @@ func readSimpleQuery(rd *pool.Reader) (*result, error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readSimpleQuery: unexpected message %#x", c)
+			return nil, fmt.Errorf("pg: readSimpleQuery: unexpected message %q", c)
 		}
 	}
 }
@@ -699,7 +699,7 @@ func readExtQuery(rd *pool.Reader) (*result, error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readExtQuery: unexpected message %#x", c)
+			return nil, fmt.Errorf("pg: readExtQuery: unexpected message %q", c)
 		}
 	}
 }
@@ -853,7 +853,7 @@ func readSimpleQueryData(rd *pool.Reader, mod interface{}) (*result, error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readSimpleQueryData: unexpected message %#x", c)
+			return nil, fmt.Errorf("pg: readSimpleQueryData: unexpected message %q", c)
 		}
 	}
 }
@@ -931,7 +931,7 @@ func readExtQueryData(rd *pool.Reader, mod interface{}, columns [][]byte) (*resu
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readExtQueryData: unexpected message %#x", c)
+			return nil, fmt.Errorf("pg: readExtQueryData: unexpected message %q", c)
 		}
 	}
 }
@@ -971,7 +971,7 @@ func readCopyInResponse(rd *pool.Reader) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("pg: readCopyInResponse: unexpected message %#x", c)
+			return fmt.Errorf("pg: readCopyInResponse: unexpected message %q", c)
 		}
 	}
 }
@@ -1011,7 +1011,7 @@ func readCopyOutResponse(rd *pool.Reader) error {
 				return err
 			}
 		default:
-			return fmt.Errorf("pg: readCopyOutResponse: unexpected message %#x", c)
+			return fmt.Errorf("pg: readCopyOutResponse: unexpected message %q", c)
 		}
 	}
 }
@@ -1073,7 +1073,7 @@ func readCopyData(rd *pool.Reader, w io.Writer) (*result, error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readCopyData: unexpected message %#x", c)
+			return nil, fmt.Errorf("pg: readCopyData: unexpected message %q", c)
 		}
 	}
 }
@@ -1134,7 +1134,7 @@ func readReadyForQuery(rd *pool.Reader) (*result, error) {
 				return nil, err
 			}
 		default:
-			return nil, fmt.Errorf("pg: readReadyForQueryOrError: unexpected message %#x", c)
+			return nil, fmt.Errorf("pg: readReadyForQueryOrError: unexpected message %q", c)
 		}
 	}
 }
@@ -1182,7 +1182,7 @@ func readNotification(rd *pool.Reader) (channel, payload string, err error) {
 			}
 			return channel, payload, nil
 		default:
-			return "", "", fmt.Errorf("pg: unexpected message %q", c)
+			return "", "", fmt.Errorf("pg: readNotification: unexpected message %q", c)
 		}
 	}
 }
