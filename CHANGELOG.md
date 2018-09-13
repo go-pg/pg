@@ -1,16 +1,14 @@
 # Changelog
 
-## Unreleased
+## v6.15
 
 - Added Options.MinIdleConns.
 - Options.MaxAge renamed to Options.MaxConnAge.
 - PoolStats.FreeConns is renamed to PoolStats.IdleConns.
 - New hook BeforeSelectQuery.
 - `,override` is renamed to `,inherit`.
-
-## v6.15
-
 - Dialer.KeepAlive is set to 5 minutes by default.
+- Added support "scram-sha-256" authentication.
 
 ## v6.14
 
