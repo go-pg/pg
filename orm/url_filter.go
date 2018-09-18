@@ -54,6 +54,10 @@ func (f *URLFilter) Filters(q *Query) (*Query, error) {
 	}
 
 	for filter, values := range f.values {
+		if strings.HasSuffix(filter, "[]") {
+			filter = filter[:len(filter)-2]
+		}
+
 		if !f.isAllowed(filter) {
 			continue
 		}

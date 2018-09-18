@@ -53,6 +53,9 @@ var _ = Describe("URLValues", func() {
 		urlQuery: "name=Mike&name=Peter",
 		query:    query + ` WHERE ("name" IN ('Mike','Peter'))`,
 	}, {
+		urlQuery: "name[]=Mike&name[]=Peter",
+		query:    query + ` WHERE ("name" IN ('Mike','Peter'))`,
+	}, {
 		urlQuery: "invalid_field=1",
 		query:    query,
 	}}
