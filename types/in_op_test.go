@@ -16,6 +16,7 @@ func TestInOp(t *testing.T) {
 		{types.In(1, 2, 3), "1,2,3"},
 		{types.In([]int{1, 2, 3}), "(1,2,3)"},
 		{types.In([]int{1, 2}, []int{3, 4}), "(1,2),(3,4)"},
+		{types.In(types.NewArray([]int{1, 2}), types.NewArray([]int{3, 4})), "{1,2},{3,4}"},
 	}
 
 	for _, test := range tests {
