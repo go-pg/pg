@@ -99,13 +99,9 @@ func ptrAppenderFunc(typ reflect.Type) AppenderFunc {
 }
 
 func appendValue(b []byte, v reflect.Value, quote int) []byte {
-	if v.Kind() == reflect.Ptr {
-		if v.IsNil() {
-			return AppendNull(b, quote)
-		}
-		return appendValue(b, v.Elem(), quote)
+	if v.Kind() == reflect.Ptr && v.IsNil() {
+		return AppendNull(b, quote)
 	}
-
 	appender := Appender(v.Type())
 	return appender(b, v, quote)
 }
