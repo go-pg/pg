@@ -31,7 +31,7 @@ func newFuncModel(fn interface{}) *funcModel {
 	}
 
 	if fnt.NumOut() != 1 {
-		panic(fmt.Errorf("ForEach must return 1 value, got %d", fnt.NumOut()))
+		panic(fmt.Errorf("ForEach must return 1 error value, got %d", fnt.NumOut()))
 	}
 	if fnt.Out(0) != errorType {
 		panic(fmt.Errorf("ForEach must return an error, got %T", fnt.Out(0)))

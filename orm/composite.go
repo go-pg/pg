@@ -15,9 +15,7 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 		}
 
 		if b == nil {
-			if !v.IsNil() {
-				v.Set(reflect.Zero(v.Type()))
-			}
+			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
 
