@@ -13,6 +13,7 @@ import (
 const gopgChannel = "gopg:ping"
 
 var errListenerClosed = errors.New("pg: listener is closed")
+var errPingTimeout = errors.New("pg: ping timeout")
 
 // A notification received with LISTEN command.
 type Notification struct {
@@ -250,7 +251,6 @@ func (ln *Listener) initChannel() {
 		timer.Stop()
 
 		healthy := true
-		var pingErr error
 		for {
 			timer.Reset(timeout)
 			select {
@@ -260,12 +260,12 @@ func (ln *Listener) initChannel() {
 					<-timer.C
 				}
 			case <-timer.C:
-				pingErr = ln.ping()
+				_ = ln.ping()
 				if healthy {
 					healthy = false
 				} else {
 					ln.mu.Lock()
-					ln._reconnect(pingErr)
+					ln._reconnect(errPingTimeout)
 					ln.mu.Unlock()
 				}
 			case <-ln.exit:
