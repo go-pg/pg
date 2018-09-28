@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/go-pg/pg/orm"
+	"github.com/go-pg/pg/types"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -228,5 +229,21 @@ var _ = Describe("embedding", func() {
 
 		field := table.FieldsMap["id"]
 		Expect(field.SQLType).To(Equal("text"))
+	})
+})
+
+var _ = Describe("anonymous struct", func() {
+	It("has an alias", func() {
+		var model struct {
+			tableName struct{} `sql:"some_name"`
+
+			ID   uint64
+			Data string
+		}
+
+		table := orm.GetTable(reflect.TypeOf(model))
+		Expect(table.Name).To(Equal(types.Q("some_name")))
+		Expect(table.NameForSelects).To(Equal(types.Q("some_name")))
+		Expect(table.Alias).To(Equal(types.Q("some_name")))
 	})
 })

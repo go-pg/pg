@@ -66,6 +66,9 @@ type Table struct {
 func (t *Table) setName(name types.Q) {
 	t.Name = name
 	t.NameForSelects = name
+	if t.Alias == "" {
+		t.Alias = name
+	}
 }
 
 func newTable(typ reflect.Type) *Table {
