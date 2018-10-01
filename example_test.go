@@ -308,7 +308,7 @@ func ExampleScan() {
 	// Output: foo bar
 }
 
-func ExampleError_IntegrityViolation() {
+func ExampleError() {
 	flight := &Flight{
 		Id: 123,
 	}
