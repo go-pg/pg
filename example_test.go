@@ -42,19 +42,12 @@ func ExampleConnect() {
 		Password: "",
 		Database: "postgres",
 	})
+	defer db.Close()
 
 	var n int
 	_, err := db.QueryOne(pg.Scan(&n), "SELECT 1")
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 	fmt.Println(n)
-
-	err = db.Close()
-	if err != nil {
-		panic(err)
-	}
-
 	// Output: 1
 }
 
@@ -67,9 +60,7 @@ func ExampleDB_QueryOne() {
         WITH users (name) AS (VALUES (?))
         SELECT * FROM users
     `, "admin")
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 	fmt.Println(res.RowsAffected())
 	fmt.Println(user)
 	// Output: 1
@@ -78,9 +69,7 @@ func ExampleDB_QueryOne() {
 
 func ExampleDB_QueryOne_returning_id() {
 	_, err := pgdb.Exec(`CREATE TEMP TABLE users(id serial, name varchar(500))`)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	var user struct {
 		Id   int32
@@ -91,17 +80,16 @@ func ExampleDB_QueryOne_returning_id() {
 	_, err = pgdb.QueryOne(&user, `
         INSERT INTO users (name) VALUES (?name) RETURNING id
     `, &user)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 	fmt.Println(user)
 	// Output: {1 admin}
 }
 
 func ExampleDB_Exec() {
 	res, err := pgdb.Exec(`CREATE TEMP TABLE test()`)
-	fmt.Println(res.RowsAffected(), err)
-	// Output: -1 <nil>
+	panicIf(err)
+	fmt.Println(res.RowsAffected())
+	// Output: -1
 }
 
 func ExampleListener() {
@@ -113,9 +101,7 @@ func ExampleListener() {
 	go func() {
 		time.Sleep(time.Millisecond)
 		_, err := pgdb.Exec("NOTIFY mychan, ?", "hello world")
-		if err != nil {
-			panic(err)
-		}
+		panicIf(err)
 	}()
 
 	notif := <-ch
@@ -135,9 +121,7 @@ func txExample() *pg.DB {
 	}
 	for _, q := range queries {
 		_, err := db.Exec(q)
-		if err != nil {
-			panic(err)
-		}
+		panicIf(err)
 	}
 
 	return db
@@ -176,18 +160,15 @@ func ExampleDB_Begin() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := incrInTx(db); err != nil {
-				panic(err)
-			}
+			err := incrInTx(db)
+			panicIf(err)
 		}()
 	}
 	wg.Wait()
 
 	var counter int
 	_, err := db.QueryOne(pg.Scan(&counter), `SELECT counter FROM tx_test`)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 	fmt.Println(counter)
 	// Output: 10
 }
@@ -217,33 +198,26 @@ func ExampleDB_RunInTransaction() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			if err := incrInTx(db); err != nil {
-				panic(err)
-			}
+			err := incrInTx(db)
+			panicIf(err)
 		}()
 	}
 	wg.Wait()
 
 	var counter int
 	_, err := db.QueryOne(pg.Scan(&counter), `SELECT counter FROM tx_test`)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 	fmt.Println(counter)
 	// Output: 10
 }
 
 func ExampleDB_Prepare() {
 	stmt, err := pgdb.Prepare(`SELECT $1::text, $2::text`)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	var s1, s2 string
 	_, err = stmt.QueryOne(pg.Scan(&s1, &s2), "foo", "bar")
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 	fmt.Println(s1, s2)
 	// Output: foo bar
 }
@@ -266,9 +240,7 @@ func ExampleDB_CreateTable() {
 			Temp:          true, // create temp table
 			FKConstraints: true,
 		})
-		if err != nil {
-			panic(err)
-		}
+		panicIf(err)
 	}
 
 	var info []struct {
@@ -280,9 +252,7 @@ func ExampleDB_CreateTable() {
 		FROM information_schema.columns
 		WHERE table_name = 'model2'
 	`)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 	fmt.Println(info)
 	// Output: [{id bigint} {name text} {model1_id bigint}]
 }
@@ -290,8 +260,9 @@ func ExampleDB_CreateTable() {
 func ExampleInts() {
 	var nums pg.Ints
 	_, err := pgdb.Query(&nums, `SELECT generate_series(0, 10)`)
-	fmt.Println(nums, err)
-	// Output: [0 1 2 3 4 5 6 7 8 9 10] <nil>
+	panicIf(err)
+	fmt.Println(nums)
+	// Output: [0 1 2 3 4 5 6 7 8 9 10]
 }
 
 func ExampleStrings() {
@@ -299,27 +270,22 @@ func ExampleStrings() {
 	_, err := pgdb.Query(&strs, `
 		WITH users AS (VALUES ('foo'), ('bar')) SELECT * FROM users
 	`)
-	fmt.Println(strs, err)
-	// Output: [foo bar] <nil>
+	panicIf(err)
+	fmt.Println(strs)
+	// Output: [foo bar]
 }
 
 func ExampleDB_CopyFrom() {
 	_, err := pgdb.Exec(`CREATE TEMP TABLE words(word text, len int)`)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	r := strings.NewReader("hello,5\nfoo,3\n")
 	_, err = pgdb.CopyFrom(r, `COPY words FROM STDIN WITH CSV`)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	var buf bytes.Buffer
 	_, err = pgdb.CopyTo(&buf, `COPY words TO STDOUT WITH CSV`)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 	fmt.Println(buf.String())
 	// Output: hello,5
 	// foo,3
@@ -331,14 +297,32 @@ func ExampleDB_WithTimeout() {
 	_, err := pgdb.WithTimeout(time.Minute).QueryOne(pg.Scan(&count), `
 		SELECT count(*) FROM big_table
 	`)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 }
 
 func ExampleScan() {
 	var s1, s2 string
 	_, err := pgdb.QueryOne(pg.Scan(&s1, &s2), `SELECT ?, ?`, "foo", "bar")
-	fmt.Println(s1, s2, err)
-	// Output: foo bar <nil>
+	panicIf(err)
+	fmt.Println(s1, s2)
+	// Output: foo bar
+}
+
+func ExampleError_IntegrityViolation() {
+	flight := &Flight{
+		Id: 123,
+	}
+	err := pgdb.Insert(flight)
+	panicIf(err)
+
+	err = pgdb.Insert(flight)
+	if err != nil {
+		pgErr, ok := err.(pg.Error)
+		if ok && pgErr.IntegrityViolation() {
+			fmt.Println("flight already exists:", err)
+		} else {
+			panic(err)
+		}
+	}
+	// Output: flight already exists: ERROR #23505 duplicate key value violates unique constraint "flights_pkey"
 }
