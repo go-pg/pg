@@ -17,12 +17,7 @@ type CreateTableOptions struct {
 }
 
 func CreateTable(db DB, model interface{}, opt *CreateTableOptions) error {
-	q := NewQuery(db, model)
-	_, err := q.db.Exec(createTableQuery{
-		q:   q,
-		opt: opt,
-	})
-	return err
+	return NewQuery(db, model).CreateTable(opt)
 }
 
 type createTableQuery struct {
@@ -45,7 +40,6 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.model == nil {
 		return nil, errors.New("pg: Model(nil)")
 	}
-
 	table := q.q.model.Table()
 
 	b = append(b, "CREATE "...)
@@ -56,7 +50,7 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.opt != nil && q.opt.IfNotExists {
 		b = append(b, "IF NOT EXISTS "...)
 	}
-	b = q.q.appendTableName(b)
+	b = q.q.appendFirstTable(b)
 	b = append(b, " ("...)
 
 	for i, field := range table.Fields {

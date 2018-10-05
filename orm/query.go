@@ -1001,6 +1001,22 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 	return res, nil
 }
 
+func (q *Query) CreateTable(opt *CreateTableOptions) error {
+	_, err := q.db.Exec(createTableQuery{
+		q:   q,
+		opt: opt,
+	})
+	return err
+}
+
+func (q *Query) DropTable(opt *DropTableOptions) error {
+	_, err := q.db.Exec(dropTableQuery{
+		q:   q,
+		opt: opt,
+	})
+	return err
+}
+
 // Exec is an alias for DB.Exec.
 func (q *Query) Exec(query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)
@@ -1062,24 +1078,21 @@ func (q *Query) hasModel() bool {
 	return !q.ignoreModel && q.model != nil
 }
 
+func (q *Query) modelHasTableName() bool {
+	return q.hasModel() && q.model.Table().Name != ""
+}
+
+func (q *Query) modelHasTableAlias() bool {
+	return q.hasModel() && q.model.Table().Alias != ""
+}
+
 func (q *Query) hasTables() bool {
-	return q.hasModel() || len(q.tables) > 0
-}
-
-func (q *Query) appendTableName(b []byte) []byte {
-	return q.FormatQuery(b, string(q.model.Table().Name))
-}
-
-func (q *Query) appendTableNameWithAlias(b []byte) []byte {
-	b = q.appendTableName(b)
-	b = append(b, " AS "...)
-	b = append(b, q.model.Table().Alias...)
-	return b
+	return q.modelHasTableName() || len(q.tables) > 0
 }
 
 func (q *Query) appendFirstTable(b []byte) []byte {
-	if q.hasModel() {
-		return q.appendTableName(b)
+	if q.modelHasTableName() {
+		return q.FormatQuery(b, string(q.model.Table().Name))
 	}
 	if len(q.tables) > 0 {
 		b = q.tables[0].AppendFormat(b, q)
@@ -1088,17 +1101,27 @@ func (q *Query) appendFirstTable(b []byte) []byte {
 }
 
 func (q *Query) appendFirstTableWithAlias(b []byte) []byte {
-	if q.hasModel() {
-		return q.appendTableNameWithAlias(b)
+	if q.modelHasTableName() {
+		table := q.model.Table()
+		b = q.FormatQuery(b, string(table.Name))
+		b = append(b, " AS "...)
+		b = append(b, table.Alias...)
+		return b
 	}
+
 	if len(q.tables) > 0 {
 		b = q.tables[0].AppendFormat(b, q)
+		if q.modelHasTableAlias() {
+			b = append(b, " AS "...)
+			b = append(b, q.model.Table().Alias...)
+		}
 	}
+
 	return b
 }
 
 func (q *Query) hasMultiTables() bool {
-	if q.hasModel() {
+	if q.modelHasTableName() {
 		return len(q.tables) > 0
 	}
 	return len(q.tables) > 1
@@ -1106,7 +1129,7 @@ func (q *Query) hasMultiTables() bool {
 
 func (q *Query) appendOtherTables(b []byte) []byte {
 	tables := q.tables
-	if !q.hasModel() {
+	if !q.modelHasTableName() {
 		tables = tables[1:]
 	}
 	for i, f := range tables {

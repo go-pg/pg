@@ -8,12 +8,7 @@ type DropTableOptions struct {
 }
 
 func DropTable(db DB, model interface{}, opt *DropTableOptions) error {
-	q := NewQuery(db, model)
-	_, err := q.db.Exec(dropTableQuery{
-		q:   q,
-		opt: opt,
-	})
-	return err
+	return NewQuery(db, model).DropTable(opt)
 }
 
 type dropTableQuery struct {
@@ -41,7 +36,7 @@ func (q dropTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.opt != nil && q.opt.IfExists {
 		b = append(b, "IF EXISTS "...)
 	}
-	b = q.q.appendTableName(b)
+	b = q.q.appendFirstTable(b)
 	if q.opt != nil && q.opt.Cascade {
 		b = append(b, " CASCADE"...)
 	}

@@ -182,20 +182,38 @@ func (q selectQuery) isDistinct() bool {
 }
 
 func (q selectQuery) appendTables(b []byte) []byte {
-	if q.q.hasModel() {
-		b = q.q.FormatQuery(b, string(q.q.model.Table().NameForSelects))
-		b = append(b, " AS "...)
-		b = append(b, q.q.model.Table().Alias...)
+	tables := q.q.tables
 
-		if len(q.q.tables) > 0 {
+	if q.q.modelHasTableName() {
+		table := q.q.model.Table()
+		b = q.q.FormatQuery(b, string(table.NameForSelects))
+		if table.Alias != "" {
+			b = append(b, " AS "...)
+			b = append(b, table.Alias...)
+		}
+
+		if len(tables) > 0 {
+			b = append(b, ", "...)
+		}
+	} else if len(tables) > 0 {
+		b = tables[0].AppendFormat(b, q.q)
+		if q.q.modelHasTableAlias() {
+			b = append(b, " AS "...)
+			b = append(b, q.q.model.Table().Alias...)
+		}
+
+		tables = tables[1:]
+		if len(tables) > 0 {
 			b = append(b, ", "...)
 		}
 	}
-	for i, f := range q.q.tables {
+
+	for i, f := range tables {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
 		b = f.AppendFormat(b, q.q)
 	}
+
 	return b
 }
