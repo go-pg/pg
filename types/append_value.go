@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/go-pg/pg/internal"
 )
 
 var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
@@ -59,6 +61,8 @@ func appender(typ reflect.Type, pgArray bool) AppenderFunc {
 		return appendIPValue
 	case ipNetType:
 		return appendIPNetValue
+	case jsonRawMessageType:
+		return appendJSONRawMessageValue
 	}
 
 	if typ.Implements(appenderType) {
@@ -166,6 +170,10 @@ func appendIPValue(b []byte, v reflect.Value, quote int) []byte {
 func appendIPNetValue(b []byte, v reflect.Value, quote int) []byte {
 	ipnet := v.Interface().(net.IPNet)
 	return AppendString(b, ipnet.String(), quote)
+}
+
+func appendJSONRawMessageValue(b []byte, v reflect.Value, quote int) []byte {
+	return AppendString(b, internal.BytesToString(v.Bytes()), quote)
 }
 
 func appendAppenderValue(b []byte, v reflect.Value, quote int) []byte {
