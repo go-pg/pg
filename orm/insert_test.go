@@ -193,10 +193,23 @@ var _ = Describe("Insert", func() {
 			Bool bool `sql:",notnull,default:_"`
 		}
 
-		q := NewQuery(nil, &Model{}) //.WherePK()
+		q := NewQuery(nil, &Model{})
 
 		b, err := (&insertQuery{q: q}).AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO "models" ("id", "bool") VALUES (DEFAULT, DEFAULT) RETURNING "id", "bool"`))
+	})
+
+	It("support models without a name", func() {
+		type Model struct {
+			tableName struct{} `sql:"_"`
+			Id        int
+		}
+
+		q := NewQuery(nil, &Model{}).Table("dynamic_name")
+
+		b, err := (&insertQuery{q: q}).AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "dynamic_name" ("id") VALUES (DEFAULT) RETURNING "id"`))
 	})
 })

@@ -258,7 +258,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			return nil
 		}
 
-		if sqlTag.Name != "" {
+		if sqlTag.Name == "_" {
+			t.setName("")
+		} else if sqlTag.Name != "" {
 			s, _ := unquoteTagValue(sqlTag.Name)
 			t.setName(types.Q(quoteTableName(s)))
 		}
