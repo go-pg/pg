@@ -16,6 +16,7 @@ var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 var ipType = reflect.TypeOf((*net.IP)(nil)).Elem()
 var ipNetType = reflect.TypeOf((*net.IPNet)(nil)).Elem()
+var jsonRawMessageType = reflect.TypeOf((*json.RawMessage)(nil)).Elem()
 
 type ScannerFunc func(reflect.Value, []byte) error
 
@@ -64,6 +65,8 @@ func scanner(typ reflect.Type, pgArray bool) ScannerFunc {
 		return scanIPValue
 	case ipNetType:
 		return scanIPNetValue
+	case jsonRawMessageType:
+		return scanJSONRawMessageValue
 	}
 
 	if typ.Implements(scannerType) {
@@ -264,6 +267,14 @@ func scanIPNetValue(v reflect.Value, b []byte) error {
 		return err
 	}
 	v.Set(reflect.ValueOf(*ipnet))
+	return nil
+}
+
+func scanJSONRawMessageValue(v reflect.Value, b []byte) error {
+	if !v.CanSet() {
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
+	v.Set(reflect.ValueOf(b))
 	return nil
 }
 

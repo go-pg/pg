@@ -36,6 +36,7 @@ var nullBoolType = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
 var nullFloatType = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
 var nullIntType = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
 var nullStringType = reflect.TypeOf((*sql.NullString)(nil)).Elem()
+var jsonRawMessageType = reflect.TypeOf((*json.RawMessage)(nil)).Elem()
 
 // Table represents a SQL table created from Go struct.
 type Table struct {
@@ -700,6 +701,8 @@ func sqlType(typ reflect.Type) string {
 		return "bigint"
 	case nullStringType:
 		return "text"
+	case jsonRawMessageType:
+		return "jsonb"
 	}
 
 	switch typ.Kind() {
