@@ -33,11 +33,13 @@ func (f *URLFilter) Values() URLValues {
 	return f.values
 }
 
-func (f *URLFilter) Allow(filter string) {
+func (f *URLFilter) Allow(filters ...string) {
 	if f.allowed == nil {
 		f.allowed = make(map[string]struct{})
 	}
-	f.allowed[filter] = struct{}{}
+	for _, filter := range filters {
+		f.allowed[filter] = struct{}{}
+	}
 }
 
 func (f *URLFilter) isAllowed(filter string) bool {
