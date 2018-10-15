@@ -32,8 +32,10 @@ func (p *ArrayParser) NextElem() ([]byte, error) {
 
 	switch c := p.Peek(); c {
 	case '"':
-		p.Advance()
-		b := p.readSubstring()
+		b, err := p.ReadSubstring()
+		if err != nil {
+			return nil, err
+		}
 
 		if p.Valid() {
 			if err := p.MustSkip(','); err != nil {

@@ -136,7 +136,11 @@ func (p *Parser) ReadString() ([]byte, error) {
 	return b, nil
 }
 
-func (p *Parser) readSubstring() []byte {
+func (p *Parser) ReadSubstring() ([]byte, error) {
+	if !p.Skip('"') {
+		return nil, fmt.Errorf("pg: substring: can't find opening quote: %q", p.Bytes())
+	}
+
 	var b []byte
 	for p.Valid() {
 		c := p.Read()
@@ -161,10 +165,11 @@ func (p *Parser) readSubstring() []byte {
 				b = append(b, c)
 			}
 		case '"':
-			return b
+			return b, nil
 		default:
 			b = append(b, c)
 		}
 	}
-	return b
+
+	return nil, fmt.Errorf("pg: substring: can't find closing quote: %q", p.Bytes())
 }

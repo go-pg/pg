@@ -31,7 +31,7 @@ func (p *CompositeParser) NextElem() ([]byte, error) {
 
 	switch c := p.Peek(); c {
 	case '"':
-		b, err := p.ReadString()
+		b, err := p.ReadSubstring()
 		if err != nil {
 			return nil, err
 		}
