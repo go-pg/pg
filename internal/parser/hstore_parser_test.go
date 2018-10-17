@@ -40,17 +40,15 @@ func TestHstoreParser(t *testing.T) {
 
 		if len(got) != len(test.m) {
 			t.Fatalf(
-				"#%d got %d elements, wanted %d (got=%#v wanted=%#v)",
-				testi, len(got), len(test.m), got, test.m,
-			)
+				"test #%d got %d elements, wanted %d (got=%#v wanted=%#v)",
+				testi, len(got), len(test.m), got, test.m)
 		}
 
 		for k, v := range got {
 			if v != test.m[k] {
 				t.Fatalf(
-					"#%d el %q does not match: %q != %q (got=%#v wanted=%#v)",
-					testi, k, v, test.m[k], got, test.m,
-				)
+					"#%d el %q does not match: %s != %s (got=%#v wanted=%#v)",
+					testi, k, v, test.m[k], got, test.m)
 			}
 		}
 	}

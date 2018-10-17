@@ -120,14 +120,15 @@ func AppendString(b []byte, s string, quote int) []byte {
 		}
 
 		if quote == 2 {
-			if c == '"' {
+			switch c {
+			case '"':
 				b = append(b, '\\', '"')
-				continue
-			}
-			if c == '\\' {
+			case '\\':
 				b = append(b, '\\', '\\')
-				continue
+			default:
+				b = append(b, c)
 			}
+			continue
 		}
 
 		b = append(b, c)

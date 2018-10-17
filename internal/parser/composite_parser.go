@@ -31,7 +31,7 @@ func (p *CompositeParser) NextElem() ([]byte, error) {
 
 	switch c := p.Peek(); c {
 	case '"':
-		b, err := p.ReadSubstring()
+		b, err := p.readQuoted()
 		if err != nil {
 			return nil, err
 		}
@@ -50,4 +50,43 @@ func (p *CompositeParser) NextElem() ([]byte, error) {
 		}
 		return b, nil
 	}
+}
+
+func (p *Parser) readQuoted() ([]byte, error) {
+	if !p.Skip('"') {
+		return nil, fmt.Errorf("pg: composite: can't find opening quote: %q", p.Bytes())
+	}
+
+	var b []byte
+	for p.Valid() {
+		c := p.Read()
+		switch c {
+		case '\\':
+			switch p.Peek() {
+			case '\\':
+				p.Advance()
+				b = append(b, '\\')
+			default:
+				b = append(b, c)
+			}
+		case '\'':
+			if p.Peek() == '\'' {
+				p.Advance()
+				b = append(b, '\'')
+			} else {
+				b = append(b, c)
+			}
+		case '"':
+			if p.Peek() == '"' {
+				p.Advance()
+				b = append(b, '"')
+			} else {
+				return b, nil
+			}
+		default:
+			b = append(b, c)
+		}
+	}
+
+	return nil, fmt.Errorf("pg: composite: can't find closing quote: %q", p.Bytes())
 }

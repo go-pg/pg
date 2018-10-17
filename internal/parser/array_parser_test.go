@@ -38,17 +38,15 @@ func TestArrayParser(t *testing.T) {
 
 		if len(got) != len(test.els) {
 			t.Fatalf(
-				"#%d got %d elements, wanted %d (got=%#v wanted=%#v)",
-				testi, len(got), len(test.els), got, test.els,
-			)
+				"test #%d got %d elements, wanted %d (got=%#v wanted=%#v)",
+				testi, len(got), len(test.els), got, test.els)
 		}
 
 		for i, el := range got {
 			if el != test.els[i] {
 				t.Fatalf(
-					"#%d el #%d does not match: %q != %q (got=%#v wanted=%#v)",
-					testi, i, el, test.els[i], got, test.els,
-				)
+					"test #%d el #%d does not match: %s != %s (got=%#v wanted=%#v)",
+					testi, i, el, test.els[i], got, test.els)
 			}
 		}
 	}
