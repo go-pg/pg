@@ -152,7 +152,6 @@ func (t *Table) mustSoftDelete() error {
 }
 
 func (t *Table) AddField(field *Field) {
-	t.allFields = append(t.allFields, field)
 	t.Fields = append(t.Fields, field)
 	if field.HasFlag(PrimaryKeyFlag) {
 		t.PKs = append(t.PKs, field)
@@ -388,6 +387,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 	field.isZero = isZeroFunc(f.Type)
 
+	t.allFields = append(t.allFields, field)
 	if skip {
 		t.skippedFields = append(t.skippedFields, field)
 		t.FieldsMap[field.SQLName] = field

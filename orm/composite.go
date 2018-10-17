@@ -21,20 +21,31 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 
 		table := GetTable(typ)
 		p := parser.NewCompositeParser(b)
+
+		var firstErr error
 		for i := 0; p.Valid(); i++ {
 			elem, err := p.NextElem()
 			if err != nil {
 				return err
 			}
 
-			field := table.Fields[i]
+			if i >= len(table.allFields) {
+				if firstErr == nil {
+					firstErr = fmt.Errorf(
+						"%s has %d fields, but composite at least %d values",
+						table, len(table.allFields), i)
+				}
+				continue
+			}
+
+			field := table.allFields[i]
 			err = field.ScanValue(v, elem)
-			if err != nil {
-				return err
+			if err != nil && firstErr == nil {
+				firstErr = err
 			}
 		}
 
-		return nil
+		return firstErr
 	}
 }
 
