@@ -44,6 +44,11 @@ func (v URLValues) Bool(name string) (bool, error) {
 	return strconv.ParseBool(s)
 }
 
+func (v URLValues) MaybeBool(name string) bool {
+	flag, _ := v.Bool(name)
+	return flag
+}
+
 func (v URLValues) Int(name string) (int, error) {
 	s := v.String(name)
 	if s == "" {
