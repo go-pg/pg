@@ -69,7 +69,7 @@ func (j *join) manyQuery(q *Query) (*Query, error) {
 	}
 	where = appendColumns(where, j.JoinModel.Table().Alias, j.Rel.FKs)
 	if len(j.Rel.FKs) > 1 {
-		where = append(where, '(')
+		where = append(where, ')')
 	}
 	where = append(where, " IN ("...)
 	where = appendChildValues(

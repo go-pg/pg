@@ -590,6 +590,10 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 		fkValues = t.PKs
 	}
 
+	if len(fks) != len(fkValues) {
+		panic("len(fks) != len(fkValues)")
+	}
+
 	if len(fks) > 0 {
 		t.addRelation(&Relation{
 			Type:        HasManyRelation,
@@ -821,12 +825,24 @@ func foreignKeys(base, join *Table, fk string, tryFK bool) []*Field {
 		f := join.getField(fkName)
 		if f != nil && sqlTypeEqual(pk.SQLType, f.SQLType) {
 			fks = append(fks, f)
+			continue
+		}
+
+		if strings.IndexByte(pk.SQLName, '_') == -1 {
+			continue
+		}
+
+		f = join.getField(pk.SQLName)
+		if f != nil && sqlTypeEqual(pk.SQLType, f.SQLType) {
+			fks = append(fks, f)
+			continue
 		}
 	}
-	if len(fks) > 0 {
+	if len(fks) > 0 && len(fks) == len(base.PKs) {
 		return fks
 	}
 
+	fks = nil
 	for _, pk := range base.PKs {
 		if !strings.HasPrefix(pk.SQLName, "pk_") {
 			continue
@@ -837,7 +853,7 @@ func foreignKeys(base, join *Table, fk string, tryFK bool) []*Field {
 			fks = append(fks, f)
 		}
 	}
-	if len(fks) > 0 {
+	if len(fks) > 0 && len(fks) == len(base.PKs) {
 		return fks
 	}
 
@@ -848,16 +864,14 @@ func foreignKeys(base, join *Table, fk string, tryFK bool) []*Field {
 	if tryFK {
 		f := join.getField(fk)
 		if f != nil && sqlTypeEqual(base.PKs[0].SQLType, f.SQLType) {
-			fks = append(fks, f)
-			return fks
+			return []*Field{f}
 		}
 	}
 
 	for _, suffix := range []string{"id", "uuid"} {
 		f := join.getField(fk + suffix)
 		if f != nil && sqlTypeEqual(base.PKs[0].SQLType, f.SQLType) {
-			fks = append(fks, f)
-			return fks
+			return []*Field{f}
 		}
 	}
 
