@@ -99,10 +99,11 @@ func appendFloat(dst []byte, v float64, quote int) []byte {
 }
 
 func AppendString(b []byte, s string, quote int) []byte {
-	if quote == 2 {
-		b = append(b, '"')
-	} else if quote == 1 {
+	switch quote {
+	case 1:
 		b = append(b, '\'')
+	case 2:
+		b = append(b, '"')
 	}
 
 	for i := 0; i < len(s); i++ {
@@ -134,10 +135,11 @@ func AppendString(b []byte, s string, quote int) []byte {
 		b = append(b, c)
 	}
 
-	if quote >= 2 {
-		b = append(b, '"')
-	} else if quote == 1 {
+	switch quote {
+	case 1:
 		b = append(b, '\'')
+	case 2:
+		b = append(b, '"')
 	}
 
 	return b
@@ -148,17 +150,26 @@ func AppendBytes(b []byte, bytes []byte, quote int) []byte {
 		return AppendNull(b, quote)
 	}
 
-	if quote == 1 {
+	switch quote {
+	case 1:
 		b = append(b, '\'')
+	case 2:
+		b = append(b, '"')
 	}
 
 	tmp := make([]byte, hex.EncodedLen(len(bytes)))
 	hex.Encode(tmp, bytes)
+	if quote == 2 {
+		b = append(b, '\\')
+	}
 	b = append(b, "\\x"...)
 	b = append(b, tmp...)
 
-	if quote == 1 {
+	switch quote {
+	case 1:
 		b = append(b, '\'')
+	case 2:
+		b = append(b, '"')
 	}
 
 	return b

@@ -290,6 +290,8 @@ func conversionTests() []conversionTest {
 		{src: pg.Array([][]string{{"one", "two"}, {"three", "four"}}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
 		{src: pg.Array([][]string{{`'"\{}`}}), dst: pg.Array(new([][]string)), pgtype: "text[][]"},
 
+		{src: pg.Array([][]byte{[]byte(`'"\{}`)}), dst: pg.Array(new([][]byte)), pgtype: "bytea[]"},
+
 		{src: nil, dst: pg.Hstore(map[string]string(nil)), pgtype: "hstore", wanterr: "pg: Scan(nonsettable map[string]string)"},
 		{src: nil, dst: pg.Hstore(new(map[string]string)), pgtype: "hstore", wantnil: true},
 		{src: pg.Hstore(map[string]string(nil)), dst: pg.Hstore(new(map[string]string)), pgtype: "hstore", wantnil: true},
