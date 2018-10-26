@@ -103,7 +103,7 @@ func (t *tables) getByName(name string) *Table {
 	defer t.mu.RUnlock()
 
 	for _, t := range t.tables {
-		if string(t.Name) == name || t.ModelName == name {
+		if string(t.FullName) == name || t.ModelName == name {
 			return t
 		}
 	}

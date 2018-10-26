@@ -43,11 +43,13 @@ type Table struct {
 	Type       reflect.Type
 	zeroStruct reflect.Value
 
-	TypeName       string
-	Name           types.Q
-	NameForSelects types.Q
-	Alias          types.Q
-	ModelName      string
+	TypeName  string
+	Alias     types.Q
+	ModelName string
+
+	Name               string
+	FullName           types.Q
+	FullNameForSelects types.Q
 
 	allFields     []*Field // read only
 	skippedFields []*Field
@@ -65,8 +67,8 @@ type Table struct {
 }
 
 func (t *Table) setName(name types.Q) {
-	t.Name = name
-	t.NameForSelects = name
+	t.FullName = name
+	t.FullNameForSelects = name
 	if t.Alias == "" {
 		t.Alias = name
 	}
@@ -78,7 +80,8 @@ func newTable(typ reflect.Type) *Table {
 	t.zeroStruct = reflect.New(t.Type).Elem()
 	t.TypeName = internal.ToExported(t.Type.Name())
 	t.ModelName = internal.Underscore(t.Type.Name())
-	tableName := quoteTableName(tableNameInflector(t.ModelName))
+	t.Name = tableNameInflector(t.ModelName)
+	tableName := quoteTableName(t.Name)
 	t.setName(types.Q(types.AppendField(nil, tableName, 1)))
 	t.Alias = types.Q(types.AppendField(nil, t.ModelName, 1))
 
@@ -233,8 +236,8 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 			if inherit || override {
 				embeddedTable := newTable(fieldType)
 				t.TypeName = embeddedTable.TypeName
-				t.Name = embeddedTable.Name
-				t.NameForSelects = embeddedTable.NameForSelects
+				t.FullName = embeddedTable.FullName
+				t.FullNameForSelects = embeddedTable.FullNameForSelects
 				t.Alias = embeddedTable.Alias
 				t.ModelName = embeddedTable.ModelName
 			}
@@ -267,7 +270,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		if v, ok := sqlTag.Options["select"]; ok {
 			v, _ = unquoteTagValue(v)
-			t.NameForSelects = types.Q(quoteTableName(v))
+			t.FullNameForSelects = types.Q(quoteTableName(v))
 		}
 
 		if v, ok := sqlTag.Options["alias"]; ok {

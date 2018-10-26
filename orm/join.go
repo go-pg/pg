@@ -230,7 +230,7 @@ func (j *join) appendHasOneColumns(b []byte) []byte {
 
 func (j *join) appendHasOneJoin(q *Query, b []byte) []byte {
 	b = append(b, "LEFT JOIN "...)
-	b = q.FormatQuery(b, string(j.JoinModel.Table().NameForSelects))
+	b = q.FormatQuery(b, string(j.JoinModel.Table().FullNameForSelects))
 	b = append(b, " AS "...)
 	b = j.appendAlias(b)
 

@@ -124,7 +124,7 @@ func (q createTableQuery) appendFKConstraint(b []byte, table *Table, rel *Relati
 	b = append(b, ")"...)
 
 	b = append(b, " REFERENCES "...)
-	b = q.q.FormatQuery(b, string(rel.JoinTable.Name))
+	b = q.q.FormatQuery(b, string(rel.JoinTable.FullName))
 	b = append(b, " ("...)
 	b = appendColumns(b, "", rel.JoinTable.PKs)
 	b = append(b, ")"...)
