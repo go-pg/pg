@@ -1079,7 +1079,7 @@ func (q *Query) hasModel() bool {
 }
 
 func (q *Query) modelHasTableName() bool {
-	return q.hasModel() && q.model.Table().Name != ""
+	return q.hasModel() && q.model.Table().FullName != ""
 }
 
 func (q *Query) modelHasTableAlias() bool {
@@ -1092,7 +1092,7 @@ func (q *Query) hasTables() bool {
 
 func (q *Query) appendFirstTable(b []byte) []byte {
 	if q.modelHasTableName() {
-		return q.FormatQuery(b, string(q.model.Table().Name))
+		return q.FormatQuery(b, string(q.model.Table().FullName))
 	}
 	if len(q.tables) > 0 {
 		b = q.tables[0].AppendFormat(b, q)
@@ -1103,7 +1103,7 @@ func (q *Query) appendFirstTable(b []byte) []byte {
 func (q *Query) appendFirstTableWithAlias(b []byte) []byte {
 	if q.modelHasTableName() {
 		table := q.model.Table()
-		b = q.FormatQuery(b, string(table.Name))
+		b = q.FormatQuery(b, string(table.FullName))
 		b = append(b, " AS "...)
 		b = append(b, table.Alias...)
 		return b

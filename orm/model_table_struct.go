@@ -57,7 +57,7 @@ func (m *structTableModel) AppendParam(b []byte, f QueryFormatter, name string) 
 
 	switch name {
 	case "TableName":
-		b = f.FormatQuery(b, string(m.table.Name))
+		b = f.FormatQuery(b, string(m.table.FullName))
 		return b, true
 	case "TableAlias":
 		b = append(b, m.table.Alias...)
