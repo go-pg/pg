@@ -437,13 +437,10 @@ func (t *Table) init() {
 }
 
 func (t *Table) initRelations() {
-	for i := 0; i < len(t.Fields); {
-		f := t.Fields[i]
-		if t.tryRelation(f) {
-			t.Fields = removeField(t.Fields, f)
-			t.DataFields = removeField(t.DataFields, f)
-		} else {
-			i++
+	for _, field := range t.FieldsMap {
+		if t.tryRelation(field) {
+			t.DataFields = removeField(t.DataFields, field)
+			t.Fields = removeField(t.Fields, field)
 		}
 	}
 }
