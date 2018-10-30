@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
+	"github.com/go-pg/pg/types"
 
 	. "gopkg.in/check.v1"
 )
@@ -127,7 +128,7 @@ func (m *errLoader) NewModel() orm.ColumnScanner {
 	return m
 }
 
-func (m *errLoader) ScanColumn(int, string, []byte) error {
+func (m *errLoader) ScanColumn(int, string, types.Reader, int) error {
 	return m.err
 }
 

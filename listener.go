@@ -75,7 +75,6 @@ func (ln *Listener) _conn() (*pool.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	cn.LockReaderBuffer()
 
 	if cn.InitedAt.IsZero() {
 		err := ln.db.initConn(cn)
@@ -184,7 +183,7 @@ func (ln *Listener) ReceiveTimeout(timeout time.Duration) (channel, payload stri
 		return "", "", err
 	}
 
-	err = cn.WithReader(timeout, func(rd *pool.Reader) error {
+	err = cn.WithReader(timeout, func(rd *internal.BufReader) error {
 		channel, payload, err = readNotification(rd)
 		return err
 	})

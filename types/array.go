@@ -1,7 +1,6 @@
 package types
 
 import (
-	"database/sql"
 	"fmt"
 	"reflect"
 )
@@ -14,7 +13,7 @@ type Array struct {
 }
 
 var _ ValueAppender = (*Array)(nil)
-var _ sql.Scanner = (*Array)(nil)
+var _ ValueScanner = (*Array)(nil)
 
 func NewArray(vi interface{}) *Array {
 	v := reflect.ValueOf(vi)
@@ -33,20 +32,17 @@ func NewArray(vi interface{}) *Array {
 	}
 }
 
+func (a *Array) AppendValue(b []byte, quote int) []byte {
+	return a.append(b, a.v, quote)
+}
+
+func (a *Array) ScanValue(rd Reader, n int) error {
+	return a.scan(a.v, rd, n)
+}
+
 func (a *Array) Value() interface{} {
 	if a.v.IsValid() {
 		return a.v.Interface()
 	}
 	return nil
-}
-
-func (a *Array) AppendValue(b []byte, quote int) []byte {
-	return a.append(b, a.v, quote)
-}
-
-func (a *Array) Scan(b interface{}) error {
-	if b == nil {
-		return a.scan(a.v, nil)
-	}
-	return a.scan(a.v, b.([]byte))
 }

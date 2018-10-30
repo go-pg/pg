@@ -3,6 +3,8 @@ package orm
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/go-pg/pg/types"
 )
 
 type m2mModel struct {
@@ -124,9 +126,14 @@ func (m *m2mModel) AfterDelete(db DB) error {
 	return nil
 }
 
-func (m *m2mModel) ScanColumn(colIdx int, colName string, b []byte) error {
-	ok, err := m.sliceTableModel.scanColumn(colIdx, colName, b)
+func (m *m2mModel) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
+	ok, err := m.sliceTableModel.scanColumn(colIdx, colName, rd, n)
 	if ok {
+		return err
+	}
+
+	b, err := rd.ReadN(n)
+	if err != nil {
 		return err
 	}
 

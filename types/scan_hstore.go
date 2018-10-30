@@ -11,14 +11,33 @@ func HstoreScanner(typ reflect.Type) ScannerFunc {
 	if typ.Key() == stringType && typ.Elem() == stringType {
 		return scanMapStringStringValue
 	}
-	return func(v reflect.Value, b []byte) error {
+	return func(v reflect.Value, rd Reader, n int) error {
 		return fmt.Errorf("pg.Hstore(unsupported %s)", v.Type())
 	}
 }
 
-func scanMapStringString(b []byte) (map[string]string, error) {
-	if b == nil {
+func scanMapStringStringValue(v reflect.Value, rd Reader, n int) error {
+	if !v.CanSet() {
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
+
+	m, err := scanMapStringString(rd, n)
+	if err != nil {
+		return err
+	}
+
+	v.Set(reflect.ValueOf(m))
+	return nil
+}
+
+func scanMapStringString(rd Reader, n int) (map[string]string, error) {
+	if n == -1 {
 		return nil, nil
+	}
+
+	b, err := rd.ReadFullTemp()
+	if err != nil {
+		return nil, err
 	}
 
 	p := parser.NewHstoreParser(b)
@@ -43,16 +62,4 @@ func scanMapStringString(b []byte) (map[string]string, error) {
 		m[string(key)] = string(value)
 	}
 	return m, nil
-}
-
-func scanMapStringStringValue(v reflect.Value, b []byte) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-	m, err := scanMapStringString(b)
-	if err != nil {
-		return err
-	}
-	v.Set(reflect.ValueOf(m))
-	return nil
 }

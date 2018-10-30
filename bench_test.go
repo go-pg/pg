@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-pg/pg"
 	"github.com/go-pg/pg/orm"
+	"github.com/go-pg/pg/types"
 )
 
 func benchmarkDB() *pg.DB {
@@ -409,8 +410,12 @@ type OptRecord struct {
 
 var _ orm.ColumnScanner = (*OptRecord)(nil)
 
-func (r *OptRecord) ScanColumn(colIdx int, colName string, b []byte) error {
-	var err error
+func (r *OptRecord) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
+	b, err := rd.ReadN(n)
+	if err != nil {
+		return err
+	}
+
 	switch colName {
 	case "num1":
 		r.Num1, err = strconv.ParseInt(string(b), 10, 64)

@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/go-pg/pg/types"
 )
 
 type structTableModel struct {
@@ -211,8 +213,10 @@ func (m *structTableModel) AfterDelete(db DB) error {
 	return callAfterDeleteHook(m.strct.Addr(), db)
 }
 
-func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) error {
-	ok, err := m.scanColumn(colIdx, colName, b)
+func (m *structTableModel) ScanColumn(
+	colIdx int, colName string, rd types.Reader, n int,
+) error {
+	ok, err := m.scanColumn(colIdx, colName, rd, n)
 	if ok {
 		return err
 	}
@@ -224,10 +228,10 @@ func (m *structTableModel) ScanColumn(colIdx int, colName string, b []byte) erro
 }
 
 func (m *structTableModel) scanColumn(
-	colIdx int, colName string, b []byte,
+	colIdx int, colName string, rd types.Reader, n int,
 ) (bool, error) {
 	// Don't init nil struct when value is NULL.
-	if b == nil &&
+	if n == -1 &&
 		!m.structInited &&
 		m.strct.Kind() == reflect.Ptr &&
 		m.strct.IsNil() {
@@ -242,10 +246,10 @@ func (m *structTableModel) scanColumn(
 	joinName, fieldName := splitColumn(colName)
 	if joinName != "" {
 		if join := m.GetJoin(joinName); join != nil {
-			return join.JoinModel.scanColumn(colIdx, fieldName, b)
+			return join.JoinModel.scanColumn(colIdx, fieldName, rd, n)
 		}
 		if m.table.ModelName == joinName {
-			return m.scanColumn(colIdx, fieldName, b)
+			return m.scanColumn(colIdx, fieldName, rd, n)
 		}
 	}
 
@@ -254,7 +258,7 @@ func (m *structTableModel) scanColumn(
 		return false, nil
 	}
 
-	return true, field.ScanValue(m.strct, b)
+	return true, field.ScanValue(m.strct, rd, n)
 }
 
 func (m *structTableModel) GetJoin(name string) *join {
