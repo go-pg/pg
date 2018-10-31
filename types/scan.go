@@ -58,7 +58,7 @@ func ScanString(rd Reader, n int) (string, error) {
 }
 
 func ScanBytes(rd Reader, n int) ([]byte, error) {
-	if n == -1 {
+	if n <= 0 {
 		return nil, nil
 	}
 
