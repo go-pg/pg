@@ -259,12 +259,15 @@ func (ln *Listener) initChannel() {
 					<-timer.C
 				}
 			case <-timer.C:
-				_ = ln.ping()
+				pingErr := ln.ping()
 				if healthy {
 					healthy = false
 				} else {
+					if pingErr == nil {
+						pingErr = errPingTimeout
+					}
 					ln.mu.Lock()
-					ln._reconnect(errPingTimeout)
+					ln._reconnect(pingErr)
 					ln.mu.Unlock()
 				}
 			case <-ln.exit:
