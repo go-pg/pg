@@ -2,8 +2,6 @@ package orm
 
 import (
 	"reflect"
-	"runtime"
-	"sync"
 )
 
 type hookStubs struct{}
@@ -47,10 +45,6 @@ func (hookStubs) AfterDelete(_ DB) error {
 func callHookSlice(
 	slice reflect.Value, ptr bool, db DB, hook func(reflect.Value, DB) error,
 ) error {
-	if slice.Len() > 10 && runtime.NumCPU() > 2 {
-		return callHookSliceConcurrently(slice, ptr, db, hook)
-	}
-
 	var firstErr error
 	for i := 0; i < slice.Len(); i++ {
 		var err error
@@ -64,45 +58,6 @@ func callHookSlice(
 		}
 	}
 	return firstErr
-}
-
-func callHookSliceConcurrently(
-	slice reflect.Value, ptr bool, db DB, hook func(reflect.Value, DB) error,
-) error {
-	numCPU := runtime.NumCPU()
-	var wg sync.WaitGroup
-	limit := make(chan struct{}, numCPU)
-	errCh := make(chan error, 1)
-
-	for i := 0; i < slice.Len(); i++ {
-		limit <- struct{}{}
-		wg.Add(1)
-		go func(i int) {
-			defer func() {
-				wg.Done()
-				<-limit
-			}()
-
-			v := slice.Index(i)
-			if !ptr {
-				v = v.Addr()
-			}
-
-			err := hook(v, db)
-			select {
-			case errCh <- err:
-			default:
-			}
-		}(i)
-	}
-
-	wg.Wait()
-	select {
-	case err := <-errCh:
-		return err
-	default:
-		return nil
-	}
 }
 
 //------------------------------------------------------------------------------
