@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/types"
 )
 
 func ExampleDB_Model_postgresArrayStructTag() {
@@ -39,4 +40,28 @@ func ExampleArray() {
 	panicIf(err)
 	fmt.Println(dst)
 	// Output: [one@example.com two@example.com]
+}
+
+type MyArrayValueScanner struct {
+	sum int
+}
+
+var _ types.ArrayValueScanner = (*MyArrayValueScanner)(nil)
+
+func (s *MyArrayValueScanner) ScanArrayValue(rd types.Reader, n int) error {
+	num, err := types.ScanInt(rd, n)
+	if err != nil {
+		return err
+	}
+	s.sum += num
+	return nil
+}
+
+func ExampleDB_arrayValueScanner() {
+	var dst MyArrayValueScanner
+	_, err := pgdb.QueryOne(pg.Scan(pg.Array(&dst)),
+		`SELECT array_agg(id) from generate_series(0, 10) AS id`)
+	panicIf(err)
+	fmt.Println(dst.sum)
+	// Output: 55
 }

@@ -7,9 +7,28 @@ import (
 	"github.com/go-pg/pg/internal"
 )
 
-func ArrayScanner(typ reflect.Type) ScannerFunc {
-	elemType := typ.Elem()
+var arrayValueScannerType = reflect.TypeOf((*ArrayValueScanner)(nil)).Elem()
 
+type ArrayValueScanner interface {
+	ScanArrayValue(rd Reader, n int) error
+}
+
+func ArrayScanner(typ reflect.Type) ScannerFunc {
+	if typ.Implements(arrayValueScannerType) {
+		return scanArrayValueScannerValue
+	}
+
+	kind := typ.Kind()
+	if kind == reflect.Ptr {
+		typ = typ.Elem()
+		kind = typ.Kind()
+	}
+
+	if kind != reflect.Slice {
+		return nil
+	}
+
+	elemType := typ.Elem()
 	switch elemType {
 	case stringType:
 		return scanSliceStringValue
@@ -23,6 +42,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 
 	scanElem := scanner(elemType, true)
 	return func(v reflect.Value, rd Reader, n int) error {
+		v = reflect.Indirect(v)
 		if !v.CanSet() {
 			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 		}
@@ -78,6 +98,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 }
 
 func scanSliceStringValue(v reflect.Value, rd Reader, n int) error {
+	v = reflect.Indirect(v)
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
@@ -114,6 +135,7 @@ func decodeSliceString(rd Reader, n int) ([]string, error) {
 }
 
 func scanSliceIntValue(v reflect.Value, rd Reader, n int) error {
+	v = reflect.Indirect(v)
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
@@ -160,6 +182,7 @@ func decodeSliceInt(rd Reader, n int) ([]int, error) {
 }
 
 func scanSliceInt64Value(v reflect.Value, rd Reader, n int) error {
+	v = reflect.Indirect(v)
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
@@ -206,6 +229,7 @@ func decodeSliceInt64(rd Reader, n int) ([]int64, error) {
 }
 
 func scanSliceFloat64Value(v reflect.Value, rd Reader, n int) error {
+	v = reflect.Indirect(v)
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
@@ -249,4 +273,57 @@ func decodeSliceFloat64(rd Reader, n int) ([]float64, error) {
 	}
 
 	return slice, nil
+}
+
+func scanArrayValueScannerValue(v reflect.Value, rd Reader, n int) error {
+	if n == -1 {
+		if !v.IsNil() {
+			if !v.CanSet() {
+				return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+			}
+			v.Set(reflect.Zero(v.Type()))
+		}
+		return nil
+	}
+
+	if v.IsNil() {
+		if !v.CanSet() {
+			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+		}
+		v.Set(reflect.New(v.Type().Elem()))
+	}
+
+	p := newArrayParser(rd)
+	scanner := v.Interface().(ArrayValueScanner)
+	var elemRd *internal.BytesReader
+
+	for p.Valid() {
+		elem, err := p.NextElem()
+		if err != nil {
+			if err == endOfArray {
+				break
+			}
+			return err
+		}
+
+		if elemRd == nil {
+			elemRd = internal.NewBytesReader(elem)
+		} else {
+			elemRd.Reset(elem)
+		}
+
+		var elemN int
+		if elem == nil {
+			elemN = -1
+		} else {
+			elemN = len(elem)
+		}
+
+		err = scanner.ScanArrayValue(elemRd, elemN)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
