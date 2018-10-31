@@ -11,7 +11,7 @@ import (
 	"io"
 )
 
-const defaultBufSize = 4096
+const defaultBufSize = 8192
 
 type BufReader struct {
 	Columns [][]byte
