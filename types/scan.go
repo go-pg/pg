@@ -139,6 +139,24 @@ func ScanUint64(rd Reader, n int) (uint64, error) {
 	return num, nil
 }
 
+func ScanFloat64(rd Reader, n int) (float64, error) {
+	if n <= 0 {
+		return 0, nil
+	}
+
+	b, err := rd.ReadN(n)
+	if err != nil {
+		return 0, err
+	}
+
+	num, err := internal.ParseFloat(b, 64)
+	if err != nil {
+		return 0, err
+	}
+
+	return num, nil
+}
+
 func ScanTime(rd Reader, n int) (time.Time, error) {
 	if n <= 0 {
 		return time.Time{}, nil

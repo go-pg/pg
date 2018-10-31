@@ -203,17 +203,7 @@ func scanFloatValue(v reflect.Value, rd Reader, n int) error {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 
-	if n == -1 {
-		v.SetFloat(0)
-		return nil
-	}
-
-	b, err := rd.ReadN(n)
-	if err != nil {
-		return err
-	}
-
-	num, err := internal.ParseFloat(b, 64)
+	num, err := ScanFloat64(rd, n)
 	if err != nil {
 		return err
 	}
