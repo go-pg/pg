@@ -25,8 +25,6 @@ type HooklessModel interface {
 
 	// AddModel adds ColumnScanner created by NewModel to the Collection.
 	AddModel(ColumnScanner) error
-
-	ColumnScanner
 }
 
 type Model interface {

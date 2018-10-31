@@ -434,16 +434,18 @@ type OptRecords struct {
 	C []OptRecord
 }
 
+var _ orm.HooklessModel = (*OptRecords)(nil)
+
+func (rs *OptRecords) Init() error {
+	return nil
+}
+
 func (rs *OptRecords) NewModel() orm.ColumnScanner {
 	rs.C = append(rs.C, OptRecord{})
 	return &rs.C[len(rs.C)-1]
 }
 
 func (OptRecords) AddModel(_ orm.ColumnScanner) error {
-	return nil
-}
-
-func (OptRecords) AfterSelect(_ orm.DB) error {
 	return nil
 }
 
@@ -528,7 +530,7 @@ func _seedDB() error {
 		for j := 1; j <= 10; j++ {
 			err = db.Insert(&BookGenre{
 				BookId:  i,
-				GenreId: rand.Intn(99) + 1,
+				GenreId: j,
 			})
 			if err != nil {
 				return err
