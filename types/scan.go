@@ -45,7 +45,7 @@ func Scan(v interface{}, rd Reader, n int) error {
 }
 
 func ScanString(rd Reader, n int) (string, error) {
-	if n == -1 {
+	if n <= 0 {
 		return "", nil
 	}
 
@@ -86,7 +86,7 @@ func ScanBytes(rd Reader, n int) ([]byte, error) {
 }
 
 func ScanInt(rd Reader, n int) (int, error) {
-	if n == -1 {
+	if n <= 0 {
 		return 0, nil
 	}
 
@@ -104,7 +104,7 @@ func ScanInt(rd Reader, n int) (int, error) {
 }
 
 func ScanInt64(rd Reader, n int) (int64, error) {
-	if n == -1 {
+	if n <= 0 {
 		return 0, nil
 	}
 
@@ -122,7 +122,7 @@ func ScanInt64(rd Reader, n int) (int64, error) {
 }
 
 func ScanUint64(rd Reader, n int) (uint64, error) {
-	if n == -1 {
+	if n <= 0 {
 		return 0, nil
 	}
 
@@ -140,7 +140,7 @@ func ScanUint64(rd Reader, n int) (uint64, error) {
 }
 
 func ScanTime(rd Reader, n int) (time.Time, error) {
-	if n == -1 {
+	if n <= 0 {
 		return time.Time{}, nil
 	}
 
