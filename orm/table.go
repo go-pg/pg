@@ -673,7 +673,7 @@ func fieldSQLType(field *Field, pgTag, sqlTag *tag) string {
 		return "hstore"
 	}
 
-	if field.HasFlag(ArrayFlag) {
+	if field.HasFlag(ArrayFlag) && field.Type.Kind() == reflect.Slice {
 		sqlType := sqlType(field.Type.Elem())
 		return sqlType + "[]"
 	}
