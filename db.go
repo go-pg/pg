@@ -320,7 +320,7 @@ func (db *DB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...
 		return nil, err
 	}
 
-	err = cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		return readCopyInResponse(rd)
 	})
 	if err != nil {
@@ -348,7 +348,7 @@ func (db *DB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...
 	}
 
 	var res orm.Result
-	err = cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readReadyForQuery(rd)
 		return err
 	})
@@ -385,7 +385,7 @@ func (db *DB) copyTo(cn *pool.Conn, w io.Writer, query interface{}, params ...in
 	}
 
 	var res orm.Result
-	err = cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		err := readCopyOutResponse(rd)
 		if err != nil {
 			return err
@@ -485,7 +485,7 @@ func (db *DB) simpleQuery(
 	}
 
 	var res orm.Result
-	err = cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readSimpleQuery(rd)
 		return err
 	})
@@ -507,7 +507,7 @@ func (db *DB) simpleQueryData(
 	}
 
 	var res orm.Result
-	err = cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readSimpleQueryData(rd, model)
 		return err
 	})

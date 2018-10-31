@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+
+	"github.com/go-pg/pg/types"
 )
 
 type tableModel interface {
@@ -26,7 +28,7 @@ type tableModel interface {
 	Value() reflect.Value
 
 	setDeletedAt()
-	scanColumn(int, string, []byte) (bool, error)
+	scanColumn(int, string, types.Reader, int) (bool, error)
 }
 
 func newTableModel(value interface{}) (tableModel, error) {

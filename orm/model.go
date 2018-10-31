@@ -56,7 +56,7 @@ func NewModel(values ...interface{}) (Model, error) {
 		return v0, nil
 	case HooklessModel:
 		return newModelWithHookStubs(v0), nil
-	case sql.Scanner:
+	case types.ValueScanner, sql.Scanner:
 		return Scan(v0), nil
 	}
 

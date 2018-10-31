@@ -201,7 +201,7 @@ func prepare(db *DB, cn *pool.Conn, q string) (*Stmt, error) {
 	}
 
 	var columns [][]byte
-	cn.WithReader(db.opt.ReadTimeout, func(rd *pool.Reader) error {
+	cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		columns, err = readParseDescribeSync(rd)
 		return err
 	})
@@ -228,7 +228,7 @@ func (stmt *Stmt) extQuery(cn *pool.Conn, name string, params ...interface{}) (o
 	}
 
 	var res orm.Result
-	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *pool.Reader) error {
+	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readExtQuery(rd)
 		return err
 	})
@@ -250,7 +250,7 @@ func (stmt *Stmt) extQueryData(
 	}
 
 	var res orm.Result
-	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *pool.Reader) error {
+	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readExtQueryData(rd, model, columns)
 		return err
 	})
@@ -271,7 +271,7 @@ func (stmt *Stmt) closeStmt(cn *pool.Conn, name string) error {
 		return err
 	}
 
-	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *pool.Reader) error {
+	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		return readCloseCompleteMsg(rd)
 	})
 	return err

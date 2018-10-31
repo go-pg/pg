@@ -81,9 +81,9 @@ func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 	return f.append(b, fv, quote)
 }
 
-func (f *Field) ScanValue(strct reflect.Value, b []byte) error {
+func (f *Field) ScanValue(strct reflect.Value, rd types.Reader, n int) error {
 	fv := fieldByIndex(strct, f.Index)
-	return f.scan(fv, b)
+	return f.scan(fv, rd, n)
 }
 
 type Method struct {

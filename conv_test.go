@@ -81,7 +81,7 @@ func (test *conversionTest) String() string {
 func (test *conversionTest) Assert(t *testing.T, err error) {
 	if test.wanterr != "" {
 		if err == nil || err.Error() != test.wanterr {
-			t.Fatalf("got error %q, wanted %q (%s)", err, test.wanterr, test)
+			t.Fatalf("got error %v, wanted %q (%s)", err, test.wanterr, test)
 		}
 		return
 	}

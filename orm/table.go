@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"bytes"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -885,15 +884,17 @@ func (t *Table) getField(name string) *Field {
 	return t.FieldsMap[name]
 }
 
-func scanJSONValue(v reflect.Value, b []byte) error {
+func scanJSONValue(v reflect.Value, rd types.Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
 	}
-	if b == nil {
+
+	if n == -1 {
 		v.Set(reflect.New(v.Type()).Elem())
 		return nil
 	}
-	dec := json.NewDecoder(bytes.NewReader(b))
+
+	dec := json.NewDecoder(rd)
 	dec.UseNumber()
 	return dec.Decode(v.Addr().Interface())
 }

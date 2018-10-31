@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"io"
 	"log"
 	"os"
 	"strconv"
@@ -110,8 +111,14 @@ func (Strings) AddModel(_ orm.ColumnScanner) error {
 	return nil
 }
 
-func (strings *Strings) ScanColumn(colIdx int, _ string, b []byte) error {
-	*strings = append(*strings, string(b))
+func (strings *Strings) ScanColumn(colIdx int, _ string, rd types.Reader, n int) error {
+	b := make([]byte, n)
+	_, err := io.ReadFull(rd, b)
+	if err != nil {
+		return err
+	}
+
+	*strings = append(*strings, internal.BytesToString(b))
 	return nil
 }
 
@@ -150,12 +157,18 @@ func (Ints) AddModel(_ orm.ColumnScanner) error {
 	return nil
 }
 
-func (ints *Ints) ScanColumn(colIdx int, colName string, b []byte) error {
-	n, err := strconv.ParseInt(internal.BytesToString(b), 10, 64)
+func (ints *Ints) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
+	b, err := rd.ReadN(n)
 	if err != nil {
 		return err
 	}
-	*ints = append(*ints, n)
+
+	num, err := internal.ParseInt(b, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	*ints = append(*ints, num)
 	return nil
 }
 
@@ -193,17 +206,23 @@ func (IntSet) AddModel(_ orm.ColumnScanner) error {
 	return nil
 }
 
-func (setptr *IntSet) ScanColumn(colIdx int, colName string, b []byte) error {
+func (setptr *IntSet) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
+	b, err := rd.ReadN(n)
+	if err != nil {
+		return err
+	}
+
 	set := *setptr
 	if set == nil {
 		*setptr = make(IntSet)
 		set = *setptr
 	}
 
-	n, err := strconv.ParseInt(internal.BytesToString(b), 10, 64)
+	num, err := internal.ParseInt(b, 10, 64)
 	if err != nil {
 		return err
 	}
-	set[n] = struct{}{}
+
+	set[num] = struct{}{}
 	return nil
 }

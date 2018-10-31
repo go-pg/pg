@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	"github.com/go-pg/pg/internal"
-	"github.com/go-pg/pg/internal/parser"
 )
 
 func ArrayScanner(typ reflect.Type) ScannerFunc {
@@ -23,12 +22,12 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 	}
 
 	scanElem := scanner(elemType, true)
-	return func(v reflect.Value, b []byte) error {
+	return func(v reflect.Value, rd Reader, n int) error {
 		if !v.CanSet() {
 			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 		}
 
-		if b == nil {
+		if n == -1 {
 			if !v.IsNil() {
 				v.Set(reflect.Zero(v.Type()))
 			}
@@ -41,16 +40,34 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 			v.Set(v.Slice(0, 0))
 		}
 
-		p := parser.NewArrayParser(b)
+		p := newArrayParser(rd)
 		nextValue := internal.MakeSliceNextElemFunc(v)
+		var elemRd *internal.BytesReader
+
 		for p.Valid() {
 			elem, err := p.NextElem()
 			if err != nil {
+				if err == endOfArray {
+					break
+				}
 				return err
 			}
 
+			if elemRd == nil {
+				elemRd = internal.NewBytesReader(elem)
+			} else {
+				elemRd.Reset(elem)
+			}
+
+			var elemN int
+			if elem == nil {
+				elemN = -1
+			} else {
+				elemN = len(elem)
+			}
+
 			elemValue := nextValue()
-			err = scanElem(elemValue, elem)
+			err = scanElem(elemValue, elemRd, elemN)
 			if err != nil {
 				return err
 			}
@@ -60,138 +77,176 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 	}
 }
 
-func scanSliceStringValue(v reflect.Value, b []byte) error {
+func scanSliceStringValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	strings, err := decodeSliceString(b)
+
+	strings, err := decodeSliceString(rd, n)
 	if err != nil {
 		return err
 	}
+
 	v.Set(reflect.ValueOf(strings))
 	return nil
 }
 
-func decodeSliceString(b []byte) ([]string, error) {
-	if b == nil {
+func decodeSliceString(rd Reader, n int) ([]string, error) {
+	if n == -1 {
 		return nil, nil
 	}
-	p := parser.NewArrayParser(b)
-	s := make([]string, 0)
+
+	p := newArrayParser(rd)
+	slice := make([]string, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
 		if err != nil {
+			if err == endOfArray {
+				break
+			}
 			return nil, err
 		}
-		s = append(s, string(elem))
+
+		slice = append(slice, string(elem))
 	}
-	return s, nil
+
+	return slice, nil
 }
 
-func scanSliceIntValue(v reflect.Value, b []byte) error {
+func scanSliceIntValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	ints, err := decodeSliceInt(b)
+
+	slice, err := decodeSliceInt(rd, n)
 	if err != nil {
 		return err
 	}
-	v.Set(reflect.ValueOf(ints))
+
+	v.Set(reflect.ValueOf(slice))
 	return nil
 }
 
-func decodeSliceInt(b []byte) ([]int, error) {
-	if b == nil {
+func decodeSliceInt(rd Reader, n int) ([]int, error) {
+	if n == -1 {
 		return nil, nil
 	}
-	p := parser.NewArrayParser(b)
+
+	p := newArrayParser(rd)
 	slice := make([]int, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
 		if err != nil {
+			if err == endOfArray {
+				break
+			}
 			return nil, err
 		}
+
 		if elem == nil {
 			slice = append(slice, 0)
 			continue
 		}
+
 		n, err := internal.Atoi(elem)
 		if err != nil {
 			return nil, err
 		}
+
 		slice = append(slice, n)
 	}
+
 	return slice, nil
 }
 
-func scanSliceInt64Value(v reflect.Value, b []byte) error {
+func scanSliceInt64Value(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	ints, err := decodeSliceInt64(b)
+
+	slice, err := decodeSliceInt64(rd, n)
 	if err != nil {
 		return err
 	}
-	v.Set(reflect.ValueOf(ints))
+
+	v.Set(reflect.ValueOf(slice))
 	return nil
 }
 
-func decodeSliceInt64(b []byte) ([]int64, error) {
-	if b == nil {
+func decodeSliceInt64(rd Reader, n int) ([]int64, error) {
+	if n == -1 {
 		return nil, nil
 	}
-	p := parser.NewArrayParser(b)
+
+	p := newArrayParser(rd)
 	slice := make([]int64, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
 		if err != nil {
+			if err == endOfArray {
+				break
+			}
 			return nil, err
 		}
+
 		if elem == nil {
 			slice = append(slice, 0)
 			continue
 		}
+
 		n, err := internal.ParseInt(elem, 10, 64)
 		if err != nil {
 			return nil, err
 		}
+
 		slice = append(slice, n)
 	}
+
 	return slice, nil
 }
 
-func scanSliceFloat64Value(v reflect.Value, b []byte) error {
+func scanSliceFloat64Value(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	floats, err := decodeSliceFloat64(b)
+
+	slice, err := decodeSliceFloat64(rd, n)
 	if err != nil {
 		return err
 	}
-	v.Set(reflect.ValueOf(floats))
+
+	v.Set(reflect.ValueOf(slice))
 	return nil
 }
 
-func decodeSliceFloat64(b []byte) ([]float64, error) {
-	if b == nil {
+func decodeSliceFloat64(rd Reader, n int) ([]float64, error) {
+	if n == -1 {
 		return nil, nil
 	}
-	p := parser.NewArrayParser(b)
+
+	p := newArrayParser(rd)
 	slice := make([]float64, 0)
 	for p.Valid() {
 		elem, err := p.NextElem()
 		if err != nil {
+			if err == endOfArray {
+				break
+			}
 			return nil, err
 		}
+
 		if elem == nil {
 			slice = append(slice, 0)
 			continue
 		}
+
 		n, err := internal.ParseFloat(elem, 64)
 		if err != nil {
 			return nil, err
 		}
+
 		slice = append(slice, n)
 	}
+
 	return slice, nil
 }

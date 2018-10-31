@@ -4,23 +4,30 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/parser"
 	"github.com/go-pg/pg/types"
 )
 
 func compositeScanner(typ reflect.Type) types.ScannerFunc {
-	return func(v reflect.Value, b []byte) error {
+	return func(v reflect.Value, rd types.Reader, n int) error {
 		if !v.CanSet() {
 			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 		}
 
-		if b == nil {
+		if n == -1 {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
 
+		b, err := rd.ReadFullTemp()
+		if err != nil {
+			return err
+		}
+
 		table := GetTable(typ)
 		p := parser.NewCompositeParser(b)
+		var elemReader *internal.BytesReader
 
 		var firstErr error
 		for i := 0; p.Valid(); i++ {
@@ -38,8 +45,14 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 				continue
 			}
 
+			if elemReader == nil {
+				elemReader = internal.NewBytesReader(elem)
+			} else {
+				elemReader.Reset(elem)
+			}
+
 			field := table.allFields[i]
-			err = field.ScanValue(v, elem)
+			err = field.ScanValue(v, elemReader, len(elem))
 			if err != nil && firstErr == nil {
 				firstErr = err
 			}

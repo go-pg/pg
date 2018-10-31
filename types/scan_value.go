@@ -12,29 +12,30 @@ import (
 	"github.com/go-pg/pg/internal"
 )
 
-var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
+var valueScannerType = reflect.TypeOf((*ValueScanner)(nil)).Elem()
+var sqlScannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 var ipType = reflect.TypeOf((*net.IP)(nil)).Elem()
 var ipNetType = reflect.TypeOf((*net.IPNet)(nil)).Elem()
 var jsonRawMessageType = reflect.TypeOf((*json.RawMessage)(nil)).Elem()
 
-type ScannerFunc func(reflect.Value, []byte) error
+type ScannerFunc func(reflect.Value, Reader, int) error
 
 var valueScanners []ScannerFunc
 
 func init() {
 	valueScanners = []ScannerFunc{
 		reflect.Bool:          scanBoolValue,
-		reflect.Int:           scanIntValue,
-		reflect.Int8:          scanIntValue,
-		reflect.Int16:         scanIntValue,
-		reflect.Int32:         scanIntValue,
-		reflect.Int64:         scanIntValue,
-		reflect.Uint:          scanUintValue,
-		reflect.Uint8:         scanUintValue,
-		reflect.Uint16:        scanUintValue,
-		reflect.Uint32:        scanUintValue,
-		reflect.Uint64:        scanUintValue,
+		reflect.Int:           scanInt64Value,
+		reflect.Int8:          scanInt64Value,
+		reflect.Int16:         scanInt64Value,
+		reflect.Int32:         scanInt64Value,
+		reflect.Int64:         scanInt64Value,
+		reflect.Uint:          scanUint64Value,
+		reflect.Uint8:         scanUint64Value,
+		reflect.Uint16:        scanUint64Value,
+		reflect.Uint32:        scanUint64Value,
+		reflect.Uint64:        scanUint64Value,
 		reflect.Uintptr:       nil,
 		reflect.Float32:       scanFloatValue,
 		reflect.Float64:       scanFloatValue,
@@ -69,10 +70,17 @@ func scanner(typ reflect.Type, pgArray bool) ScannerFunc {
 		return scanJSONRawMessageValue
 	}
 
-	if typ.Implements(scannerType) {
+	if typ.Implements(valueScannerType) {
+		return scanValueScannerValue
+	}
+	if reflect.PtrTo(typ).Implements(valueScannerType) {
+		return scanValueScannerAddrValue
+	}
+
+	if typ.Implements(sqlScannerType) {
 		return scanSQLScannerValue
 	}
-	if reflect.PtrTo(typ).Implements(scannerType) {
+	if reflect.PtrTo(typ).Implements(sqlScannerType) {
 		return scanSQLScannerAddrValue
 	}
 
@@ -93,11 +101,12 @@ func scanner(typ reflect.Type, pgArray bool) ScannerFunc {
 
 func ptrScannerFunc(typ reflect.Type) ScannerFunc {
 	scanner := Scanner(typ.Elem())
-	return func(v reflect.Value, b []byte) error {
+	return func(v reflect.Value, rd Reader, n int) error {
 		if scanner == nil {
 			return fmt.Errorf("pg: Scan(unsupported %s)", v.Type())
 		}
-		if b == nil {
+
+		if n == -1 {
 			if v.IsNil() {
 				return nil
 			}
@@ -107,31 +116,33 @@ func ptrScannerFunc(typ reflect.Type) ScannerFunc {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
+
 		if v.IsNil() {
 			if !v.CanSet() {
 				return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 			}
 			v.Set(reflect.New(v.Type().Elem()))
 		}
-		return scanner(v.Elem(), b)
+
+		return scanner(v.Elem(), rd, n)
 	}
 }
 
-func scanIfaceValue(v reflect.Value, b []byte) error {
+func scanIfaceValue(v reflect.Value, rd Reader, n int) error {
 	if v.IsNil() {
-		return scanJSONValue(v, b)
+		return scanJSONValue(v, rd, n)
 	}
-	return ScanValue(v.Elem(), b)
+	return ScanValue(v.Elem(), rd, n)
 }
 
-func ScanValue(v reflect.Value, b []byte) error {
+func ScanValue(v reflect.Value, rd Reader, n int) error {
 	if !v.IsValid() {
 		return errors.New("pg: Scan(nil)")
 	}
 
 	scanner := Scanner(v.Type())
 	if scanner != nil {
-		return scanner(v, b)
+		return scanner(v, rd, n)
 	}
 
 	if v.Kind() == reflect.Interface {
@@ -140,176 +151,258 @@ func ScanValue(v reflect.Value, b []byte) error {
 	return fmt.Errorf("pg: Scan(unsupported %s)", v.Type())
 }
 
-func scanBoolValue(v reflect.Value, b []byte) error {
+func scanBoolValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	if b == nil {
+
+	if n == -1 {
 		v.SetBool(false)
 		return nil
 	}
+
+	b, err := rd.ReadN(n)
+	if err != nil {
+		return err
+	}
+
 	v.SetBool(len(b) == 1 && (b[0] == 't' || b[0] == '1'))
 	return nil
 }
 
-func scanIntValue(v reflect.Value, b []byte) error {
+func scanInt64Value(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	if b == nil {
-		v.SetInt(0)
-		return nil
-	}
-	n, err := internal.ParseInt(b, 10, 64)
+
+	num, err := ScanInt64(rd, n)
 	if err != nil {
 		return err
 	}
-	v.SetInt(n)
+
+	v.SetInt(num)
 	return nil
 }
 
-func scanUintValue(v reflect.Value, b []byte) error {
+func scanUint64Value(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	if b == nil {
-		v.SetUint(0)
-		return nil
-	}
-	n, err := internal.ParseUint(b, 10, 64)
+
+	num, err := ScanUint64(rd, n)
 	if err != nil {
 		return err
 	}
-	v.SetUint(n)
+
+	v.SetUint(num)
 	return nil
 }
 
-func scanFloatValue(v reflect.Value, b []byte) error {
+func scanFloatValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	if b == nil {
+
+	if n == -1 {
 		v.SetFloat(0)
 		return nil
 	}
-	n, err := internal.ParseFloat(b, 64)
+
+	b, err := rd.ReadN(n)
 	if err != nil {
 		return err
 	}
-	v.SetFloat(n)
+
+	num, err := internal.ParseFloat(b, 64)
+	if err != nil {
+		return err
+	}
+
+	v.SetFloat(num)
 	return nil
 }
 
-func scanStringValue(v reflect.Value, b []byte) error {
+func scanStringValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	v.SetString(string(b))
+
+	s, err := ScanString(rd, n)
+	if err != nil {
+		return err
+	}
+
+	v.SetString(s)
 	return nil
 }
 
-func scanJSONValue(v reflect.Value, b []byte) error {
+func scanJSONValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	if b == nil {
+
+	if n == -1 {
 		v.Set(reflect.New(v.Type()).Elem())
 		return nil
 	}
-	return json.Unmarshal(b, v.Addr().Interface())
+
+	dec := json.NewDecoder(rd)
+	return dec.Decode(v.Addr().Interface())
 }
 
-var zeroTimeValue = reflect.ValueOf(time.Time{})
-
-func scanTimeValue(v reflect.Value, b []byte) error {
+func scanTimeValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	if b == nil {
-		v.Set(zeroTimeValue)
-		return nil
-	}
-	tm, err := ParseTime(b)
+
+	tm, err := ScanTime(rd, n)
 	if err != nil {
 		return err
 	}
+
 	v.Set(reflect.ValueOf(tm))
 	return nil
 }
 
-func scanIPValue(v reflect.Value, b []byte) error {
+func scanIPValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	if b == nil {
+
+	if n == -1 {
 		return nil
 	}
+
+	b, err := rd.ReadN(n)
+	if err != nil {
+		return err
+	}
+
 	ip := net.ParseIP(internal.BytesToString(b))
 	if ip == nil {
 		return fmt.Errorf("pg: invalid ip=%q", b)
 	}
+
 	v.Set(reflect.ValueOf(ip))
 	return nil
 }
 
 var zeroIPNetValue = reflect.ValueOf(net.IPNet{})
 
-func scanIPNetValue(v reflect.Value, b []byte) error {
+func scanIPNetValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	if b == nil {
+
+	if n == -1 {
 		v.Set(zeroIPNetValue)
 		return nil
 	}
+
+	b, err := rd.ReadN(n)
+	if err != nil {
+		return err
+	}
+
 	_, ipnet, err := net.ParseCIDR(internal.BytesToString(b))
 	if err != nil {
 		return err
 	}
+
 	v.Set(reflect.ValueOf(*ipnet))
 	return nil
 }
 
-func scanJSONRawMessageValue(v reflect.Value, b []byte) error {
+func scanJSONRawMessageValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	v.Set(reflect.ValueOf(b))
-	return nil
-}
 
-func scanBytesValue(v reflect.Value, b []byte) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-	if b == nil {
+	if n == -1 {
 		v.SetBytes(nil)
 		return nil
 	}
-	bs, err := ScanBytes(b)
+
+	b, err := rd.ReadFull()
 	if err != nil {
 		return err
 	}
-	v.SetBytes(bs)
+
+	v.SetBytes(b)
 	return nil
 }
 
-func scanSQLScannerValue(v reflect.Value, b []byte) error {
-	if b == nil {
+func scanBytesValue(v reflect.Value, rd Reader, n int) error {
+	if !v.CanSet() {
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
+
+	if n == -1 {
+		v.SetBytes(nil)
+		return nil
+	}
+
+	b, err := ScanBytes(rd, n)
+	if err != nil {
+		return err
+	}
+
+	v.SetBytes(b)
+	return nil
+}
+
+func scanValueScannerValue(v reflect.Value, rd Reader, n int) error {
+	if n == -1 {
 		if v.IsNil() {
 			return nil
 		}
-		return scanSQLScanner(v.Interface().(sql.Scanner), nil)
+		return v.Interface().(ValueScanner).ScanValue(rd, n)
 	}
+
 	if v.IsNil() {
 		v.Set(reflect.New(v.Type().Elem()))
 	}
-	return scanSQLScanner(v.Interface().(sql.Scanner), b)
+
+	return v.Interface().(ValueScanner).ScanValue(rd, n)
 }
 
-func scanSQLScannerAddrValue(v reflect.Value, b []byte) error {
+func scanValueScannerAddrValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanAddr() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
-	return scanSQLScanner(v.Addr().Interface().(sql.Scanner), b)
+	return v.Addr().Interface().(ValueScanner).ScanValue(rd, n)
+}
+
+func scanSQLScannerValue(v reflect.Value, rd Reader, n int) error {
+	if n == -1 {
+		if v.IsNil() {
+			return nil
+		}
+		return scanSQLScanner(v.Interface().(sql.Scanner), rd, n)
+	}
+
+	if v.IsNil() {
+		v.Set(reflect.New(v.Type().Elem()))
+	}
+
+	return scanSQLScanner(v.Interface().(sql.Scanner), rd, n)
+}
+
+func scanSQLScannerAddrValue(v reflect.Value, rd Reader, n int) error {
+	if !v.CanAddr() {
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
+	return scanSQLScanner(v.Addr().Interface().(sql.Scanner), rd, n)
+}
+
+func scanSQLScanner(scanner sql.Scanner, rd Reader, n int) error {
+	if n == -1 {
+		return scanner.Scan(nil)
+	}
+
+	b, err := rd.ReadFullTemp()
+	if err != nil {
+		return err
+	}
+	return scanner.Scan(b)
 }

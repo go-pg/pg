@@ -3,6 +3,8 @@ package orm
 import (
 	"context"
 	"io"
+
+	"github.com/go-pg/pg/types"
 )
 
 // ColumnScanner is used to scan column values.
@@ -11,7 +13,7 @@ type ColumnScanner interface {
 	//
 	// An error should be returned if the value can not be stored
 	// without loss of information.
-	ScanColumn(colIdx int, colName string, b []byte) error
+	ScanColumn(colIdx int, colName string, rd types.Reader, n int) error
 }
 
 type QueryAppender interface {
