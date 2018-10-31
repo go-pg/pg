@@ -71,10 +71,18 @@ func ScanBytes(rd Reader, n int) ([]byte, error) {
 		return nil, fmt.Errorf("pg: can't parse bytes: %q", tmp)
 	}
 
+	if tmp[0] != '\\' || tmp[1] != 'x' {
+		return nil, fmt.Errorf("pg: can't parse bytes: %q", tmp)
+	}
 	tmp = tmp[2:] // Trim off "\\x".
+
 	b := make([]byte, hex.DecodedLen(len(tmp)))
-	_, err = hex.Decode(b, tmp)
-	return b, err
+	written, err := hex.Decode(b, tmp)
+	if err != nil {
+		return nil, err
+	}
+
+	return b[:written], err
 }
 
 func ScanInt(rd Reader, n int) (int, error) {

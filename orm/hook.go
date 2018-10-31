@@ -47,7 +47,7 @@ func (hookStubs) AfterDelete(_ DB) error {
 func callHookSlice(
 	slice reflect.Value, ptr bool, db DB, hook func(reflect.Value, DB) error,
 ) error {
-	if slice.Len() > 10 {
+	if slice.Len() > 10 && runtime.NumCPU() > 2 {
 		return callHookSliceConcurrently(slice, ptr, db, hook)
 	}
 
