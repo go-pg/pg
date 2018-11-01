@@ -62,47 +62,38 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 			return nil, err
 		}
 
-		c, err := p.p.ReadByte()
+		err = p.readCommaBrace()
 		if err != nil {
 			return nil, err
 		}
 
-		switch c {
-		case ',':
-			return b, nil
-		case '}':
-			return b, nil
-		default:
-			return nil, fmt.Errorf("pg: got %q, wanted ',' or '}'", c)
-		}
+		return b, nil
 	case '{':
 		b, err := p.readSubArray()
 		if err != nil {
 			return nil, err
 		}
 
-		c, err := p.p.ReadByte()
+		err = p.readCommaBrace()
 		if err != nil {
 			return nil, err
 		}
 
-		switch c {
-		case ',':
-			return b, nil
-		case '}':
-			return b, nil
-		default:
-			return nil, fmt.Errorf("pg: got %q, wanted ',' or '}'", c)
-		}
-	case '}':
-		return nil, endOfArray
+		return b, nil
 	default:
-		var b []byte
-		b = append(b, c)
+		err = p.p.UnreadByte()
+		if err != nil {
+			return nil, err
+		}
 
+		var b []byte
 		for {
 			bb, err := p.p.ReadSlice(',')
-			b = append(b, bb...)
+			if b == nil {
+				b = bb[:len(bb):len(bb)]
+			} else {
+				b = append(b, bb...)
+			}
 			if err == nil {
 				b = b[:len(b)-1]
 				break
@@ -156,5 +147,21 @@ func (p *arrayParser) readSubArray() ([]byte, error) {
 		default:
 			b = append(b, c)
 		}
+	}
+}
+
+func (p *arrayParser) readCommaBrace() error {
+	c, err := p.p.ReadByte()
+	if err != nil {
+		return err
+	}
+
+	switch c {
+	case ',':
+		return nil
+	case '}':
+		return nil
+	default:
+		return fmt.Errorf("pg: got %q, wanted ',' or '}'", c)
 	}
 }
