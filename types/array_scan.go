@@ -10,7 +10,9 @@ import (
 var arrayValueScannerType = reflect.TypeOf((*ArrayValueScanner)(nil)).Elem()
 
 type ArrayValueScanner interface {
+	BeforeScanArrayValue(rd Reader, n int) error
 	ScanArrayValue(rd Reader, n int) error
+	AfterScanArrayValue() error
 }
 
 func ArrayScanner(typ reflect.Type) ScannerFunc {
@@ -293,10 +295,14 @@ func scanArrayValueScannerValue(v reflect.Value, rd Reader, n int) error {
 		v.Set(reflect.New(v.Type().Elem()))
 	}
 
-	p := newArrayParser(rd)
 	scanner := v.Interface().(ArrayValueScanner)
-	var elemRd *internal.BytesReader
+	err := scanner.BeforeScanArrayValue(rd, n)
+	if err != nil {
+		return err
+	}
 
+	p := newArrayParser(rd)
+	var elemRd *internal.BytesReader
 	for p.Valid() {
 		elem, err := p.NextElem()
 		if err != nil {
@@ -325,5 +331,5 @@ func scanArrayValueScannerValue(v reflect.Value, rd Reader, n int) error {
 		}
 	}
 
-	return nil
+	return scanner.AfterScanArrayValue()
 }

@@ -48,12 +48,20 @@ type MyArrayValueScanner struct {
 
 var _ types.ArrayValueScanner = (*MyArrayValueScanner)(nil)
 
+func (s *MyArrayValueScanner) BeforeScanArrayValue(rd types.Reader, n int) error {
+	return nil
+}
+
 func (s *MyArrayValueScanner) ScanArrayValue(rd types.Reader, n int) error {
 	num, err := types.ScanInt(rd, n)
 	if err != nil {
 		return err
 	}
 	s.sum += num
+	return nil
+}
+
+func (s *MyArrayValueScanner) AfterScanArrayValue() error {
 	return nil
 }
 
