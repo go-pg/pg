@@ -80,6 +80,8 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 		}
 
 		return b, nil
+	case '}':
+		return nil, endOfArray
 	default:
 		err = p.p.UnreadByte()
 		if err != nil {

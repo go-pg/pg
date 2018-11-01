@@ -10,6 +10,8 @@ var arrayTests = []struct {
 	s   string
 	els []string
 }{
+	{`{}`, []string{}},
+	{`{""}`, []string{""}},
 	{`{"\\"}`, []string{`\`}},
 	{`{"''"}`, []string{`'`}},
 	{`{{"''\"{}"}}`, []string{`{"''\"{}"}`}},
@@ -31,6 +33,9 @@ func TestArrayParser(t *testing.T) {
 		for p.Valid() {
 			b, err := p.NextElem()
 			if err != nil {
+				if err == endOfArray {
+					break
+				}
 				t.Fatal(err)
 			}
 			got = append(got, string(b))
