@@ -75,6 +75,19 @@ func (v URLValues) MaybeInt64(name string) int64 {
 	return n
 }
 
+func (v URLValues) Float64(name string) (float64, error) {
+	s := v.String(name)
+	if s == "" {
+		return 0, nil
+	}
+	return strconv.ParseFloat(s, 64)
+}
+
+func (v URLValues) MaybeFloat64(name string) float64 {
+	n, _ := v.Float64(name)
+	return n
+}
+
 func (v URLValues) Time(name string) (time.Time, error) {
 	s := v.String(name)
 	if s == "" {
