@@ -1585,6 +1585,19 @@ var _ = Describe("ORM", func() {
 			err := db.Insert(&books)
 			Expect(err).To(MatchError("pg: can't bulk-insert empty slice []pg_test.Book"))
 		})
+
+		It("inserts books", func() {
+			books := []Image{{
+				Id:   111,
+				Path: "111.jpg",
+			}, {
+				Id:   222,
+				Path: "222.jpg",
+			}}
+			_, err := db.Model(&books).Insert()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(books)).NotTo(BeZero())
+		})
 	})
 
 	Describe("bulk update", func() {
@@ -1605,6 +1618,7 @@ var _ = Describe("ORM", func() {
 
 			_, err = db.Model(&books).Set("title = ?title").Update()
 			Expect(err).NotTo(HaveOccurred())
+			Expect(len(books)).NotTo(BeZero())
 
 			books = nil
 			err = db.Model(&books).Order("id").Select()
@@ -1627,6 +1641,7 @@ var _ = Describe("ORM", func() {
 				Update()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.RowsAffected()).To(Equal(2))
+			Expect(len(books)).NotTo(BeZero())
 
 			books = nil
 			err = db.Model(&books).Column("id", "title").Order("id").Select()
@@ -1654,6 +1669,7 @@ var _ = Describe("ORM", func() {
 
 			_, err = db.Model(&books).Column("title").Update()
 			Expect(err).NotTo(HaveOccurred())
+			Expect(len(books)).NotTo(BeZero())
 
 			books = nil
 			err = db.Model(&books).Order("id").Select()
