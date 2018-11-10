@@ -90,12 +90,12 @@ func ScanInt(rd Reader, n int) (int, error) {
 		return 0, nil
 	}
 
-	b, err := rd.ReadN(n)
+	tmp, err := rd.ReadN(n)
 	if err != nil {
 		return 0, err
 	}
 
-	num, err := internal.Atoi(b)
+	num, err := internal.Atoi(tmp)
 	if err != nil {
 		return 0, err
 	}
@@ -108,12 +108,12 @@ func ScanInt64(rd Reader, n int) (int64, error) {
 		return 0, nil
 	}
 
-	b, err := rd.ReadN(n)
+	tmp, err := rd.ReadN(n)
 	if err != nil {
 		return 0, err
 	}
 
-	num, err := internal.ParseInt(b, 10, 64)
+	num, err := internal.ParseInt(tmp, 10, 64)
 	if err != nil {
 		return 0, err
 	}
@@ -126,12 +126,12 @@ func ScanUint64(rd Reader, n int) (uint64, error) {
 		return 0, nil
 	}
 
-	b, err := rd.ReadN(n)
+	tmp, err := rd.ReadN(n)
 	if err != nil {
 		return 0, err
 	}
 
-	num, err := internal.ParseUint(b, 10, 64)
+	num, err := internal.ParseUint(tmp, 10, 64)
 	if err != nil {
 		return 0, err
 	}
@@ -144,12 +144,12 @@ func ScanFloat64(rd Reader, n int) (float64, error) {
 		return 0, nil
 	}
 
-	b, err := rd.ReadN(n)
+	tmp, err := rd.ReadN(n)
 	if err != nil {
 		return 0, err
 	}
 
-	num, err := internal.ParseFloat(b, 64)
+	num, err := internal.ParseFloat(tmp, 64)
 	if err != nil {
 		return 0, err
 	}
@@ -162,10 +162,10 @@ func ScanTime(rd Reader, n int) (time.Time, error) {
 		return time.Time{}, nil
 	}
 
-	b, err := rd.ReadN(n)
+	tmp, err := rd.ReadN(n)
 	if err != nil {
 		return time.Time{}, err
 	}
 
-	return ParseTime(b)
+	return ParseTime(tmp)
 }

@@ -161,12 +161,12 @@ func scanBoolValue(v reflect.Value, rd Reader, n int) error {
 		return nil
 	}
 
-	b, err := rd.ReadN(n)
+	tmp, err := rd.ReadN(n)
 	if err != nil {
 		return err
 	}
 
-	v.SetBool(len(b) == 1 && (b[0] == 't' || b[0] == '1'))
+	v.SetBool(len(tmp) == 1 && (tmp[0] == 't' || tmp[0] == '1'))
 	return nil
 }
 
@@ -263,14 +263,14 @@ func scanIPValue(v reflect.Value, rd Reader, n int) error {
 		return nil
 	}
 
-	b, err := rd.ReadN(n)
+	tmp, err := rd.ReadN(n)
 	if err != nil {
 		return err
 	}
 
-	ip := net.ParseIP(internal.BytesToString(b))
+	ip := net.ParseIP(internal.BytesToString(tmp))
 	if ip == nil {
-		return fmt.Errorf("pg: invalid ip=%q", b)
+		return fmt.Errorf("pg: invalid ip=%q", tmp)
 	}
 
 	v.Set(reflect.ValueOf(ip))
@@ -289,12 +289,12 @@ func scanIPNetValue(v reflect.Value, rd Reader, n int) error {
 		return nil
 	}
 
-	b, err := rd.ReadN(n)
+	tmp, err := rd.ReadN(n)
 	if err != nil {
 		return err
 	}
 
-	_, ipnet, err := net.ParseCIDR(internal.BytesToString(b))
+	_, ipnet, err := net.ParseCIDR(internal.BytesToString(tmp))
 	if err != nil {
 		return err
 	}
@@ -390,9 +390,9 @@ func scanSQLScanner(scanner sql.Scanner, rd Reader, n int) error {
 		return scanner.Scan(nil)
 	}
 
-	b, err := rd.ReadFullTemp()
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return err
 	}
-	return scanner.Scan(b)
+	return scanner.Scan(tmp)
 }

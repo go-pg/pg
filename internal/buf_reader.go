@@ -7,7 +7,6 @@ package internal
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"io"
 )
 
@@ -24,6 +23,7 @@ type BufReader struct {
 	err      error
 
 	available int // bytes available for reading
+	bytesRd   *BytesReader
 }
 
 func NewBufReader(rd io.Reader) *BufReader {
@@ -34,24 +34,31 @@ func NewBufReader(rd io.Reader) *BufReader {
 	}
 }
 
+func (b *BufReader) BytesReader(n int) *BytesReader {
+	if n > b.Buffered() {
+		panic("not reached")
+	}
+	buf := b.buf[b.r : b.r+n]
+	b.r += n
+	if b.bytesRd == nil {
+		b.bytesRd = NewBytesReader(buf)
+	} else {
+		b.bytesRd.Reset(buf)
+	}
+	return b.bytesRd
+}
+
 func (b *BufReader) SetAvailable(n int) {
 	b.available = n
 }
 
 func (b *BufReader) Available() int {
-	if b.available == -1 {
-		panic("not reached")
-	}
 	return b.available
 }
 
 func (b *BufReader) changeAvailable(n int) {
-	if b.available == -1 {
-		return
-	}
-	b.available += n
-	if b.available < 0 {
-		panic("not reached")
+	if b.available != -1 {
+		b.available += n
 	}
 }
 
@@ -94,8 +101,6 @@ func (b *BufReader) flush() []byte {
 	return buf
 }
 
-var errNegativeRead = errors.New("bufio: reader returned negative count from Read")
-
 // fill reads a new chunk into the buffer.
 func (b *BufReader) fill() {
 	// Slide existing data to beginning.
@@ -117,9 +122,6 @@ func (b *BufReader) fill() {
 	const maxConsecutiveEmptyReads = 100
 	for i := maxConsecutiveEmptyReads; i > 0; i-- {
 		n, err := b.rd.Read(b.buf[b.w:])
-		if n < 0 {
-			panic(errNegativeRead)
-		}
 		b.w += n
 		if err != nil {
 			b.err = err
@@ -161,9 +163,6 @@ func (b *BufReader) Read(p []byte) (n int, err error) {
 			// Large read, empty buffer.
 			// Read directly into p to avoid copy.
 			n, b.err = b.rd.Read(p)
-			if n < 0 {
-				panic(errNegativeRead)
-			}
 			if n > 0 {
 				b.changeAvailable(-n)
 				b.lastByte = int(p[n-1])
@@ -176,9 +175,6 @@ func (b *BufReader) Read(p []byte) (n int, err error) {
 		b.r = 0
 		b.w = 0
 		n, b.err = b.rd.Read(b.buf)
-		if n < 0 {
-			panic(errNegativeRead)
-		}
 		if n == 0 {
 			return 0, b.readErr()
 		}

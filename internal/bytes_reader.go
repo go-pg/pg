@@ -30,6 +30,10 @@ func (r *BytesReader) Available() int {
 	return len(r.s) - r.i
 }
 
+func (r *BytesReader) Bytes() []byte {
+	return r.s[r.i:]
+}
+
 func (r *BytesReader) Read(b []byte) (n int, err error) {
 	if r.i >= len(r.s) {
 		return 0, io.EOF

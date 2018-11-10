@@ -35,12 +35,12 @@ func scanMapStringString(rd Reader, n int) (map[string]string, error) {
 		return nil, nil
 	}
 
-	b, err := rd.ReadFullTemp()
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return nil, err
 	}
 
-	p := parser.NewHstoreParser(b)
+	p := parser.NewHstoreParser(tmp)
 	m := make(map[string]string)
 	for p.Valid() {
 		key, err := p.NextKey()
@@ -48,7 +48,7 @@ func scanMapStringString(rd Reader, n int) (map[string]string, error) {
 			return nil, err
 		}
 		if key == nil {
-			return nil, fmt.Errorf("pg: unexpected NULL: %q", b)
+			return nil, fmt.Errorf("pg: unexpected NULL: %q", tmp)
 		}
 
 		value, err := p.NextValue()
@@ -56,7 +56,7 @@ func scanMapStringString(rd Reader, n int) (map[string]string, error) {
 			return nil, err
 		}
 		if value == nil {
-			return nil, fmt.Errorf("pg: unexpected NULL: %q", b)
+			return nil, fmt.Errorf("pg: unexpected NULL: %q", tmp)
 		}
 
 		m[string(key)] = string(value)

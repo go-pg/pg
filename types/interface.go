@@ -35,6 +35,7 @@ func (f F) AppendValue(b []byte, quote int) []byte {
 type Reader interface {
 	Available() int
 
+	Bytes() []byte
 	Read([]byte) (int, error)
 	ReadByte() (byte, error)
 	UnreadByte() error
