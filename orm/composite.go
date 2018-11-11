@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/parser"
 	"github.com/go-pg/pg/types"
 )
@@ -27,7 +26,7 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 
 		table := GetTable(typ)
 		p := parser.NewCompositeParser(b)
-		var elemReader *internal.BytesReader
+		var elemReader *types.BytesReader
 
 		var firstErr error
 		for i := 0; p.Valid(); i++ {
@@ -46,7 +45,7 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 			}
 
 			if elemReader == nil {
-				elemReader = internal.NewBytesReader(elem)
+				elemReader = types.NewBytesReader(elem)
 			} else {
 				elemReader.Reset(elem)
 			}

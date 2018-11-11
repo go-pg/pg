@@ -751,19 +751,11 @@ func readDataRow(rd *internal.BufReader, scanner orm.ColumnScanner, columns [][]
 		}
 
 		column := internal.BytesToString(columns[colIdx])
-		var columnRd types.Reader
 		if n >= 0 {
-			if rd.Buffered() >= int(n) {
-				columnRd = rd.BytesReader(int(n))
-			} else {
-				rd.SetAvailable(int(n))
-				columnRd = rd
-			}
-		} else {
-			columnRd = rd.BytesReader(0)
+			rd.SetAvailable(int(n))
 		}
 
-		err = scanner.ScanColumn(int(colIdx), column, columnRd, int(n))
+		err = scanner.ScanColumn(int(colIdx), column, rd, int(n))
 		if err != nil && firstErr == nil {
 			firstErr = internal.Errorf(err.Error())
 		}

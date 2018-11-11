@@ -64,7 +64,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 
 		p := newArrayParser(rd)
 		nextValue := internal.MakeSliceNextElemFunc(v)
-		var elemRd *internal.BytesReader
+		var elemRd *BytesReader
 
 		for p.Valid() {
 			elem, err := p.NextElem()
@@ -76,7 +76,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 			}
 
 			if elemRd == nil {
-				elemRd = internal.NewBytesReader(elem)
+				elemRd = NewBytesReader(elem)
 			} else {
 				elemRd.Reset(elem)
 			}
@@ -302,7 +302,7 @@ func scanArrayValueScannerValue(v reflect.Value, rd Reader, n int) error {
 	}
 
 	p := newArrayParser(rd)
-	var elemRd *internal.BytesReader
+	var elemRd *BytesReader
 	for p.Valid() {
 		elem, err := p.NextElem()
 		if err != nil {
@@ -313,7 +313,7 @@ func scanArrayValueScannerValue(v reflect.Value, rd Reader, n int) error {
 		}
 
 		if elemRd == nil {
-			elemRd = internal.NewBytesReader(elem)
+			elemRd = NewBytesReader(elem)
 		} else {
 			elemRd.Reset(elem)
 		}
