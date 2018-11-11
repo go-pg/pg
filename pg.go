@@ -158,12 +158,7 @@ func (Ints) AddModel(_ orm.ColumnScanner) error {
 }
 
 func (ints *Ints) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
-	b, err := rd.ReadN(n)
-	if err != nil {
-		return err
-	}
-
-	num, err := internal.ParseInt(b, 10, 64)
+	num, err := types.ScanInt64(rd, n)
 	if err != nil {
 		return err
 	}
@@ -207,7 +202,7 @@ func (IntSet) AddModel(_ orm.ColumnScanner) error {
 }
 
 func (setptr *IntSet) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
-	b, err := rd.ReadN(n)
+	num, err := types.ScanInt64(rd, n)
 	if err != nil {
 		return err
 	}
@@ -216,11 +211,6 @@ func (setptr *IntSet) ScanColumn(colIdx int, colName string, rd types.Reader, n 
 	if set == nil {
 		*setptr = make(IntSet)
 		set = *setptr
-	}
-
-	num, err := internal.ParseInt(b, 10, 64)
-	if err != nil {
-		return err
 	}
 
 	set[num] = struct{}{}

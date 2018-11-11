@@ -42,7 +42,8 @@ type Reader interface {
 	ReadSlice(byte) ([]byte, error)
 	Discard(int) (int, error)
 
-	ReadN(int) ([]byte, error)
+	//ReadBytes(fn func(byte) bool) ([]byte, error)
+	//ReadN(int) ([]byte, error)
 	ReadFull() ([]byte, error)
 	ReadFullTemp() ([]byte, error)
 }

@@ -90,7 +90,7 @@ func ScanInt(rd Reader, n int) (int, error) {
 		return 0, nil
 	}
 
-	tmp, err := rd.ReadN(n)
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return 0, err
 	}
@@ -108,7 +108,7 @@ func ScanInt64(rd Reader, n int) (int64, error) {
 		return 0, nil
 	}
 
-	tmp, err := rd.ReadN(n)
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return 0, err
 	}
@@ -126,7 +126,7 @@ func ScanUint64(rd Reader, n int) (uint64, error) {
 		return 0, nil
 	}
 
-	tmp, err := rd.ReadN(n)
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return 0, err
 	}
@@ -144,7 +144,7 @@ func ScanFloat64(rd Reader, n int) (float64, error) {
 		return 0, nil
 	}
 
-	tmp, err := rd.ReadN(n)
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return 0, err
 	}
@@ -162,7 +162,7 @@ func ScanTime(rd Reader, n int) (time.Time, error) {
 		return time.Time{}, nil
 	}
 
-	tmp, err := rd.ReadN(n)
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return time.Time{}, err
 	}

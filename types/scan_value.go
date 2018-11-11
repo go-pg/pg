@@ -161,7 +161,7 @@ func scanBoolValue(v reflect.Value, rd Reader, n int) error {
 		return nil
 	}
 
-	tmp, err := rd.ReadN(n)
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return err
 	}
@@ -263,7 +263,7 @@ func scanIPValue(v reflect.Value, rd Reader, n int) error {
 		return nil
 	}
 
-	tmp, err := rd.ReadN(n)
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return err
 	}
@@ -289,7 +289,7 @@ func scanIPNetValue(v reflect.Value, rd Reader, n int) error {
 		return nil
 	}
 
-	tmp, err := rd.ReadN(n)
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return err
 	}

@@ -132,11 +132,11 @@ func (m *m2mModel) ScanColumn(colIdx int, colName string, rd types.Reader, n int
 		return err
 	}
 
-	b, err := rd.ReadN(n)
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return err
 	}
 
-	m.columns[colName] = string(b)
+	m.columns[colName] = string(tmp)
 	return nil
 }

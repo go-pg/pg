@@ -411,24 +411,24 @@ type OptRecord struct {
 var _ orm.ColumnScanner = (*OptRecord)(nil)
 
 func (r *OptRecord) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
-	b, err := rd.ReadN(n)
+	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return err
 	}
 
 	switch colName {
 	case "num1":
-		r.Num1, err = strconv.ParseInt(string(b), 10, 64)
+		r.Num1, err = strconv.ParseInt(string(tmp), 10, 64)
 	case "num2":
-		r.Num2, err = strconv.ParseInt(string(b), 10, 64)
+		r.Num2, err = strconv.ParseInt(string(tmp), 10, 64)
 	case "num3":
-		r.Num3, err = strconv.ParseInt(string(b), 10, 64)
+		r.Num3, err = strconv.ParseInt(string(tmp), 10, 64)
 	case "str1":
-		r.Str1 = string(b)
+		r.Str1 = string(tmp)
 	case "str2":
-		r.Str2 = string(b)
+		r.Str2 = string(tmp)
 	case "str3":
-		r.Str3 = string(b)
+		r.Str3 = string(tmp)
 	default:
 		return fmt.Errorf("unknown column: %q", colName)
 	}

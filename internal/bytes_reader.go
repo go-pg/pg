@@ -62,9 +62,25 @@ func (r *BytesReader) UnreadByte() error {
 
 func (r *BytesReader) ReadSlice(delim byte) ([]byte, error) {
 	if i := bytes.IndexByte(r.s[r.i:], delim); i >= 0 {
-		line := r.s[r.i : r.i+i+1]
-		r.i += i + 1
+		i++
+		line := r.s[r.i : r.i+i]
+		r.i += i
 		return line, nil
+	}
+
+	line := r.s[r.i:]
+	r.i = len(r.s)
+	return line, io.EOF
+}
+
+func (r *BytesReader) ReadBytes(fn func(byte) bool) ([]byte, error) {
+	for i, c := range r.s[r.i:] {
+		if !fn(c) {
+			i++
+			line := r.s[r.i : r.i+i]
+			r.i += i
+			return line, nil
+		}
 	}
 
 	line := r.s[r.i:]
