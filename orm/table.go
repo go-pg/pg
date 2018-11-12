@@ -24,10 +24,10 @@ const (
 	BeforeDeleteHookFlag
 	AfterDeleteHookFlag
 	discardUnknownColumns
-	softDelete
 )
 
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
+var nullTimeType = reflect.TypeOf((*types.NullTime)(nil)).Elem()
 var ipType = reflect.TypeOf((*net.IP)(nil)).Elem()
 var ipNetType = reflect.TypeOf((*net.IPNet)(nil)).Elem()
 var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
@@ -61,6 +61,8 @@ type Table struct {
 	Methods   map[string]*Method
 	Relations map[string]*Relation
 	Unique    map[string][]*Field
+
+	SoftDeleteField *Field
 
 	flags uint16
 }
@@ -147,7 +149,7 @@ func (t *Table) checkPKs() error {
 }
 
 func (t *Table) mustSoftDelete() error {
-	if !t.HasFlag(softDelete) {
+	if t.SoftDeleteField == nil {
 		return fmt.Errorf("pg: %s does not support soft deletes", t)
 	}
 	return nil
@@ -396,10 +398,14 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		return nil
 	}
 
-	switch field.SQLName {
-	case "deleted_at":
-		if _, ok := pgTag.Options["soft_delete"]; ok && field.Type == timeType {
-			t.SetFlag(softDelete)
+	if _, ok := pgTag.Options["soft_delete"]; ok {
+		switch field.Type {
+		case timeType, nullTimeType:
+			t.SoftDeleteField = field
+		default:
+			err := fmt.Errorf(
+				"soft_delete is only supported for time.Time and pg.NullTime")
+			panic(err)
 		}
 	}
 

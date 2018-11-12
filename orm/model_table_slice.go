@@ -3,6 +3,8 @@ package orm
 import (
 	"reflect"
 	"time"
+
+	"github.com/go-pg/pg/types"
 )
 
 type sliceTableModel struct {
@@ -141,12 +143,20 @@ func (m *sliceTableModel) nextElem() reflect.Value {
 	return m.slice.Index(m.slice.Len() - 1)
 }
 
-func (m *sliceTableModel) setDeletedAt() {
-	field := m.table.FieldsMap["deleted_at"]
+func (m *sliceTableModel) setSoftDeleteField() {
+	field := m.table.SoftDeleteField
 	now := time.Now()
+	var value reflect.Value
+	if m.sliceOfPtr {
+		value = reflect.ValueOf(&now)
+	} else if field.Type == timeType {
+		value = reflect.ValueOf(now)
+	} else {
+		value = reflect.ValueOf(types.NullTime{Time: now})
+	}
+
 	for i := 0; i < m.slice.Len(); i++ {
 		strct := indirect(m.slice.Index(i))
-		value := field.Value(strct)
-		value.Set(reflect.ValueOf(now))
+		field.Value(strct).Set(value)
 	}
 }

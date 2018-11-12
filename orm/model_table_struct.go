@@ -347,14 +347,17 @@ func (m *structTableModel) join(
 	return lastJoin
 }
 
-func (m *structTableModel) setDeletedAt() {
-	field := m.table.FieldsMap["deleted_at"]
+func (m *structTableModel) setSoftDeleteField() {
+	field := m.table.SoftDeleteField
 	value := field.Value(m.strct)
-	if value.Kind() == reflect.Ptr {
-		now := time.Now()
+
+	now := time.Now()
+	if field.Type == timeType {
+		value.Set(reflect.ValueOf(now))
+	} else if value.Kind() == reflect.Ptr {
 		value.Set(reflect.ValueOf(&now))
 	} else {
-		value.Set(reflect.ValueOf(time.Now()))
+		value.Set(reflect.ValueOf(types.NullTime{Time: now}))
 	}
 }
 
