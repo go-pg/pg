@@ -14,6 +14,8 @@ import (
 // Discard is used with Query and QueryOne to discard rows.
 var Discard orm.Discard
 
+type NullTime = types.NullTime
+
 func init() {
 	SetLogger(log.New(os.Stderr, "pg: ", log.LstdFlags|log.Lshortfile))
 }

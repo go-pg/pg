@@ -150,7 +150,7 @@ func (q *Query) Model(model ...interface{}) *Query {
 
 func (q *Query) softDelete() bool {
 	if q.model != nil {
-		return q.model.Table().HasFlag(softDelete)
+		return q.model.Table().SoftDeleteField != nil
 	}
 	return false
 }
@@ -953,13 +953,16 @@ func (q *Query) returningQuery(model Model, query interface{}) (Result, error) {
 // Delete deletes the model. When model has deleted_at column the row
 // is soft deleted instead.
 func (q *Query) Delete(values ...interface{}) (Result, error) {
-	if q.softDelete() {
-		q.model.setDeletedAt()
-		columns := q.columns
-		q.columns = nil
-		res, err := q.Column("deleted_at").Update(values...)
-		q.columns = columns
-		return res, err
+	if q.hasModel() {
+		table := q.model.Table()
+		if table.SoftDeleteField != nil {
+			q.model.setSoftDeleteField()
+			columns := q.columns
+			q.columns = nil
+			res, err := q.Column(table.SoftDeleteField.SQLName).Update(values...)
+			q.columns = columns
+			return res, err
+		}
 	}
 	return q.ForceDelete(values...)
 }
@@ -1182,10 +1185,12 @@ func (q *Query) appendWhere(b []byte) []byte {
 }
 
 func (q *Query) appendSoftDelete(b []byte) []byte {
+	b = append(b, '.')
+	b = append(b, q.model.Table().SoftDeleteField.Column...)
 	if q.deleted {
-		b = append(b, ".deleted_at IS NOT NULL"...)
+		b = append(b, " IS NOT NULL"...)
 	} else {
-		b = append(b, ".deleted_at IS NULL"...)
+		b = append(b, " IS NULL"...)
 	}
 	return b
 }
