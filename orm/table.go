@@ -457,7 +457,7 @@ func (t *Table) initInlines() {
 	for _, f := range t.skippedFields {
 		if f.Type.Kind() == reflect.Struct {
 			joinTable := _tables.get(f.Type, true)
-			t.inlineFields(f, joinTable.allFields)
+			t.inlineFields(f, joinTable, nil)
 		}
 	}
 }
@@ -626,12 +626,17 @@ func (t *Table) tryRelationStruct(field *Field) bool {
 
 	res := t.tryHasOne(joinTable, field, pgTag) ||
 		t.tryBelongsToOne(joinTable, field, pgTag)
-	t.inlineFields(field, joinTable.allFields)
+	t.inlineFields(field, joinTable, nil)
 	return res
 }
 
-func (t *Table) inlineFields(strct *Field, structFields []*Field) {
-	for _, f := range structFields {
+func (t *Table) inlineFields(strct *Field, joinTable *Table, path map[*Table]struct{}) {
+	if path == nil {
+		path = make(map[*Table]struct{}, 0)
+	}
+	path[joinTable] = struct{}{}
+
+	for _, f := range joinTable.allFields {
 		f = f.Copy()
 		f.GoName = strct.GoName + "_" + f.GoName
 		f.SQLName = strct.SQLName + "__" + f.SQLName
@@ -639,6 +644,15 @@ func (t *Table) inlineFields(strct *Field, structFields []*Field) {
 		f.Index = appendNew(strct.Index, f.Index...)
 		if _, ok := t.FieldsMap[f.SQLName]; !ok {
 			t.FieldsMap[f.SQLName] = f
+		}
+
+		if f.Type.Kind() != reflect.Struct {
+			continue
+		}
+
+		tt := _tables.get(f.Type, true)
+		if _, ok := path[tt]; !ok {
+			t.inlineFields(f, tt, path)
 		}
 	}
 }
