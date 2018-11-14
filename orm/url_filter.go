@@ -22,6 +22,16 @@ type URLFilter struct {
 	allowed map[string]struct{}
 }
 
+var supportedOperations = map[string]struct{}{
+	"exclude": struct{}{},
+	"ieq":     struct{}{},
+	"match":   struct{}{},
+	"gt":      struct{}{},
+	"gte":     struct{}{},
+	"lt":      struct{}{},
+	"lte":     struct{}{},
+}
+
 func NewURLFilter(values url.Values) *URLFilter {
 	return &URLFilter{
 		values: URLValues(values),
@@ -65,11 +75,18 @@ func (f *URLFilter) Filters(q *Query) (*Query, error) {
 		}
 
 		var operation string
-		if i := strings.Index(filter, "__"); i != -1 {
-			filter, operation = filter[:i], filter[i+2:]
+		if i := strings.LastIndex(filter, "__"); i != -1 {
+			op := filter[i+2:]
+			if _, ok := supportedOperations[op]; ok {
+				filter, operation = filter[:i], op
+			}
 		}
 
-		if q.model.Table().HasField(filter) {
+		m := q.model.Table().FieldsMap
+		if _, ok := m[filter]; ok {
+			if strings.Contains(filter, "__") {
+				filter = strings.Replace(filter, "__", ".", 1)
+			}
 			q = addOperator(q, filter, operation, values)
 		}
 	}
