@@ -847,11 +847,7 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
 		return false, q.stickyErr
 	}
 
-	insertq := q
-	if len(insertq.columns) > 0 {
-		insertq = insertq.Copy()
-		insertq.columns = nil
-	}
+	var insertq *Query
 
 	var insertErr error
 	for i := 0; i < 5; i++ {
@@ -865,6 +861,15 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
 		}
 		if err != internal.ErrNoRows {
 			return false, err
+
+		}
+
+		if insertq == nil {
+			insertq = q
+			if len(insertq.columns) > 0 {
+				insertq = insertq.Copy()
+				insertq.columns = nil
+			}
 		}
 
 		res, err := insertq.Insert(values...)
