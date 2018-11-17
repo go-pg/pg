@@ -104,6 +104,15 @@ var _ = Describe("Insert", func() {
 		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" ("id", "value") VALUES (DEFAULT, DEFAULT) ON CONFLICT (unq1) DO UPDATE SET count1 = count1 + 1 WHERE (2 = 2) RETURNING "id", "value"`))
 	})
 
+	It("supports ON CONFLICT DO UPDATE without SET", func() {
+		q := NewQuery(nil, &InsertTest{}).
+			OnConflict("(unq1) DO UPDATE")
+
+		b, err := (&insertQuery{q: q}).AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" ("id", "value") VALUES (DEFAULT, DEFAULT) ON CONFLICT (unq1) DO UPDATE SET "value" = EXCLUDED."value" RETURNING "id", "value"`))
+	})
+
 	It("supports ON CONFLICT DO NOTHING", func() {
 		q := NewQuery(nil, &InsertTest{}).
 			OnConflict("(unq1) DO NOTHING").

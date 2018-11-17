@@ -96,6 +96,17 @@ func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 		if q.q.onConflictDoUpdate() {
 			if len(q.q.set) > 0 {
 				b = q.q.appendSet(b)
+			} else {
+				fields, err := q.q.getDataFields()
+				if err != nil {
+					return nil, err
+				}
+
+				if len(fields) == 0 {
+					fields = q.q.model.Table().DataFields
+				}
+
+				b = q.appendSetExcluded(b, fields)
 			}
 
 			if len(q.q.updWhere) > 0 {
@@ -136,13 +147,26 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) [
 	return b
 }
 
-func (ins *insertQuery) addReturningField(field *Field) {
-	for _, f := range ins.returningFields {
+func (q *insertQuery) addReturningField(field *Field) {
+	for _, f := range q.returningFields {
 		if f == field {
 			return
 		}
 	}
-	ins.returningFields = append(ins.returningFields, field)
+	q.returningFields = append(q.returningFields, field)
+}
+
+func (q *insertQuery) appendSetExcluded(b []byte, fields []*Field) []byte {
+	b = append(b, " SET "...)
+	for i, f := range fields {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = append(b, f.Column...)
+		b = append(b, " = EXCLUDED."...)
+		b = append(b, f.Column...)
+	}
+	return b
 }
 
 func appendReturningFields(b []byte, fields []*Field) []byte {
