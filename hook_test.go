@@ -144,6 +144,14 @@ var _ = Describe("HookTest", func() {
 		Expect(hook.afterUpdate).To(Equal(1))
 	})
 
+	It("does not call BeforeUpdate and AfterUpdate for nil model", func() {
+		_, err := db.Model((*HookTest)(nil)).
+			Set("value = 'new'").
+			Where("id = 123").
+			Update()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
 	It("calls BeforeDelete and AfterDelete", func() {
 		hook := HookTest{
 			Id: 1,
@@ -153,6 +161,13 @@ var _ = Describe("HookTest", func() {
 		Expect(hook.afterQuery).To(Equal(0))
 		Expect(hook.beforeDelete).To(Equal(1))
 		Expect(hook.afterDelete).To(Equal(1))
+	})
+
+	It("does not call BeforeDelete and AfterDelete for nil model", func() {
+		_, err := db.Model((*HookTest)(nil)).
+			Where("id = 123").
+			Delete()
+		Expect(err).NotTo(HaveOccurred())
 	})
 })
 

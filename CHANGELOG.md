@@ -1,5 +1,10 @@
 # Changelog
 
+## v6.16
+
+- Read buffer is re-worked. Default read buffer is increased to 65kb.
+- Query.New does not copy the model any more.
+
 ## v6.15
 
 - Added Options.MinIdleConns.

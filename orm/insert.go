@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 )
@@ -32,12 +31,7 @@ func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
-	if q.q.model == nil {
-		return nil, errors.New("pg: Model(nil)")
-	}
 
-	table := q.q.model.Table()
-	value := q.q.model.Value()
 	var err error
 
 	if len(q.q.with) > 0 {
@@ -69,8 +63,9 @@ func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 		}
 
 		if len(fields) == 0 {
-			fields = table.Fields
+			fields = q.q.model.Table().Fields
 		}
+		value := q.q.model.Value()
 
 		b = append(b, " ("...)
 		b = appendColumns(b, "", fields)

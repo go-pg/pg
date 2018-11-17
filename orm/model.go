@@ -9,6 +9,8 @@ import (
 	"github.com/go-pg/pg/types"
 )
 
+var errModelNil = errors.New("pg: Model(nil)")
+
 type useQueryOne interface {
 	useQueryOne() bool
 }
@@ -62,7 +64,7 @@ func NewModel(values ...interface{}) (Model, error) {
 
 	v := reflect.ValueOf(v0)
 	if !v.IsValid() {
-		return nil, errors.New("pg: Model(nil)")
+		return nil, errModelNil
 	}
 	if v.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("pg: Model(non-pointer %T)", v0)

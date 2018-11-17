@@ -151,7 +151,7 @@ var _ = Describe("Insert", func() {
 	})
 
 	It("supports FROM", func() {
-		q := NewQuery(nil, &InsertTest{})
+		q := NewQuery(nil, (*InsertTest)(nil))
 		q = q.WrapWith("data").
 			TableExpr("dst").
 			ColumnExpr("dst_col1, dst_col2").

@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
@@ -11,6 +10,7 @@ import (
 type tableModel interface {
 	Model
 
+	IsNil() bool
 	Table() *Table
 	Relation() *Relation
 	AppendParam([]byte, QueryFormatter, string) ([]byte, bool)
@@ -38,7 +38,7 @@ func newTableModel(value interface{}) (tableModel, error) {
 
 	v := reflect.ValueOf(value)
 	if !v.IsValid() {
-		return nil, errors.New("pg: Model(nil)")
+		return nil, errModelNil
 	}
 	if v.Kind() != reflect.Ptr {
 		return nil, fmt.Errorf("pg: Model(non-pointer %T)", value)
@@ -47,9 +47,9 @@ func newTableModel(value interface{}) (tableModel, error) {
 	if v.IsNil() {
 		typ := v.Type().Elem()
 		if typ.Kind() == reflect.Struct {
-			return newStructTableModelType(typ), nil
+			return newStructTableModel(GetTable(typ)), nil
 		}
-		return nil, errors.New("pg: Model(nil)")
+		return nil, errModelNil
 	}
 
 	return newTableModelValue(v.Elem())
