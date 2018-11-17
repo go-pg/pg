@@ -31,8 +31,9 @@ type Query struct {
 	db        DB
 	stickyErr error
 
-	model   tableModel
-	deleted bool
+	model         tableModel
+	implicitModel bool
+	deleted       bool
 
 	with         []withQuery
 	tables       []FormatAppender
@@ -62,8 +63,10 @@ func NewQuery(db DB, model ...interface{}) *Query {
 // New returns new zero Query binded to the current db.
 func (q *Query) New() *Query {
 	cp := &Query{
-		db:      q.db,
-		deleted: q.deleted,
+		db:            q.db,
+		model:         q.model,
+		implicitModel: true,
+		deleted:       q.deleted,
 	}
 	return cp
 }
@@ -86,8 +89,9 @@ func (q *Query) Copy() *Query {
 		db:        q.db,
 		stickyErr: q.stickyErr,
 
-		model:   q.model,
-		deleted: q.deleted,
+		model:         q.model,
+		implicitModel: q.implicitModel,
+		deleted:       q.deleted,
 
 		tables:      q.tables[:len(q.tables):len(q.tables)],
 		columns:     q.columns[:len(q.columns):len(q.columns)],
@@ -139,6 +143,7 @@ func (q *Query) Model(model ...interface{}) *Query {
 	if err != nil {
 		q = q.err(err)
 	}
+	q.implicitModel = false
 	return q
 }
 
@@ -1075,12 +1080,16 @@ func (q *Query) hasModel() bool {
 	return q.model != nil && !q.model.IsNil()
 }
 
+func (q *Query) hasExplicitModel() bool {
+	return q.model != nil && !q.implicitModel
+}
+
 func (q *Query) modelHasTableName() bool {
-	return q.model != nil && q.model.Table().FullName != ""
+	return q.hasExplicitModel() && q.model.Table().FullName != ""
 }
 
 func (q *Query) modelHasTableAlias() bool {
-	return q.model != nil && q.model.Table().Alias != ""
+	return q.hasExplicitModel() && q.model.Table().Alias != ""
 }
 
 func (q *Query) hasTables() bool {
