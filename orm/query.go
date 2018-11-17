@@ -31,9 +31,8 @@ type Query struct {
 	db        DB
 	stickyErr error
 
-	model       tableModel
-	ignoreModel bool
-	deleted     bool
+	model   tableModel
+	deleted bool
 
 	with         []withQuery
 	tables       []FormatAppender
@@ -60,14 +59,13 @@ func NewQuery(db DB, model ...interface{}) *Query {
 	return (&Query{}).DB(db).Model(model...)
 }
 
-// New returns new zero Query binded to the current db and model.
+// New returns new zero Query binded to the current db.
 func (q *Query) New() *Query {
-	return &Query{
-		db:          q.db,
-		model:       q.model,
-		ignoreModel: true,
-		deleted:     q.deleted,
+	cp := &Query{
+		db:      q.db,
+		deleted: q.deleted,
 	}
+	return cp
 }
 
 func (q *Query) AppendQuery(b []byte) ([]byte, error) {
@@ -88,9 +86,8 @@ func (q *Query) Copy() *Query {
 		db:        q.db,
 		stickyErr: q.stickyErr,
 
-		model:       q.model,
-		ignoreModel: q.ignoreModel,
-		deleted:     q.deleted,
+		model:   q.model,
+		deleted: q.deleted,
 
 		tables:      q.tables[:len(q.tables):len(q.tables)],
 		columns:     q.columns[:len(q.columns):len(q.columns)],
@@ -141,9 +138,6 @@ func (q *Query) Model(model ...interface{}) *Query {
 	}
 	if err != nil {
 		q = q.err(err)
-	}
-	if q.ignoreModel {
-		q.ignoreModel = false
 	}
 	return q
 }
@@ -323,7 +317,7 @@ func (q *Query) Set(set string, params ...interface{}) *Query {
 // Value overwrites model value for the column in INSERT and UPDATE queries.
 func (q *Query) Value(column string, value string, params ...interface{}) *Query {
 	if !q.hasModel() {
-		q.err(errors.New("pg: Model(nil)"))
+		q.err(errModelNil)
 		return q
 	}
 
@@ -434,7 +428,7 @@ func (q *Query) addWhere(f sepFormatAppender) {
 //    Where("id = ?id")
 func (q *Query) WherePK() *Query {
 	if !q.hasModel() {
-		q.err(errors.New("pg: Model(nil)"))
+		q.err(errModelNil)
 		return q
 	}
 	if q.model.Kind() == reflect.Slice {
@@ -973,7 +967,7 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 		return nil, q.stickyErr
 	}
 	if q.model == nil {
-		return nil, errors.New("pg: Model(nil)")
+		return nil, errModelNil
 	}
 	q.deleted = true
 
@@ -1078,15 +1072,15 @@ func (q *Query) Exists() (bool, error) {
 }
 
 func (q *Query) hasModel() bool {
-	return !q.ignoreModel && q.model != nil
+	return q.model != nil && !q.model.IsNil()
 }
 
 func (q *Query) modelHasTableName() bool {
-	return q.hasModel() && q.model.Table().FullName != ""
+	return q.model != nil && q.model.Table().FullName != ""
 }
 
 func (q *Query) modelHasTableAlias() bool {
-	return q.hasModel() && q.model.Table().Alias != ""
+	return q.model != nil && q.model.Table().Alias != ""
 }
 
 func (q *Query) hasTables() bool {
@@ -1164,9 +1158,6 @@ func (q *Query) mustAppendWhere(b []byte) ([]byte, error) {
 		return b, nil
 	}
 
-	if q.model == nil {
-		return nil, errors.New("pg: Model(nil)")
-	}
 	err := errors.New(
 		"pg: Update and Delete queries require Where clause (try WherePK)")
 	return nil, err

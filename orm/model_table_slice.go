@@ -23,7 +23,11 @@ func (m *sliceTableModel) init(sliceType reflect.Type) {
 	}
 }
 
-func (sliceTableModel) useQueryOne() {}
+func (*sliceTableModel) useQueryOne() {}
+
+func (m *sliceTableModel) IsNil() bool {
+	return false
+}
 
 func (m *sliceTableModel) AppendParam(b []byte, f QueryFormatter, name string) ([]byte, bool) {
 	if field, ok := m.table.FieldsMap[name]; ok {

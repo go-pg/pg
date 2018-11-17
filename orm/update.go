@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 
@@ -98,8 +97,8 @@ func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 		return b, nil
 	}
 
-	if q.q.model == nil {
-		return nil, errors.New("pg: Model(nil)")
+	if !q.q.hasModel() {
+		return nil, errModelNil
 	}
 
 	b = append(b, " SET "...)
