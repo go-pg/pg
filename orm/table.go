@@ -82,8 +82,7 @@ func newTable(typ reflect.Type) *Table {
 	t.TypeName = internal.ToExported(t.Type.Name())
 	t.ModelName = internal.Underscore(t.Type.Name())
 	t.Name = tableNameInflector(t.ModelName)
-	tableName := quoteTableName(t.Name)
-	t.setName(types.Q(types.AppendField(nil, tableName, 1)))
+	t.setName(types.Q(types.AppendField(nil, t.Name, 1)))
 	t.Alias = types.Q(types.AppendField(nil, t.ModelName, 1))
 
 	typ = reflect.PtrTo(t.Type)
