@@ -58,47 +58,36 @@ func ExampleDB_Query() {
 	})
 
 	err := createSchema(db)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	user1 := &User{
 		Name:   "admin",
 		Emails: []string{"admin1@admin", "admin2@admin"},
 	}
 	err = CreateUser(db, user1)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	err = CreateUser(db, &User{
 		Name:   "root",
 		Emails: []string{"root1@root", "root2@root"},
 	})
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	story1 := &Story{
 		Title:    "Cool story",
 		AuthorId: user1.Id,
 	}
 	err = CreateStory(db, story1)
+	panicIf(err)
 
 	user, err := GetUser(db, user1.Id)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	users, err := GetUsers(db)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	story, err := GetStory(db, story1.Id)
-	if err != nil {
-		panic(err)
-	}
+	panicIf(err)
 
 	fmt.Println(user)
 	fmt.Println(users)

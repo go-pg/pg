@@ -1699,6 +1699,7 @@ var _ = Describe("ORM", func() {
 
 			books = make([]Book, 0)
 			n, err := db.Model(&books).Count()
+			Expect(err).NotTo(HaveOccurred())
 			Expect(n).To(Equal(0))
 		})
 
@@ -1713,6 +1714,7 @@ var _ = Describe("ORM", func() {
 
 			books = make([]*Book, 0)
 			n, err := db.Model(&books).Count()
+			Expect(err).NotTo(HaveOccurred())
 			Expect(n).To(Equal(0))
 		})
 	})
@@ -1977,7 +1979,7 @@ var _ = Describe("soft deletes", func() {
 		err := db.Model(model).Deleted().Select()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(model.Id).To(Equal(1))
-		Expect(model.DeletedAt).To(BeTemporally("~", time.Now()))
+		Expect(model.DeletedAt).To(BeTemporally("~", time.Now(), 3*time.Second))
 
 		n, err := db.Model((*SoftDeleteModel)(nil)).Deleted().Count()
 		Expect(err).NotTo(HaveOccurred())
