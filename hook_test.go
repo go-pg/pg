@@ -256,6 +256,85 @@ var _ = Describe("OnQueryProcessed", func() {
 	})
 })
 
+var _ = Describe("OnQueryStarted", func() {
+	var db *pg.DB
+	var count int
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+		count = 0
+	})
+
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
+	Describe("Query/Exec", func() {
+		BeforeEach(func() {
+			db.OnQueryStarted(func(event *pg.QueryStartedEvent) {
+				Expect(event.Func).NotTo(BeZero())
+				Expect(event.File).NotTo(BeZero())
+				Expect(event.Line).NotTo(BeZero())
+				Expect(event.DB).To(Equal(db))
+				Expect(event.Query).To(Equal("SELECT ?"))
+				Expect(event.Params).To(Equal([]interface{}{1}))
+
+				q, err := event.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal("SELECT ?"))
+
+				q, err = event.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal("SELECT 1"))
+
+				count++
+			})
+		})
+
+		It("is called for Query", func() {
+			_, err := db.Query(pg.Discard, "SELECT ?", 1)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(1))
+		})
+
+		It("is called for Exec", func() {
+			_, err := db.Exec("SELECT ?", 1)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(1))
+		})
+	})
+
+	Describe("Model", func() {
+		BeforeEach(func() {
+			db.OnQueryStarted(func(event *pg.QueryStartedEvent) {
+				Expect(event.Func).NotTo(BeZero())
+				Expect(event.File).NotTo(BeZero())
+				Expect(event.Line).NotTo(BeZero())
+				Expect(event.DB).To(Equal(db))
+				Expect(event.Query).NotTo(BeNil())
+				Expect(event.Params).To(HaveLen(1))
+
+				q, err := event.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal("SELECT ?"))
+
+				q, err = event.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal("SELECT 1"))
+
+				count++
+			})
+		})
+
+		It("is called for Model", func() {
+			var n int
+			err := db.Model().ColumnExpr("?", 1).Select(&n)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(count).To(Equal(1))
+		})
+	})
+})
+
 type BeforeSelectQueryModel struct {
 	Id        int
 	DeletedAt time.Time

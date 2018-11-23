@@ -33,8 +33,35 @@ type QueryProcessedEvent struct {
 	Error   error
 }
 
+type QueryStartedEvent struct {
+	Func string
+	File string
+	Line int
+
+	DB      orm.DB
+	Query   interface{}
+	Params  []interface{}
+	Attempt int
+}
+
+func unformattedQuery(query interface{}) (string, error) {
+	b, err := queryString(query)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
 func (ev *QueryProcessedEvent) UnformattedQuery() (string, error) {
-	b, err := queryString(ev.Query)
+	return unformattedQuery(ev.Query)
+}
+
+func (ev *QueryStartedEvent) UnformattedQuery() (string, error) {
+	return unformattedQuery(ev.Query)
+}
+
+func formattedQuery(fmter orm.QueryFormatter, query interface{}, params ...interface{}) (string, error) {
+	b, err := appendQuery(nil, fmter, query, params)
 	if err != nil {
 		return "", err
 	}
@@ -42,11 +69,11 @@ func (ev *QueryProcessedEvent) UnformattedQuery() (string, error) {
 }
 
 func (ev *QueryProcessedEvent) FormattedQuery() (string, error) {
-	b, err := appendQuery(nil, ev.DB, ev.Query, ev.Params...)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
+	return formattedQuery(ev.DB, ev.Query, ev.Params...)
+}
+
+func (ev *QueryStartedEvent) FormattedQuery() (string, error) {
+	return formattedQuery(ev.DB, ev.Query, ev.Params...)
 }
 
 func queryString(query interface{}) ([]byte, error) {
@@ -63,11 +90,44 @@ func queryString(query interface{}) ([]byte, error) {
 }
 
 type queryProcessedHook func(*QueryProcessedEvent)
+type queryStartedHook func(*QueryStartedEvent)
 
 // OnQueryProcessed calls the fn with QueryProcessedEvent
 // when query is processed.
 func (db *DB) OnQueryProcessed(fn func(*QueryProcessedEvent)) {
 	db.queryProcessedHooks = append(db.queryProcessedHooks, fn)
+}
+
+// OnQueryStarted calls the fn with QueryStartedEvent
+// before query is started.
+func (db *DB) OnQueryStarted(fn func(*QueryStartedEvent)) {
+	db.queryStartedHooks = append(db.queryStartedHooks, fn)
+}
+
+func (db *DB) queryStarted(
+	ormDB orm.DB,
+	query interface{},
+	params []interface{},
+	attempt int,
+) {
+	if len(db.queryStartedHooks) == 0 {
+		return
+	}
+
+	funcName, file, line := fileLine(2)
+	event := &QueryStartedEvent{
+		Func: funcName,
+		File: file,
+		Line: line,
+
+		DB:      ormDB,
+		Query:   query,
+		Params:  params,
+		Attempt: attempt,
+	}
+	for _, hook := range db.queryStartedHooks {
+		hook(event)
+	}
 }
 
 func (db *DB) queryProcessed(
@@ -141,5 +201,9 @@ func packageFuncName(pc uintptr) (string, string) {
 }
 
 func copyQueryProcessedHooks(s []queryProcessedHook) []queryProcessedHook {
+	return s[:len(s):len(s)]
+}
+
+func copyQueryStartedHooks(s []queryStartedHook) []queryStartedHook {
 	return s[:len(s):len(s)]
 }

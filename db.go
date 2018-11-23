@@ -32,6 +32,7 @@ type DB struct {
 	fmter orm.Formatter
 
 	queryProcessedHooks []queryProcessedHook
+	queryStartedHooks   []queryStartedHook
 
 	ctx context.Context
 }
@@ -63,6 +64,7 @@ func (db *DB) WithContext(ctx context.Context) *DB {
 		fmter: db.fmter,
 
 		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
+		queryStartedHooks:   copyQueryStartedHooks(db.queryStartedHooks),
 
 		ctx: ctx,
 	}
@@ -80,6 +82,7 @@ func (db *DB) WithTimeout(d time.Duration) *DB {
 		fmter: db.fmter,
 
 		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
+		queryStartedHooks:   copyQueryStartedHooks(db.queryStartedHooks),
 
 		ctx: db.ctx,
 	}
@@ -94,6 +97,7 @@ func (db *DB) WithParam(param string, value interface{}) *DB {
 		fmter: db.fmter.WithParam(param, value),
 
 		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
+		queryStartedHooks:   copyQueryStartedHooks(db.queryStartedHooks),
 
 		ctx: db.ctx,
 	}
@@ -211,6 +215,7 @@ func (db *DB) Exec(query interface{}, params ...interface{}) (res orm.Result, er
 			continue
 		}
 
+		db.queryStarted(db, query, params, attempt)
 		start := time.Now()
 		res, err = db.simpleQuery(cn, query, params...)
 		db.freeConn(cn, err)
@@ -253,6 +258,7 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res orm.Re
 			continue
 		}
 
+		db.queryStarted(db, query, params, attempt)
 		start := time.Now()
 		res, err = db.simpleQueryData(cn, model, query, params...)
 		db.freeConn(cn, err)
