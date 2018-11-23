@@ -60,8 +60,8 @@ func (ev *QueryStartedEvent) UnformattedQuery() (string, error) {
 	return unformattedQuery(ev.Query)
 }
 
-func formattedQuery(fmter orm.QueryFormatter, query interface{}, params ...interface{}) (string, error) {
-	b, err := appendQuery(nil, fmter, query, params)
+func formattedQuery(fmter orm.QueryFormatter, query interface{}, params []interface{}) (string, error) {
+	b, err := appendQuery(nil, fmter, query, params...)
 	if err != nil {
 		return "", err
 	}
@@ -69,11 +69,11 @@ func formattedQuery(fmter orm.QueryFormatter, query interface{}, params ...inter
 }
 
 func (ev *QueryProcessedEvent) FormattedQuery() (string, error) {
-	return formattedQuery(ev.DB, ev.Query, ev.Params...)
+	return formattedQuery(ev.DB, ev.Query, ev.Params)
 }
 
 func (ev *QueryStartedEvent) FormattedQuery() (string, error) {
-	return formattedQuery(ev.DB, ev.Query, ev.Params...)
+	return formattedQuery(ev.DB, ev.Query, ev.Params)
 }
 
 func queryString(query interface{}) ([]byte, error) {
