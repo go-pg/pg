@@ -31,8 +31,7 @@ type DB struct {
 	pool  pool.Pooler
 	fmter orm.Formatter
 
-	queryProcessedHooks []queryProcessedHook
-	queryStartedHooks   []queryStartedHook
+	queryEventHooks []Hook
 
 	ctx context.Context
 }
@@ -63,8 +62,7 @@ func (db *DB) WithContext(ctx context.Context) *DB {
 		pool:  db.pool,
 		fmter: db.fmter,
 
-		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
-		queryStartedHooks:   copyQueryStartedHooks(db.queryStartedHooks),
+		queryEventHooks: copyQueryEventHooks(db.queryEventHooks),
 
 		ctx: ctx,
 	}
@@ -81,8 +79,7 @@ func (db *DB) WithTimeout(d time.Duration) *DB {
 		pool:  db.pool,
 		fmter: db.fmter,
 
-		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
-		queryStartedHooks:   copyQueryStartedHooks(db.queryStartedHooks),
+		queryEventHooks: copyQueryEventHooks(db.queryEventHooks),
 
 		ctx: db.ctx,
 	}
@@ -96,8 +93,7 @@ func (db *DB) WithParam(param string, value interface{}) *DB {
 		pool:  db.pool,
 		fmter: db.fmter.WithParam(param, value),
 
-		queryProcessedHooks: copyQueryProcessedHooks(db.queryProcessedHooks),
-		queryStartedHooks:   copyQueryStartedHooks(db.queryStartedHooks),
+		queryEventHooks: copyQueryEventHooks(db.queryEventHooks),
 
 		ctx: db.ctx,
 	}
@@ -215,11 +211,10 @@ func (db *DB) Exec(query interface{}, params ...interface{}) (res orm.Result, er
 			continue
 		}
 
-		db.queryStarted(db, query, params, attempt)
-		start := time.Now()
+		event := db.queryStarted(db, query, params, attempt)
 		res, err = db.simpleQuery(cn, query, params...)
 		db.freeConn(cn, err)
-		db.queryProcessed(db, start, query, params, attempt, res, err)
+		db.queryProcessed(res, err, event)
 
 		if !db.shouldRetry(err) {
 			break
@@ -258,11 +253,10 @@ func (db *DB) Query(model, query interface{}, params ...interface{}) (res orm.Re
 			continue
 		}
 
-		db.queryStarted(db, query, params, attempt)
-		start := time.Now()
+		event := db.queryStarted(db, query, params, attempt)
 		res, err = db.simpleQueryData(cn, model, query, params...)
 		db.freeConn(cn, err)
-		db.queryProcessed(db, start, query, params, attempt, res, err)
+		db.queryProcessed(res, err, event)
 
 		if !db.shouldRetry(err) {
 			break

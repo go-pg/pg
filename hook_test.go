@@ -67,6 +67,19 @@ func (t *HookTest) AfterDelete(db orm.DB) error {
 	return nil
 }
 
+type eventHookTest struct {
+	beforeQueryMethod func (*pg.QueryEvent)
+	afterQueryMethod func (*pg.QueryEvent)
+}
+
+func (e eventHookTest) BeforeQuery(event *pg.QueryEvent) {
+	e.beforeQueryMethod(event)
+}
+
+func (e eventHookTest) AfterQuery(event *pg.QueryEvent) {
+	e.afterQueryMethod(event)
+}
+
 var _ = Describe("HookTest", func() {
 	var db *pg.DB
 
@@ -171,7 +184,7 @@ var _ = Describe("HookTest", func() {
 	})
 })
 
-var _ = Describe("OnQueryProcessed", func() {
+var _ = Describe("OnQueryEvent", func() {
 	var db *pg.DB
 	var count int
 
@@ -185,28 +198,55 @@ var _ = Describe("OnQueryProcessed", func() {
 	})
 
 	Describe("Query/Exec", func() {
+		afterQuery := func (event *pg.QueryEvent) {
+			Expect(event.StartTime).NotTo(BeZero())
+			Expect(event.Func).NotTo(BeZero())
+			Expect(event.File).NotTo(BeZero())
+			Expect(event.Line).NotTo(BeZero())
+			Expect(event.DB).To(Equal(db))
+			Expect(event.Query).To(Equal("SELECT ?"))
+			Expect(event.Params).To(Equal([]interface{}{1}))
+			Expect(event.Result).NotTo(BeNil())
+			Expect(event.Error).NotTo(HaveOccurred())
+
+			q, err := event.UnformattedQuery()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(q).To(Equal("SELECT ?"))
+
+			q, err = event.FormattedQuery()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(q).To(Equal("SELECT 1"))
+			Expect(event.Data["data"]).To(Equal(1))
+
+			count++
+		}
+
+		beforeQuery := func (event *pg.QueryEvent) {
+			Expect(event.StartTime).NotTo(BeZero())
+			Expect(event.Func).NotTo(BeZero())
+			Expect(event.File).NotTo(BeZero())
+			Expect(event.Line).NotTo(BeZero())
+			Expect(event.DB).To(Equal(db))
+			Expect(event.Query).To(Equal("SELECT ?"))
+			Expect(event.Params).To(Equal([]interface{}{1}))
+			Expect(event.Result).To(BeNil())
+			Expect(event.Error).To(BeNil())
+
+			q, err := event.UnformattedQuery()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(q).To(Equal("SELECT ?"))
+
+			q, err = event.FormattedQuery()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(q).To(Equal("SELECT 1"))
+			event.Data["data"] = 1
+		}
+
 		BeforeEach(func() {
-			db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {
-				Expect(event.StartTime).NotTo(BeZero())
-				Expect(event.Func).NotTo(BeZero())
-				Expect(event.File).NotTo(BeZero())
-				Expect(event.Line).NotTo(BeZero())
-				Expect(event.DB).To(Equal(db))
-				Expect(event.Query).To(Equal("SELECT ?"))
-				Expect(event.Params).To(Equal([]interface{}{1}))
-				Expect(event.Result).NotTo(BeNil())
-				Expect(event.Error).NotTo(HaveOccurred())
-
-				q, err := event.UnformattedQuery()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal("SELECT ?"))
-
-				q, err = event.FormattedQuery()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal("SELECT 1"))
-
-				count++
-			})
+			hookImpl := struct { eventHookTest }{}
+			hookImpl.afterQueryMethod = afterQuery
+			hookImpl.beforeQueryMethod = beforeQuery
+			db.OnQueryEvent(hookImpl)
 		})
 
 		It("is called for Query", func() {
@@ -223,107 +263,55 @@ var _ = Describe("OnQueryProcessed", func() {
 	})
 
 	Describe("Model", func() {
-		BeforeEach(func() {
-			db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {
-				Expect(event.StartTime).NotTo(BeZero())
-				Expect(event.Func).NotTo(BeZero())
-				Expect(event.File).NotTo(BeZero())
-				Expect(event.Line).NotTo(BeZero())
-				Expect(event.DB).To(Equal(db))
-				Expect(event.Query).NotTo(BeNil())
-				Expect(event.Params).To(HaveLen(1))
-				Expect(event.Error).NotTo(HaveOccurred())
-				Expect(event.Result).NotTo(BeNil())
+		afterQuery := func (event *pg.QueryEvent) {
+			Expect(event.StartTime).NotTo(BeZero())
+			Expect(event.Func).NotTo(BeZero())
+			Expect(event.File).NotTo(BeZero())
+			Expect(event.Line).NotTo(BeZero())
+			Expect(event.DB).To(Equal(db))
+			Expect(event.Query).To(Equal("SELECT ?"))
+			Expect(event.Params).To(Equal([]interface{}{1}))
+			Expect(event.Result).NotTo(BeNil())
+			Expect(event.Error).NotTo(HaveOccurred())
 
-				q, err := event.UnformattedQuery()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal("SELECT ?"))
-
-				q, err = event.FormattedQuery()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal("SELECT 1"))
-
-				count++
-			})
-		})
-
-		It("is called for Model", func() {
-			var n int
-			err := db.Model().ColumnExpr("?", 1).Select(&n)
+			q, err := event.UnformattedQuery()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(count).To(Equal(1))
-		})
-	})
-})
+			Expect(q).To(Equal("SELECT ?"))
 
-var _ = Describe("OnQueryStarted", func() {
-	var db *pg.DB
-	var count int
-
-	BeforeEach(func() {
-		db = pg.Connect(pgOptions())
-		count = 0
-	})
-
-	AfterEach(func() {
-		Expect(db.Close()).NotTo(HaveOccurred())
-	})
-
-	Describe("Query/Exec", func() {
-		BeforeEach(func() {
-			db.OnQueryStarted(func(event *pg.QueryStartedEvent) {
-				Expect(event.Func).NotTo(BeZero())
-				Expect(event.File).NotTo(BeZero())
-				Expect(event.Line).NotTo(BeZero())
-				Expect(event.DB).To(Equal(db))
-				Expect(event.Query).To(Equal("SELECT ?"))
-				Expect(event.Params).To(Equal([]interface{}{1}))
-
-				q, err := event.UnformattedQuery()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal("SELECT ?"))
-
-				q, err = event.FormattedQuery()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal("SELECT 1"))
-
-				count++
-			})
-		})
-
-		It("is called for Query", func() {
-			_, err := db.Query(pg.Discard, "SELECT ?", 1)
+			q, err = event.FormattedQuery()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(count).To(Equal(1))
-		})
+			Expect(q).To(Equal("SELECT 1"))
+			Expect(event.Data["data"]).To(Equal(1))
 
-		It("is called for Exec", func() {
-			_, err := db.Exec("SELECT ?", 1)
+			count++
+		}
+
+		beforeQuery := func (event *pg.QueryEvent) {
+			Expect(event.StartTime).NotTo(BeZero())
+			Expect(event.Func).NotTo(BeZero())
+			Expect(event.File).NotTo(BeZero())
+			Expect(event.Line).NotTo(BeZero())
+			Expect(event.DB).To(Equal(db))
+			Expect(event.Query).To(Equal("SELECT ?"))
+			Expect(event.Params).To(Equal([]interface{}{1}))
+			Expect(event.Result).To(BeNil())
+			Expect(event.Error).To(BeNil())
+
+			q, err := event.UnformattedQuery()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(count).To(Equal(1))
-		})
-	})
+			Expect(q).To(Equal("SELECT ?"))
 
-	Describe("Model", func() {
+			q, err = event.FormattedQuery()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(q).To(Equal("SELECT 1"))
+			event.Data["data"] = 1
+		}
+
 		BeforeEach(func() {
-			db.OnQueryStarted(func(event *pg.QueryStartedEvent) {
-				Expect(event.Func).NotTo(BeZero())
-				Expect(event.File).NotTo(BeZero())
-				Expect(event.Line).NotTo(BeZero())
-				Expect(event.DB).To(Equal(db))
-				Expect(event.Query).NotTo(BeNil())
-				Expect(event.Params).To(HaveLen(1))
-
-				q, err := event.UnformattedQuery()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal("SELECT ?"))
-
-				q, err = event.FormattedQuery()
-				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal("SELECT 1"))
-
-				count++
-			})
+			hookImpl := struct { eventHookTest }{}
+			hookImpl.afterQueryMethod = afterQuery
+			hookImpl.beforeQueryMethod = beforeQuery
+			db.OnQueryEvent(hookImpl)
 		})
 
 		It("is called for Model", func() {

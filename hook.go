@@ -19,7 +19,7 @@ func (dummyDB) FormatQuery(dst []byte, query string, params ...interface{}) []by
 	return append(dst, query...)
 }
 
-type QueryProcessedEvent struct {
+type QueryEvent struct {
 	StartTime time.Time
 	Func      string
 	File      string
@@ -31,49 +31,29 @@ type QueryProcessedEvent struct {
 	Attempt int
 	Result  orm.Result
 	Error   error
+
+	Data map[interface{}]interface{}
 }
 
-type QueryStartedEvent struct {
-	Func string
-	File string
-	Line int
-
-	DB      orm.DB
-	Query   interface{}
-	Params  []interface{}
-	Attempt int
+type Hook interface {
+	BeforeQuery(*QueryEvent)
+	AfterQuery(*QueryEvent)
 }
 
-func unformattedQuery(query interface{}) (string, error) {
-	b, err := queryString(query)
+func (ev *QueryEvent) UnformattedQuery() (string, error) {
+	b, err := queryString(ev.Query)
 	if err != nil {
 		return "", err
 	}
 	return string(b), nil
 }
 
-func (ev *QueryProcessedEvent) UnformattedQuery() (string, error) {
-	return unformattedQuery(ev.Query)
-}
-
-func (ev *QueryStartedEvent) UnformattedQuery() (string, error) {
-	return unformattedQuery(ev.Query)
-}
-
-func formattedQuery(fmter orm.QueryFormatter, query interface{}, params []interface{}) (string, error) {
-	b, err := appendQuery(nil, fmter, query, params...)
+func (ev *QueryEvent) FormattedQuery() (string, error) {
+	b, err := appendQuery(nil, ev.DB, ev.Query, ev.Params...)
 	if err != nil {
 		return "", err
 	}
 	return string(b), nil
-}
-
-func (ev *QueryProcessedEvent) FormattedQuery() (string, error) {
-	return formattedQuery(ev.DB, ev.Query, ev.Params)
-}
-
-func (ev *QueryStartedEvent) FormattedQuery() (string, error) {
-	return formattedQuery(ev.DB, ev.Query, ev.Params)
 }
 
 func queryString(query interface{}) ([]byte, error) {
@@ -89,19 +69,10 @@ func queryString(query interface{}) ([]byte, error) {
 	}
 }
 
-type queryProcessedHook func(*QueryProcessedEvent)
-type queryStartedHook func(*QueryStartedEvent)
-
-// OnQueryProcessed calls the fn with QueryProcessedEvent
+// OnQueryEvent calls the interface with QueryEvent
 // when query is processed.
-func (db *DB) OnQueryProcessed(fn func(*QueryProcessedEvent)) {
-	db.queryProcessedHooks = append(db.queryProcessedHooks, fn)
-}
-
-// OnQueryStarted calls the fn with QueryStartedEvent
-// before query is started.
-func (db *DB) OnQueryStarted(fn func(*QueryStartedEvent)) {
-	db.queryStartedHooks = append(db.queryStartedHooks, fn)
+func (db *DB) OnQueryEvent(hook Hook) {
+	db.queryEventHooks = append(db.queryEventHooks, hook)
 }
 
 func (db *DB) queryStarted(
@@ -109,13 +80,14 @@ func (db *DB) queryStarted(
 	query interface{},
 	params []interface{},
 	attempt int,
-) {
-	if len(db.queryStartedHooks) == 0 {
-		return
+) *QueryEvent {
+	if len(db.queryEventHooks) == 0 {
+		return nil
 	}
 
 	funcName, file, line := fileLine(2)
-	event := &QueryStartedEvent{
+	event := &QueryEvent{
+		StartTime: time.Now(),
 		Func: funcName,
 		File: file,
 		Line: line,
@@ -125,40 +97,29 @@ func (db *DB) queryStarted(
 		Params:  params,
 		Attempt: attempt,
 	}
-	for _, hook := range db.queryStartedHooks {
-		hook(event)
+	for _, hook := range db.queryEventHooks {
+		hook.BeforeQuery(event)
 	}
+	return event
 }
 
 func (db *DB) queryProcessed(
-	ormDB orm.DB,
-	start time.Time,
-	query interface{},
-	params []interface{},
-	attempt int,
 	res orm.Result,
 	err error,
+	event *QueryEvent,
 ) {
-	if len(db.queryProcessedHooks) == 0 {
+	if len(db.queryEventHooks) == 0 {
 		return
 	}
 
 	funcName, file, line := fileLine(2)
-	event := &QueryProcessedEvent{
-		StartTime: start,
-		Func:      funcName,
-		File:      file,
-		Line:      line,
-
-		DB:      ormDB,
-		Query:   query,
-		Params:  params,
-		Attempt: attempt,
-		Result:  res,
-		Error:   err,
-	}
-	for _, hook := range db.queryProcessedHooks {
-		hook(event)
+	event.Func = funcName
+	event.File = file
+	event.Line = line
+	event.Error = err
+	event.Result = res
+	for _, hook := range db.queryEventHooks {
+		hook.AfterQuery(event)
 	}
 }
 
@@ -200,10 +161,6 @@ func packageFuncName(pc uintptr) (string, string) {
 	return packageName, funcName
 }
 
-func copyQueryProcessedHooks(s []queryProcessedHook) []queryProcessedHook {
-	return s[:len(s):len(s)]
-}
-
-func copyQueryStartedHooks(s []queryStartedHook) []queryStartedHook {
+func copyQueryEventHooks(s []Hook) []Hook {
 	return s[:len(s):len(s)]
 }
