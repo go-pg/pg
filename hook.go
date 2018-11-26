@@ -96,6 +96,7 @@ func (db *DB) queryStarted(
 		Query:   query,
 		Params:  params,
 		Attempt: attempt,
+		Data: make(map[interface{}]interface{}),
 	}
 	for _, hook := range db.queryEventHooks {
 		hook.BeforeQuery(event)
