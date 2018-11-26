@@ -109,7 +109,7 @@ func (db *DB) queryProcessed(
 	err error,
 	event *QueryEvent,
 ) {
-	if len(db.queryEventHooks) == 0 {
+	if event == nil {
 		return
 	}
 
