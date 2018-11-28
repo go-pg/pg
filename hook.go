@@ -2,8 +2,6 @@ package pg
 
 import (
 	"fmt"
-	"runtime"
-	"strings"
 	"time"
 
 	"github.com/go-pg/pg/orm"
@@ -85,13 +83,7 @@ func (db *DB) queryStarted(
 		return nil
 	}
 
-	funcName, file, line := fileLine(2)
 	event := &QueryEvent{
-		StartTime: time.Now(),
-		Func: funcName,
-		File: file,
-		Line: line,
-
 		DB:      ormDB,
 		Query:   query,
 		Params:  params,
@@ -113,53 +105,11 @@ func (db *DB) queryProcessed(
 		return
 	}
 
-	funcName, file, line := fileLine(2)
-	event.Func = funcName
-	event.File = file
-	event.Line = line
 	event.Error = err
 	event.Result = res
 	for _, hook := range db.queryEventHooks {
 		hook.AfterQuery(event)
 	}
-}
-
-const packageName = "github.com/go-pg/pg"
-
-func fileLine(depth int) (string, string, int) {
-	for i := depth; ; i++ {
-		pc, file, line, ok := runtime.Caller(i)
-		if !ok {
-			break
-		}
-		if strings.Contains(file, packageName) {
-			continue
-		}
-		_, funcName := packageFuncName(pc)
-		return funcName, file, line
-	}
-	return "", "", 0
-}
-
-func packageFuncName(pc uintptr) (string, string) {
-	f := runtime.FuncForPC(pc)
-	if f == nil {
-		return "", ""
-	}
-
-	packageName := ""
-	funcName := f.Name()
-
-	if ind := strings.LastIndex(funcName, "/"); ind > 0 {
-		packageName += funcName[:ind+1]
-		funcName = funcName[ind+1:]
-	}
-	if ind := strings.Index(funcName, "."); ind > 0 {
-		packageName += funcName[:ind]
-		funcName = funcName[ind+1:]
-	}
-
-	return packageName, funcName
 }
 
 func copyQueryEventHooks(s []Hook) []Hook {

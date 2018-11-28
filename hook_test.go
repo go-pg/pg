@@ -199,10 +199,6 @@ var _ = Describe("OnQueryEvent", func() {
 
 	Describe("Query/Exec", func() {
 		afterQuery := func (event *pg.QueryEvent) {
-			Expect(event.StartTime).NotTo(BeZero())
-			Expect(event.Func).NotTo(BeZero())
-			Expect(event.File).NotTo(BeZero())
-			Expect(event.Line).NotTo(BeZero())
 			Expect(event.DB).To(Equal(db))
 			Expect(event.Query).To(Equal("SELECT ?"))
 			Expect(event.Params).To(Equal([]interface{}{1}))
@@ -222,10 +218,6 @@ var _ = Describe("OnQueryEvent", func() {
 		}
 
 		beforeQuery := func (event *pg.QueryEvent) {
-			Expect(event.StartTime).NotTo(BeZero())
-			Expect(event.Func).NotTo(BeZero())
-			Expect(event.File).NotTo(BeZero())
-			Expect(event.Line).NotTo(BeZero())
 			Expect(event.DB).To(Equal(db))
 			Expect(event.Query).To(Equal("SELECT ?"))
 			Expect(event.Params).To(Equal([]interface{}{1}))
@@ -264,10 +256,6 @@ var _ = Describe("OnQueryEvent", func() {
 
 	Describe("Model", func() {
 		afterQuery := func (event *pg.QueryEvent) {
-			Expect(event.StartTime).NotTo(BeZero())
-			Expect(event.Func).NotTo(BeZero())
-			Expect(event.File).NotTo(BeZero())
-			Expect(event.Line).NotTo(BeZero())
 			Expect(event.DB).To(Equal(db))
 			Expect(event.Query).NotTo(BeNil())
 			Expect(event.Params).To(HaveLen(1))
@@ -287,10 +275,6 @@ var _ = Describe("OnQueryEvent", func() {
 		}
 
 		beforeQuery := func (event *pg.QueryEvent) {
-			Expect(event.StartTime).NotTo(BeZero())
-			Expect(event.Func).NotTo(BeZero())
-			Expect(event.File).NotTo(BeZero())
-			Expect(event.Line).NotTo(BeZero())
 			Expect(event.DB).To(Equal(db))
 			Expect(event.Query).NotTo(BeNil())
 			Expect(event.Params).To(HaveLen(1))
