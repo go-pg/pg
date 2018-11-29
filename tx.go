@@ -3,13 +3,11 @@ package pg
 import (
 	"context"
 	"errors"
-	"io"
-	"sync"
-	"time"
-
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/pool"
 	"github.com/go-pg/pg/orm"
+	"io"
+	"sync"
 )
 
 var errTxDone = errors.New("pg: transaction has already been committed or rolled back")
@@ -150,10 +148,10 @@ func (tx *Tx) exec(query interface{}, params ...interface{}) (orm.Result, error)
 		return nil, err
 	}
 
-	start := time.Now()
+	event := tx.db.queryStarted(tx, query, params, 0)
 	res, err := tx.db.simpleQuery(cn, query, params...)
 	tx.freeConn(cn, err)
-	tx.db.queryProcessed(tx, start, query, params, 0, res, err)
+	tx.db.queryProcessed(res, err, event)
 
 	return res, err
 }
@@ -181,10 +179,10 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 		return nil, err
 	}
 
-	start := time.Now()
+	event := tx.db.queryStarted(tx, query, params, 0)
 	res, err := tx.db.simpleQueryData(cn, model, query, params...)
 	tx.freeConn(cn, err)
-	tx.db.queryProcessed(tx, start, query, params, 0, res, err)
+	tx.db.queryProcessed(res, err, event)
 
 	if err != nil {
 		return nil, err

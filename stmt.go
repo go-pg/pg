@@ -74,9 +74,9 @@ func (stmt *Stmt) Exec(params ...interface{}) (res orm.Result, err error) {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		start := time.Now()
+		event := stmt.db.queryStarted(stmt.db, stmt.q, params, attempt)
 		res, err = stmt.exec(params...)
-		stmt.db.queryProcessed(stmt.db, start, stmt.q, params, attempt, res, err)
+		stmt.db.queryProcessed(res, err, event)
 
 		if !stmt.db.shouldRetry(err) {
 			break
@@ -133,9 +133,9 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res orm.Resul
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		start := time.Now()
+		event := stmt.db.queryStarted(stmt.db, stmt.q, params, attempt)
 		res, err = stmt.query(model, params...)
-		stmt.db.queryProcessed(stmt.db, start, stmt.q, params, attempt, res, err)
+		stmt.db.queryProcessed(res, err, event)
 
 		if !stmt.db.shouldRetry(err) {
 			break
