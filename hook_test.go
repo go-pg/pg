@@ -171,7 +171,7 @@ var _ = Describe("HookTest", func() {
 	})
 })
 
-var _ = Describe("OnQueryProcessed", func() {
+var _ = Describe("AddQueryHook", func() {
 	var db *pg.DB
 	var count int
 
@@ -186,7 +186,7 @@ var _ = Describe("OnQueryProcessed", func() {
 
 	Describe("Query/Exec", func() {
 		BeforeEach(func() {
-			db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {
+			db.AddQueryHook(func(event *pg.QueryProcessedEvent) {
 				Expect(event.StartTime).NotTo(BeZero())
 				Expect(event.Func).NotTo(BeZero())
 				Expect(event.File).NotTo(BeZero())
@@ -224,7 +224,7 @@ var _ = Describe("OnQueryProcessed", func() {
 
 	Describe("Model", func() {
 		BeforeEach(func() {
-			db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {
+			db.AddQueryHook(func(event *pg.QueryProcessedEvent) {
 				Expect(event.StartTime).NotTo(BeZero())
 				Expect(event.Func).NotTo(BeZero())
 				Expect(event.File).NotTo(BeZero())

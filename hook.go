@@ -64,9 +64,9 @@ func queryString(query interface{}) ([]byte, error) {
 
 type queryProcessedHook func(*QueryProcessedEvent)
 
-// OnQueryProcessed calls the fn with QueryProcessedEvent
+// AddQueryHook calls the fn with QueryProcessedEvent
 // when query is processed.
-func (db *DB) OnQueryProcessed(fn func(*QueryProcessedEvent)) {
+func (db *DB) AddQueryHook(fn func(*QueryProcessedEvent)) {
 	db.queryProcessedHooks = append(db.queryProcessedHooks, fn)
 }
 
