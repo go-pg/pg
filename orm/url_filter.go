@@ -86,6 +86,8 @@ func (f *URLFilter) Filters(q *Query) (*Query, error) {
 		if _, ok := m[filter]; ok {
 			if strings.Contains(filter, "__") {
 				filter = strings.Replace(filter, "__", ".", 1)
+			} else {
+				filter = q.model.Table().ModelName + "." + filter
 			}
 			q = addOperator(q, filter, operation, values)
 		}
