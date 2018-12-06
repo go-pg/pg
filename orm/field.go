@@ -3,6 +3,7 @@ package orm
 import (
 	"reflect"
 
+	"github.com/go-pg/pg/internal/iszero"
 	"github.com/go-pg/pg/types"
 )
 
@@ -32,7 +33,7 @@ type Field struct {
 	append types.AppenderFunc
 	scan   types.ScannerFunc
 
-	isZero func(reflect.Value) bool
+	isZero iszero.Func
 }
 
 func indexEqual(ind1, ind2 []int) bool {

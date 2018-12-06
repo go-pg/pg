@@ -181,11 +181,11 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 	var paramsIndex int
 	var namedParamsOnce bool
 	var tableParams *tableParams
-	var model tableModel
+	var model TableModel
 
 	if len(params) > 0 {
 		var ok bool
-		model, ok = params[len(params)-1].(tableModel)
+		model, ok = params[len(params)-1].(TableModel)
 		if ok {
 			params = params[:len(params)-1]
 		}

@@ -1,31 +1,30 @@
-package orm
+package urlvalues
 
 import (
-	"net/url"
 	"strconv"
 	"time"
 
 	"github.com/go-pg/pg/types"
 )
 
-type URLValues map[string][]string
+type Values map[string][]string
 
-func (v URLValues) Has(name string) bool {
+func (v Values) Has(name string) bool {
 	_, ok := v[name]
 	return ok
 }
 
-func (v URLValues) SetDefault(name string, values ...string) {
+func (v Values) SetDefault(name string, values ...string) {
 	if !v.Has(name) {
 		v[name] = values
 	}
 }
 
-func (v URLValues) Strings(name string) []string {
+func (v Values) Strings(name string) []string {
 	return v[name]
 }
 
-func (v URLValues) String(name string) string {
+func (v Values) String(name string) string {
 	values := v.Strings(name)
 	if len(values) == 0 {
 		return ""
@@ -33,7 +32,7 @@ func (v URLValues) String(name string) string {
 	return values[0]
 }
 
-func (v URLValues) Bool(name string) (bool, error) {
+func (v Values) Bool(name string) (bool, error) {
 	if !v.Has(name) {
 		return false, nil
 	}
@@ -44,12 +43,12 @@ func (v URLValues) Bool(name string) (bool, error) {
 	return strconv.ParseBool(s)
 }
 
-func (v URLValues) MaybeBool(name string) bool {
+func (v Values) MaybeBool(name string) bool {
 	flag, _ := v.Bool(name)
 	return flag
 }
 
-func (v URLValues) Int(name string) (int, error) {
+func (v Values) Int(name string) (int, error) {
 	s := v.String(name)
 	if s == "" {
 		return 0, nil
@@ -57,12 +56,12 @@ func (v URLValues) Int(name string) (int, error) {
 	return strconv.Atoi(s)
 }
 
-func (v URLValues) MaybeInt(name string) int {
+func (v Values) MaybeInt(name string) int {
 	n, _ := v.Int(name)
 	return n
 }
 
-func (v URLValues) Int64(name string) (int64, error) {
+func (v Values) Int64(name string) (int64, error) {
 	s := v.String(name)
 	if s == "" {
 		return 0, nil
@@ -70,12 +69,12 @@ func (v URLValues) Int64(name string) (int64, error) {
 	return strconv.ParseInt(s, 10, 64)
 }
 
-func (v URLValues) MaybeInt64(name string) int64 {
+func (v Values) MaybeInt64(name string) int64 {
 	n, _ := v.Int64(name)
 	return n
 }
 
-func (v URLValues) Float64(name string) (float64, error) {
+func (v Values) Float64(name string) (float64, error) {
 	s := v.String(name)
 	if s == "" {
 		return 0, nil
@@ -83,12 +82,12 @@ func (v URLValues) Float64(name string) (float64, error) {
 	return strconv.ParseFloat(s, 64)
 }
 
-func (v URLValues) MaybeFloat64(name string) float64 {
+func (v Values) MaybeFloat64(name string) float64 {
 	n, _ := v.Float64(name)
 	return n
 }
 
-func (v URLValues) Time(name string) (time.Time, error) {
+func (v Values) Time(name string) (time.Time, error) {
 	s := v.String(name)
 	if s == "" {
 		return time.Time{}, nil
@@ -101,12 +100,12 @@ func (v URLValues) Time(name string) (time.Time, error) {
 	return types.ParseTimeString(s)
 }
 
-func (v URLValues) MaybeTime(name string) time.Time {
+func (v Values) MaybeTime(name string) time.Time {
 	tm, _ := v.Time(name)
 	return tm
 }
 
-func (v URLValues) Duration(name string) (time.Duration, error) {
+func (v Values) Duration(name string) (time.Duration, error) {
 	s := v.String(name)
 	if s == "" {
 		return 0, nil
@@ -114,11 +113,11 @@ func (v URLValues) Duration(name string) (time.Duration, error) {
 	return time.ParseDuration(s)
 }
 
-func (v URLValues) MaybeDuration(name string) time.Duration {
+func (v Values) MaybeDuration(name string) time.Duration {
 	dur, _ := v.Duration(name)
 	return dur
 }
 
-func (v URLValues) Pager() *Pager {
-	return NewPager(url.Values(v))
+func (v Values) Pager() *Pager {
+	return NewPager(v)
 }

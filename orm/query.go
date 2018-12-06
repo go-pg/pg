@@ -31,7 +31,7 @@ type Query struct {
 	db        DB
 	stickyErr error
 
-	model         tableModel
+	model         TableModel
 	implicitModel bool
 	deleted       bool
 
@@ -145,6 +145,10 @@ func (q *Query) Model(model ...interface{}) *Query {
 	}
 	q.implicitModel = false
 	return q
+}
+
+func (q *Query) GetModel() TableModel {
+	return q.model
 }
 
 func (q *Query) softDelete() bool {
@@ -428,7 +432,7 @@ func (q *Query) addWhere(f sepFormatAppender) {
 }
 
 // WherePK adds condition based on the model primary key.
-// Typically it is the same as:
+// Usually it is the same as:
 //
 //    Where("id = ?id")
 func (q *Query) WherePK() *Query {
@@ -446,6 +450,10 @@ func (q *Query) WherePK() *Query {
 	}
 	q.where = append(q.where, wherePKQuery{q})
 	return q
+}
+
+func (q *Query) WhereStruct(strct interface{}) *Query {
+	return q.Where(newStructFilter(strct).Where())
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {

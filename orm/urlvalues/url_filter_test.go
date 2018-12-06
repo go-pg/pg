@@ -1,11 +1,19 @@
-package orm
+package urlvalues_test
 
 import (
 	"net/url"
+	"testing"
 
+	"github.com/go-pg/pg/orm"
+	"github.com/go-pg/pg/orm/urlvalues"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+func TestGinkgo(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "urlvalues")
+}
 
 type URLValuesModel struct {
 	Id   int
@@ -60,18 +68,32 @@ var _ = Describe("URLValues", func() {
 		query:    query,
 	}}
 
-	It("adds conditions to the query", func() {
-		for _, test := range urlValuesTests {
+	It("adds single condition to the query", func() {
+		for i, test := range urlValuesTests {
 			values, err := url.ParseQuery(test.urlQuery)
 			Expect(err).NotTo(HaveOccurred())
 
-			q := NewQuery(nil, &URLValuesModel{})
-			q = q.Apply(URLFilters(values))
+			q := orm.NewQuery(nil, &URLValuesModel{})
+			q = q.Apply(urlvalues.Filters(urlvalues.Values(values)))
 
-			b, err := selectQuery{q: q}.AppendQuery(nil)
+			b, err := q.AppendQuery(nil)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(string(b)).To(Equal(test.query))
+			Expect(string(b)).To(Equal(test.query), "#%d", i)
 		}
+	})
+
+	It("joins multiple conditions using AND", func() {
+		values, err := url.ParseQuery("name__gt=1&name__lt=2")
+		Expect(err).NotTo(HaveOccurred())
+
+		q := orm.NewQuery(nil, &URLValuesModel{})
+		q = q.Apply(urlvalues.Filters(urlvalues.Values(values)))
+
+		b, err := q.AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(ContainSubstring(`"name" > '1'`))
+		Expect(string(b)).To(ContainSubstring(`"name" < '2'`))
+		Expect(string(b)).To(ContainSubstring(` AND `))
 	})
 })
 
@@ -93,10 +115,10 @@ var _ = Describe("Pager", func() {
 			values, err := url.ParseQuery(test.urlQuery)
 			Expect(err).NotTo(HaveOccurred())
 
-			q := NewQuery(nil, &URLValuesModel{})
-			q = q.Apply(Pagination(values))
+			q := orm.NewQuery(nil, &URLValuesModel{})
+			q = q.Apply(urlvalues.Pagination(urlvalues.Values(values)))
 
-			b, err := selectQuery{q: q}.AppendQuery(nil)
+			b, err := q.AppendQuery(nil)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(string(b)).To(Equal(test.query))
 		}

@@ -17,7 +17,7 @@ type m2mModel struct {
 	columns   map[string]string
 }
 
-var _ tableModel = (*m2mModel)(nil)
+var _ TableModel = (*m2mModel)(nil)
 
 func newM2MModel(j *join) *m2mModel {
 	baseTable := j.BaseModel.Table()
