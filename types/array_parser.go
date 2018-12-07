@@ -42,7 +42,7 @@ func (p *arrayParser) Valid() bool {
 	if p.stickyErr != nil {
 		return false
 	}
-	return p.p.Available() > 0
+	return p.p.Buffered() > 0
 }
 
 func (p *arrayParser) NextElem() ([]byte, error) {
