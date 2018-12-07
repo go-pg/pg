@@ -16,7 +16,7 @@ func Decode(value interface{}, values Values) error {
 
 	for name, values := range values {
 		field := meta.Field(name)
-		if field != nil {
+		if field != nil && !field.ReadOnly {
 			err := field.Scan(field.Value(strct), values)
 			if err != nil {
 				return err

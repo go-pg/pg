@@ -22,9 +22,11 @@ func NewPager(values Values) *Pager {
 	return p
 }
 
-func (p *Pager) FromValues(urlValues Values) {
-	values := Values(urlValues)
+func (p *Pager) FromURLValues(values Values) {
+	p.FromValues(Values(values))
+}
 
+func (p *Pager) FromValues(values Values) {
 	if values.Has("limit") {
 		limit, err := values.Int("limit")
 		if err != nil {

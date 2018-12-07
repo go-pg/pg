@@ -39,8 +39,9 @@ type Field struct {
 	opCode  opCode
 	opValue string
 
-	isSlice bool
-	omit    bool
+	isSlice  bool
+	ReadOnly bool
+	omit     bool
 
 	scan   ScanFunc
 	append types.AppenderFunc
@@ -54,7 +55,11 @@ func newField(sf reflect.StructField) *Field {
 	}
 
 	pgTag := tag.Parse(sf.Tag.Get("pg"))
-	f.omit = pgTag.Name == "-"
+	if pgTag.Name == "-" {
+		return nil
+	}
+	_, f.omit = pgTag.Options["omit"]
+	_, f.ReadOnly = pgTag.Options["readonly"]
 
 	if f.isSlice {
 		f.column, f.opCode, f.opValue = splitSliceColumnOperator(sf.Name)
