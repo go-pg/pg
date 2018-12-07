@@ -1,5 +1,7 @@
 package types
 
+import "github.com/go-pg/pg/internal"
+
 type ValueScanner interface {
 	ScanValue(rd Reader, n int) error
 }
@@ -33,7 +35,7 @@ func (f F) AppendValue(b []byte, quote int) []byte {
 //------------------------------------------------------------------------------
 
 type Reader interface {
-	Available() int
+	Buffered() int
 
 	Bytes() []byte
 	Read([]byte) (int, error)
@@ -46,4 +48,10 @@ type Reader interface {
 	//ReadN(int) ([]byte, error)
 	ReadFull() ([]byte, error)
 	ReadFullTemp() ([]byte, error)
+}
+
+type BytesReader = internal.BytesReader
+
+func NewBytesReader(buf []byte) *BytesReader {
+	return internal.NewBytesReader(buf)
 }

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package types
+package internal
 
 import (
 	"bytes"
@@ -26,7 +26,7 @@ func (r *BytesReader) Reset(b []byte) {
 	r.i = 0
 }
 
-func (r *BytesReader) Available() int {
+func (r *BytesReader) Buffered() int {
 	return len(r.s) - r.i
 }
 

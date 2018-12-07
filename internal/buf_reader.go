@@ -23,6 +23,7 @@ type BufReader struct {
 	err      error
 
 	available int // bytes available for reading
+	bytesRd   BytesReader
 }
 
 func NewBufReader(rd io.Reader) *BufReader {
@@ -31,6 +32,16 @@ func NewBufReader(rd io.Reader) *BufReader {
 		buf:       make([]byte, defaultBufSize),
 		available: -1,
 	}
+}
+
+func (b *BufReader) BytesReader(n int) *BytesReader {
+	if b.Buffered() < n {
+		return nil
+	}
+	buf := b.buf[b.r : b.r+n]
+	b.r += n
+	b.bytesRd.Reset(buf)
+	return &b.bytesRd
 }
 
 func (b *BufReader) SetAvailable(n int) {
@@ -55,7 +66,11 @@ func (b *BufReader) Reset(rd io.Reader) {
 
 // Buffered returns the number of bytes that can be read from the current buffer.
 func (b *BufReader) Buffered() int {
-	return b.w - b.r
+	d := b.w - b.r
+	if b.available != -1 && d > b.available {
+		return b.available
+	}
+	return d
 }
 
 func (b *BufReader) Bytes() []byte {
