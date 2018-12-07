@@ -58,7 +58,6 @@ func (f *Filter) Filters(q *orm.Query) (*orm.Query, error) {
 	}
 
 	var b []byte
-	var count int
 	for filter, values := range f.values {
 		if strings.HasSuffix(filter, "[]") {
 			filter = filter[:len(filter)-2]
@@ -74,11 +73,10 @@ func (f *Filter) Filters(q *orm.Query) (*orm.Query, error) {
 		}
 
 		if q.GetModel().Table().HasField(filter) {
-			if count > 0 {
+			if b != nil {
 				b = append(b, " AND "...)
 			}
 			b = addOperator(b, filter, operation, values)
-			count++
 		}
 	}
 

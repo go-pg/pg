@@ -33,13 +33,13 @@ func (sf *structFilter) Where() string {
 	sf.init()
 
 	var b []byte
-	for i, f := range sf.strct.Fields {
+	for _, f := range sf.strct.Fields {
 		fv := f.Value(sf.value)
 		if f.Omit(fv) {
 			continue
 		}
 
-		if i > 0 {
+		if b != nil {
 			b = append(b, and...)
 		}
 		b = f.Append(b, fv)

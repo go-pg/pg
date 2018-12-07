@@ -7,13 +7,17 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type Filter struct {
+type embeddedFilter struct {
 	Field    string
 	FieldNEQ string
 	FieldLT  int8
 	FieldLTE int16
 	FieldGT  int32
 	FieldGTE int64
+}
+
+type Filter struct {
+	embeddedFilter
 
 	Multi    []string
 	MultiNEQ []int
@@ -33,12 +37,14 @@ var _ = Describe("structFilter", func() {
 
 	It("constructs WHERE clause with filled filter", func() {
 		f := newStructFilter(&Filter{
-			Field:    "one",
-			FieldNEQ: "two",
-			FieldLT:  1,
-			FieldLTE: 2,
-			FieldGT:  3,
-			FieldGTE: 4,
+			embeddedFilter: embeddedFilter{
+				Field:    "one",
+				FieldNEQ: "two",
+				FieldLT:  1,
+				FieldLTE: 2,
+				FieldGT:  3,
+				FieldGTE: 4,
+			},
 
 			Multi:    []string{"one", "two"},
 			MultiNEQ: []int{3, 4},

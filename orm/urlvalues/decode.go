@@ -6,6 +6,10 @@ import (
 	"github.com/go-pg/pg/internal/struct_filter"
 )
 
+type afterDecodeURLValues interface {
+	AfterDecodeURLValues(values Values) error
+}
+
 func Decode(value interface{}, values Values) error {
 	strct := reflect.Indirect(reflect.ValueOf(value))
 	meta := struct_filter.GetStruct(strct.Type())
@@ -19,5 +23,10 @@ func Decode(value interface{}, values Values) error {
 			}
 		}
 	}
+
+	if value, ok := value.(afterDecodeURLValues); ok {
+		return value.AfterDecodeURLValues(values)
+	}
+
 	return nil
 }
