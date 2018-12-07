@@ -1,7 +1,7 @@
-package orm
+package urlvalues
 
 import (
-	"net/url"
+	"github.com/go-pg/pg/orm"
 )
 
 type Pager struct {
@@ -16,14 +16,14 @@ type Pager struct {
 	stickyErr error
 }
 
-func NewPager(values url.Values) *Pager {
+func NewPager(values Values) *Pager {
 	p := new(Pager)
-	p.SetURLValues(values)
+	p.FromValues(values)
 	return p
 }
 
-func (p *Pager) SetURLValues(urlValues url.Values) {
-	values := URLValues(urlValues)
+func (p *Pager) FromValues(urlValues Values) {
+	values := Values(urlValues)
 
 	if values.Has("limit") {
 		limit, err := values.Int("limit")
@@ -61,6 +61,9 @@ func (p *Pager) maxOffset() int {
 func (p *Pager) GetLimit() int {
 	const defaultLimit = 100
 
+	if p == nil {
+		return defaultLimit
+	}
 	if p.Limit < 0 {
 		return p.Limit
 	}
@@ -74,6 +77,9 @@ func (p *Pager) GetLimit() int {
 }
 
 func (p *Pager) GetOffset() int {
+	if p == nil {
+		return 0
+	}
 	if p.Offset > p.maxOffset() {
 		return p.maxOffset()
 	}
@@ -91,7 +97,7 @@ func (p *Pager) GetPage() int {
 	return (p.GetOffset() / p.GetLimit()) + 1
 }
 
-func (p *Pager) Paginate(q *Query) (*Query, error) {
+func (p *Pager) Pagination(q *orm.Query) (*orm.Query, error) {
 	if p == nil {
 		return q, nil
 	}
@@ -106,6 +112,6 @@ func (p *Pager) Paginate(q *Query) (*Query, error) {
 // Pagination is used with Query.Apply to set LIMIT and OFFSET from the URL values:
 //   - ?limit=10 - sets q.Limit(10), max limit is 1000.
 //   - ?page=5 - sets q.Offset((page - 1) * limit), max offset is 1000000.
-func Pagination(values url.Values) func(*Query) (*Query, error) {
-	return NewPager(values).Paginate
+func Pagination(values Values) func(*orm.Query) (*orm.Query, error) {
+	return NewPager(values).Pagination
 }

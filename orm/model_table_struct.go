@@ -22,7 +22,7 @@ type structTableModel struct {
 	structInitErr error
 }
 
-var _ tableModel = (*structTableModel)(nil)
+var _ TableModel = (*structTableModel)(nil)
 
 func newStructTableModel(table *Table) *structTableModel {
 	return &structTableModel{

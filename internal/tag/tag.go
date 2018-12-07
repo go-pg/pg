@@ -1,49 +1,49 @@
-package orm
+package tag
 
 import (
 	"github.com/go-pg/pg/internal/parser"
 )
 
-type tag struct {
+type Tag struct {
 	Name    string
 	Options map[string]string
 }
 
-func parseTag(s string) *tag {
-	p := &tagParser{
+func Parse(s string) *Tag {
+	p := &TagParser{
 		Parser: parser.NewString(s),
 	}
 	p.parseKey()
-	return &p.tag
+	return &p.Tag
 }
 
-type tagParser struct {
+type TagParser struct {
 	*parser.Parser
 
-	tag     tag
+	Tag     Tag
 	hasName bool
 	key     string
 }
 
-func (p *tagParser) setTagOption(key, value string) {
+func (p *TagParser) setTagOption(key, value string) {
 	if !p.hasName {
 		p.hasName = true
 		if key == "" {
-			p.tag.Name = value
+			p.Tag.Name = value
 			return
 		}
 	}
-	if p.tag.Options == nil {
-		p.tag.Options = make(map[string]string)
+	if p.Tag.Options == nil {
+		p.Tag.Options = make(map[string]string)
 	}
 	if key == "" {
-		p.tag.Options[value] = ""
+		p.Tag.Options[value] = ""
 	} else {
-		p.tag.Options[key] = value
+		p.Tag.Options[key] = value
 	}
 }
 
-func (p *tagParser) parseKey() {
+func (p *TagParser) parseKey() {
 	p.key = ""
 
 	var b []byte
@@ -72,7 +72,7 @@ func (p *tagParser) parseKey() {
 	}
 }
 
-func (p *tagParser) parseValue() {
+func (p *TagParser) parseValue() {
 	const quote = '\''
 
 	c := p.Peek()
@@ -101,7 +101,7 @@ func (p *tagParser) parseValue() {
 	p.setTagOption(p.key, string(b))
 }
 
-func (p *tagParser) parseQuotedValue() {
+func (p *TagParser) parseQuotedValue() {
 	const quote = '\''
 
 	var b []byte
@@ -132,7 +132,7 @@ func (p *tagParser) parseQuotedValue() {
 	p.parseKey()
 }
 
-func unquoteTagValue(s string) (string, bool) {
+func Unquote(s string) (string, bool) {
 	const quote = '\''
 
 	if len(s) < 2 {

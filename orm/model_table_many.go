@@ -14,7 +14,7 @@ type manyModel struct {
 	dstValues map[string][]reflect.Value
 }
 
-var _ tableModel = (*manyModel)(nil)
+var _ TableModel = (*manyModel)(nil)
 
 func newManyModel(j *join) *manyModel {
 	baseTable := j.BaseModel.Table()

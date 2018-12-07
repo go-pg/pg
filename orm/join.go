@@ -9,8 +9,8 @@ import (
 
 type join struct {
 	Parent    *join
-	BaseModel tableModel
-	JoinModel tableModel
+	BaseModel TableModel
+	JoinModel TableModel
 	Rel       *Relation
 
 	ApplyQuery func(*Query) (*Query, error)

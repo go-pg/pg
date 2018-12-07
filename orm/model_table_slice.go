@@ -14,7 +14,7 @@ type sliceTableModel struct {
 	sliceOfPtr bool
 }
 
-var _ tableModel = (*sliceTableModel)(nil)
+var _ TableModel = (*sliceTableModel)(nil)
 
 func (m *sliceTableModel) init(sliceType reflect.Type) {
 	switch sliceType.Elem().Kind() {

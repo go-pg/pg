@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/internal/iszero"
+	"github.com/go-pg/pg/internal/tag"
 	"github.com/go-pg/pg/types"
 )
 
@@ -230,7 +232,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 			fieldType := indirectType(f.Type)
 			t.addFields(fieldType, append(index, f.Index...))
 
-			pgTag := parseTag(f.Tag.Get("pg"))
+			pgTag := tag.Parse(f.Tag.Get("pg"))
 			_, inherit := pgTag.Options["inherit"]
 			_, override := pgTag.Options["override"]
 			if inherit || override {
@@ -253,7 +255,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 }
 
 func (t *Table) newField(f reflect.StructField, index []int) *Field {
-	sqlTag := parseTag(f.Tag.Get("sql"))
+	sqlTag := tag.Parse(f.Tag.Get("sql"))
 
 	switch f.Name {
 	case "tableName", "TableName":
@@ -264,21 +266,21 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		if sqlTag.Name == "_" {
 			t.setName("")
 		} else if sqlTag.Name != "" {
-			s, _ := unquoteTagValue(sqlTag.Name)
+			s, _ := tag.Unquote(sqlTag.Name)
 			t.setName(types.Q(quoteTableName(s)))
 		}
 
 		if v, ok := sqlTag.Options["select"]; ok {
-			v, _ = unquoteTagValue(v)
+			v, _ = tag.Unquote(v)
 			t.FullNameForSelects = types.Q(quoteTableName(v))
 		}
 
 		if v, ok := sqlTag.Options["alias"]; ok {
-			v, _ = unquoteTagValue(v)
+			v, _ = tag.Unquote(v)
 			t.Alias = types.Q(quoteTableName(v))
 		}
 
-		pgTag := parseTag(f.Tag.Get("pg"))
+		pgTag := tag.Parse(f.Tag.Get("pg"))
 		if _, ok := pgTag.Options["discard_unknown_columns"]; ok {
 			t.SetFlag(discardUnknownColumns)
 		}
@@ -328,7 +330,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 	}
 	if v, ok := sqlTag.Options["default"]; ok {
-		v, ok = unquoteTagValue(v)
+		v, ok = tag.Unquote(v)
 		if ok {
 			field.Default = types.Q(types.AppendString(nil, v, 1))
 		} else {
@@ -351,7 +353,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 	}
 
-	pgTag := parseTag(f.Tag.Get("pg"))
+	pgTag := tag.Parse(f.Tag.Get("pg"))
 
 	if _, ok := sqlTag.Options["array"]; ok {
 		field.SetFlag(ArrayFlag)
@@ -388,7 +390,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.append = types.Appender(f.Type)
 		field.scan = types.Scanner(f.Type)
 	}
-	field.isZero = isZeroFunc(f.Type)
+	field.isZero = iszero.Checker(f.Type)
 
 	t.allFields = append(t.allFields, field)
 	if skip {
@@ -481,7 +483,7 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 		return false
 	}
 
-	pgTag := parseTag(field.Field.Tag.Get("pg"))
+	pgTag := tag.Parse(field.Field.Tag.Get("pg"))
 	joinTable := _tables.get(elemType, true)
 
 	fk, fkOK := pgTag.Options["fk"]
@@ -617,7 +619,7 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 }
 
 func (t *Table) tryRelationStruct(field *Field) bool {
-	pgTag := parseTag(field.Field.Tag.Get("pg"))
+	pgTag := tag.Parse(field.Field.Tag.Get("pg"))
 	joinTable := _tables.get(field.Type, true)
 	if len(joinTable.allFields) == 0 {
 		return false
@@ -677,10 +679,10 @@ func isColumn(typ reflect.Type) bool {
 	return typ.Implements(scannerType) || reflect.PtrTo(typ).Implements(scannerType)
 }
 
-func fieldSQLType(field *Field, pgTag, sqlTag *tag) string {
+func fieldSQLType(field *Field, pgTag, sqlTag *tag.Tag) string {
 	if typ, ok := sqlTag.Options["type"]; ok {
 		field.SetFlag(customTypeFlag)
-		typ, _ = unquoteTagValue(typ)
+		typ, _ = tag.Unquote(typ)
 		return typ
 	}
 
@@ -779,8 +781,8 @@ func sqlTypeEqual(a, b string) bool {
 	return pkSQLType(a) == pkSQLType(b)
 }
 
-func (t *Table) tryHasOne(joinTable *Table, field *Field, tag *tag) bool {
-	fk, fkOK := tag.Options["fk"]
+func (t *Table) tryHasOne(joinTable *Table, field *Field, pgTag *tag.Tag) bool {
+	fk, fkOK := pgTag.Options["fk"]
 	if fkOK {
 		if fk == "-" {
 			return false
@@ -803,8 +805,8 @@ func (t *Table) tryHasOne(joinTable *Table, field *Field, tag *tag) bool {
 	return false
 }
 
-func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, tag *tag) bool {
-	fk, fkOK := tag.Options["fk"]
+func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, pgTag *tag.Tag) bool {
+	fk, fkOK := pgTag.Options["fk"]
 	if fkOK {
 		if fk == "-" {
 			return false

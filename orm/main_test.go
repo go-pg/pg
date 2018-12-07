@@ -9,5 +9,5 @@ import (
 
 func TestGinkgo(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "ORM")
+	RunSpecs(t, "orm")
 }

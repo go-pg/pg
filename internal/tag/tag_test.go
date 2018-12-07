@@ -1,7 +1,9 @@
-package orm
+package tag_test
 
 import (
 	"testing"
+
+	"github.com/go-pg/pg/internal/tag"
 )
 
 var tagTests = []struct {
@@ -26,7 +28,7 @@ var tagTests = []struct {
 
 func TestTagParser(t *testing.T) {
 	for _, test := range tagTests {
-		tag := parseTag(test.tag)
+		tag := tag.Parse(test.tag)
 		if tag.Name != test.name {
 			t.Fatalf("got %q, wanted %q (tag=%q)", tag.Name, test.name, test.tag)
 		}

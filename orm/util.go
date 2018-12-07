@@ -91,7 +91,7 @@ func visitField(v reflect.Value, index []int, fn func(reflect.Value)) {
 	}
 }
 
-func dstValues(model tableModel, fields []*Field) map[string][]reflect.Value {
+func dstValues(model TableModel, fields []*Field) map[string][]reflect.Value {
 	mp := make(map[string][]reflect.Value)
 	var id []byte
 	walk(model.Root(), model.ParentIndex(), func(v reflect.Value) {
