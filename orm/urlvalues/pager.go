@@ -18,32 +18,28 @@ type Pager struct {
 
 func NewPager(values Values) *Pager {
 	p := new(Pager)
-	p.FromValues(values)
+	p.stickyErr = p.FromValues(values)
 	return p
 }
 
-func (p *Pager) FromURLValues(values Values) {
-	p.FromValues(Values(values))
+func (p *Pager) FromURLValues(values Values) error {
+	return p.FromValues(Values(values))
 }
 
-func (p *Pager) FromValues(values Values) {
-	if values.Has("limit") {
-		limit, err := values.Int("limit")
-		if err != nil {
-			p.stickyErr = err
-			return
-		}
-		p.Limit = int(limit)
+func (p *Pager) FromValues(values Values) error {
+	limit, err := values.Int("limit")
+	if err != nil {
+		return err
 	}
+	p.Limit = int(limit)
 
-	if values.Has("page") {
-		page, err := values.Int("page")
-		if err != nil {
-			p.stickyErr = err
-			return
-		}
-		p.SetPage(int(page))
+	page, err := values.Int("page")
+	if err != nil {
+		return err
 	}
+	p.SetPage(int(page))
+
+	return nil
 }
 
 func (p *Pager) maxLimit() int {

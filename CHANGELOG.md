@@ -1,5 +1,11 @@
 # Changelog
 
+## v7
+
+- DB.OnQueryProcessed is replaced with DB.AddQueryHook.
+- Added WhereStruct.
+- orm.Pager is moved to orm/urlvalues.Pager. Pager.FromURLValues returns an error if page or limit params can't be parsed.
+
 ## v6.16
 
 - Read buffer is re-worked. Default read buffer is increased to 65kb.

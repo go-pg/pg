@@ -1,6 +1,7 @@
 package struct_filter
 
 import (
+	"fmt"
 	"reflect"
 	"strings"
 
@@ -41,6 +42,7 @@ type Field struct {
 
 	isSlice  bool
 	ReadOnly bool
+	required bool
 	omit     bool
 
 	scan   ScanFunc
@@ -58,8 +60,13 @@ func newField(sf reflect.StructField) *Field {
 	if pgTag.Name == "-" {
 		return nil
 	}
-	_, f.omit = pgTag.Options["omit"]
 	_, f.ReadOnly = pgTag.Options["readonly"]
+	_, f.required = pgTag.Options["required"]
+	_, f.omit = pgTag.Options["omit"]
+	if f.required && f.omit {
+		err := fmt.Errorf("required and omit tags can't be set together")
+		panic(err)
+	}
 
 	if f.isSlice {
 		f.column, f.opCode, f.opValue = splitSliceColumnOperator(sf.Name)
@@ -84,7 +91,7 @@ func (f *Field) Value(strct reflect.Value) reflect.Value {
 }
 
 func (f *Field) Omit(value reflect.Value) bool {
-	return f.omit || f.isZero(value)
+	return !f.required && f.omit || f.isZero(value)
 }
 
 func (f *Field) Scan(value reflect.Value, values []string) error {

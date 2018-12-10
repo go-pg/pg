@@ -1,6 +1,7 @@
 package struct_filter
 
 import (
+	"database/sql"
 	"reflect"
 	"strconv"
 	"time"
@@ -10,6 +11,7 @@ import (
 
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 var durationType = reflect.TypeOf((*time.Duration)(nil)).Elem()
+var nullBoolType = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
 
 type ScanFunc func(v reflect.Value, values []string) error
 
@@ -19,6 +21,8 @@ func scanner(typ reflect.Type) ScanFunc {
 		return scanTime
 	case durationType:
 		return scanDuration
+	case nullBoolType:
+		return scanNullBool
 	}
 
 	switch typ.Kind() {
@@ -28,7 +32,9 @@ func scanner(typ reflect.Type) ScanFunc {
 		return scanInt64
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		return scanUint64
-	case reflect.Float32, reflect.Float64:
+	case reflect.Float32:
+		return scanFloat32
+	case reflect.Float64:
 		return scanFloat64
 	case reflect.String:
 		return scanString
@@ -40,6 +46,10 @@ func arrayScanner(typ reflect.Type) ScanFunc {
 	switch typ.Elem().Kind() {
 	case reflect.Int:
 		return scanIntSlice
+	case reflect.Int32:
+		return scanInt32Slice
+	case reflect.Int64:
+		return scanInt64Slice
 	case reflect.String:
 		return scanStringSlice
 	}
@@ -73,8 +83,16 @@ func scanUint64(v reflect.Value, values []string) error {
 	return nil
 }
 
+func scanFloat32(v reflect.Value, values []string) error {
+	return scanFloat(v, values, 32)
+}
+
 func scanFloat64(v reflect.Value, values []string) error {
-	n, err := strconv.ParseFloat(values[0], 64)
+	return scanFloat(v, values, 64)
+}
+
+func scanFloat(v reflect.Value, values []string, bits int) error {
+	n, err := strconv.ParseFloat(values[0], bits)
 	if err != nil {
 		return err
 	}
@@ -88,12 +106,20 @@ func scanString(v reflect.Value, values []string) error {
 }
 
 func scanTime(v reflect.Value, values []string) error {
-	tm, err := types.ParseTimeString(values[0])
+	tm, err := ParseTime(values[0])
 	if err != nil {
 		return err
 	}
 	v.Set(reflect.ValueOf(tm))
 	return nil
+}
+
+func ParseTime(s string) (time.Time, error) {
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err == nil {
+		return time.Unix(n, 0), nil
+	}
+	return types.ParseTimeString(s)
 }
 
 func scanDuration(v reflect.Value, values []string) error {
@@ -105,10 +131,57 @@ func scanDuration(v reflect.Value, values []string) error {
 	return nil
 }
 
+func scanNullBool(v reflect.Value, values []string) error {
+	value := sql.NullBool{}
+
+	s := values[0]
+	if s == "" {
+		v.Set(reflect.ValueOf(value))
+		return nil
+	}
+
+	f, err := strconv.ParseBool(values[0])
+	if err != nil {
+		return err
+	}
+
+	value.Valid = true
+	value.Bool = f
+	v.Set(reflect.ValueOf(value))
+
+	return nil
+}
+
 func scanIntSlice(v reflect.Value, values []string) error {
 	nn := make([]int, 0, len(values))
 	for _, s := range values {
 		n, err := strconv.Atoi(s)
+		if err != nil {
+			return err
+		}
+		nn = append(nn, n)
+	}
+	v.Set(reflect.ValueOf(nn))
+	return nil
+}
+
+func scanInt32Slice(v reflect.Value, values []string) error {
+	nn := make([]int32, 0, len(values))
+	for _, s := range values {
+		n, err := strconv.ParseInt(s, 10, 32)
+		if err != nil {
+			return err
+		}
+		nn = append(nn, int32(n))
+	}
+	v.Set(reflect.ValueOf(nn))
+	return nil
+}
+
+func scanInt64Slice(v reflect.Value, values []string) error {
+	nn := make([]int64, 0, len(values))
+	for _, s := range values {
+		n, err := strconv.ParseInt(s, 10, 64)
 		if err != nil {
 			return err
 		}
