@@ -8,6 +8,9 @@ import (
 	"time"
 
 	"github.com/go-pg/pg/internal"
+
+	"github.com/golang/protobuf/ptypes"
+	tspb "github.com/golang/protobuf/ptypes/timestamp"
 )
 
 func Scan(v interface{}, rd Reader, n int) error {
@@ -28,6 +31,8 @@ func Scan(v interface{}, rd Reader, n int) error {
 	case *time.Time:
 		*v, err = ScanTime(rd, n)
 		return err
+	case *tspb.Timestamp:
+		*v, err = ScanGrpcTime(rd, n)
 	}
 
 	vv := reflect.ValueOf(v)
@@ -168,4 +173,27 @@ func ScanTime(rd Reader, n int) (time.Time, error) {
 	}
 
 	return ParseTime(tmp)
+}
+
+func ScanGrpcTime(rd Reader, n int) (tspb.Timestamp, error) {
+	if n <= 0 {
+		return tspb.Timestamp{}, nil
+	}
+
+	tmp, err := rd.ReadFullTemp()
+	if err != nil {
+		return tspb.Timestamp{}, err
+	}
+
+	ts, err := ParseTime(tmp)
+	if err != nil {
+		return tspb.Timestamp{}, err
+	}
+
+	tp, err := ptypes.TimestampProto(ts)
+	if err != nil {
+		return tspb.Timestamp{}, err
+	}
+
+	return *tp, nil
 }

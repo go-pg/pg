@@ -7,6 +7,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	tspb "github.com/golang/protobuf/ptypes/timestamp"
 )
 
 func Append(b []byte, v interface{}, quote int) []byte {
@@ -43,6 +45,8 @@ func Append(b []byte, v interface{}, quote int) []byte {
 		return AppendString(b, v, quote)
 	case time.Time:
 		return AppendTime(b, v, quote)
+	case tspb.Timestamp:
+		return AppendGrpcTime(b, v, quote)
 	case []byte:
 		return AppendBytes(b, v, quote)
 	case ValueAppender:

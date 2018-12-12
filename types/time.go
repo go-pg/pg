@@ -4,6 +4,9 @@ import (
 	"time"
 
 	"github.com/go-pg/pg/internal"
+
+	"github.com/golang/protobuf/ptypes"
+	tspb "github.com/golang/protobuf/ptypes/timestamp"
 )
 
 const (
@@ -47,6 +50,21 @@ func ParseTimeString(s string) (time.Time, error) {
 func AppendTime(b []byte, tm time.Time, quote int) []byte {
 	if quote == 1 {
 		b = append(b, '\'')
+	}
+	b = tm.UTC().AppendFormat(b, timestamptzFormat)
+	if quote == 1 {
+		b = append(b, '\'')
+	}
+	return b
+}
+
+func AppendGrpcTime(b []byte, ts tspb.Timestamp, quote int) []byte {
+	if quote == 1 {
+		b = append(b, '\'')
+	}
+	tm, err := ptypes.Timestamp(&ts)
+	if err != nil {
+		return nil
 	}
 	b = tm.UTC().AppendFormat(b, timestamptzFormat)
 	if quote == 1 {
