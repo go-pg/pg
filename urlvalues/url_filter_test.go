@@ -4,10 +4,11 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/go-pg/pg/orm"
-	"github.com/go-pg/pg/orm/urlvalues"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/go-pg/pg/orm"
+	"github.com/go-pg/pg/urlvalues"
 )
 
 func TestGinkgo(t *testing.T) {

@@ -34,6 +34,7 @@ var (
 )
 
 type Field struct {
+	name   string
 	index  []int
 	column string
 
@@ -41,9 +42,9 @@ type Field struct {
 	opValue string
 
 	isSlice  bool
-	ReadOnly bool
+	noDecode bool
 	required bool
-	omit     bool
+	noFilter bool
 
 	scan   ScanFunc
 	append types.AppenderFunc
@@ -52,6 +53,7 @@ type Field struct {
 
 func newField(sf reflect.StructField) *Field {
 	f := &Field{
+		name:    sf.Name,
 		index:   sf.Index,
 		isSlice: sf.Type.Kind() == reflect.Slice,
 	}
@@ -60,20 +62,24 @@ func newField(sf reflect.StructField) *Field {
 	if pgTag.Name == "-" {
 		return nil
 	}
-	_, f.ReadOnly = pgTag.Options["readonly"]
+	if pgTag.Name != "" {
+		f.name = pgTag.Name
+	}
+
 	_, f.required = pgTag.Options["required"]
-	_, f.omit = pgTag.Options["omit"]
-	if f.required && f.omit {
-		err := fmt.Errorf("required and omit tags can't be set together")
+	_, f.noDecode = pgTag.Options["nodecode"]
+	_, f.noFilter = pgTag.Options["nofilter"]
+	if f.required && f.noFilter {
+		err := fmt.Errorf("required and nofilter tags can't be set together")
 		panic(err)
 	}
 
 	if f.isSlice {
-		f.column, f.opCode, f.opValue = splitSliceColumnOperator(sf.Name)
+		f.column, f.opCode, f.opValue = splitSliceColumnOperator(f.name)
 		f.scan = arrayScanner(sf.Type)
 		f.append = types.ArrayAppender(sf.Type)
 	} else {
-		f.column, f.opCode, f.opValue = splitColumnOperator(sf.Name, "_")
+		f.column, f.opCode, f.opValue = splitColumnOperator(f.name, "_")
 		f.scan = scanner(sf.Type)
 		f.append = types.Appender(sf.Type)
 	}
@@ -86,12 +92,16 @@ func newField(sf reflect.StructField) *Field {
 	return f
 }
 
+func (f *Field) NoDecode() bool {
+	return f.noDecode
+}
+
 func (f *Field) Value(strct reflect.Value) reflect.Value {
 	return strct.FieldByIndex(f.index)
 }
 
 func (f *Field) Omit(value reflect.Value) bool {
-	return !f.required && f.omit || f.isZero(value)
+	return !f.required && f.noFilter || f.isZero(value)
 }
 
 func (f *Field) Scan(value reflect.Value, values []string) error {

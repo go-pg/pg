@@ -10,13 +10,13 @@ type afterDecodeURLValues interface {
 	AfterDecodeURLValues(values Values) error
 }
 
-func Decode(value interface{}, values Values) error {
+func Decode(value afterDecodeURLValues, values Values) error {
 	strct := reflect.Indirect(reflect.ValueOf(value))
 	meta := struct_filter.GetStruct(strct.Type())
 
 	for name, values := range values {
 		field := meta.Field(name)
-		if field != nil && !field.ReadOnly {
+		if field != nil && !field.NoDecode() {
 			err := field.Scan(field.Value(strct), values)
 			if err != nil {
 				return err

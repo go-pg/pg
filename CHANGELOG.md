@@ -4,7 +4,7 @@
 
 - DB.OnQueryProcessed is replaced with DB.AddQueryHook.
 - Added WhereStruct.
-- orm.Pager is moved to orm/urlvalues.Pager. Pager.FromURLValues returns an error if page or limit params can't be parsed.
+- orm.Pager is moved to urlvalues.Pager. Pager.FromURLValues returns an error if page or limit params can't be parsed.
 
 ## v6.16
 
