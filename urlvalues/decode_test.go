@@ -3,9 +3,10 @@ package urlvalues_test
 import (
 	"time"
 
-	"github.com/go-pg/pg/orm/urlvalues"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"github.com/go-pg/pg/urlvalues"
 )
 
 type Filter struct {
@@ -22,6 +23,10 @@ type Filter struct {
 	Time time.Time
 
 	Omit []byte `pg:"-"`
+}
+
+func (f *Filter) AfterDecodeURLValues(values urlvalues.Values) error {
+	return nil
 }
 
 var _ = Describe("Decode", func() {
