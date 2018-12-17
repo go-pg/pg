@@ -2,6 +2,7 @@ package urlvalues
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/go-pg/pg/internal/struct_filter"
 )
@@ -15,6 +16,10 @@ func Decode(value afterDecodeURLValues, values Values) error {
 	meta := struct_filter.GetStruct(strct.Type())
 
 	for name, values := range values {
+		if strings.HasSuffix(name, "[]") {
+			name = name[:len(name)-2]
+		}
+
 		field := meta.Field(name)
 		if field != nil && !field.NoDecode() {
 			err := field.Scan(field.Value(strct), values)
