@@ -231,8 +231,11 @@ func scanJSONValue(v reflect.Value, rd Reader, n int) error {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
 
+	// Zero value so it works with SelectOrInsert.
+	// TODO: better handle slices
+	v.Set(reflect.New(v.Type()).Elem())
+
 	if n == -1 {
-		v.Set(reflect.New(v.Type()).Elem())
 		return nil
 	}
 
