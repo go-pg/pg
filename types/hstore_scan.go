@@ -3,8 +3,6 @@ package types
 import (
 	"fmt"
 	"reflect"
-
-	"github.com/go-pg/pg/internal/parser"
 )
 
 func HstoreScanner(typ reflect.Type) ScannerFunc {
@@ -35,28 +33,20 @@ func scanMapStringString(rd Reader, n int) (map[string]string, error) {
 		return nil, nil
 	}
 
-	tmp, err := rd.ReadFullTemp()
-	if err != nil {
-		return nil, err
-	}
-
-	p := parser.NewHstoreParser(tmp)
+	p := newHstoreParser(rd)
 	m := make(map[string]string)
-	for p.Valid() {
+	for {
 		key, err := p.NextKey()
 		if err != nil {
+			if err == endOfHstore {
+				break
+			}
 			return nil, err
-		}
-		if key == nil {
-			return nil, fmt.Errorf("pg: unexpected NULL: %q", tmp)
 		}
 
 		value, err := p.NextValue()
 		if err != nil {
 			return nil, err
-		}
-		if value == nil {
-			return nil, fmt.Errorf("pg: unexpected NULL: %q", tmp)
 		}
 
 		m[string(key)] = string(value)

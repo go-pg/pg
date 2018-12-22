@@ -8,7 +8,7 @@ import (
 	"io"
 )
 
-var endOfArray = errors.New("types: end of array")
+var endOfArray = errors.New("pg: end of array")
 
 type arrayParser struct {
 	p streamingParser
@@ -24,16 +24,13 @@ func newArrayParserErr(err error) *arrayParser {
 }
 
 func newArrayParser(rd Reader) *arrayParser {
-	c, err := rd.ReadByte()
+	p := newStreamingParser(rd)
+	err := p.SkipByte('{')
 	if err != nil {
 		return newArrayParserErr(err)
 	}
-	if c != '{' {
-		err := fmt.Errorf("pg: got %q, wanted '{'", c)
-		return newArrayParserErr(err)
-	}
 	return &arrayParser{
-		p: newStreamingParser(rd),
+		p: p,
 	}
 }
 
