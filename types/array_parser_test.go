@@ -28,7 +28,7 @@ func TestArrayParser(t *testing.T) {
 		p := newArrayParser(NewBytesReader([]byte(test.s)))
 
 		var got []string
-		for p.Valid() {
+		for {
 			b, err := p.NextElem()
 			if err != nil {
 				if err == endOfArray {
@@ -65,9 +65,12 @@ func BenchmarkArrayParserArray(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rd.Reset(bb)
 		p := newArrayParser(rd)
-		for p.Valid() {
+		for {
 			_, err := p.NextElem()
 			if err != nil {
+				if err == endOfArray {
+					break
+				}
 				b.Fatal(err)
 			}
 		}
@@ -91,9 +94,12 @@ func BenchmarkArrayParserSubArray(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		rd.Reset(bb)
 		p := newArrayParser(rd)
-		for p.Valid() {
+		for {
 			_, err := p.NextElem()
 			if err != nil {
+				if err == endOfArray {
+					break
+				}
 				b.Fatal(err)
 			}
 		}
