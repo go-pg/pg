@@ -1,9 +1,9 @@
-package parser_test
+package types
 
 import (
 	"testing"
 
-	"github.com/go-pg/pg/internal/parser"
+	"github.com/go-pg/pg/internal"
 )
 
 var hstoreTests = []struct {
@@ -21,21 +21,9 @@ var hstoreTests = []struct {
 
 func TestHstoreParser(t *testing.T) {
 	for testi, test := range hstoreTests {
-		p := parser.NewHstoreParser([]byte(test.s))
-
-		got := make(map[string]string)
-		for p.Valid() {
-			key, err := p.NextKey()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			value, err := p.NextValue()
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			got[string(key)] = string(value)
+		got, err := scanMapStringString(internal.NewBytesReader([]byte(test.s)), 0)
+		if err != nil {
+			t.Fatal(err)
 		}
 
 		if len(got) != len(test.m) {

@@ -1,5 +1,7 @@
 package types
 
+import "fmt"
+
 type streamingParser struct {
 	Reader
 }
@@ -10,19 +12,31 @@ func newStreamingParser(rd Reader) streamingParser {
 	}
 }
 
+func (p streamingParser) SkipByte(skip byte) error {
+	c, err := p.ReadByte()
+	if err != nil {
+		return err
+	}
+	if c == skip {
+		return nil
+	}
+	_ = p.UnreadByte()
+	return fmt.Errorf("got %q, wanted %q", c, skip)
+}
+
 func (p streamingParser) ReadSubstring() ([]byte, error) {
 	var b []byte
 	for {
 		c, err := p.ReadByte()
 		if err != nil {
-			return nil, err
+			return b, err
 		}
 
 		switch c {
 		case '\\':
 			c2, err := p.ReadByte()
 			if err != nil {
-				return nil, err
+				return b, err
 			}
 
 			switch c2 {
@@ -34,13 +48,13 @@ func (p streamingParser) ReadSubstring() ([]byte, error) {
 				b = append(b, '\\')
 				err = p.UnreadByte()
 				if err != nil {
-					return nil, err
+					return b, err
 				}
 			}
 		case '\'':
 			c2, err := p.ReadByte()
 			if err != nil {
-				return nil, err
+				return b, err
 			}
 
 			if c2 == '\'' {
@@ -49,7 +63,7 @@ func (p streamingParser) ReadSubstring() ([]byte, error) {
 				b = append(b, c)
 				err = p.UnreadByte()
 				if err != nil {
-					return nil, err
+					return b, err
 				}
 			}
 		case '"':

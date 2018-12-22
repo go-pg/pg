@@ -9,7 +9,7 @@ import (
 	"github.com/go-pg/pg/types"
 )
 
-var endOfComposite = errors.New("end of composite")
+var endOfComposite = errors.New("pg: end of composite")
 
 type compositeParser struct {
 	p types.Reader
