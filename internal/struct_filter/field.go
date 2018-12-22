@@ -44,7 +44,7 @@ type Field struct {
 	isSlice  bool
 	noDecode bool
 	required bool
-	noFilter bool
+	noWhere  bool
 
 	scan   ScanFunc
 	append types.AppenderFunc
@@ -68,9 +68,9 @@ func newField(sf reflect.StructField) *Field {
 
 	_, f.required = pgTag.Options["required"]
 	_, f.noDecode = pgTag.Options["nodecode"]
-	_, f.noFilter = pgTag.Options["nofilter"]
-	if f.required && f.noFilter {
-		err := fmt.Errorf("required and nofilter tags can't be set together")
+	_, f.noWhere = pgTag.Options["nowhere"]
+	if f.required && f.noWhere {
+		err := fmt.Errorf("required and nowhere tags can't be set together")
 		panic(err)
 	}
 
@@ -101,7 +101,7 @@ func (f *Field) Value(strct reflect.Value) reflect.Value {
 }
 
 func (f *Field) Omit(value reflect.Value) bool {
-	return !f.required && f.noFilter || f.isZero(value)
+	return !f.required && f.noWhere || f.isZero(value)
 }
 
 func (f *Field) Scan(value reflect.Value, values []string) error {

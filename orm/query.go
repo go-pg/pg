@@ -431,7 +431,7 @@ func (q *Query) addWhere(f sepFormatAppender) {
 	}
 }
 
-// WherePK adds condition based on the model primary key.
+// WherePK adds condition based on the model primary keys.
 // Usually it is the same as:
 //
 //    Where("id = ?id")
@@ -440,7 +440,7 @@ func (q *Query) WherePK() *Query {
 		q.err(errModelNil)
 		return q
 	}
-	if q.model.Kind() == reflect.Slice {
+	if q.model.Kind() != reflect.Struct {
 		q.err(errors.New("pg: WherePK requires struct Model"))
 		return q
 	}
@@ -452,6 +452,23 @@ func (q *Query) WherePK() *Query {
 	return q
 }
 
+// WhereStruct generates conditions for the struct fields with non-zero values:
+//    - Foo int - Where("foo = ?", strct.Foo)
+//    - Foo []int - Where("foo = ANY(?)", pg.Array(strct.Foo))
+//    - FooNEQ int - Where("foo != ?", strct.Foo)
+//    - FooExclude int - Where("foo != ?", strct.Foo)
+//    - FooGT int - Where("foo > ?", strct.Foo)
+//    - FooGTE int - Where("foo >= ?", strct.Foo)
+//    - FooLT int - Where("foo < ?", strct.Foo)
+//    - FooLTE int - Where("foo <= ?", strct.Foo)
+//
+// urlvalues.Decode can be used to decode url.Values into the struct.
+//
+// Following field tags are recognized:
+//    - pg:"-" - field is ignored.
+//    - pg:",nowhere" - field is decoded but is ignored by WhereStruct.
+//    - pg:",nodecode" - field is not decoded but is used by WhereStruct.
+//    - pg:",required" - condition is added for zero values as well.
 func (q *Query) WhereStruct(strct interface{}) *Query {
 	return q.Where(newStructFilter(strct).Where())
 }
