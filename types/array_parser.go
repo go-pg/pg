@@ -6,12 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/go-pg/pg/internal/parser"
 )
 
 var endOfArray = errors.New("pg: end of array")
 
 type arrayParser struct {
-	p streamingParser
+	p parser.StreamingParser
 
 	stickyErr error
 }
@@ -23,7 +25,7 @@ func newArrayParserErr(err error) *arrayParser {
 }
 
 func newArrayParser(rd Reader) *arrayParser {
-	p := newStreamingParser(rd)
+	p := parser.NewStreamingParser(rd)
 	err := p.SkipByte('{')
 	if err != nil {
 		return newArrayParserErr(err)
@@ -116,26 +118,30 @@ func (p *arrayParser) readSubArray() ([]byte, error) {
 			return nil, err
 		}
 
-		switch c {
-		case '"':
+		if c == '}' {
+			b = append(b, '}')
+			return b, nil
+		}
+
+		if c == '"' {
 			b = append(b, '"')
 			for {
 				bb, err := p.p.ReadSlice('"')
 				b = append(b, bb...)
 				if err != nil {
+					if err == bufio.ErrBufferFull {
+						continue
+					}
 					return nil, err
 				}
-
 				if len(b) > 1 && b[len(b)-2] != '\\' {
 					break
 				}
 			}
-		case '}':
-			b = append(b, '}')
-			return b, nil
-		default:
-			b = append(b, c)
+			continue
 		}
+
+		b = append(b, c)
 	}
 }
 
@@ -145,9 +151,7 @@ func (p *arrayParser) readCommaBrace() error {
 		return err
 	}
 	switch c {
-	case ',':
-		return nil
-	case '}':
+	case ',', '}':
 		return nil
 	default:
 		return fmt.Errorf("pg: got %q, wanted ',' or '}'", c)

@@ -3,17 +3,19 @@ package types
 import (
 	"errors"
 	"io"
+
+	"github.com/go-pg/pg/internal/parser"
 )
 
 var endOfHstore = errors.New("pg: end of hstore")
 
 type hstoreParser struct {
-	p streamingParser
+	p parser.StreamingParser
 }
 
 func newHstoreParser(rd Reader) *hstoreParser {
 	return &hstoreParser{
-		p: newStreamingParser(rd),
+		p: parser.NewStreamingParser(rd),
 	}
 }
 

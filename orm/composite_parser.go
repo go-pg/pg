@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/go-pg/pg/internal/parser"
 	"github.com/go-pg/pg/types"
 )
 
 var endOfComposite = errors.New("pg: end of composite")
 
 type compositeParser struct {
-	p types.Reader
+	p parser.StreamingParser
 
 	stickyErr error
 }
@@ -24,16 +25,13 @@ func newCompositeParserErr(err error) *compositeParser {
 }
 
 func newCompositeParser(rd types.Reader) *compositeParser {
-	c, err := rd.ReadByte()
+	p := parser.NewStreamingParser(rd)
+	err := p.SkipByte('(')
 	if err != nil {
 		return newCompositeParserErr(err)
 	}
-	if c != '(' {
-		err := fmt.Errorf("pg: got %q, wanted '('", c)
-		return newCompositeParserErr(err)
-	}
 	return &compositeParser{
-		p: rd,
+		p: p,
 	}
 }
 
@@ -54,7 +52,7 @@ func (p *compositeParser) NextElem() ([]byte, error) {
 	case '"':
 		return p.readQuoted()
 	case ',':
-		return p.NextElem()
+		return nil, nil
 	case ')':
 		return nil, endOfComposite
 	default:
@@ -93,50 +91,49 @@ func (p *compositeParser) NextElem() ([]byte, error) {
 
 func (p *compositeParser) readQuoted() ([]byte, error) {
 	var b []byte
+
+	c, err := p.p.ReadByte()
+	if err != nil {
+		return nil, err
+	}
+
 	for {
-		c, err := p.p.ReadByte()
+		next, err := p.p.ReadByte()
 		if err != nil {
 			return nil, err
 		}
 
-		switch c {
-		case '\\':
-			c2, err := p.p.ReadByte()
-			if err != nil {
-				return nil, err
-			}
-			switch c2 {
-			case '\\':
-				b = append(b, '\\')
-			default:
-				_ = p.p.UnreadByte()
+		if c == '\\' || c == '\'' {
+			if next == c {
 				b = append(b, c)
-			}
-		case '\'':
-			c2, err := p.p.ReadByte()
-			if err != nil {
-				return nil, err
-			}
-			switch c2 {
-			case '\'':
-				b = append(b, '\'')
-			default:
-				_ = p.p.UnreadByte()
+				c, err = p.p.ReadByte()
+				if err != nil {
+					return nil, err
+				}
+			} else {
 				b = append(b, c)
+				c = next
 			}
-		case '"':
-			c2, err := p.p.ReadByte()
-			if err != nil {
-				return nil, err
-			}
-			switch c2 {
+			continue
+		}
+
+		if c == '"' {
+			switch next {
 			case '"':
 				b = append(b, '"')
-			default:
+				c, err = p.p.ReadByte()
+				if err != nil {
+					return nil, err
+				}
+			case ',', ')':
 				return b, nil
+			default:
+				return nil, fmt.Errorf("pg: got %q, wanted ',' or ')'", c)
 			}
-		default:
-			b = append(b, c)
+			continue
 		}
+
+		b = append(b, c)
+		c = next
 	}
 }

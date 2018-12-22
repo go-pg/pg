@@ -34,22 +34,7 @@ func (f F) AppendValue(b []byte, quote int) []byte {
 
 //------------------------------------------------------------------------------
 
-type Reader interface {
-	Buffered() int
-
-	Bytes() []byte
-	Read([]byte) (int, error)
-	ReadByte() (byte, error)
-	UnreadByte() error
-	ReadSlice(byte) ([]byte, error)
-	Discard(int) (int, error)
-
-	//ReadBytes(fn func(byte) bool) ([]byte, error)
-	//ReadN(int) ([]byte, error)
-	ReadFull() ([]byte, error)
-	ReadFullTemp() ([]byte, error)
-}
-
+type Reader = internal.Reader
 type BytesReader = internal.BytesReader
 
 func NewBytesReader(buf []byte) *BytesReader {

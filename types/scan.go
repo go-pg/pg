@@ -68,11 +68,11 @@ func ScanBytes(rd Reader, n int) ([]byte, error) {
 	}
 
 	if len(tmp) < 2 {
-		return nil, fmt.Errorf("pg: can't parse bytes: %q", tmp)
+		return nil, fmt.Errorf("pg: can't parse bytea: %q", tmp)
 	}
 
 	if tmp[0] != '\\' || tmp[1] != 'x' {
-		return nil, fmt.Errorf("pg: can't parse bytes: %q", tmp)
+		return nil, fmt.Errorf("pg: can't parse bytea: %q", tmp)
 	}
 	tmp = tmp[2:] // Trim off "\\x".
 
