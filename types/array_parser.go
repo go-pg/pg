@@ -17,32 +17,24 @@ type arrayParser struct {
 	stickyErr error
 }
 
-func newArrayParser(rd Reader) *arrayParser {
-	c, err := rd.ReadByte()
-	if err != nil {
-		return &arrayParser{
-			stickyErr: err,
-		}
-	}
-
-	if c != '{' {
-		return &arrayParser{
-			stickyErr: fmt.Errorf("pg: expecting '{', got %q", c),
-		}
-	}
-
+func newArrayParserErr(err error) *arrayParser {
 	return &arrayParser{
-		p: newStreamingParser(rd),
-
 		stickyErr: err,
 	}
 }
 
-func (p *arrayParser) Valid() bool {
-	if p.stickyErr != nil {
-		return false
+func newArrayParser(rd Reader) *arrayParser {
+	c, err := rd.ReadByte()
+	if err != nil {
+		return newArrayParserErr(err)
 	}
-	return p.p.Buffered() > 0
+	if c != '{' {
+		err := fmt.Errorf("pg: got %q, wanted '{'", c)
+		return newArrayParserErr(err)
+	}
+	return &arrayParser{
+		p: newStreamingParser(rd),
+	}
 }
 
 func (p *arrayParser) NextElem() ([]byte, error) {
@@ -52,6 +44,9 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 
 	c, err := p.p.ReadByte()
 	if err != nil {
+		if err == io.EOF {
+			return nil, endOfArray
+		}
 		return nil, err
 	}
 
@@ -61,24 +56,20 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 		if err != nil {
 			return nil, err
 		}
-
 		err = p.readCommaBrace()
 		if err != nil {
 			return nil, err
 		}
-
 		return b, nil
 	case '{':
 		b, err := p.readSubArray()
 		if err != nil {
 			return nil, err
 		}
-
 		err = p.readCommaBrace()
 		if err != nil {
 			return nil, err
 		}
-
 		return b, nil
 	case '}':
 		return nil, endOfArray
@@ -157,7 +148,6 @@ func (p *arrayParser) readCommaBrace() error {
 	if err != nil {
 		return err
 	}
-
 	switch c {
 	case ',':
 		return nil

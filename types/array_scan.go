@@ -66,7 +66,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 		nextValue := internal.MakeSliceNextElemFunc(v)
 		var elemRd *BytesReader
 
-		for p.Valid() {
+		for {
 			elem, err := p.NextElem()
 			if err != nil {
 				if err == endOfArray {
@@ -121,7 +121,7 @@ func decodeSliceString(rd Reader, n int) ([]string, error) {
 
 	p := newArrayParser(rd)
 	slice := make([]string, 0)
-	for p.Valid() {
+	for {
 		elem, err := p.NextElem()
 		if err != nil {
 			if err == endOfArray {
@@ -158,7 +158,7 @@ func decodeSliceInt(rd Reader, n int) ([]int, error) {
 
 	p := newArrayParser(rd)
 	slice := make([]int, 0)
-	for p.Valid() {
+	for {
 		elem, err := p.NextElem()
 		if err != nil {
 			if err == endOfArray {
@@ -205,7 +205,7 @@ func decodeSliceInt64(rd Reader, n int) ([]int64, error) {
 
 	p := newArrayParser(rd)
 	slice := make([]int64, 0)
-	for p.Valid() {
+	for {
 		elem, err := p.NextElem()
 		if err != nil {
 			if err == endOfArray {
@@ -252,7 +252,7 @@ func decodeSliceFloat64(rd Reader, n int) ([]float64, error) {
 
 	p := newArrayParser(rd)
 	slice := make([]float64, 0)
-	for p.Valid() {
+	for {
 		elem, err := p.NextElem()
 		if err != nil {
 			if err == endOfArray {
@@ -303,7 +303,7 @@ func scanArrayValueScannerValue(v reflect.Value, rd Reader, n int) error {
 
 	p := newArrayParser(rd)
 	var elemRd *BytesReader
-	for p.Valid() {
+	for {
 		elem, err := p.NextElem()
 		if err != nil {
 			if err == endOfArray {
