@@ -7,13 +7,10 @@ import (
 	"github.com/go-pg/pg/internal/struct_filter"
 )
 
-type afterDecodeURLValues interface {
-	AfterDecodeURLValues(values Values) error
-}
-
-func Decode(value afterDecodeURLValues, values Values) error {
-	strct := reflect.Indirect(reflect.ValueOf(value))
-	meta := struct_filter.GetStruct(strct.Type())
+// Decode decodes url values into the struct.
+func Decode(strct interface{}, values Values) error {
+	v := reflect.Indirect(reflect.ValueOf(strct))
+	meta := struct_filter.GetStruct(v.Type())
 
 	for name, values := range values {
 		if strings.HasSuffix(name, "[]") {
@@ -22,15 +19,11 @@ func Decode(value afterDecodeURLValues, values Values) error {
 
 		field := meta.Field(name)
 		if field != nil && !field.NoDecode() {
-			err := field.Scan(field.Value(strct), values)
+			err := field.Scan(field.Value(v), values)
 			if err != nil {
 				return err
 			}
 		}
-	}
-
-	if value, ok := value.(afterDecodeURLValues); ok {
-		return value.AfterDecodeURLValues(values)
 	}
 
 	return nil

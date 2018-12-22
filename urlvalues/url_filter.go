@@ -12,13 +12,14 @@ import (
 // URLFilter is used with Query.Apply to add WHERE clauses from the URL values:
 //   - ?foo=bar - Where(`"foo" = 'bar'`)
 //   - ?foo=hello&foo=world - Where(`"foo" IN ('hello','world')`)
+//   - ?foo__neq=bar - Where(`"foo" != 'bar'`)
 //   - ?foo__exclude=bar - Where(`"foo" != 'bar'`)
-//   - ?foo__ieq=bar - Where(`"foo" ILIKE 'bar'`)
-//   - ?foo__match=bar - Where(`"foo" SIMILAR TO 'bar'`)
 //   - ?foo__gt=42 - Where(`"foo" > 42`)
 //   - ?foo__gte=42 - Where(`"foo" >= 42`)
 //   - ?foo__lt=42 - Where(`"foo" < 42`)
 //   - ?foo__lte=42 - Where(`"foo" <= 42`)
+//   - ?foo__ieq=bar - Where(`"foo" ILIKE 'bar'`)
+//   - ?foo__match=bar - Where(`"foo" SIMILAR TO 'bar'`)
 type Filter struct {
 	values  Values
 	allowed map[string]struct{}
@@ -95,7 +96,7 @@ func addOperator(b []byte, field, op string, values []string) []byte {
 	switch op {
 	case "", "include":
 		b = forAllValues(b, field, values, " = ", " IN ")
-	case "exclude":
+	case "exclude", "neq":
 		b = forAllValues(b, field, values, " != ", " NOT IN ")
 	case "gt":
 		b = forEachValue(b, field, values, " > ")
