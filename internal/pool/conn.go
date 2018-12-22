@@ -14,10 +14,9 @@ var noDeadline = time.Time{}
 type Conn struct {
 	netConn net.Conn
 
-	buf      []byte
-	rd       *internal.BufReader
-	rdLocked bool
-	wb       *WriteBuffer
+	buf []byte
+	rd  *internal.BufReader
+	wb  *WriteBuffer
 
 	InitedAt time.Time
 	pooled   bool

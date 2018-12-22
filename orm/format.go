@@ -204,7 +204,8 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 		}
 		dst = append(dst, b...)
 
-		if id, numeric := p.ReadIdentifier(); id != "" {
+		id, numeric := p.ReadIdentifier()
+		if id != "" {
 			if numeric {
 				idx, err := strconv.Atoi(id)
 				if err != nil {
