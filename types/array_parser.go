@@ -13,7 +13,6 @@ var endOfArray = errors.New("pg: end of array")
 type arrayParser struct {
 	p streamingParser
 
-	valid     bool
 	stickyErr error
 }
 
