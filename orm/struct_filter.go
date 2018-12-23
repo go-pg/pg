@@ -33,13 +33,14 @@ func (sf *structFilter) AppendFormat(b []byte, f QueryFormatter) []byte {
 		sf.strct = struct_filter.GetStruct(sf.value.Type())
 	}
 
+	before := len(b)
 	for _, f := range sf.strct.Fields {
 		fv := f.Value(sf.value)
 		if f.Omit(fv) {
 			continue
 		}
 
-		if b != nil {
+		if len(b) != before {
 			b = append(b, and...)
 		}
 		b = f.Append(b, fv)

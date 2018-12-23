@@ -1232,10 +1232,15 @@ func (q *Query) appendUpdWhere(b []byte) []byte {
 
 func (q *Query) _appendWhere(b []byte, where []sepFormatAppender) []byte {
 	for i, f := range where {
+		start := len(b)
 		if i > 0 {
 			b = f.AppendSep(b)
 		}
+		before := len(b)
 		b = f.AppendFormat(b, q)
+		if len(b) == before {
+			b = b[:start]
+		}
 	}
 	return b
 }
