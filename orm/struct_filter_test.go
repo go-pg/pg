@@ -31,8 +31,8 @@ var _ = Describe("structFilter", func() {
 	It("omits empty fields", func() {
 		f := newStructFilter(&Filter{})
 
-		s := f.Where()
-		Expect(s).To(BeEmpty())
+		b := f.AppendFormat(nil, nil)
+		Expect(b).To(BeNil())
 	})
 
 	It("constructs WHERE clause with filled filter", func() {
@@ -52,7 +52,7 @@ var _ = Describe("structFilter", func() {
 			Time: time.Unix(0, 0),
 		})
 
-		s := f.Where()
-		Expect(s).To(Equal(`field = 'one' AND field != 'two' AND field < 1 AND field <= 2 AND field > 3 AND field >= 4 AND multi = ANY('{"one","two"}') AND multi != ALL('{3,4}') AND time = '1970-01-01 00:00:00+00:00:00'`))
+		b := f.AppendFormat(nil, nil)
+		Expect(string(b)).To(Equal(`field = 'one' AND field != 'two' AND field < 1 AND field <= 2 AND field > 3 AND field >= 4 AND multi = ANY('{"one","two"}') AND multi != ALL('{3,4}') AND time = '1970-01-01 00:00:00+00:00:00'`))
 	})
 })
