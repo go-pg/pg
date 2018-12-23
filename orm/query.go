@@ -470,7 +470,8 @@ func (q *Query) WherePK() *Query {
 //    - pg:",nodecode" - field is not decoded but is used by WhereStruct.
 //    - pg:",required" - condition is added for zero values as well.
 func (q *Query) WhereStruct(strct interface{}) *Query {
-	return q.Where(newStructFilter(strct).Where())
+	q.where = append(q.where, newStructFilter(strct))
+	return q
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {

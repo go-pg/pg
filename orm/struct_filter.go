@@ -3,7 +3,6 @@ package orm
 import (
 	"reflect"
 
-	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/struct_filter"
 )
 
@@ -11,6 +10,8 @@ type structFilter struct {
 	value reflect.Value         // reflect.Struct
 	strct *struct_filter.Struct // lazy
 }
+
+var _ sepFormatAppender = (*structFilter)(nil)
 
 func newStructFilter(v interface{}) *structFilter {
 	if v, ok := v.(*structFilter); ok {
@@ -21,18 +22,17 @@ func newStructFilter(v interface{}) *structFilter {
 	}
 }
 
-func (sf *structFilter) init() {
+func (sf *structFilter) AppendSep(b []byte) []byte {
+	return append(b, " AND "...)
+}
+
+func (sf *structFilter) AppendFormat(b []byte, f QueryFormatter) []byte {
+	const and = " AND "
+
 	if sf.strct == nil {
 		sf.strct = struct_filter.GetStruct(sf.value.Type())
 	}
-}
 
-func (sf *structFilter) Where() string {
-	const and = " AND "
-
-	sf.init()
-
-	var b []byte
 	for _, f := range sf.strct.Fields {
 		fv := f.Value(sf.value)
 		if f.Omit(fv) {
@@ -45,5 +45,5 @@ func (sf *structFilter) Where() string {
 		b = f.Append(b, fv)
 	}
 
-	return internal.BytesToString(b)
+	return b
 }
