@@ -345,10 +345,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.SetFlag(ForeignKeyFlag)
 	} else if strings.HasPrefix(field.SQLName, "fk_") {
 		field.SetFlag(ForeignKeyFlag)
-	} else if len(t.PKs) == 0 {
-		if field.SQLName == "id" ||
-			field.SQLName == "uuid" ||
-			field.SQLName == "pk_"+t.ModelName {
+	} else if len(t.PKs) == 0 && !sqlTag.HasOption("nopk") {
+		switch field.SQLName {
+		case "id", "uuid", "pk_" + t.ModelName:
 			field.SetFlag(PrimaryKeyFlag)
 		}
 	}
