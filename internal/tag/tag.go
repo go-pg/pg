@@ -9,6 +9,11 @@ type Tag struct {
 	Options map[string]string
 }
 
+func (t *Tag) HasOption(name string) bool {
+	_, ok := t.Options[name]
+	return ok
+}
+
 func Parse(s string) *Tag {
 	p := &TagParser{
 		Parser: parser.NewString(s),
