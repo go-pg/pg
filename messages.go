@@ -71,7 +71,7 @@ const (
 
 var errEmptyQuery = internal.Errorf("pg: query is empty")
 
-func (db *DB) startup(cn *pool.Conn, user, password, database, appName string) error {
+func (db *baseDB) startup(cn *pool.Conn, user, password, database, appName string) error {
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writeStartupMsg(wb, user, database, appName)
 		return nil
@@ -126,7 +126,7 @@ func (db *DB) startup(cn *pool.Conn, user, password, database, appName string) e
 
 var errSSLNotSupported = errors.New("pg: SSL is not enabled on the server")
 
-func (db *DB) enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
+func (db *baseDB) enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writeSSLMsg(wb)
 		return nil
@@ -153,7 +153,7 @@ func (db *DB) enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
 	return nil
 }
 
-func (db *DB) auth(cn *pool.Conn, rd *internal.BufReader, user, password string) error {
+func (db *baseDB) auth(cn *pool.Conn, rd *internal.BufReader, user, password string) error {
 	num, err := readInt32(rd)
 	if err != nil {
 		return err
@@ -173,7 +173,7 @@ func (db *DB) auth(cn *pool.Conn, rd *internal.BufReader, user, password string)
 	}
 }
 
-func (db *DB) authCleartext(cn *pool.Conn, rd *internal.BufReader, password string) error {
+func (db *baseDB) authCleartext(cn *pool.Conn, rd *internal.BufReader, password string) error {
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writePasswordMsg(wb, password)
 		return nil
@@ -184,7 +184,7 @@ func (db *DB) authCleartext(cn *pool.Conn, rd *internal.BufReader, password stri
 	return readAuthOK(rd)
 }
 
-func (db *DB) authMD5(cn *pool.Conn, rd *internal.BufReader, user, password string) error {
+func (db *baseDB) authMD5(cn *pool.Conn, rd *internal.BufReader, user, password string) error {
 	b, err := rd.ReadN(4)
 	if err != nil {
 		return err
@@ -229,7 +229,7 @@ func readAuthOK(rd *internal.BufReader) error {
 	}
 }
 
-func (db *DB) authSASL(cn *pool.Conn, rd *internal.BufReader, user, password string) error {
+func (db *baseDB) authSASL(cn *pool.Conn, rd *internal.BufReader, user, password string) error {
 	s, err := readString(rd)
 	if err != nil {
 		return err

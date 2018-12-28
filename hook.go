@@ -62,11 +62,11 @@ func queryString(query interface{}) ([]byte, error) {
 }
 
 // AddQueryHook adds a hook into query processing.
-func (db *DB) AddQueryHook(hook QueryHook) {
+func (db *baseDB) AddQueryHook(hook QueryHook) {
 	db.queryHooks = append(db.queryHooks, hook)
 }
 
-func (db *DB) queryStarted(
+func (db *baseDB) queryStarted(
 	ormDB orm.DB,
 	query interface{},
 	params []interface{},
@@ -89,7 +89,7 @@ func (db *DB) queryStarted(
 	return event
 }
 
-func (db *DB) queryProcessed(
+func (db *baseDB) queryProcessed(
 	res orm.Result,
 	err error,
 	event *QueryEvent,
