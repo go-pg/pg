@@ -63,7 +63,7 @@ func TestDBString(t *testing.T) {
 
 func TestOnConnect(t *testing.T) {
 	opt := pgOptions()
-	opt.OnConnect = func(db *pg.DB) error {
+	opt.OnConnect = func(db *pg.Conn) error {
 		_, err := db.Exec("SET application_name = 'myapp'")
 		return err
 	}
@@ -173,6 +173,7 @@ var _ = Describe("DB", func() {
 	})
 
 	Describe("Prepare", func() {
+
 		It("returns an error when query can't be prepared", func() {
 			for i := 0; i < 3; i++ {
 				_, err := db.Prepare("totally invalid sql")
@@ -182,6 +183,71 @@ var _ = Describe("DB", func() {
 				Expect(err).NotTo(HaveOccurred())
 			}
 		})
+	})
+})
+
+var _ = Describe("db.Conn", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = pg.Connect(pgOptions())
+	})
+
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
+	It("does not ackquire connection immediately", func() {
+		conn := db.Conn()
+
+		stats := db.PoolStats()
+		Expect(stats.TotalConns).To(Equal(uint32(0)))
+
+		err := conn.Close()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("ackquires connection when used and frees when closed", func() {
+		conn := db.Conn()
+		_, err := conn.Exec("SELECT 1")
+		Expect(err).NotTo(HaveOccurred())
+
+		stats := db.PoolStats()
+		Expect(stats.TotalConns).To(Equal(uint32(1)))
+		Expect(stats.IdleConns).To(Equal(uint32(0)))
+
+		err = conn.Close()
+		Expect(err).NotTo(HaveOccurred())
+
+		stats = db.PoolStats()
+		Expect(stats.TotalConns).To(Equal(uint32(1)))
+		Expect(stats.IdleConns).To(Equal(uint32(1)))
+	})
+
+	It("supports Tx", func() {
+		conn := db.Conn()
+
+		tx, err := conn.Begin()
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = tx.Exec("SELECT 1")
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = conn.Exec("SELECT 1")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = tx.Commit()
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = conn.Exec("SELECT 1")
+		Expect(err).NotTo(HaveOccurred())
+
+		err = conn.Close()
+		Expect(err).NotTo(HaveOccurred())
+
+		stats := db.PoolStats()
+		Expect(stats.TotalConns).To(Equal(uint32(1)))
+		Expect(stats.IdleConns).To(Equal(uint32(1)))
 	})
 })
 

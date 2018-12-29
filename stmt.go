@@ -2,7 +2,6 @@ package pg
 
 import (
 	"errors"
-	"sync"
 	"time"
 
 	"github.com/go-pg/pg/internal"
@@ -15,56 +14,49 @@ var errStmtClosed = errors.New("pg: statement is closed")
 // Stmt is a prepared statement. Stmt is safe for concurrent use by
 // multiple goroutines.
 type Stmt struct {
-	db *DB
-
-	mu   sync.Mutex
-	_cn  *pool.Conn
-	inTx bool
+	db        *baseDB
+	stickyErr error
 
 	q       string
 	name    string
 	columns [][]byte
-
-	stickyErr error
 }
 
-// Prepare creates a prepared statement for later queries or
-// executions. Multiple queries or executions may be run concurrently
-// from the returned statement.
-func (db *DB) Prepare(q string) (*Stmt, error) {
+func prepareStmt(db *baseDB, q string) (*Stmt, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
 	}
 
-	stmt, err := prepare(db, cn, q)
+	name, columns, err := db.prepare(cn, q)
+	db.freeConn(cn, err)
 	if err != nil {
-		db.freeConn(cn, err)
 		return nil, err
 	}
 
-	return stmt, nil
+	return &Stmt{
+		db: db,
+
+		q:       q,
+		name:    name,
+		columns: columns,
+	}, nil
 }
 
 func (stmt *Stmt) conn() (*pool.Conn, error) {
-	if stmt._cn == nil {
-		if stmt.stickyErr != nil {
-			return nil, stmt.stickyErr
-		}
+	if stmt.stickyErr != nil {
+		return nil, stmt.stickyErr
+	}
+
+	cn, err := stmt.db.conn()
+	if err == pool.ErrClosed {
 		return nil, errStmtClosed
 	}
-	return stmt._cn, nil
+	return cn, err
 }
 
-func (stmt *Stmt) exec(params ...interface{}) (orm.Result, error) {
-	stmt.mu.Lock()
-	defer stmt.mu.Unlock()
-
-	cn, err := stmt.conn()
-	if err != nil {
-		return nil, err
-	}
-	return stmt.extQuery(cn, stmt.name, params...)
+func (stmt *Stmt) freeConn(cn *pool.Conn, err error) {
+	stmt.db.freeConn(cn, err)
 }
 
 // Exec executes a prepared statement with the given parameters.
@@ -74,18 +66,25 @@ func (stmt *Stmt) Exec(params ...interface{}) (res orm.Result, err error) {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		event := stmt.db.queryStarted(stmt.db, stmt.q, params, attempt)
-		res, err = stmt.exec(params...)
+		var cn *pool.Conn
+		cn, err = stmt.conn()
+		if err != nil {
+			return nil, err
+		}
+
+		event := stmt.db.queryStarted(stmt.db.db, stmt.q, params, attempt)
+		res, err = stmt.extQuery(cn, stmt.name, params...)
 		stmt.db.queryProcessed(res, err, event)
+		stmt.freeConn(cn, err)
 
 		if !stmt.db.shouldRetry(err) {
 			break
 		}
 	}
 	if err != nil {
-		stmt.setErr(err)
+		return nil, err
 	}
-	return
+	return res, nil
 }
 
 // ExecOne acts like Exec, but query must affect only one row. It
@@ -103,29 +102,6 @@ func (stmt *Stmt) ExecOne(params ...interface{}) (orm.Result, error) {
 	return res, nil
 }
 
-func (stmt *Stmt) query(model interface{}, params ...interface{}) (orm.Result, error) {
-	stmt.mu.Lock()
-	defer stmt.mu.Unlock()
-
-	cn, err := stmt.conn()
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := stmt.extQueryData(cn, stmt.name, model, stmt.columns, params...)
-	if err != nil {
-		return nil, err
-	}
-
-	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
-		if err = mod.AfterQuery(stmt.db); err != nil {
-			return res, err
-		}
-	}
-
-	return res, nil
-}
-
 // Query executes a prepared query statement with the given parameters.
 func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res orm.Result, err error) {
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
@@ -133,18 +109,32 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res orm.Resul
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		event := stmt.db.queryStarted(stmt.db, stmt.q, params, attempt)
-		res, err = stmt.query(model, params...)
+		var cn *pool.Conn
+		cn, err = stmt.conn()
+		if err != nil {
+			return nil, err
+		}
+
+		event := stmt.db.queryStarted(stmt.db.db, stmt.q, params, attempt)
+		res, err = stmt.extQueryData(cn, stmt.name, model, stmt.columns, params...)
 		stmt.db.queryProcessed(res, err, event)
+		stmt.freeConn(cn, err)
 
 		if !stmt.db.shouldRetry(err) {
 			break
 		}
 	}
 	if err != nil {
-		stmt.setErr(err)
+		return nil, err
 	}
-	return
+
+	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
+		if err = mod.AfterQuery(stmt.db.db); err != nil {
+			return res, err
+		}
+	}
+
+	return res, nil
 }
 
 // QueryOne acts like Query, but query must return only one row. It
@@ -167,56 +157,13 @@ func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (orm.Result
 	return res, nil
 }
 
-func (stmt *Stmt) setErr(e error) {
-	if stmt.stickyErr == nil {
-		stmt.stickyErr = e
-	}
-}
-
 // Close closes the statement.
 func (stmt *Stmt) Close() error {
-	stmt.mu.Lock()
-	defer stmt.mu.Unlock()
-
-	if stmt._cn == nil {
-		return errStmtClosed
-	}
-
-	err := stmt.closeStmt(stmt._cn, stmt.name)
-	if !stmt.inTx {
-		stmt.db.freeConn(stmt._cn, err)
-	}
-	stmt._cn = nil
-	return err
-}
-
-func prepare(db *DB, cn *pool.Conn, q string) (*Stmt, error) {
-	name := cn.NextId()
-	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
-		writeParseDescribeSyncMsg(wb, name, q)
-		return nil
-	})
+	err := stmt.closeStmt()
 	if err != nil {
-		return nil, err
-	}
-
-	var columns [][]byte
-	cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
-		columns, err = readParseDescribeSync(rd)
 		return err
-	})
-	if err != nil {
-		return nil, err
 	}
-
-	stmt := &Stmt{
-		db:      db,
-		_cn:     cn,
-		q:       q,
-		name:    name,
-		columns: columns,
-	}
-	return stmt, nil
+	return stmt.db.Close()
 }
 
 func (stmt *Stmt) extQuery(cn *pool.Conn, name string, params ...interface{}) (orm.Result, error) {
@@ -261,18 +208,14 @@ func (stmt *Stmt) extQueryData(
 	return res, nil
 }
 
-func (stmt *Stmt) closeStmt(cn *pool.Conn, name string) error {
-	err := cn.WithWriter(stmt.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
-		writeCloseMsg(wb, name)
-		writeFlushMsg(wb)
-		return nil
-	})
+func (stmt *Stmt) closeStmt() error {
+	cn, err := stmt.conn()
 	if err != nil {
 		return err
 	}
 
-	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
-		return readCloseCompleteMsg(rd)
-	})
+	err = stmt.db.closeStmt(cn, stmt.name)
+	stmt.freeConn(cn, err)
+
 	return err
 }
