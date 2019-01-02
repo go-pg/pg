@@ -60,7 +60,7 @@ func (stmt *Stmt) freeConn(cn *pool.Conn, err error) {
 }
 
 // Exec executes a prepared statement with the given parameters.
-func (stmt *Stmt) Exec(params ...interface{}) (res orm.Result, err error) {
+func (stmt *Stmt) Exec(params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		if attempt >= 1 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
@@ -90,7 +90,7 @@ func (stmt *Stmt) Exec(params ...interface{}) (res orm.Result, err error) {
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (stmt *Stmt) ExecOne(params ...interface{}) (orm.Result, error) {
+func (stmt *Stmt) ExecOne(params ...interface{}) (Result, error) {
 	res, err := stmt.Exec(params...)
 	if err != nil {
 		return nil, err
@@ -103,7 +103,7 @@ func (stmt *Stmt) ExecOne(params ...interface{}) (orm.Result, error) {
 }
 
 // Query executes a prepared query statement with the given parameters.
-func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res orm.Result, err error) {
+func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		if attempt >= 1 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
@@ -140,7 +140,7 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res orm.Resul
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (orm.Result, error) {
+func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (Result, error) {
 	mod, err := orm.NewModel(model)
 	if err != nil {
 		return nil, err
@@ -166,7 +166,7 @@ func (stmt *Stmt) Close() error {
 	return stmt.db.Close()
 }
 
-func (stmt *Stmt) extQuery(cn *pool.Conn, name string, params ...interface{}) (orm.Result, error) {
+func (stmt *Stmt) extQuery(cn *pool.Conn, name string, params ...interface{}) (Result, error) {
 	err := cn.WithWriter(stmt.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeBindExecuteMsg(wb, name, params...)
 	})
@@ -174,7 +174,7 @@ func (stmt *Stmt) extQuery(cn *pool.Conn, name string, params ...interface{}) (o
 		return nil, err
 	}
 
-	var res orm.Result
+	var res Result
 	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readExtQuery(rd)
 		return err
@@ -188,7 +188,7 @@ func (stmt *Stmt) extQuery(cn *pool.Conn, name string, params ...interface{}) (o
 
 func (stmt *Stmt) extQueryData(
 	cn *pool.Conn, name string, model interface{}, columns [][]byte, params ...interface{},
-) (orm.Result, error) {
+) (Result, error) {
 	err := cn.WithWriter(stmt.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeBindExecuteMsg(wb, name, params...)
 	})
@@ -196,7 +196,7 @@ func (stmt *Stmt) extQueryData(
 		return nil, err
 	}
 
-	var res orm.Result
+	var res Result
 	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readExtQueryData(rd, model, columns)
 		return err

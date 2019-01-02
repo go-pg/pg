@@ -120,7 +120,7 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 }
 
 // Exec is an alias for DB.Exec.
-func (tx *Tx) Exec(query interface{}, params ...interface{}) (orm.Result, error) {
+func (tx *Tx) Exec(query interface{}, params ...interface{}) (Result, error) {
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err
@@ -135,7 +135,7 @@ func (tx *Tx) Exec(query interface{}, params ...interface{}) (orm.Result, error)
 }
 
 // ExecOne is an alias for DB.ExecOne.
-func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (orm.Result, error) {
+func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (Result, error) {
 	res, err := tx.Exec(query, params...)
 	if err != nil {
 		return nil, err
@@ -148,7 +148,7 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (orm.Result, err
 }
 
 // Query is an alias for DB.Query.
-func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (orm.Result, error) {
+func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (Result, error) {
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err
@@ -173,7 +173,7 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 }
 
 // QueryOne is an alias for DB.QueryOne.
-func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (orm.Result, error) {
+func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (Result, error) {
 	mod, err := orm.NewModel(model)
 	if err != nil {
 		return nil, err
@@ -231,7 +231,7 @@ func (tx *Tx) DropTable(model interface{}, opt *orm.DropTableOptions) error {
 }
 
 // CopyFrom is an alias for DB.CopyFrom.
-func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
+func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (Result, error) {
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err
@@ -243,7 +243,7 @@ func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (o
 }
 
 // CopyTo is an alias for DB.CopyTo.
-func (tx *Tx) CopyTo(w io.Writer, query interface{}, params ...interface{}) (orm.Result, error) {
+func (tx *Tx) CopyTo(w io.Writer, query interface{}, params ...interface{}) (Result, error) {
 	cn, err := tx.conn()
 	if err != nil {
 		return nil, err
