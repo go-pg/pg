@@ -149,7 +149,7 @@ func (db *baseDB) Close() error {
 
 // Exec executes a query ignoring returned rows. The params are for any
 // placeholders in the query.
-func (db *baseDB) Exec(query interface{}, params ...interface{}) (res orm.Result, err error) {
+func (db *baseDB) Exec(query interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		var cn *pool.Conn
 
@@ -177,7 +177,7 @@ func (db *baseDB) Exec(query interface{}, params ...interface{}) (res orm.Result
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (db *baseDB) ExecOne(query interface{}, params ...interface{}) (orm.Result, error) {
+func (db *baseDB) ExecOne(query interface{}, params ...interface{}) (Result, error) {
 	res, err := db.Exec(query, params...)
 	if err != nil {
 		return nil, err
@@ -191,7 +191,7 @@ func (db *baseDB) ExecOne(query interface{}, params ...interface{}) (orm.Result,
 
 // Query executes a query that returns rows, typically a SELECT.
 // The params are for any placeholders in the query.
-func (db *baseDB) Query(model, query interface{}, params ...interface{}) (res orm.Result, err error) {
+func (db *baseDB) Query(model, query interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		if attempt >= 1 {
 			time.Sleep(db.retryBackoff(attempt - 1))
@@ -228,7 +228,7 @@ func (db *baseDB) Query(model, query interface{}, params ...interface{}) (res or
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (db *baseDB) QueryOne(model, query interface{}, params ...interface{}) (orm.Result, error) {
+func (db *baseDB) QueryOne(model, query interface{}, params ...interface{}) (Result, error) {
 	res, err := db.Query(model, query, params...)
 	if err != nil {
 		return nil, err
@@ -241,7 +241,7 @@ func (db *baseDB) QueryOne(model, query interface{}, params ...interface{}) (orm
 }
 
 // CopyFrom copies data from reader to a table.
-func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
+func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
@@ -252,7 +252,7 @@ func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}
 	return res, err
 }
 
-func (db *baseDB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (orm.Result, error) {
+func (db *baseDB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (Result, error) {
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeQueryMsg(wb, db, query, params...)
 	})
@@ -287,7 +287,7 @@ func (db *baseDB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params
 		return nil, err
 	}
 
-	var res orm.Result
+	var res Result
 	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readReadyForQuery(rd)
 		return err
@@ -300,7 +300,7 @@ func (db *baseDB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params
 }
 
 // CopyTo copies data from a table to writer.
-func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (orm.Result, error) {
+func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (Result, error) {
 	cn, err := db.conn()
 	if err != nil {
 		return nil, err
@@ -316,7 +316,7 @@ func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) 
 	return res, nil
 }
 
-func (db *baseDB) copyTo(cn *pool.Conn, w io.Writer, query interface{}, params ...interface{}) (orm.Result, error) {
+func (db *baseDB) copyTo(cn *pool.Conn, w io.Writer, query interface{}, params ...interface{}) (Result, error) {
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeQueryMsg(wb, db, query, params...)
 	})
@@ -324,7 +324,7 @@ func (db *baseDB) copyTo(cn *pool.Conn, w io.Writer, query interface{}, params .
 		return nil, err
 	}
 
-	var res orm.Result
+	var res Result
 	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		err := readCopyOutResponse(rd)
 		if err != nil {
@@ -416,7 +416,7 @@ func (db *baseDB) cancelRequest(processId, secretKey int32) error {
 
 func (db *baseDB) simpleQuery(
 	cn *pool.Conn, query interface{}, params ...interface{},
-) (orm.Result, error) {
+) (Result, error) {
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeQueryMsg(wb, db, query, params...)
 	})
@@ -424,7 +424,7 @@ func (db *baseDB) simpleQuery(
 		return nil, err
 	}
 
-	var res orm.Result
+	var res Result
 	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readSimpleQuery(rd)
 		return err
@@ -438,7 +438,7 @@ func (db *baseDB) simpleQuery(
 
 func (db *baseDB) simpleQueryData(
 	cn *pool.Conn, model, query interface{}, params ...interface{},
-) (orm.Result, error) {
+) (Result, error) {
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeQueryMsg(wb, db, query, params...)
 	})
@@ -446,7 +446,7 @@ func (db *baseDB) simpleQueryData(
 		return nil, err
 	}
 
-	var res orm.Result
+	var res Result
 	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readSimpleQueryData(rd, model)
 		return err

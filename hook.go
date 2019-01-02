@@ -21,7 +21,7 @@ type QueryEvent struct {
 	Query   interface{}
 	Params  []interface{}
 	Attempt int
-	Result  orm.Result
+	Result  Result
 	Error   error
 
 	Data map[interface{}]interface{}
@@ -90,7 +90,7 @@ func (db *baseDB) queryStarted(
 }
 
 func (db *baseDB) queryProcessed(
-	res orm.Result,
+	res Result,
 	err error,
 	event *QueryEvent,
 ) {
