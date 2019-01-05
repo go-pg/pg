@@ -77,8 +77,7 @@ var _ = Describe("URLValues", func() {
 			q := orm.NewQuery(nil, &URLValuesModel{})
 			q = q.Apply(urlvalues.Filters(urlvalues.Values(values)))
 
-			b, err := q.AppendQuery(nil)
-			Expect(err).NotTo(HaveOccurred())
+			b := q.AppendFormat(nil, nil)
 			Expect(string(b)).To(Equal(test.query), "#%d", i)
 		}
 	})
@@ -90,8 +89,7 @@ var _ = Describe("URLValues", func() {
 		q := orm.NewQuery(nil, &URLValuesModel{})
 		q = q.Apply(urlvalues.Filters(urlvalues.Values(values)))
 
-		b, err := q.AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
+		b := q.AppendFormat(nil, nil)
 		Expect(string(b)).To(ContainSubstring(`"name" > '1'`))
 		Expect(string(b)).To(ContainSubstring(`"name" < '2'`))
 		Expect(string(b)).To(ContainSubstring(` AND `))
@@ -119,8 +117,7 @@ var _ = Describe("Pager", func() {
 			q := orm.NewQuery(nil, &URLValuesModel{})
 			q = q.Apply(urlvalues.Pagination(urlvalues.Values(values)))
 
-			b, err := q.AppendQuery(nil)
-			Expect(err).NotTo(HaveOccurred())
+			b := q.AppendFormat(nil, nil)
 			Expect(string(b)).To(Equal(test.query))
 		}
 	})

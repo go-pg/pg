@@ -34,8 +34,7 @@ var _ = Describe("NewQuery", func() {
 	It("works with nil db", func() {
 		q := orm.NewQuery(nil)
 
-		b, err := q.AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
+		b := q.AppendFormat(nil, nil)
 		Expect(string(b)).To(Equal("SELECT *"))
 	})
 
@@ -45,8 +44,7 @@ var _ = Describe("NewQuery", func() {
 		}
 		q := orm.NewQuery(nil, (*Model)(nil))
 
-		b, err := q.AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
+		b := q.AppendFormat(nil, nil)
 		Expect(string(b)).To(Equal(`SELECT "model"."id" FROM "models" AS "model"`))
 	})
 })
