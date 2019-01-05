@@ -29,6 +29,7 @@ func (q *joinQuery) AppendOn(app *condAppender) {
 
 type Query struct {
 	db        DB
+	fmter     QueryFormatter
 	stickyErr error
 
 	model         TableModel
@@ -54,8 +55,6 @@ type Query struct {
 	selFor       *queryParamsAppender
 }
 
-var _ queryAppender = (*Query)(nil)
-
 func NewQuery(db DB, model ...interface{}) *Query {
 	return (&Query{}).DB(db).Model(model...)
 }
@@ -69,10 +68,6 @@ func (q *Query) New() *Query {
 		deleted:       q.deleted,
 	}
 	return cp
-}
-
-func (q *Query) AppendQuery(b []byte) ([]byte, error) {
-	return selectQuery{q: q}.AppendQuery(b)
 }
 
 // Copy returns copy of the Query.
@@ -1088,10 +1083,26 @@ func (q *Query) CopyTo(w io.Writer, query interface{}, params ...interface{}) (R
 
 func (q *Query) FormatQuery(b []byte, query string, params ...interface{}) []byte {
 	params = append(params, q.model)
+	if q.fmter != nil {
+		return q.fmter.FormatQuery(b, query, params...)
+	}
 	if q.db != nil {
 		return q.db.FormatQuery(b, query, params...)
 	}
 	return formatter.Append(b, query, params...)
+}
+
+var _ FormatAppender = (*Query)(nil)
+
+func (q *Query) AppendFormat(b []byte, f QueryFormatter) []byte {
+	saved := q.fmter
+	q.fmter = f
+	bb, err := selectQuery{q: q}.AppendQuery(b)
+	q.fmter = saved
+	if err != nil {
+		return types.AppendError(b, err)
+	}
+	return bb
 }
 
 // Exists returns true or false depending if there are any rows matching the query.
