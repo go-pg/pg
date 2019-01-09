@@ -39,5 +39,5 @@ func (q dropTableQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = append(b, " CASCADE"...)
 	}
 
-	return b, nil
+	return b, q.q.stickyErr
 }

@@ -132,7 +132,7 @@ func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = append(b, ` FROM "_count_wrapper"`...)
 	}
 
-	return b, nil
+	return b, q.q.stickyErr
 }
 
 func (q selectQuery) appendColumns(b []byte) []byte {

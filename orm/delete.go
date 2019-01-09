@@ -75,5 +75,5 @@ func (q deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = q.q.appendReturning(b)
 	}
 
-	return b, nil
+	return b, q.q.stickyErr
 }

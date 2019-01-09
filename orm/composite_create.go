@@ -63,5 +63,5 @@ func (q createCompositeQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	b = append(b, ")"...)
 
-	return b, nil
+	return b, q.q.stickyErr
 }
