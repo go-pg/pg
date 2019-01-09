@@ -92,7 +92,7 @@ func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	b = append(b, ")"...)
 
-	return b, nil
+	return b, q.q.stickyErr
 }
 
 func appendPKConstraint(b []byte, pks []*Field) []byte {

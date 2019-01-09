@@ -83,7 +83,7 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = q.q.appendReturning(b)
 	}
 
-	return b, nil
+	return b, q.q.stickyErr
 }
 
 func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {

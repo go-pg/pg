@@ -117,7 +117,7 @@ func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = appendReturningFields(b, q.returningFields)
 	}
 
-	return b, nil
+	return b, q.q.stickyErr
 }
 
 func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) []byte {

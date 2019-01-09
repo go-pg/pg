@@ -119,9 +119,6 @@ func (q *Query) err(err error) *Query {
 
 func (q *Query) DB(db DB) *Query {
 	q.db = db
-	for _, with := range q.with {
-		with.query.db = db
-	}
 	return q
 }
 
@@ -1099,6 +1096,7 @@ func (q *Query) AppendFormat(b []byte, f QueryFormatter) []byte {
 	cp.fmter = f
 	bb, err := selectQuery{q: cp}.AppendQuery(b)
 	if err != nil {
+		q.err(err)
 		return types.AppendError(b, err)
 	}
 	return bb
