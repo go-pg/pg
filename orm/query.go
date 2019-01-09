@@ -82,12 +82,14 @@ func (q *Query) Copy() *Query {
 
 	copy := &Query{
 		db:        q.db,
+		fmter:     q.fmter,
 		stickyErr: q.stickyErr,
 
 		model:         q.model,
 		implicitModel: q.implicitModel,
 		deleted:       q.deleted,
 
+		with:        q.with[:len(q.with):len(q.with)],
 		tables:      q.tables[:len(q.tables):len(q.tables)],
 		columns:     q.columns[:len(q.columns):len(q.columns)],
 		set:         q.set[:len(q.set):len(q.set)],
@@ -104,9 +106,7 @@ func (q *Query) Copy() *Query {
 		offset:      q.offset,
 		selFor:      q.selFor,
 	}
-	for _, with := range q.with {
-		copy = copy.With(with.name, with.query.Copy())
-	}
+
 	return copy
 }
 
@@ -1095,10 +1095,9 @@ func (q *Query) FormatQuery(b []byte, query string, params ...interface{}) []byt
 var _ FormatAppender = (*Query)(nil)
 
 func (q *Query) AppendFormat(b []byte, f QueryFormatter) []byte {
-	saved := q.fmter
-	q.fmter = f
-	bb, err := selectQuery{q: q}.AppendQuery(b)
-	q.fmter = saved
+	cp := q.Copy()
+	cp.fmter = f
+	bb, err := selectQuery{q: cp}.AppendQuery(b)
 	if err != nil {
 		return types.AppendError(b, err)
 	}
