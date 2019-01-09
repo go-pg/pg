@@ -78,16 +78,12 @@ func (tx *Tx) RunInTransaction(fn func(*Tx) error) error {
 	return tx.Commit()
 }
 
-func (tx *Tx) conn() (*pool.Conn, error) {
-	cn, err := tx.db.conn()
+func (tx *Tx) withConn(fn func(cn *pool.Conn) error) error {
+	err := tx.db.withConn(fn)
 	if err == pool.ErrClosed {
-		return nil, errTxDone
+		return errTxDone
 	}
-	return cn, err
-}
-
-func (tx *Tx) freeConn(cn *pool.Conn, err error) {
-	tx.db.freeConn(cn, err)
+	return err
 }
 
 // Stmt returns a transaction-specific prepared statement
@@ -120,17 +116,13 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 }
 
 // Exec is an alias for DB.Exec.
-func (tx *Tx) Exec(query interface{}, params ...interface{}) (Result, error) {
-	cn, err := tx.conn()
-	if err != nil {
-		return nil, err
-	}
-
-	event := tx.db.queryStarted(tx, query, params, 0)
-	res, err := tx.db.simpleQuery(cn, query, params...)
-	tx.db.queryProcessed(res, err, event)
-	tx.freeConn(cn, err)
-
+func (tx *Tx) Exec(query interface{}, params ...interface{}) (res Result, err error) {
+	err = tx.withConn(func(cn *pool.Conn) error {
+		event := tx.db.queryStarted(tx, query, params, 0)
+		res, err = tx.db.simpleQuery(cn, query, params...)
+		tx.db.queryProcessed(res, err, event)
+		return err
+	})
 	return res, err
 }
 
@@ -148,17 +140,13 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (Result, error) 
 }
 
 // Query is an alias for DB.Query.
-func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (Result, error) {
-	cn, err := tx.conn()
-	if err != nil {
-		return nil, err
-	}
-
-	event := tx.db.queryStarted(tx, query, params, 0)
-	res, err := tx.db.simpleQueryData(cn, model, query, params...)
-	tx.db.queryProcessed(res, err, event)
-	tx.freeConn(cn, err)
-
+func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (res Result, err error) {
+	err = tx.withConn(func(cn *pool.Conn) error {
+		event := tx.db.queryStarted(tx, query, params, 0)
+		res, err = tx.db.simpleQueryData(cn, model, query, params...)
+		tx.db.queryProcessed(res, err, event)
+		return err
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -231,26 +219,20 @@ func (tx *Tx) DropTable(model interface{}, opt *orm.DropTableOptions) error {
 }
 
 // CopyFrom is an alias for DB.CopyFrom.
-func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (Result, error) {
-	cn, err := tx.conn()
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := tx.db.copyFrom(cn, r, query, params...)
-	tx.freeConn(cn, err)
+func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
+	err = tx.withConn(func(cn *pool.Conn) error {
+		res, err = tx.db.copyFrom(cn, r, query, params...)
+		return err
+	})
 	return res, err
 }
 
 // CopyTo is an alias for DB.CopyTo.
-func (tx *Tx) CopyTo(w io.Writer, query interface{}, params ...interface{}) (Result, error) {
-	cn, err := tx.conn()
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := tx.db.copyTo(cn, w, query, params...)
-	tx.freeConn(cn, err)
+func (tx *Tx) CopyTo(w io.Writer, query interface{}, params ...interface{}) (res Result, err error) {
+	err = tx.withConn(func(cn *pool.Conn) error {
+		res, err = tx.db.copyTo(cn, w, query, params...)
+		return err
+	})
 	return res, err
 }
 
