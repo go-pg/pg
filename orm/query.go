@@ -1277,8 +1277,7 @@ func (q *Query) appendReturning(b []byte) []byte {
 	return b
 }
 
-func (q *Query) appendWith(b []byte) ([]byte, error) {
-	var err error
+func (q *Query) appendWith(b []byte) []byte {
 	b = append(b, "WITH "...)
 	for i, with := range q.with {
 		if i > 0 {
@@ -1286,16 +1285,11 @@ func (q *Query) appendWith(b []byte) ([]byte, error) {
 		}
 		b = types.AppendField(b, with.name, 1)
 		b = append(b, " AS ("...)
-
-		b, err = selectQuery{q: with.query}.AppendQuery(b)
-		if err != nil {
-			return nil, err
-		}
-
+		b = with.query.AppendFormat(b, q)
 		b = append(b, ')')
 	}
 	b = append(b, ' ')
-	return b, nil
+	return b
 }
 
 func (q *Query) isSliceModel() bool {
