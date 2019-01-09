@@ -23,40 +23,33 @@ type Stmt struct {
 }
 
 func prepareStmt(db *baseDB, q string) (*Stmt, error) {
-	cn, err := db.conn()
-	if err != nil {
-		return nil, err
-	}
-
-	name, columns, err := db.prepare(cn, q)
-	db.freeConn(cn, err)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Stmt{
+	stmt := &Stmt{
 		db: db,
 
-		q:       q,
-		name:    name,
-		columns: columns,
-	}, nil
+		q: q,
+	}
+
+	err := db.withConn(func(cn *pool.Conn) error {
+		var err error
+		stmt.name, stmt.columns, err = db.prepare(cn, q)
+		return err
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return stmt, nil
 }
 
-func (stmt *Stmt) conn() (*pool.Conn, error) {
+func (stmt *Stmt) withConn(fn func(cn *pool.Conn) error) error {
 	if stmt.stickyErr != nil {
-		return nil, stmt.stickyErr
+		return stmt.stickyErr
 	}
-
-	cn, err := stmt.db.conn()
+	err := stmt.db.withConn(fn)
 	if err == pool.ErrClosed {
-		return nil, errStmtClosed
+		return errStmtClosed
 	}
-	return cn, err
-}
-
-func (stmt *Stmt) freeConn(cn *pool.Conn, err error) {
-	stmt.db.freeConn(cn, err)
+	return err
 }
 
 // Exec executes a prepared statement with the given parameters.
@@ -66,17 +59,12 @@ func (stmt *Stmt) Exec(params ...interface{}) (res Result, err error) {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		var cn *pool.Conn
-		cn, err = stmt.conn()
-		if err != nil {
-			return nil, err
-		}
-
-		event := stmt.db.queryStarted(stmt.db.db, stmt.q, params, attempt)
-		res, err = stmt.extQuery(cn, stmt.name, params...)
-		stmt.db.queryProcessed(res, err, event)
-		stmt.freeConn(cn, err)
-
+		err = stmt.withConn(func(cn *pool.Conn) error {
+			event := stmt.db.queryStarted(stmt.db.db, stmt.q, params, attempt)
+			res, err = stmt.extQuery(cn, stmt.name, params...)
+			stmt.db.queryProcessed(res, err, event)
+			return err
+		})
 		if !stmt.db.shouldRetry(err) {
 			break
 		}
@@ -109,17 +97,12 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res Result, e
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		var cn *pool.Conn
-		cn, err = stmt.conn()
-		if err != nil {
-			return nil, err
-		}
-
-		event := stmt.db.queryStarted(stmt.db.db, stmt.q, params, attempt)
-		res, err = stmt.extQueryData(cn, stmt.name, model, stmt.columns, params...)
-		stmt.db.queryProcessed(res, err, event)
-		stmt.freeConn(cn, err)
-
+		err = stmt.withConn(func(cn *pool.Conn) error {
+			event := stmt.db.queryStarted(stmt.db.db, stmt.q, params, attempt)
+			res, err = stmt.extQueryData(cn, stmt.name, model, stmt.columns, params...)
+			stmt.db.queryProcessed(res, err, event)
+			return err
+		})
 		if !stmt.db.shouldRetry(err) {
 			break
 		}
@@ -209,13 +192,7 @@ func (stmt *Stmt) extQueryData(
 }
 
 func (stmt *Stmt) closeStmt() error {
-	cn, err := stmt.conn()
-	if err != nil {
-		return err
-	}
-
-	err = stmt.db.closeStmt(cn, stmt.name)
-	stmt.freeConn(cn, err)
-
-	return err
+	return stmt.withConn(func(cn *pool.Conn) error {
+		return stmt.db.closeStmt(cn, stmt.name)
+	})
 }

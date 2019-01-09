@@ -116,6 +116,17 @@ func (db *baseDB) freeConn(cn *pool.Conn, err error) {
 	}
 }
 
+func (db *baseDB) withConn(fn func(cn *pool.Conn) error) error {
+	cn, err := db.conn()
+	if err != nil {
+		return err
+	}
+	defer db.freeConn(cn, err)
+
+	err = fn(cn)
+	return err
+}
+
 func (db *baseDB) shouldRetry(err error) bool {
 	if err == nil {
 		return false
@@ -147,22 +158,16 @@ func (db *baseDB) Close() error {
 // placeholders in the query.
 func (db *baseDB) Exec(query interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
-		var cn *pool.Conn
-
 		if attempt >= 1 {
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
 
-		cn, err = db.conn()
-		if err != nil {
-			continue
-		}
-
-		event := db.queryStarted(db.db, query, params, attempt)
-		res, err = db.simpleQuery(cn, query, params...)
-		db.queryProcessed(res, err, event)
-		db.freeConn(cn, err)
-
+		err = db.withConn(func(cn *pool.Conn) error {
+			event := db.queryStarted(db.db, query, params, attempt)
+			res, err = db.simpleQuery(cn, query, params...)
+			db.queryProcessed(res, err, event)
+			return err
+		})
 		if !db.shouldRetry(err) {
 			break
 		}
@@ -193,17 +198,12 @@ func (db *baseDB) Query(model, query interface{}, params ...interface{}) (res Re
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
 
-		var cn *pool.Conn
-		cn, err = db.conn()
-		if err != nil {
-			continue
-		}
-
-		event := db.queryStarted(db.db, query, params, attempt)
-		res, err = db.simpleQueryData(cn, model, query, params...)
-		db.queryProcessed(res, err, event)
-		db.freeConn(cn, err)
-
+		err = db.withConn(func(cn *pool.Conn) error {
+			event := db.queryStarted(db.db, query, params, attempt)
+			res, err = db.simpleQueryData(cn, model, query, params...)
+			db.queryProcessed(res, err, event)
+			return err
+		})
 		if !db.shouldRetry(err) {
 			break
 		}
@@ -237,14 +237,11 @@ func (db *baseDB) QueryOne(model, query interface{}, params ...interface{}) (Res
 }
 
 // CopyFrom copies data from reader to a table.
-func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (Result, error) {
-	cn, err := db.conn()
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := db.copyFrom(cn, r, query, params...)
-	db.freeConn(cn, err)
+func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
+	err = db.withConn(func(cn *pool.Conn) error {
+		res, err = db.copyFrom(cn, r, query, params...)
+		return err
+	})
 	return res, err
 }
 
@@ -296,20 +293,12 @@ func (db *baseDB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params
 }
 
 // CopyTo copies data from a table to writer.
-func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (Result, error) {
-	cn, err := db.conn()
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := db.copyTo(cn, w, query, params...)
-	if err != nil {
-		db.freeConn(cn, err)
-		return nil, err
-	}
-
-	db.pool.Put(cn)
-	return res, nil
+func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (res Result, err error) {
+	err = db.withConn(func(cn *pool.Conn) error {
+		res, err = db.copyTo(cn, w, query, params...)
+		return err
+	})
+	return res, err
 }
 
 func (db *baseDB) copyTo(cn *pool.Conn, w io.Writer, query interface{}, params ...interface{}) (Result, error) {
