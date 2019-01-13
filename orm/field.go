@@ -27,6 +27,7 @@ type Field struct {
 	Index    []int
 	Default  types.Q
 	OnDelete string
+	OnUpdate string
 
 	flags uint8
 

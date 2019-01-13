@@ -48,9 +48,9 @@ type CreateTableWithoutPKModel struct {
 	String string
 }
 
-type CreateTableOnDeleteModel struct {
+type CreateTableOnDeleteOnUpdateModel struct {
 	Id                 int
-	CreateTableModelId int `sql:"on_delete:RESTRICT"`
+	CreateTableModelId int `sql:"on_delete:RESTRICT, on_update:CASCADE"`
 	CreateTableModel   *CreateTableModel
 }
 
@@ -80,12 +80,12 @@ var _ = Describe("CreateTable", func() {
 		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_without_pk_models" ("string" varchar(255))`))
 	})
 
-	It("creates new table with on_delete option", func() {
-		q := NewQuery(nil, &CreateTableOnDeleteModel{})
+	It("creates new table with on_delete and on_update options", func() {
+		q := NewQuery(nil, &CreateTableOnDeleteOnUpdateModel{})
 
 		opt := &CreateTableOptions{FKConstraints: true}
 		b, err := createTableQuery{q: q, opt: opt}.AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_on_delete_models" ("id" bigserial, "create_table_model_id" bigint, PRIMARY KEY ("id"), FOREIGN KEY ("create_table_model_id") REFERENCES "create_table_models" ("id") ON DELETE RESTRICT)`))
+		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_on_delete_on_update_models" ("id" bigserial, "create_table_model_id" bigint, PRIMARY KEY ("id"), FOREIGN KEY ("create_table_model_id") REFERENCES "create_table_models" ("id") ON DELETE RESTRICT ON UPDATE CASCADE)`))
 	})
 })

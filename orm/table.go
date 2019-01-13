@@ -369,6 +369,10 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.OnDelete = v
 	}
 
+	if v, ok := sqlTag.Options["on_update"]; ok {
+		field.OnUpdate = v
+	}
+
 	if v, ok := sqlTag.Options["composite"]; ok {
 		field.SQLType = v
 		field.append = compositeAppender(f.Type)
