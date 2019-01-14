@@ -1,6 +1,7 @@
 package pg_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -171,6 +172,20 @@ var _ = Describe("DB race", func() {
 		count, err := db.Model((*Author)(nil)).Count()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(count).To(Equal(1))
+	})
+
+	It("WithContext is race free", func() {
+		perform(C, func(id int) {
+			dbWithCtx := db.WithContext(context.Background())
+			Expect(dbWithCtx).NotTo(BeNil())
+		})
+	})
+
+	It("WithTimeout is race free", func() {
+		perform(C, func(id int) {
+			dbWithTimeout := db.WithTimeout(5 * time.Second)
+			Expect(dbWithTimeout).NotTo(BeNil())
+		})
 	})
 
 	It("fully initializes model table", func() {
