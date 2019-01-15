@@ -11,7 +11,8 @@ type CreateTableOptions struct {
 
 	// FKConstraints causes CreateTable to create foreign key constraints
 	// for has one relations. ON DELETE hook can be added using tag
-	// `sql:"on_delete:RESTRICT"` on foreign key field.
+	// `sql:"on_delete:RESTRICT"` on foreign key field. ON UPDATE hook can be added using tag
+	// `sql:"on_update:CASCADE"`
 	FKConstraints bool
 }
 
@@ -133,6 +134,11 @@ func (q createTableQuery) appendFKConstraint(b []byte, table *Table, rel *Relati
 		b = append(b, s...)
 	}
 
+	if s := OnUpdate(rel.FKs); s != "" {
+		b = append(b, " ON UPDATE "...)
+		b = append(b, s...)
+	}
+
 	return b
 }
 
@@ -145,4 +151,15 @@ func onDelete(fks []*Field) string {
 		}
 	}
 	return onDelete
+}
+
+func OnUpdate(fks []*Field) string {
+	var onUpdate string
+	for _, f := range fks {
+		if f.OnUpdate != "" {
+			onUpdate = f.OnUpdate
+			break
+		}
+	}
+	return onUpdate
 }
