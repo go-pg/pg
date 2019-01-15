@@ -121,7 +121,9 @@ func (db *baseDB) withConn(fn func(cn *pool.Conn) error) error {
 	if err != nil {
 		return err
 	}
-	defer db.freeConn(cn, err)
+	defer func() {
+		db.freeConn(cn, err)
+	}()
 
 	err = fn(cn)
 	return err
