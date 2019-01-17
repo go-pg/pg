@@ -59,6 +59,9 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 }
 
 func compositeAppender(typ reflect.Type) types.AppenderFunc {
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
 	return func(b []byte, v reflect.Value, quote int) []byte {
 		table := GetTable(typ)
 		b = append(b, '(')
