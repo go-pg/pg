@@ -8,6 +8,11 @@ import (
 )
 
 func compositeScanner(typ reflect.Type) types.ScannerFunc {
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+
+	var table *Table
 	return func(v reflect.Value, rd types.Reader, n int) error {
 		if !v.CanSet() {
 			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
@@ -18,7 +23,16 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 			return nil
 		}
 
-		table := GetTable(typ)
+		if table == nil {
+			table = GetTable(typ)
+		}
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				v.Set(reflect.New(v.Type().Elem()))
+			}
+			v = v.Elem()
+		}
+
 		p := newCompositeParser(rd)
 		var elemReader *types.BytesReader
 
@@ -62,8 +76,16 @@ func compositeAppender(typ reflect.Type) types.AppenderFunc {
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
+
+	var table *Table
 	return func(b []byte, v reflect.Value, quote int) []byte {
-		table := GetTable(typ)
+		if table == nil {
+			table = GetTable(typ)
+		}
+		if v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+
 		b = append(b, '(')
 		for i, f := range table.Fields {
 			if i > 0 {
