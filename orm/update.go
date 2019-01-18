@@ -64,10 +64,10 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	b = append(b, " WHERE "...)
-	if isSliceModel {
-		table := q.q.model.Table()
-		b = appendWhereColumnAndColumn(b, table.Alias, table.PKs)
 
+	table := q.q.model.Table()
+	if isSliceModel && len(table.PKs) > 0 {
+		b = appendWhereColumnAndColumn(b, table.Alias, table.PKs)
 		if q.q.hasWhere() {
 			b = append(b, " AND "...)
 			b = q.q.appendWhere(b)
