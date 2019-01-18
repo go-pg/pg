@@ -128,7 +128,7 @@ func (q updateQuery) appendSetStruct(b []byte, strct reflect.Value) ([]byte, err
 
 	pos := len(b)
 	for _, f := range fields {
-		omitZero := f.OmitZero() && f.IsZero(strct)
+		omitZero := f.OmitZero() && f.IsZeroValue(strct)
 		if omitZero && q.omitZero {
 			continue
 		}
@@ -147,11 +147,7 @@ func (q updateQuery) appendSetStruct(b []byte, strct reflect.Value) ([]byte, err
 			continue
 		}
 
-		if f.OmitZero() && f.IsZero(strct) {
-			b = append(b, "NULL"...)
-		} else {
-			b = f.AppendValue(b, strct, 1)
-		}
+		b = f.AppendValue(b, strct, 1)
 	}
 
 	return b, nil
@@ -199,8 +195,7 @@ func (q updateQuery) appendSliceModelData(b []byte) ([]byte, error) {
 func (q updateQuery) appendSliceValues(b []byte, fields []*Field, slice reflect.Value) []byte {
 	b = append(b, "(VALUES ("...)
 	for i := 0; i < slice.Len(); i++ {
-		el := indirect(slice.Index(i))
-		b = q.appendValues(b, fields, el)
+		b = q.appendValues(b, fields, slice.Index(i))
 		if i != slice.Len()-1 {
 			b = append(b, "), ("...)
 		}
@@ -223,11 +218,7 @@ func (q updateQuery) appendValues(b []byte, fields []*Field, strct reflect.Value
 			continue
 		}
 
-		if f.OmitZero() && f.IsZero(strct) {
-			b = append(b, "NULL"...)
-		} else {
-			b = f.AppendValue(b, strct, 1)
-		}
+		b = f.AppendValue(b, indirect(strct), 1)
 		if f.HasFlag(customTypeFlag) {
 			b = append(b, "::"...)
 			b = append(b, f.SQLType...)

@@ -132,7 +132,7 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) [
 			continue
 		}
 
-		if (f.Default != "" || f.OmitZero()) && f.IsZero(v) {
+		if (f.Default != "" || f.OmitZero()) && f.IsZeroValue(v) {
 			b = append(b, "DEFAULT"...)
 			q.addReturningField(f)
 		} else {

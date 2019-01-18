@@ -67,7 +67,7 @@ func (f *Field) Value(strct reflect.Value) reflect.Value {
 	return strct.FieldByIndex(f.Index)
 }
 
-func (f *Field) IsZero(strct reflect.Value) bool {
+func (f *Field) IsZeroValue(strct reflect.Value) bool {
 	return f.isZero(f.Value(strct))
 }
 
@@ -77,7 +77,7 @@ func (f *Field) OmitZero() bool {
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 	fv := f.Value(strct)
-	if !f.HasFlag(NotNullFlag) && f.isZero(fv) {
+	if f.OmitZero() && f.isZero(fv) {
 		return types.AppendNull(b, quote)
 	}
 	return f.append(b, fv, quote)
