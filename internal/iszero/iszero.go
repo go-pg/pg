@@ -53,8 +53,8 @@ func Checker(typ reflect.Type) func(reflect.Value) bool {
 }
 
 func isZeroInterface(v reflect.Value) bool {
-	if v.Kind() == reflect.Ptr {
-		return v.IsNil()
+	if v.Kind() == reflect.Ptr && v.IsNil() {
+		return true
 	}
 	return v.Interface().(isZeroer).IsZero()
 }
