@@ -373,8 +373,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.OnUpdate = v
 	}
 
-	if v, ok := sqlTag.Options["composite"]; ok {
-		field.SQLType = v
+	if _, ok := sqlTag.Options["composite"]; ok {
 		field.append = compositeAppender(f.Type)
 		field.scan = compositeScanner(f.Type)
 	} else if _, ok := pgTag.Options["json_use_number"]; ok {
@@ -684,6 +683,12 @@ func isColumn(typ reflect.Type) bool {
 
 func fieldSQLType(field *Field, pgTag, sqlTag *tag.Tag) string {
 	if typ, ok := sqlTag.Options["type"]; ok {
+		field.SetFlag(customTypeFlag)
+		typ, _ = tag.Unquote(typ)
+		return typ
+	}
+
+	if typ, ok := sqlTag.Options["composite"]; ok {
 		field.SetFlag(customTypeFlag)
 		typ, _ = tag.Unquote(typ)
 		return typ
