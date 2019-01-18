@@ -63,20 +63,9 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 		}
 	}
 
-	b = append(b, " WHERE "...)
-
-	table := q.q.model.Table()
-	if isSliceModel && len(table.PKs) > 0 {
-		b = appendWhereColumnAndColumn(b, table.Alias, table.PKs)
-		if q.q.hasWhere() {
-			b = append(b, " AND "...)
-			b = q.q.appendWhere(b)
-		}
-	} else {
-		b, err = q.q.mustAppendWhere(b)
-		if err != nil {
-			return nil, err
-		}
+	b, err = q.mustAppendWhere(b, isSliceModel)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(q.q.returning) > 0 {
@@ -84,6 +73,28 @@ func (q updateQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	return b, q.q.stickyErr
+}
+
+func (q updateQuery) mustAppendWhere(b []byte, isSliceModel bool) ([]byte, error) {
+	b = append(b, " WHERE "...)
+
+	if isSliceModel {
+		if !q.q.hasModel() {
+			return nil, errModelNil
+		}
+
+		table := q.q.model.Table()
+		if len(table.PKs) > 0 {
+			b = appendWhereColumnAndColumn(b, table.Alias, table.PKs)
+			if q.q.hasWhere() {
+				b = append(b, " AND "...)
+				b = q.q.appendWhere(b)
+			}
+			return b, nil
+		}
+	}
+
+	return q.q.mustAppendWhere(b)
 }
 
 func (q updateQuery) mustAppendSet(b []byte) ([]byte, error) {
