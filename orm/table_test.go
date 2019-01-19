@@ -247,3 +247,18 @@ var _ = Describe("anonymous struct", func() {
 		Expect(table.Alias).To(Equal(types.Q("some_name")))
 	})
 })
+
+type O struct {
+	M
+	Id struct{} `sql:"-"`
+}
+
+var _ = Describe("embedding with ignored field", func() {
+	It("ignores field", func() {
+		table := orm.GetTable(reflect.TypeOf(O{}))
+		Expect(table.Fields).To(HaveLen(1))
+		Expect(table.FieldsMap).To(HaveLen(2))
+		Expect(table.PKs).To(HaveLen(0))
+		Expect(table.DataFields).To(HaveLen(1))
+	})
+})
