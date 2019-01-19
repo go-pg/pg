@@ -46,11 +46,11 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 				return err
 			}
 
-			if i >= len(table.allFields) {
+			if i >= len(table.Fields) {
 				if firstErr == nil {
 					firstErr = fmt.Errorf(
 						"%s has %d fields, but composite at least %d values",
-						table, len(table.allFields), i)
+						table, len(table.Fields), i)
 				}
 				continue
 			}
@@ -61,7 +61,7 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 				elemReader.Reset(elem)
 			}
 
-			field := table.allFields[i]
+			field := table.Fields[i]
 			err = field.ScanValue(v, elemReader, len(elem))
 			if err != nil && firstErr == nil {
 				firstErr = err
