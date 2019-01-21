@@ -73,7 +73,9 @@ func NewModel(values ...interface{}) (Model, error) {
 
 	switch v.Kind() {
 	case reflect.Struct:
-		return newStructTableModelValue(v), nil
+		if v.Type() != timeType {
+			return newStructTableModelValue(v), nil
+		}
 	case reflect.Slice:
 		typ := v.Type()
 		structType := indirectType(typ.Elem())
