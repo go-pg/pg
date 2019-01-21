@@ -35,6 +35,7 @@
 - Works with PgBouncer in transaction pooling mode.
 - [Migrations](https://github.com/go-pg/migrations).
 - [Sharding](https://github.com/go-pg/sharding).
+- [Model generator from SQL tables](https://github.com/dizzyfool/genna).
 
 ## Get Started
 
