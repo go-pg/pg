@@ -20,6 +20,8 @@ const (
 	opCodeLTE
 	opCodeGT
 	opCodeGTE
+	opCodeIEq
+	opCodeMatch
 )
 
 var (
@@ -31,6 +33,8 @@ var (
 	opGTE   = " >= "
 	opAny   = " = ANY"
 	opAll   = " != ALL"
+	opIEq   = " ILIKE "
+	opMatch = " SIMILAR TO "
 )
 
 type Field struct {
@@ -144,6 +148,10 @@ func splitColumnOperator(s, sep string) (string, opCode, string) {
 		return col, opCodeLT, opLT
 	case "lte":
 		return col, opCodeLTE, opLTE
+	case "ieq":
+		return col, opCodeIEq, opEq
+	case "match":
+		return col, opCodeMatch, opMatch
 	default:
 		return s, opCodeEq, opEq
 	}
