@@ -89,7 +89,7 @@ func (p *Parser) ReadIdentifier() (string, bool) {
 		if isNum(c) {
 			continue
 		}
-		if isAlpha(c) || (i > 0 && c == '_') {
+		if isAlpha(c) || (i > 0 && alpha && c == '_') {
 			alpha = true
 			continue
 		}

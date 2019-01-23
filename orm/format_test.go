@@ -72,6 +72,7 @@ var formatTests = []formatTest{
 
 	{q: "?", wanted: "?"},
 	{q: "?_?", params: params{"foo", "bar"}, wanted: "'foo'_'bar'"},
+	{q: "?0_?0", params: params{"foo", "bar"}, wanted: "'foo'_'foo'"},
 	{q: "? ? ?", params: params{"foo", "bar"}, wanted: "'foo' 'bar' ?"},
 	{q: "?0 ?1", params: params{"foo", "bar"}, wanted: "'foo' 'bar'"},
 	{q: "?0 ?1 ?2", params: params{"foo", "bar"}, wanted: "'foo' 'bar' ?2"},
