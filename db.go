@@ -23,7 +23,7 @@ func Connect(opt *Options) *DB {
 
 func newDB(baseDB *baseDB, ctx context.Context) *DB {
 	db := &DB{
-		baseDB: baseDB,
+		baseDB: baseDB.clone(),
 		ctx:    ctx,
 	}
 	db.baseDB.db = db
