@@ -394,6 +394,11 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 	field.isZero = iszero.Checker(f.Type)
 
+	if v, ok := sqlTag.Options["alias"]; ok {
+		v, _ = tag.Unquote(v)
+		t.FieldsMap[v] = field
+	}
+
 	t.allFields = append(t.allFields, field)
 	if skip {
 		t.skippedFields = append(t.skippedFields, field)
