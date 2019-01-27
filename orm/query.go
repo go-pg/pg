@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -28,6 +29,7 @@ func (q *joinQuery) AppendOn(app *condAppender) {
 }
 
 type Query struct {
+	ctx       context.Context
 	db        DB
 	fmter     QueryFormatter
 	stickyErr error
@@ -114,6 +116,11 @@ func (q *Query) err(err error) *Query {
 	if q.stickyErr == nil {
 		q.stickyErr = err
 	}
+	return q
+}
+
+func (q *Query) Context(c context.Context) *Query {
+	q.ctx = c
 	return q
 }
 
@@ -599,11 +606,8 @@ func (q *Query) Count() (int, error) {
 	}
 
 	var count int
-	_, err := q.db.QueryOne(
-		Scan(&count),
-		q.countSelectQuery("count(*)"),
-		q.model,
-	)
+	_, err := q.db.QueryOneContext(
+		q.ctx, Scan(&count), q.countSelectQuery("count(*)"), q.model)
 	return count, err
 }
 
@@ -688,9 +692,9 @@ func (q *Query) newModel(values ...interface{}) (Model, error) {
 
 func (q *Query) query(model Model, query interface{}) (Result, error) {
 	if _, ok := model.(useQueryOne); ok {
-		return q.db.QueryOne(model, query, q.model)
+		return q.db.QueryOneContext(q.ctx, model, query, q.model)
 	}
-	return q.db.Query(model, query, q.model)
+	return q.db.QueryContext(q.ctx, model, query, q.model)
 }
 
 // SelectAndCount runs Select and Count in two goroutines,
@@ -964,12 +968,12 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 
 func (q *Query) returningQuery(model Model, query interface{}) (Result, error) {
 	if len(q.returning) == 0 {
-		return q.db.Query(model, query, q.model)
+		return q.db.QueryContext(q.ctx, model, query, q.model)
 	}
 	if _, ok := model.(useQueryOne); ok {
-		return q.db.QueryOne(model, query, q.model)
+		return q.db.QueryOneContext(q.ctx, model, query, q.model)
 	}
-	return q.db.Query(model, query, q.model)
+	return q.db.QueryContext(q.ctx, model, query, q.model)
 }
 
 // Delete deletes the model. When model has deleted_at column the row
@@ -1027,7 +1031,7 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 }
 
 func (q *Query) CreateTable(opt *CreateTableOptions) error {
-	_, err := q.db.Exec(createTableQuery{
+	_, err := q.db.ExecContext(q.ctx, createTableQuery{
 		q:   q,
 		opt: opt,
 	})
@@ -1035,7 +1039,7 @@ func (q *Query) CreateTable(opt *CreateTableOptions) error {
 }
 
 func (q *Query) DropTable(opt *DropTableOptions) error {
-	_, err := q.db.Exec(dropTableQuery{
+	_, err := q.db.ExecContext(q.ctx, dropTableQuery{
 		q:   q,
 		opt: opt,
 	})
@@ -1045,25 +1049,25 @@ func (q *Query) DropTable(opt *DropTableOptions) error {
 // Exec is an alias for DB.Exec.
 func (q *Query) Exec(query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)
-	return q.db.Exec(query, params...)
+	return q.db.ExecContext(q.ctx, query, params...)
 }
 
 // ExecOne is an alias for DB.ExecOne.
 func (q *Query) ExecOne(query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)
-	return q.db.ExecOne(query, params...)
+	return q.db.ExecOneContext(q.ctx, query, params...)
 }
 
 // Query is an alias for DB.Query.
 func (q *Query) Query(model, query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)
-	return q.db.Query(model, query, params...)
+	return q.db.QueryContext(q.ctx, model, query, params...)
 }
 
 // QueryOne is an alias for DB.QueryOne.
 func (q *Query) QueryOne(model, query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.model)
-	return q.db.QueryOne(model, query, params...)
+	return q.db.QueryOneContext(q.ctx, model, query, params...)
 }
 
 // CopyFrom is an alias from DB.CopyFrom.
@@ -1108,7 +1112,7 @@ func (q *Query) Exists() (bool, error) {
 	cp.columns = []FormatAppender{fieldAppender{"1"}}
 	cp.order = nil
 	cp.limit = 1
-	res, err := q.db.Exec(selectQuery{q: q})
+	res, err := q.db.ExecContext(q.ctx, selectQuery{q: q})
 	if err != nil {
 		return false, err
 	}

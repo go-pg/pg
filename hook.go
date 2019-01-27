@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-pg/pg/orm"
@@ -17,6 +18,7 @@ func (dummyDB) FormatQuery(dst []byte, query string, params ...interface{}) []by
 }
 
 type QueryEvent struct {
+	Ctx     context.Context
 	DB      orm.DB
 	Query   interface{}
 	Params  []interface{}
@@ -67,6 +69,7 @@ func (db *baseDB) AddQueryHook(hook QueryHook) {
 }
 
 func (db *baseDB) queryStarted(
+	c context.Context,
 	ormDB orm.DB,
 	query interface{},
 	params []interface{},
@@ -77,6 +80,7 @@ func (db *baseDB) queryStarted(
 	}
 
 	event := &QueryEvent{
+		Ctx:     c,
 		DB:      ormDB,
 		Query:   query,
 		Params:  params,

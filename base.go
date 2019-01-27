@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"context"
 	"io"
 	"time"
 
@@ -116,12 +117,28 @@ func (db *baseDB) freeConn(cn *pool.Conn, err error) {
 	}
 }
 
-func (db *baseDB) withConn(fn func(cn *pool.Conn) error) error {
+func (db *baseDB) withConn(c context.Context, fn func(cn *pool.Conn) error) error {
 	cn, err := db.conn()
 	if err != nil {
 		return err
 	}
+
+	var done chan struct{}
+	if c != nil {
+		done = make(chan struct{})
+		go func() {
+			select {
+			case <-done:
+			case <-c.Done():
+				_ = db.cancelRequest(cn.ProcessId, cn.SecretKey)
+			}
+		}()
+	}
+
 	defer func() {
+		if done != nil {
+			close(done)
+		}
 		db.freeConn(cn, err)
 	}()
 
@@ -159,13 +176,21 @@ func (db *baseDB) Close() error {
 // Exec executes a query ignoring returned rows. The params are for any
 // placeholders in the query.
 func (db *baseDB) Exec(query interface{}, params ...interface{}) (res Result, err error) {
+	return db.exec(nil, query, params...)
+}
+
+func (db *baseDB) ExecContext(c context.Context, query interface{}, params ...interface{}) (Result, error) {
+	return db.exec(c, query, params...)
+}
+
+func (db *baseDB) exec(c context.Context, query interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		if attempt >= 1 {
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
 
-		err = db.withConn(func(cn *pool.Conn) error {
-			event := db.queryStarted(db.db, query, params, attempt)
+		err = db.withConn(c, func(cn *pool.Conn) error {
+			event := db.queryStarted(c, db.db, query, params, attempt)
 			res, err = db.simpleQuery(cn, query, params...)
 			db.queryProcessed(res, err, event)
 			return err
@@ -181,7 +206,15 @@ func (db *baseDB) Exec(query interface{}, params ...interface{}) (res Result, er
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (db *baseDB) ExecOne(query interface{}, params ...interface{}) (Result, error) {
-	res, err := db.Exec(query, params...)
+	return db.execOne(nil, query, params...)
+}
+
+func (db *baseDB) ExecOneContext(c context.Context, query interface{}, params ...interface{}) (Result, error) {
+	return db.execOne(c, query, params...)
+}
+
+func (db *baseDB) execOne(c context.Context, query interface{}, params ...interface{}) (Result, error) {
+	res, err := db.ExecContext(c, query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -195,13 +228,21 @@ func (db *baseDB) ExecOne(query interface{}, params ...interface{}) (Result, err
 // Query executes a query that returns rows, typically a SELECT.
 // The params are for any placeholders in the query.
 func (db *baseDB) Query(model, query interface{}, params ...interface{}) (res Result, err error) {
+	return db.query(nil, model, query, params...)
+}
+
+func (db *baseDB) QueryContext(c context.Context, model, query interface{}, params ...interface{}) (Result, error) {
+	return db.query(c, model, query, params...)
+}
+
+func (db *baseDB) query(c context.Context, model, query interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		if attempt >= 1 {
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
 
-		err = db.withConn(func(cn *pool.Conn) error {
-			event := db.queryStarted(db.db, query, params, attempt)
+		err = db.withConn(c, func(cn *pool.Conn) error {
+			event := db.queryStarted(c, db.db, query, params, attempt)
 			res, err = db.simpleQueryData(cn, model, query, params...)
 			db.queryProcessed(res, err, event)
 			return err
@@ -227,7 +268,15 @@ func (db *baseDB) Query(model, query interface{}, params ...interface{}) (res Re
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (db *baseDB) QueryOne(model, query interface{}, params ...interface{}) (Result, error) {
-	res, err := db.Query(model, query, params...)
+	return db.queryOne(nil, model, query, params...)
+}
+
+func (db *baseDB) QueryOneContext(c context.Context, model, query interface{}, params ...interface{}) (Result, error) {
+	return db.queryOne(c, model, query, params...)
+}
+
+func (db *baseDB) queryOne(c context.Context, model, query interface{}, params ...interface{}) (Result, error) {
+	res, err := db.QueryContext(c, model, query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -240,7 +289,7 @@ func (db *baseDB) QueryOne(model, query interface{}, params ...interface{}) (Res
 
 // CopyFrom copies data from reader to a table.
 func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
-	err = db.withConn(func(cn *pool.Conn) error {
+	err = db.withConn(nil, func(cn *pool.Conn) error {
 		res, err = db.copyFrom(cn, r, query, params...)
 		return err
 	})
@@ -296,7 +345,7 @@ func (db *baseDB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params
 
 // CopyTo copies data from a table to writer.
 func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (res Result, err error) {
-	err = db.withConn(func(cn *pool.Conn) error {
+	err = db.withConn(nil, func(cn *pool.Conn) error {
 		res, err = db.copyTo(cn, w, query, params...)
 		return err
 	})
@@ -388,6 +437,9 @@ func (db *baseDB) cancelRequest(processId, secretKey int32) error {
 	if err != nil {
 		return err
 	}
+	defer func() {
+		_ = db.pool.CloseConn(cn)
+	}()
 
 	err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writeCancelRequestMsg(wb, processId, secretKey)
@@ -397,7 +449,6 @@ func (db *baseDB) cancelRequest(processId, secretKey int32) error {
 		return err
 	}
 
-	_ = cn.Close()
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -29,7 +30,7 @@ func prepareStmt(db *baseDB, q string) (*Stmt, error) {
 		q: q,
 	}
 
-	err := db.withConn(func(cn *pool.Conn) error {
+	err := db.withConn(nil, func(cn *pool.Conn) error {
 		var err error
 		stmt.name, stmt.columns, err = db.prepare(cn, q)
 		return err
@@ -41,11 +42,11 @@ func prepareStmt(db *baseDB, q string) (*Stmt, error) {
 	return stmt, nil
 }
 
-func (stmt *Stmt) withConn(fn func(cn *pool.Conn) error) error {
+func (stmt *Stmt) withConn(c context.Context, fn func(cn *pool.Conn) error) error {
 	if stmt.stickyErr != nil {
 		return stmt.stickyErr
 	}
-	err := stmt.db.withConn(fn)
+	err := stmt.db.withConn(c, fn)
 	if err == pool.ErrClosed {
 		return errStmtClosed
 	}
@@ -53,14 +54,23 @@ func (stmt *Stmt) withConn(fn func(cn *pool.Conn) error) error {
 }
 
 // Exec executes a prepared statement with the given parameters.
-func (stmt *Stmt) Exec(params ...interface{}) (res Result, err error) {
+func (stmt *Stmt) Exec(params ...interface{}) (Result, error) {
+	return stmt.exec(nil, params...)
+}
+
+// ExecContext executes a prepared statement with the given parameters.
+func (stmt *Stmt) ExecContext(c context.Context, params ...interface{}) (Result, error) {
+	return stmt.exec(c, params...)
+}
+
+func (stmt *Stmt) exec(c context.Context, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		if attempt >= 1 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		err = stmt.withConn(func(cn *pool.Conn) error {
-			event := stmt.db.queryStarted(stmt.db.db, stmt.q, params, attempt)
+		err = stmt.withConn(c, func(cn *pool.Conn) error {
+			event := stmt.db.queryStarted(c, stmt.db.db, stmt.q, params, attempt)
 			res, err = stmt.extQuery(cn, stmt.name, params...)
 			stmt.db.queryProcessed(res, err, event)
 			return err
@@ -79,7 +89,15 @@ func (stmt *Stmt) Exec(params ...interface{}) (res Result, err error) {
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (stmt *Stmt) ExecOne(params ...interface{}) (Result, error) {
-	res, err := stmt.Exec(params...)
+	return stmt.execOne(nil, params...)
+}
+
+func (stmt *Stmt) ExecOneContext(c context.Context, params ...interface{}) (Result, error) {
+	return stmt.execOne(c, params...)
+}
+
+func (stmt *Stmt) execOne(c context.Context, params ...interface{}) (Result, error) {
+	res, err := stmt.ExecContext(c, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -91,14 +109,22 @@ func (stmt *Stmt) ExecOne(params ...interface{}) (Result, error) {
 }
 
 // Query executes a prepared query statement with the given parameters.
-func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res Result, err error) {
+func (stmt *Stmt) Query(model interface{}, params ...interface{}) (Result, error) {
+	return stmt.query(nil, model, params...)
+}
+
+func (stmt *Stmt) QueryContext(c context.Context, model interface{}, params ...interface{}) (Result, error) {
+	return stmt.query(c, model, params...)
+}
+
+func (stmt *Stmt) query(c context.Context, model interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		if attempt >= 1 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		err = stmt.withConn(func(cn *pool.Conn) error {
-			event := stmt.db.queryStarted(stmt.db.db, stmt.q, params, attempt)
+		err = stmt.withConn(c, func(cn *pool.Conn) error {
+			event := stmt.db.queryStarted(c, stmt.db.db, stmt.q, params, attempt)
 			res, err = stmt.extQueryData(cn, stmt.name, model, stmt.columns, params...)
 			stmt.db.queryProcessed(res, err, event)
 			return err
@@ -124,12 +150,20 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (res Result, e
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (Result, error) {
+	return stmt.queryOne(nil, model, params...)
+}
+
+func (stmt *Stmt) QueryOneContext(c context.Context, model interface{}, params ...interface{}) (Result, error) {
+	return stmt.queryOne(c, model, params...)
+}
+
+func (stmt *Stmt) queryOne(c context.Context, model interface{}, params ...interface{}) (Result, error) {
 	mod, err := orm.NewModel(model)
 	if err != nil {
 		return nil, err
 	}
 
-	res, err := stmt.Query(mod, params...)
+	res, err := stmt.QueryContext(c, mod, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -192,7 +226,7 @@ func (stmt *Stmt) extQueryData(
 }
 
 func (stmt *Stmt) closeStmt() error {
-	return stmt.withConn(func(cn *pool.Conn) error {
+	return stmt.withConn(nil, func(cn *pool.Conn) error {
 		return stmt.db.closeStmt(cn, stmt.name)
 	})
 }
