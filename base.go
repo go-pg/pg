@@ -382,6 +382,10 @@ func (db *baseDB) Model(model ...interface{}) *orm.Query {
 	return orm.NewQuery(db.db, model...)
 }
 
+func (db *baseDB) ModelContext(c context.Context, model ...interface{}) *orm.Query {
+	return orm.NewQueryContext(c, db.db, model...)
+}
+
 // Select selects the model by primary key.
 func (db *baseDB) Select(model interface{}) error {
 	return orm.Select(db.db, model)

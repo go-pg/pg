@@ -29,6 +29,7 @@ type QueryFormatter interface {
 // DB is a common interface for pg.DB and pg.Tx types.
 type DB interface {
 	Model(model ...interface{}) *Query
+	ModelContext(c context.Context, model ...interface{}) *Query
 	Select(model interface{}) error
 	Insert(model ...interface{}) error
 	Update(model interface{}) error

@@ -215,6 +215,10 @@ func (tx *Tx) Model(model ...interface{}) *orm.Query {
 	return orm.NewQuery(tx, model...)
 }
 
+func (tx *Tx) ModelContext(c context.Context, model ...interface{}) *orm.Query {
+	return orm.NewQueryContext(c, tx, model...)
+}
+
 // Select is an alias for DB.Select.
 func (tx *Tx) Select(model interface{}) error {
 	return orm.Select(tx, model)

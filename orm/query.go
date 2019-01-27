@@ -61,6 +61,10 @@ func NewQuery(db DB, model ...interface{}) *Query {
 	return (&Query{}).DB(db).Model(model...)
 }
 
+func NewQueryContext(c context.Context, db DB, model ...interface{}) *Query {
+	return NewQuery(db, model...).Context(c)
+}
+
 // New returns new zero Query binded to the current db.
 func (q *Query) New() *Query {
 	cp := &Query{
