@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"context"
 	"io"
 	"log"
 	"os"
@@ -23,6 +24,10 @@ func init() {
 // Model returns new query for the optional model.
 func Model(model ...interface{}) *orm.Query {
 	return orm.NewQuery(nil, model...)
+}
+
+func ModelContext(c context.Context, model ...interface{}) *orm.Query {
+	return orm.NewQueryContext(c, nil, model...)
 }
 
 // Scan returns ColumnScanner that copies the columns in the
