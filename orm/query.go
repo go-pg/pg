@@ -87,6 +87,7 @@ func (q *Query) Copy() *Query {
 	}
 
 	copy := &Query{
+		ctx:       q.ctx,
 		db:        q.db,
 		fmter:     q.fmter,
 		stickyErr: q.stickyErr,
