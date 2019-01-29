@@ -460,7 +460,7 @@ func (q *Query) WherePK() *Query {
 		return q
 	}
 	if q.model.Kind() != reflect.Struct {
-		q.err(errors.New("pg: WherePK requires struct Model"))
+		q.err(errors.New("pg: WherePK requires a struct Model"))
 		return q
 	}
 	if err := q.model.Table().checkPKs(); err != nil {
@@ -1326,6 +1326,11 @@ func (wherePKQuery) AppendSep(b []byte) []byte {
 
 func (q wherePKQuery) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	table := q.model.Table()
+	err := table.checkPKs()
+	if err != nil {
+		return types.AppendError(b, err)
+	}
+
 	value := q.model.Value()
 	return appendColumnAndValue(fmter, b, value, table.Alias, table.PKs)
 }

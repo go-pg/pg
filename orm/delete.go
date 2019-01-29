@@ -67,8 +67,13 @@ func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	b = append(b, " WHERE "...)
 	value := q.q.model.Value()
-	if q.q.isSliceModel() {
+	if q.q.isSliceModel() && value.Len() > 0 {
 		table := q.q.model.Table()
+		err := table.checkPKs()
+		if err != nil {
+			return nil, err
+		}
+
 		b = q.appendColumnAndSliceValue(b, value, table.Alias, table.PKs)
 
 		if q.q.hasWhere() {
@@ -91,10 +96,6 @@ func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 }
 
 func (q *deleteQuery) appendColumnAndSliceValue(b []byte, slice reflect.Value, alias types.Q, fields []*Field) []byte {
-	if slice.Len() == 0 {
-		return append(b, "FALSE"...)
-	}
-
 	if len(fields) > 1 {
 		b = append(b, '(')
 	}

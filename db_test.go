@@ -791,6 +791,14 @@ var _ = Describe("DB.Delete", func() {
 		err := db.Delete(&test)
 		Expect(err).To(MatchError(`pg: model=Test does not have primary keys`))
 	})
+
+	It("returns an error if there are no where", func() {
+		var test []struct {
+			Id int
+		}
+		_, err := db.Model(&test).Delete()
+		Expect(err).To(MatchError(`pg: Update and Delete queries require Where clause (try WherePK)`))
+	})
 })
 
 var _ = Describe("errors", func() {
