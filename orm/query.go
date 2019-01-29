@@ -621,8 +621,8 @@ func (q *Query) Count() (int, error) {
 	return count, err
 }
 
-func (q *Query) countSelectQuery(column string) selectQuery {
-	return selectQuery{
+func (q *Query) countSelectQuery(column string) *selectQuery {
+	return &selectQuery{
 		q:     q,
 		count: column,
 	}
@@ -674,7 +674,7 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
-	res, err := q.query(model, selectQuery{q: q})
+	res, err := q.query(model, &selectQuery{q: q})
 	if err != nil {
 		return err
 	}
@@ -960,7 +960,7 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 		}
 	}
 
-	query := updateQuery{q: q, omitZero: omitZero}
+	query := &updateQuery{q: q, omitZero: omitZero}
 	res, err := q.returningQuery(model, query)
 	if err != nil {
 		return nil, err
@@ -1025,7 +1025,7 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 		}
 	}
 
-	res, err := q.returningQuery(model, deleteQuery{q})
+	res, err := q.returningQuery(model, &deleteQuery{q})
 	if err != nil {
 		return nil, err
 	}
@@ -1041,7 +1041,7 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 }
 
 func (q *Query) CreateTable(opt *CreateTableOptions) error {
-	_, err := q.db.ExecContext(q.ctx, createTableQuery{
+	_, err := q.db.ExecContext(q.ctx, &createTableQuery{
 		q:   q,
 		opt: opt,
 	})
@@ -1049,7 +1049,7 @@ func (q *Query) CreateTable(opt *CreateTableOptions) error {
 }
 
 func (q *Query) DropTable(opt *DropTableOptions) error {
-	_, err := q.db.ExecContext(q.ctx, dropTableQuery{
+	_, err := q.db.ExecContext(q.ctx, &dropTableQuery{
 		q:   q,
 		opt: opt,
 	})
@@ -1107,7 +1107,7 @@ var _ FormatAppender = (*Query)(nil)
 
 func (q *Query) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	cp := q.Copy().Formatter(fmter)
-	bb, err := selectQuery{q: cp}.AppendQuery(b)
+	bb, err := (&selectQuery{q: cp}).AppendQuery(b)
 	if err != nil {
 		q.err(err)
 		return types.AppendError(b, err)
@@ -1121,7 +1121,7 @@ func (q *Query) Exists() (bool, error) {
 	cp.columns = []FormatAppender{fieldAppender{"1"}}
 	cp.order = nil
 	cp.limit = 1
-	res, err := q.db.ExecContext(q.ctx, selectQuery{q: q})
+	res, err := q.db.ExecContext(q.ctx, &selectQuery{q: q})
 	if err != nil {
 		return false, err
 	}

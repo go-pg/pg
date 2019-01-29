@@ -48,10 +48,8 @@ func (ev *QueryEvent) FormattedQuery() (string, error) {
 
 func queryString(query interface{}) ([]byte, error) {
 	switch query := query.(type) {
-	case orm.QueryAppender:
-		query = query.Copy()
-		query.Query().Formatter(dummyFormatter{})
-		return query.AppendQuery(nil)
+	case orm.TemplateAppender:
+		return query.AppendTemplate(nil)
 	case string:
 		return dummyFormatter{}.FormatQuery(nil, query), nil
 	default:

@@ -26,17 +26,23 @@ type deleteQuery struct {
 
 var _ QueryAppender = (*deleteQuery)(nil)
 
-func (q deleteQuery) Copy() QueryAppender {
-	return deleteQuery{
+func (q *deleteQuery) Copy() *deleteQuery {
+	return &deleteQuery{
 		q: q.q.Copy(),
 	}
 }
 
-func (q deleteQuery) Query() *Query {
+func (q *deleteQuery) Query() *Query {
 	return q.q
 }
 
-func (q deleteQuery) AppendQuery(b []byte) ([]byte, error) {
+func (q *deleteQuery) AppendTemplate(b []byte) ([]byte, error) {
+	cp := q.Copy()
+	cp.q = cp.q.Formatter(dummyFormatter{})
+	return cp.AppendQuery(b)
+}
+
+func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}

@@ -10,25 +10,30 @@ func Select(db DB, model interface{}) error {
 }
 
 type selectQuery struct {
-	q *Query
-
+	q     *Query
 	count string
 }
 
 var _ QueryAppender = (*selectQuery)(nil)
 
-func (q selectQuery) Copy() QueryAppender {
-	return selectQuery{
+func (q *selectQuery) Copy() *selectQuery {
+	return &selectQuery{
 		q:     q.q.Copy(),
 		count: q.count,
 	}
 }
 
-func (q selectQuery) Query() *Query {
+func (q *selectQuery) Query() *Query {
 	return q.q
 }
 
-func (q selectQuery) AppendQuery(b []byte) ([]byte, error) {
+func (q *selectQuery) AppendTemplate(b []byte) ([]byte, error) {
+	cp := q.Copy()
+	cp.q = cp.q.Formatter(dummyFormatter{})
+	return cp.AppendQuery(b)
+}
+
+func (q *selectQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
@@ -163,7 +168,7 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 	return b
 }
 
-func (q selectQuery) isDistinct() bool {
+func (q *selectQuery) isDistinct() bool {
 	for _, column := range q.q.columns {
 		column, ok := column.(*queryParamsAppender)
 		if ok {
@@ -176,7 +181,7 @@ func (q selectQuery) isDistinct() bool {
 	return false
 }
 
-func (q selectQuery) appendTables(b []byte) []byte {
+func (q *selectQuery) appendTables(b []byte) []byte {
 	tables := q.q.tables
 
 	if q.q.modelHasTableName() {
