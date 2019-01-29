@@ -24,10 +24,6 @@ type TemplateAppender interface {
 	AppendTemplate([]byte) ([]byte, error)
 }
 
-type PlaceholderAppender interface {
-	AppendPlaceholder([]byte) []byte
-}
-
 type QueryFormatter interface {
 	FormatQuery(b []byte, query string, params ...interface{}) []byte
 }

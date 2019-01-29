@@ -29,12 +29,12 @@ func (sf *structFilter) AppendSep(b []byte) []byte {
 	return append(b, " AND "...)
 }
 
-func (sf *structFilter) AppendFormat(b []byte, f QueryFormatter) []byte {
+func (sf *structFilter) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	sf.strctOnce.Do(func() {
 		sf.strct = struct_filter.GetStruct(sf.value.Type())
 	})
 
-	pa, _ := f.(PlaceholderAppender)
+	isPlaceholder := isPlaceholderFormatter(fmter)
 
 	before := len(b)
 	for _, f := range sf.strct.Fields {
@@ -52,8 +52,8 @@ func (sf *structFilter) AppendFormat(b []byte, f QueryFormatter) []byte {
 		if f.IsSlice {
 			b = append(b, '(')
 		}
-		if pa != nil {
-			b = pa.AppendPlaceholder(b)
+		if isPlaceholder {
+			b = append(b, '?')
 		} else {
 			b = f.Append(b, fv, 1)
 		}

@@ -12,7 +12,7 @@ import (
 	"github.com/go-pg/pg/types"
 )
 
-var formatter Formatter
+var defaultFmter Formatter
 
 type FormatAppender interface {
 	AppendFormat([]byte, QueryFormatter) []byte
@@ -37,12 +37,12 @@ func Q(query string, params ...interface{}) *queryParamsAppender {
 	return &queryParamsAppender{query, params}
 }
 
-func (q *queryParamsAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
-	return f.FormatQuery(b, q.query, q.params...)
+func (q *queryParamsAppender) AppendFormat(b []byte, fmter QueryFormatter) []byte {
+	return fmter.FormatQuery(b, q.query, q.params...)
 }
 
 func (q *queryParamsAppender) AppendValue(b []byte, quote int) []byte {
-	return q.AppendFormat(b, formatter)
+	return q.AppendFormat(b, defaultFmter)
 }
 
 func (q *queryParamsAppender) Value() types.Q {
@@ -64,13 +64,13 @@ func (q *condGroupAppender) AppendSep(b []byte) []byte {
 	return append(b, q.sep...)
 }
 
-func (q *condGroupAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
+func (q *condGroupAppender) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	b = append(b, '(')
 	for i, app := range q.cond {
 		if i > 0 {
 			b = app.AppendSep(b)
 		}
-		b = app.AppendFormat(b, f)
+		b = app.AppendFormat(b, fmter)
 	}
 	b = append(b, ')')
 	return b
@@ -91,9 +91,9 @@ func (q *condAppender) AppendSep(b []byte) []byte {
 	return append(b, q.sep...)
 }
 
-func (q *condAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
+func (q *condAppender) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	b = append(b, '(')
-	b = f.FormatQuery(b, q.cond, q.params...)
+	b = fmter.FormatQuery(b, q.cond, q.params...)
 	b = append(b, ')')
 	return b
 }
@@ -106,7 +106,7 @@ type fieldAppender struct {
 
 var _ FormatAppender = (*fieldAppender)(nil)
 
-func (a fieldAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
+func (a fieldAppender) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	return types.AppendField(b, a.field, 1)
 }
 
@@ -114,12 +114,16 @@ func (a fieldAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 
 type dummyFormatter struct{}
 
-func (dummyFormatter) AppendPlaceholder(b []byte) []byte {
-	return append(b, '?')
-}
-
 func (f dummyFormatter) FormatQuery(b []byte, query string, params ...interface{}) []byte {
 	return append(b, query...)
+}
+
+func isPlaceholderFormatter(fmter QueryFormatter) bool {
+	if fmter == nil {
+		return false
+	}
+	b := fmter.FormatQuery(nil, "?", 0)
+	return bytes.Equal(b, []byte("?"))
 }
 
 //------------------------------------------------------------------------------

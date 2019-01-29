@@ -290,7 +290,7 @@ type hasManyColumnsAppender struct {
 	*join
 }
 
-func (q hasManyColumnsAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
+func (q hasManyColumnsAppender) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	if q.Rel.M2MTableAlias != "" {
 		b = append(b, q.Rel.M2MTableAlias...)
 		b = append(b, ".*, "...)

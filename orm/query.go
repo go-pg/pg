@@ -139,6 +139,16 @@ func (q *Query) Formatter(fmter QueryFormatter) *Query {
 	return q
 }
 
+func (q *Query) formatter() QueryFormatter {
+	if q.fmter != nil {
+		return q.fmter
+	}
+	if q.db != nil {
+		return q.db
+	}
+	return defaultFmter
+}
+
 func (q *Query) Model(model ...interface{}) *Query {
 	var err error
 	switch l := len(model); {
@@ -1094,13 +1104,7 @@ func (q *Query) CopyTo(w io.Writer, query interface{}, params ...interface{}) (R
 
 func (q *Query) FormatQuery(b []byte, query string, params ...interface{}) []byte {
 	params = append(params, q.model)
-	if q.fmter != nil {
-		return q.fmter.FormatQuery(b, query, params...)
-	}
-	if q.db != nil {
-		return q.db.FormatQuery(b, query, params...)
-	}
-	return formatter.Append(b, query, params...)
+	return q.formatter().FormatQuery(b, query, params...)
 }
 
 var _ FormatAppender = (*Query)(nil)
@@ -1329,7 +1333,7 @@ func (q wherePKQuery) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 func appendColumnAndValue(
 	fmter QueryFormatter, b []byte, v reflect.Value, alias types.Q, fields []*Field,
 ) []byte {
-	pa, _ := fmter.(PlaceholderAppender)
+	isPlaceholder := isPlaceholderFormatter(fmter)
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, " AND "...)
@@ -1338,8 +1342,8 @@ func appendColumnAndValue(
 		b = append(b, '.')
 		b = append(b, f.Column...)
 		b = append(b, " = "...)
-		if pa != nil {
-			b = pa.AppendPlaceholder(b)
+		if isPlaceholder {
+			b = append(b, '?')
 		} else {
 			b = f.AppendValue(b, v, 1)
 		}
