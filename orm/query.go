@@ -134,6 +134,11 @@ func (q *Query) DB(db DB) *Query {
 	return q
 }
 
+func (q *Query) Formatter(fmter QueryFormatter) *Query {
+	q.fmter = fmter
+	return q
+}
+
 func (q *Query) Model(model ...interface{}) *Query {
 	var err error
 	switch l := len(model); {
@@ -1100,9 +1105,8 @@ func (q *Query) FormatQuery(b []byte, query string, params ...interface{}) []byt
 
 var _ FormatAppender = (*Query)(nil)
 
-func (q *Query) AppendFormat(b []byte, f QueryFormatter) []byte {
-	cp := q.Copy()
-	cp.fmter = f
+func (q *Query) AppendFormat(b []byte, fmter QueryFormatter) []byte {
+	cp := q.Copy().Formatter(fmter)
 	bb, err := selectQuery{q: cp}.AppendQuery(b)
 	if err != nil {
 		q.err(err)

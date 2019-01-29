@@ -7,13 +7,9 @@ import (
 	"github.com/go-pg/pg/orm"
 )
 
-type dummyDB struct {
-	orm.DB
-}
+type dummyFormatter struct{}
 
-var _ orm.DB = dummyDB{}
-
-func (dummyDB) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
+func (dummyFormatter) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
 	return append(dst, query...)
 }
 
@@ -54,10 +50,10 @@ func queryString(query interface{}) ([]byte, error) {
 	switch query := query.(type) {
 	case orm.QueryAppender:
 		query = query.Copy()
-		query.Query().DB(dummyDB{})
+		query.Query().Formatter(dummyFormatter{})
 		return query.AppendQuery(nil)
 	case string:
-		return dummyDB{}.FormatQuery(nil, query), nil
+		return dummyFormatter{}.FormatQuery(nil, query), nil
 	default:
 		return nil, fmt.Errorf("pg: can't append %T", query)
 	}
