@@ -1,7 +1,10 @@
 package orm
 
 import (
+	"reflect"
+
 	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/types"
 )
 
 func Delete(db DB, model interface{}) error {
@@ -21,14 +24,16 @@ func ForceDelete(db DB, model interface{}) error {
 }
 
 type deleteQuery struct {
-	q *Query
+	q        *Query
+	template bool
 }
 
 var _ QueryAppender = (*deleteQuery)(nil)
 
 func (q *deleteQuery) Copy() *deleteQuery {
 	return &deleteQuery{
-		q: q.q.Copy(),
+		q:        q.q.Copy(),
+		template: q.template,
 	}
 }
 
@@ -39,6 +44,7 @@ func (q *deleteQuery) Query() *Query {
 func (q *deleteQuery) AppendTemplate(b []byte) ([]byte, error) {
 	cp := q.Copy()
 	cp.q = cp.q.Formatter(dummyFormatter{})
+	cp.template = true
 	return cp.AppendQuery(b)
 }
 
@@ -63,7 +69,7 @@ func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 	value := q.q.model.Value()
 	if q.q.isSliceModel() {
 		table := q.q.model.Table()
-		b = appendColumnAndSliceValue(b, value, table.Alias, table.PKs)
+		b = q.appendColumnAndSliceValue(b, value, table.Alias, table.PKs)
 
 		if q.q.hasWhere() {
 			b = append(b, " AND "...)
@@ -82,4 +88,49 @@ func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	return b, q.q.stickyErr
+}
+
+func (q *deleteQuery) appendColumnAndSliceValue(b []byte, slice reflect.Value, alias types.Q, fields []*Field) []byte {
+	if slice.Len() == 0 {
+		return append(b, "FALSE"...)
+	}
+
+	if len(fields) > 1 {
+		b = append(b, '(')
+	}
+	b = appendColumns(b, alias, fields)
+	if len(fields) > 1 {
+		b = append(b, ')')
+	}
+
+	b = append(b, " IN ("...)
+
+	for i := 0; i < slice.Len(); i++ {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+
+		el := indirect(slice.Index(i))
+
+		if len(fields) > 1 {
+			b = append(b, '(')
+		}
+		for i, f := range fields {
+			if i > 0 {
+				b = append(b, ", "...)
+			}
+			if q.template {
+				b = append(b, '?')
+			} else {
+				b = f.AppendValue(b, el, 1)
+			}
+		}
+		if len(fields) > 1 {
+			b = append(b, ')')
+		}
+	}
+
+	b = append(b, ')')
+
+	return b
 }

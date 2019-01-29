@@ -219,15 +219,22 @@ func (q *updateQuery) appendSliceModelData(b []byte) ([]byte, error) {
 
 func (q *updateQuery) appendSliceValues(b []byte, fields []*Field, slice reflect.Value) []byte {
 	b = append(b, "(VALUES ("...)
-	for i := 0; i < slice.Len(); i++ {
-		b = q.appendValues(b, fields, slice.Index(i))
-		if i != slice.Len()-1 {
-			b = append(b, "), ("...)
+
+	if q.template {
+		b = q.appendValues(b, fields, reflect.Value{})
+	} else {
+		for i := 0; i < slice.Len(); i++ {
+			if i > 0 {
+				b = append(b, "), ("...)
+			}
+			b = q.appendValues(b, fields, slice.Index(i))
 		}
 	}
+
 	b = append(b, ")) AS _data("...)
 	b = appendColumns(b, "", fields)
 	b = append(b, ")"...)
+
 	return b
 }
 

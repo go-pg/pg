@@ -1025,7 +1025,7 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 		}
 	}
 
-	res, err := q.returningQuery(model, &deleteQuery{q})
+	res, err := q.returningQuery(model, &deleteQuery{q: q})
 	if err != nil {
 		return nil, err
 	}
@@ -1337,45 +1337,5 @@ func appendColumnAndValue(b []byte, v reflect.Value, alias types.Q, fields []*Fi
 		b = append(b, " = "...)
 		b = f.AppendValue(b, v, 1)
 	}
-	return b
-}
-
-func appendColumnAndSliceValue(b []byte, slice reflect.Value, alias types.Q, fields []*Field) []byte {
-	if slice.Len() == 0 {
-		return append(b, "1 = 2"...)
-	}
-
-	if len(fields) > 1 {
-		b = append(b, '(')
-	}
-	b = appendColumns(b, alias, fields)
-	if len(fields) > 1 {
-		b = append(b, ')')
-	}
-
-	b = append(b, " IN ("...)
-
-	for i := 0; i < slice.Len(); i++ {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-
-		el := indirect(slice.Index(i))
-
-		if len(fields) > 1 {
-			b = append(b, '(')
-		}
-		for i, f := range fields {
-			if i > 0 {
-				b = append(b, ", "...)
-			}
-			b = f.AppendValue(b, el, 1)
-		}
-		if len(fields) > 1 {
-			b = append(b, ')')
-		}
-	}
-	b = append(b, ')')
-
 	return b
 }
