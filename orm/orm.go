@@ -17,11 +17,15 @@ type ColumnScanner interface {
 }
 
 type QueryAppender interface {
-	AppendQuery(dst []byte) ([]byte, error)
+	AppendQuery([]byte) ([]byte, error)
 }
 
 type TemplateAppender interface {
-	AppendTemplate(dst []byte) ([]byte, error)
+	AppendTemplate([]byte) ([]byte, error)
+}
+
+type PlaceholderAppender interface {
+	AppendPlaceholder([]byte) []byte
 }
 
 type QueryFormatter interface {

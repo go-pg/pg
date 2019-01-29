@@ -9,8 +9,8 @@ import (
 
 type dummyFormatter struct{}
 
-func (dummyFormatter) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
-	return append(dst, query...)
+func (dummyFormatter) FormatQuery(b []byte, query string, params ...interface{}) []byte {
+	return append(b, query...)
 }
 
 type QueryEvent struct {

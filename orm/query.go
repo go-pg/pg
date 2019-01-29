@@ -1320,13 +1320,16 @@ func (wherePKQuery) AppendSep(b []byte) []byte {
 	return append(b, " AND "...)
 }
 
-func (q wherePKQuery) AppendFormat(b []byte, f QueryFormatter) []byte {
+func (q wherePKQuery) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	table := q.model.Table()
 	value := q.model.Value()
-	return appendColumnAndValue(b, value, table.Alias, table.PKs)
+	return appendColumnAndValue(fmter, b, value, table.Alias, table.PKs)
 }
 
-func appendColumnAndValue(b []byte, v reflect.Value, alias types.Q, fields []*Field) []byte {
+func appendColumnAndValue(
+	fmter QueryFormatter, b []byte, v reflect.Value, alias types.Q, fields []*Field,
+) []byte {
+	pa, _ := fmter.(PlaceholderAppender)
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, " AND "...)
@@ -1335,7 +1338,11 @@ func appendColumnAndValue(b []byte, v reflect.Value, alias types.Q, fields []*Fi
 		b = append(b, '.')
 		b = append(b, f.Column...)
 		b = append(b, " = "...)
-		b = f.AppendValue(b, v, 1)
+		if pa != nil {
+			b = pa.AppendPlaceholder(b)
+		} else {
+			b = f.AppendValue(b, v, 1)
+		}
 	}
 	return b
 }

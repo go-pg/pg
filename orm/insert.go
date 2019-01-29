@@ -13,15 +13,15 @@ func Insert(db DB, model ...interface{}) error {
 type insertQuery struct {
 	q               *Query
 	returningFields []*Field
-	template        bool
+	pa              PlaceholderAppender
 }
 
 var _ QueryAppender = (*insertQuery)(nil)
 
 func (q *insertQuery) Copy() *insertQuery {
 	return &insertQuery{
-		q:        q.q.Copy(),
-		template: q.template,
+		q:  q.q.Copy(),
+		pa: q.pa,
 	}
 }
 
@@ -32,7 +32,7 @@ func (q *insertQuery) Query() *Query {
 func (q *insertQuery) AppendTemplate(b []byte) ([]byte, error) {
 	cp := q.Copy()
 	cp.q = cp.q.Formatter(dummyFormatter{})
-	cp.template = true
+	cp.pa = dummyFormatter{}
 	return cp.AppendQuery(b)
 }
 
@@ -134,8 +134,8 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, strct reflect.Valu
 			continue
 		}
 
-		if q.template {
-			b = append(b, '?')
+		if q.pa != nil {
+			b = q.pa.AppendPlaceholder(b)
 		} else if (f.Default != "" || f.OmitZero()) && f.IsZeroValue(strct) {
 			b = append(b, "DEFAULT"...)
 			q.addReturningField(f)
@@ -147,7 +147,7 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, strct reflect.Valu
 }
 
 func (q *insertQuery) appendSliceValues(b []byte, fields []*Field, slice reflect.Value) []byte {
-	if q.template {
+	if q.pa != nil {
 		b = q.appendValues(b, fields, reflect.Value{})
 		return b
 	}

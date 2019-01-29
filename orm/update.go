@@ -19,7 +19,7 @@ func Update(db DB, model interface{}) error {
 type updateQuery struct {
 	q        *Query
 	omitZero bool
-	template bool
+	pa       PlaceholderAppender
 }
 
 var _ QueryAppender = (*updateQuery)(nil)
@@ -28,7 +28,7 @@ func (q *updateQuery) Copy() *updateQuery {
 	return &updateQuery{
 		q:        q.q.Copy(),
 		omitZero: q.omitZero,
-		template: q.template,
+		pa:       q.pa,
 	}
 }
 
@@ -39,7 +39,7 @@ func (q *updateQuery) Query() *Query {
 func (q *updateQuery) AppendTemplate(b []byte) ([]byte, error) {
 	cp := q.Copy()
 	cp.q = cp.q.Formatter(dummyFormatter{})
-	cp.template = true
+	cp.pa = dummyFormatter{}
 	return cp.AppendQuery(b)
 }
 
@@ -168,7 +168,7 @@ func (q *updateQuery) appendSetStruct(b []byte, strct reflect.Value) ([]byte, er
 			continue
 		}
 
-		if q.template {
+		if q.pa != nil {
 			b = append(b, '?')
 		} else {
 			b = f.AppendValue(b, strct, 1)
@@ -220,7 +220,7 @@ func (q *updateQuery) appendSliceModelData(b []byte) ([]byte, error) {
 func (q *updateQuery) appendSliceValues(b []byte, fields []*Field, slice reflect.Value) []byte {
 	b = append(b, "(VALUES ("...)
 
-	if q.template {
+	if q.pa != nil {
 		b = q.appendValues(b, fields, reflect.Value{})
 	} else {
 		for i := 0; i < slice.Len(); i++ {
@@ -250,7 +250,7 @@ func (q *updateQuery) appendValues(b []byte, fields []*Field, strct reflect.Valu
 			continue
 		}
 
-		if q.template {
+		if q.pa != nil {
 			b = append(b, '?')
 		} else {
 			b = f.AppendValue(b, indirect(strct), 1)

@@ -114,8 +114,12 @@ func (a fieldAppender) AppendFormat(b []byte, f QueryFormatter) []byte {
 
 type dummyFormatter struct{}
 
-func (dummyFormatter) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
-	return append(dst, query...)
+func (dummyFormatter) AppendPlaceholder(b []byte) []byte {
+	return append(b, '?')
+}
+
+func (f dummyFormatter) FormatQuery(b []byte, query string, params ...interface{}) []byte {
+	return append(b, query...)
 }
 
 //------------------------------------------------------------------------------

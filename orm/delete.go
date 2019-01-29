@@ -24,16 +24,16 @@ func ForceDelete(db DB, model interface{}) error {
 }
 
 type deleteQuery struct {
-	q        *Query
-	template bool
+	q  *Query
+	pa PlaceholderAppender
 }
 
 var _ QueryAppender = (*deleteQuery)(nil)
 
 func (q *deleteQuery) Copy() *deleteQuery {
 	return &deleteQuery{
-		q:        q.q.Copy(),
-		template: q.template,
+		q:  q.q.Copy(),
+		pa: q.pa,
 	}
 }
 
@@ -44,7 +44,7 @@ func (q *deleteQuery) Query() *Query {
 func (q *deleteQuery) AppendTemplate(b []byte) ([]byte, error) {
 	cp := q.Copy()
 	cp.q = cp.q.Formatter(dummyFormatter{})
-	cp.template = true
+	cp.pa = dummyFormatter{}
 	return cp.AppendQuery(b)
 }
 
@@ -119,8 +119,8 @@ func (q *deleteQuery) appendColumnAndSliceValue(b []byte, slice reflect.Value, a
 			if i > 0 {
 				b = append(b, ", "...)
 			}
-			if q.template {
-				b = append(b, '?')
+			if q.pa != nil {
+				b = q.pa.AppendPlaceholder(b)
 			} else {
 				b = f.AppendValue(b, el, 1)
 			}
