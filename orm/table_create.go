@@ -25,15 +25,24 @@ type createTableQuery struct {
 	opt *CreateTableOptions
 }
 
-func (q createTableQuery) Copy() QueryAppender {
-	return q
+func (q *createTableQuery) Copy() *createTableQuery {
+	return &createTableQuery{
+		q:   q.q.Copy(),
+		opt: q.opt,
+	}
 }
 
-func (q createTableQuery) Query() *Query {
+func (q *createTableQuery) Query() *Query {
 	return q.q
 }
 
-func (q createTableQuery) AppendQuery(b []byte) ([]byte, error) {
+func (q *createTableQuery) AppendTemplate(b []byte) ([]byte, error) {
+	cp := q.Copy()
+	cp.q = cp.q.Formatter(dummyFormatter{})
+	return cp.AppendQuery(b)
+}
+
+func (q *createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}

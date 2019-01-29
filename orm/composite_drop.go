@@ -7,7 +7,7 @@ type DropCompositeOptions struct {
 
 func DropComposite(db DB, model interface{}, opt *DropCompositeOptions) error {
 	q := NewQuery(db, model)
-	_, err := q.db.Exec(dropCompositeQuery{
+	_, err := q.db.Exec(&dropCompositeQuery{
 		q:   q,
 		opt: opt,
 	})
@@ -19,15 +19,24 @@ type dropCompositeQuery struct {
 	opt *DropCompositeOptions
 }
 
-func (q dropCompositeQuery) Copy() QueryAppender {
-	return q
+func (q *dropCompositeQuery) Copy() *dropCompositeQuery {
+	return &dropCompositeQuery{
+		q:   q.q.Copy(),
+		opt: q.opt,
+	}
 }
 
-func (q dropCompositeQuery) Query() *Query {
+func (q *dropCompositeQuery) Query() *Query {
 	return q.q
 }
 
-func (q dropCompositeQuery) AppendQuery(b []byte) ([]byte, error) {
+func (q *dropCompositeQuery) AppendTemplate(b []byte) ([]byte, error) {
+	cp := q.Copy()
+	cp.q = cp.q.Formatter(dummyFormatter{})
+	return cp.AppendQuery(b)
+}
+
+func (q *dropCompositeQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}

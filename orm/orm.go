@@ -17,9 +17,11 @@ type ColumnScanner interface {
 }
 
 type QueryAppender interface {
-	Copy() QueryAppender
-	Query() *Query
 	AppendQuery(dst []byte) ([]byte, error)
+}
+
+type TemplateAppender interface {
+	AppendTemplate(dst []byte) ([]byte, error)
 }
 
 type QueryFormatter interface {

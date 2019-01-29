@@ -13,18 +13,27 @@ func Insert(db DB, model ...interface{}) error {
 type insertQuery struct {
 	q               *Query
 	returningFields []*Field
+	template        bool
 }
 
 var _ QueryAppender = (*insertQuery)(nil)
 
-func (q *insertQuery) Copy() QueryAppender {
+func (q *insertQuery) Copy() *insertQuery {
 	return &insertQuery{
-		q: q.q.Copy(),
+		q:        q.q.Copy(),
+		template: q.template,
 	}
 }
 
 func (q *insertQuery) Query() *Query {
 	return q.q
+}
+
+func (q *insertQuery) AppendTemplate(b []byte) ([]byte, error) {
+	cp := q.Copy()
+	cp.q = cp.q.Formatter(dummyFormatter{})
+	cp.template = true
+	return cp.AppendQuery(b)
 }
 
 func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
@@ -135,6 +144,8 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, v reflect.Value) [
 		if (f.Default != "" || f.OmitZero()) && f.IsZeroValue(v) {
 			b = append(b, "DEFAULT"...)
 			q.addReturningField(f)
+		} else if q.template {
+			b = append(b, '?')
 		} else {
 			b = f.AppendValue(b, v, 1)
 		}
