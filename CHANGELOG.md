@@ -1,5 +1,9 @@
 # Changelog
 
+## v7.2
+
+- Batch deleting using ORM requires `WherePK`, for example, `db.Model(&slice).WherePK().Delete()`. `db.Delete(&slice)` can be used as a shortcut.
+
 ## v7
 
 - DB.OnQueryProcessed is replaced with DB.AddQueryHook.

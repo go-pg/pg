@@ -459,14 +459,12 @@ func (q *Query) WherePK() *Query {
 		q.err(errModelNil)
 		return q
 	}
-	if q.model.Kind() != reflect.Struct {
-		q.err(errors.New("pg: WherePK requires a struct Model"))
-		return q
-	}
+
 	if err := q.model.Table().checkPKs(); err != nil {
 		q.err(err)
 		return q
 	}
+
 	q.where = append(q.where, wherePKQuery{q})
 	return q
 }
@@ -1326,13 +1324,12 @@ func (wherePKQuery) AppendSep(b []byte) []byte {
 
 func (q wherePKQuery) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	table := q.model.Table()
-	err := table.checkPKs()
-	if err != nil {
-		return types.AppendError(b, err)
-	}
-
 	value := q.model.Value()
-	return appendColumnAndValue(fmter, b, value, table.Alias, table.PKs)
+	if q.isSliceModel() {
+		return appendColumnAndSliceValue(fmter, b, value, table.Alias, table.PKs)
+	} else {
+		return appendColumnAndValue(fmter, b, value, table.Alias, table.PKs)
+	}
 }
 
 func appendColumnAndValue(
@@ -1353,5 +1350,49 @@ func appendColumnAndValue(
 			b = f.AppendValue(b, v, 1)
 		}
 	}
+	return b
+}
+
+func appendColumnAndSliceValue(
+	fmter QueryFormatter, b []byte, slice reflect.Value, alias types.Q, fields []*Field,
+) []byte {
+	if len(fields) > 1 {
+		b = append(b, '(')
+	}
+	b = appendColumns(b, alias, fields)
+	if len(fields) > 1 {
+		b = append(b, ')')
+	}
+
+	b = append(b, " IN ("...)
+
+	isPlaceholder := isPlaceholderFormatter(fmter)
+	for i := 0; i < slice.Len(); i++ {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+
+		el := indirect(slice.Index(i))
+
+		if len(fields) > 1 {
+			b = append(b, '(')
+		}
+		for i, f := range fields {
+			if i > 0 {
+				b = append(b, ", "...)
+			}
+			if isPlaceholder {
+				b = append(b, '?')
+			} else {
+				b = f.AppendValue(b, el, 1)
+			}
+		}
+		if len(fields) > 1 {
+			b = append(b, ')')
+		}
+	}
+
+	b = append(b, ')')
+
 	return b
 }
