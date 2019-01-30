@@ -1,10 +1,7 @@
 package orm
 
 import (
-	"reflect"
-
 	"github.com/go-pg/pg/internal"
-	"github.com/go-pg/pg/types"
 )
 
 func Delete(db DB, model interface{}) error {
@@ -66,26 +63,10 @@ func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	b = append(b, " WHERE "...)
-	value := q.q.model.Value()
-	if q.q.isSliceModel() && value.Len() > 0 {
-		table := q.q.model.Table()
-		err := table.checkPKs()
-		if err != nil {
-			return nil, err
-		}
 
-		b = q.appendColumnAndSliceValue(b, value, table.Alias, table.PKs)
-
-		if q.q.hasWhere() {
-			b = append(b, " AND "...)
-			b = q.q.appendWhere(b)
-		}
-	} else {
-		var err error
-		b, err = q.q.mustAppendWhere(b)
-		if err != nil {
-			return nil, err
-		}
+	b, err := q.q.mustAppendWhere(b)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(q.q.returning) > 0 {
@@ -93,45 +74,4 @@ func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	return b, q.q.stickyErr
-}
-
-func (q *deleteQuery) appendColumnAndSliceValue(b []byte, slice reflect.Value, alias types.Q, fields []*Field) []byte {
-	if len(fields) > 1 {
-		b = append(b, '(')
-	}
-	b = appendColumns(b, alias, fields)
-	if len(fields) > 1 {
-		b = append(b, ')')
-	}
-
-	b = append(b, " IN ("...)
-
-	for i := 0; i < slice.Len(); i++ {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-
-		el := indirect(slice.Index(i))
-
-		if len(fields) > 1 {
-			b = append(b, '(')
-		}
-		for i, f := range fields {
-			if i > 0 {
-				b = append(b, ", "...)
-			}
-			if q.placeholder {
-				b = append(b, '?')
-			} else {
-				b = f.AppendValue(b, el, 1)
-			}
-		}
-		if len(fields) > 1 {
-			b = append(b, ')')
-		}
-	}
-
-	b = append(b, ')')
-
-	return b
 }

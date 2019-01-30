@@ -1778,7 +1778,7 @@ var _ = Describe("ORM", func() {
 			err := db.Model(&books).Order("id").Select()
 			Expect(err).NotTo(HaveOccurred())
 
-			res, err := db.Model(&books).Delete()
+			res, err := db.Model(&books).WherePK().Delete()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.RowsAffected()).To(Equal(3))
 
@@ -1793,7 +1793,7 @@ var _ = Describe("ORM", func() {
 			err := db.Model(&books).Order("id").Select()
 			Expect(err).NotTo(HaveOccurred())
 
-			res, err := db.Model(&books).Delete()
+			res, err := db.Model(&books).WherePK().Delete()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.RowsAffected()).To(Equal(3))
 
