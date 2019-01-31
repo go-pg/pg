@@ -172,7 +172,7 @@ func (j *join) appendAliasColumn(b []byte, column string) []byte {
 	b = append(b, '"')
 	b = appendAlias(b, j, true)
 	b = append(b, "__"...)
-	b = types.AppendField(b, column, 2)
+	b = types.AppendField(b, column, 0)
 	b = append(b, '"')
 	return b
 }
