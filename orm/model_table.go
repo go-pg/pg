@@ -60,17 +60,9 @@ func newTableModelValue(v reflect.Value) (TableModel, error) {
 	case reflect.Struct:
 		return newStructTableModelValue(v), nil
 	case reflect.Slice:
-		structType := sliceElemType(v)
-		if structType.Kind() == reflect.Struct {
-			m := sliceTableModel{
-				structTableModel: structTableModel{
-					table: GetTable(structType),
-					root:  v,
-				},
-				slice: v,
-			}
-			m.init(v.Type())
-			return &m, nil
+		elemType := sliceElemType(v)
+		if elemType.Kind() == reflect.Struct {
+			return newSliceTableModel(v, elemType), nil
 		}
 	}
 

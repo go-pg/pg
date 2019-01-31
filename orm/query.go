@@ -1305,11 +1305,12 @@ func (q *Query) appendWith(b []byte) []byte {
 	return b
 }
 
-func (q *Query) isSliceModel() bool {
+func (q *Query) isSliceModelWithData() bool {
 	if !q.hasModel() {
 		return false
 	}
-	return q.model.Kind() == reflect.Slice && q.model.Value().Len() > 0
+	m, ok := q.model.(*sliceTableModel)
+	return ok && m.sliceLen > 0
 }
 
 //------------------------------------------------------------------------------
@@ -1325,7 +1326,7 @@ func (wherePKQuery) AppendSep(b []byte) []byte {
 func (q wherePKQuery) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	table := q.model.Table()
 	value := q.model.Value()
-	if q.isSliceModel() {
+	if q.model.Kind() == reflect.Slice {
 		return appendColumnAndSliceValue(fmter, b, value, table.Alias, table.PKs)
 	} else {
 		return appendColumnAndValue(fmter, b, value, table.Alias, table.PKs)

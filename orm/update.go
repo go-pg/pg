@@ -60,12 +60,12 @@ func (q *updateQuery) AppendQuery(b []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	isSliceModel := q.q.isSliceModel()
-	if q.q.hasMultiTables() || isSliceModel {
+	isSliceModelWithData := q.q.isSliceModelWithData()
+	if isSliceModelWithData || q.q.hasMultiTables() {
 		b = append(b, " FROM "...)
 		b = q.q.appendOtherTables(b)
 
-		if isSliceModel {
+		if isSliceModelWithData {
 			b, err = q.appendSliceModelData(b)
 			if err != nil {
 				return nil, err
@@ -73,7 +73,7 @@ func (q *updateQuery) AppendQuery(b []byte) ([]byte, error) {
 		}
 	}
 
-	b, err = q.mustAppendWhere(b, isSliceModel)
+	b, err = q.mustAppendWhere(b, isSliceModelWithData)
 	if err != nil {
 		return nil, err
 	}
@@ -85,10 +85,10 @@ func (q *updateQuery) AppendQuery(b []byte) ([]byte, error) {
 	return b, q.q.stickyErr
 }
 
-func (q *updateQuery) mustAppendWhere(b []byte, isSliceModel bool) ([]byte, error) {
+func (q *updateQuery) mustAppendWhere(b []byte, isSliceModelWithData bool) ([]byte, error) {
 	b = append(b, " WHERE "...)
 
-	if isSliceModel {
+	if isSliceModelWithData {
 		if !q.q.hasModel() {
 			return nil, errModelNil
 		}
