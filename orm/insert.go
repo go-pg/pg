@@ -74,14 +74,14 @@ func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = append(b, " ("...)
 		b = appendColumns(b, "", fields)
 		b = append(b, ") VALUES ("...)
-		if value.Kind() == reflect.Struct {
-			b = q.appendValues(b, fields, value)
-		} else {
-			if value.Len() == 0 {
+		if m, ok := q.q.model.(*sliceTableModel); ok {
+			if m.sliceLen == 0 {
 				err = fmt.Errorf("pg: can't bulk-insert empty slice %s", value.Type())
 				return nil, err
 			}
 			b = q.appendSliceValues(b, fields, value)
+		} else {
+			b = q.appendValues(b, fields, value)
 		}
 		b = append(b, ")"...)
 	}

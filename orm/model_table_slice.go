@@ -11,10 +11,24 @@ type sliceTableModel struct {
 	structTableModel
 
 	slice      reflect.Value
+	sliceLen   int
 	sliceOfPtr bool
 }
 
 var _ TableModel = (*sliceTableModel)(nil)
+
+func newSliceTableModel(slice reflect.Value, elemType reflect.Type) *sliceTableModel {
+	m := &sliceTableModel{
+		structTableModel: structTableModel{
+			table: GetTable(elemType),
+			root:  slice,
+		},
+		slice:    slice,
+		sliceLen: slice.Len(),
+	}
+	m.init(slice.Type())
+	return m
+}
 
 func (m *sliceTableModel) init(sliceType reflect.Type) {
 	switch sliceType.Elem().Kind() {
@@ -35,7 +49,6 @@ func (m *sliceTableModel) AppendParam(b []byte, f QueryFormatter, name string) (
 		b = append(b, field.Column...)
 		return b, true
 	}
-
 	return m.structTableModel.AppendParam(b, f, name)
 }
 

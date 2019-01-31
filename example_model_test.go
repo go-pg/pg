@@ -962,7 +962,7 @@ func ExampleDB_Delete_bulkDelete() {
 		panic(err)
 	}
 
-	res, err := db.Model(&books).WherePK().Delete()
+	res, err := db.Model(&books).Delete()
 	if err != nil {
 		panic(err)
 	}

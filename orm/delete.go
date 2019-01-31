@@ -63,10 +63,26 @@ func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	b = append(b, " WHERE "...)
+	value := q.q.model.Value()
+	if q.q.isSliceModelWithData() {
+		table := q.q.model.Table()
+		err := table.checkPKs()
+		if err != nil {
+			return nil, err
+		}
 
-	b, err := q.q.mustAppendWhere(b)
-	if err != nil {
-		return nil, err
+		b = appendColumnAndSliceValue(q.q, b, value, table.Alias, table.PKs)
+
+		if q.q.hasWhere() {
+			b = append(b, " AND "...)
+			b = q.q.appendWhere(b)
+		}
+	} else {
+		var err error
+		b, err = q.q.mustAppendWhere(b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if len(q.q.returning) > 0 {

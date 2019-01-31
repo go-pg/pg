@@ -16,6 +16,13 @@ type sliceModel struct {
 
 var _ Model = (*sliceModel)(nil)
 
+func newSliceModel(slice reflect.Value, elemType reflect.Type) *sliceModel {
+	return &sliceModel{
+		slice: slice,
+		scan:  types.Scanner(elemType),
+	}
+}
+
 func (m *sliceModel) Init() error {
 	if m.slice.IsValid() && m.slice.Len() > 0 {
 		m.slice.Set(m.slice.Slice(0, 0))
