@@ -47,6 +47,10 @@ func (sf *structFilter) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 			b = append(b, " AND "...)
 		}
 
+		if sf.strct.TableName != "" {
+			b = append(b, sf.strct.TableName...)
+			b = append(b, '.')
+		}
 		b = append(b, f.Column...)
 		b = append(b, f.OpValue...)
 		if f.IsSlice {

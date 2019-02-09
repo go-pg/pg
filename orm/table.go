@@ -267,17 +267,17 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			t.setName("")
 		} else if sqlTag.Name != "" {
 			s, _ := tag.Unquote(sqlTag.Name)
-			t.setName(types.Q(quoteTableName(s)))
+			t.setName(types.Q(internal.QuoteTableName(s)))
 		}
 
 		if v, ok := sqlTag.Options["select"]; ok {
 			v, _ = tag.Unquote(v)
-			t.FullNameForSelects = types.Q(quoteTableName(v))
+			t.FullNameForSelects = types.Q(internal.QuoteTableName(v))
 		}
 
 		if v, ok := sqlTag.Options["alias"]; ok {
 			v, _ = tag.Unquote(v)
-			t.Alias = types.Q(quoteTableName(v))
+			t.Alias = types.Q(internal.QuoteTableName(v))
 		}
 
 		pgTag := tag.Parse(f.Tag.Get("pg"))
@@ -672,16 +672,6 @@ func appendNew(dst []int, src ...int) []int {
 	return cp
 }
 
-func isPostgresKeyword(s string) bool {
-	switch strings.ToLower(s) {
-	case "user", "group", "constraint", "limit",
-		"member", "placing", "references", "table":
-		return true
-	default:
-		return false
-	}
-}
-
 func isColumn(typ reflect.Type) bool {
 	return typ.Implements(scannerType) || reflect.PtrTo(typ).Implements(scannerType)
 }
@@ -939,13 +929,6 @@ func tryUnderscorePrefix(s string) string {
 	}
 	if c := s[0]; internal.IsUpper(c) {
 		return internal.Underscore(s) + "_"
-	}
-	return s
-}
-
-func quoteTableName(s string) string {
-	if isPostgresKeyword(s) {
-		return `"` + s + `"`
 	}
 	return s
 }

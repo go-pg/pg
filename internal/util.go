@@ -1,6 +1,9 @@
 package internal
 
-import "reflect"
+import (
+	"reflect"
+	"strings"
+)
 
 func MakeSliceNextElemFunc(v reflect.Value) func() reflect.Value {
 	elemType := v.Type().Elem()
@@ -32,5 +35,22 @@ func MakeSliceNextElemFunc(v reflect.Value) func() reflect.Value {
 
 		v.Set(reflect.Append(v, zero))
 		return v.Index(v.Len() - 1)
+	}
+}
+
+func QuoteTableName(s string) string {
+	if isPostgresKeyword(s) {
+		return `"` + s + `"`
+	}
+	return s
+}
+
+func isPostgresKeyword(s string) bool {
+	switch strings.ToLower(s) {
+	case "user", "group", "constraint", "limit",
+		"member", "placing", "references", "table":
+		return true
+	default:
+		return false
 	}
 }
