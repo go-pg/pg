@@ -54,6 +54,12 @@ type CreateTableOnDeleteOnUpdateModel struct {
 	CreateTableModel   *CreateTableModel
 }
 
+type CreateTableWithTablespace struct {
+	tableName string `sql:"tablespace:ssd"`
+
+	String string
+}
+
 var _ = Describe("CreateTable", func() {
 	It("creates new table", func() {
 		q := NewQuery(nil, &CreateTableModel{})
@@ -87,5 +93,14 @@ var _ = Describe("CreateTable", func() {
 		b, err := (&createTableQuery{q: q, opt: opt}).AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_on_delete_on_update_models" ("id" bigserial, "create_table_model_id" bigint, PRIMARY KEY ("id"), FOREIGN KEY ("create_table_model_id") REFERENCES "create_table_models" ("id") ON DELETE RESTRICT ON UPDATE CASCADE)`))
+	})
+
+	It("creates new table with tablespace options", func() {
+		q := NewQuery(nil, &CreateTableWithTablespace{})
+
+		opt := &CreateTableOptions{}
+		b, err := (&createTableQuery{q: q, opt: opt}).AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_with_tablespaces" ("string" text) TABLESPACE "ssd"`))
 	})
 })

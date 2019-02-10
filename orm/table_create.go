@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"github.com/go-pg/pg/types"
 	"strconv"
 )
 
@@ -102,6 +103,10 @@ func (q *createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	b = append(b, ")"...)
 
+	if table.Tablespace != "" {
+		b = q.appendTablespace(b, table.Tablespace)
+	}
+
 	return b, q.q.stickyErr
 }
 
@@ -148,6 +153,12 @@ func (q createTableQuery) appendFKConstraint(b []byte, table *Table, rel *Relati
 		b = append(b, s...)
 	}
 
+	return b
+}
+
+func (q createTableQuery) appendTablespace(b []byte, tableSpace types.Q) []byte {
+	b = append(b, " TABLESPACE "...)
+	b = append(b, tableSpace...)
 	return b
 }
 
