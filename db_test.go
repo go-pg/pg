@@ -336,8 +336,6 @@ var _ = Describe("Money", func() {
 	}
 
 	var locales = []string{
-		"af_ZA.ISO8859-1",
-		"af_ZA.ISO8859-15",
 		"af_ZA.UTF-8",
 		"af_ZA",
 		"am_ET.UTF-8",

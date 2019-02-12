@@ -204,6 +204,10 @@ func cashIn(input string) float64 {
 		}
 	}
 
+	/*
+	 * If the value is supposed to be positive, flip the sign, but check for
+	 * the most negative number.
+	 */
 	if sgn > 0 {
 		if value == -0x7FFFFFFFFFFFFFFF {
 			panic(fmt.Sprintf(`value "%s" is out of range for type %s`, input, "money"))
