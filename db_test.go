@@ -508,11 +508,15 @@ var _ = Describe("Money", func() {
 				var tm types.Money
 				types.SetMonetaryLocale(locale)
 				_, err := db.QueryOne(pg.Scan(&tm), fmt.Sprintf("SET lc_monetary TO '%s'; SELECT '?'::numeric::money", locale), test.input)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(tm).To(
-					Equal(test.wanted),
-					"#%d str=%v wanted=%v locale=%s", i, test.input, test.wanted, locale,
-				)
+				if err != nil && err.Error() == fmt.Sprintf(`ERROR #22023 invalid value for parameter "lc_monetary": "%s"`, locale) {
+					// The locale is not supported
+				} else {
+					Expect(err).NotTo(HaveOccurred())
+					Expect(tm).To(
+						Equal(test.wanted),
+						"#%d str=%v wanted=%v locale=%s", i, test.input, test.wanted, locale,
+					)
+				}
 			}
 		}
 	})
