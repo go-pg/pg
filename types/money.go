@@ -21,6 +21,10 @@ func (m *Money) Scan(b interface{}) error {
 	return nil
 }
 
+func SetMonetaryLocale(locale string) {
+	C.setlocale(3, C.CString(locale))
+}
+
 func pg_mul_s64_overflow(a int64, b int64, result *int64) (overflow bool) {
 	*result = a * b
 	return false

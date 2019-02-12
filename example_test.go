@@ -3,6 +3,7 @@ package pg_test
 import (
 	"bytes"
 	"fmt"
+	"github.com/go-pg/pg/types"
 	"strings"
 	"sync"
 	"time"
@@ -65,6 +66,23 @@ func ExampleDB_QueryOne() {
 	fmt.Println(user)
 	// Output: 1
 	// {admin}
+}
+
+func ExampleMoney() {
+	var testCash struct {
+		Amount types.Money
+	}
+
+	types.SetMonetaryLocale("en_US")
+
+	res, err := pgdb.QueryOne(&testCash, `
+        SELECT '5.43'::money AS Amount
+    `, "admin")
+	panicIf(err)
+	fmt.Println(res.RowsAffected())
+	fmt.Println(testCash)
+	// Output: 1
+	// {5.43}
 }
 
 func ExampleDB_QueryOne_returning_id() {
