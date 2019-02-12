@@ -12,6 +12,9 @@ import (
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 var durationType = reflect.TypeOf((*time.Duration)(nil)).Elem()
 var nullBoolType = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
+var nullInt64Type = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
+var nullFloat64Type = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
+var nullStringType = reflect.TypeOf((*sql.NullString)(nil)).Elem()
 
 type ScanFunc func(v reflect.Value, values []string) error
 
@@ -23,6 +26,12 @@ func scanner(typ reflect.Type) ScanFunc {
 		return scanDuration
 	case nullBoolType:
 		return scanNullBool
+	case nullInt64Type:
+		return scanNullInt64
+	case nullFloat64Type:
+		return scanNullFloat64
+	case nullStringType:
+		return scanNullString
 	}
 
 	switch typ.Kind() {
@@ -140,13 +149,71 @@ func scanNullBool(v reflect.Value, values []string) error {
 		return nil
 	}
 
-	f, err := strconv.ParseBool(values[0])
+	f, err := strconv.ParseBool(s)
 	if err != nil {
 		return err
 	}
 
 	value.Valid = true
 	value.Bool = f
+	v.Set(reflect.ValueOf(value))
+
+	return nil
+}
+
+func scanNullInt64(v reflect.Value, values []string) error {
+	value := sql.NullInt64{}
+
+	s := values[0]
+	if s == "" {
+		v.Set(reflect.ValueOf(value))
+		return nil
+	}
+
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err != nil {
+		return err
+	}
+
+	value.Valid = true
+	value.Int64 = n
+	v.Set(reflect.ValueOf(value))
+
+	return nil
+}
+
+func scanNullFloat64(v reflect.Value, values []string) error {
+	value := sql.NullFloat64{}
+
+	s := values[0]
+	if s == "" {
+		v.Set(reflect.ValueOf(value))
+		return nil
+	}
+
+	n, err := strconv.ParseFloat(s, 64)
+	if err != nil {
+		return err
+	}
+
+	value.Valid = true
+	value.Float64 = n
+	v.Set(reflect.ValueOf(value))
+
+	return nil
+}
+
+func scanNullString(v reflect.Value, values []string) error {
+	value := sql.NullString{}
+
+	s := values[0]
+	if s == "" {
+		v.Set(reflect.ValueOf(value))
+		return nil
+	}
+
+	value.Valid = true
+	value.String = s
 	v.Set(reflect.ValueOf(value))
 
 	return nil
