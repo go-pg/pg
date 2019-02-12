@@ -252,6 +252,12 @@ func conversionTests() []conversionTest {
 		{src: float64(math.MaxFloat64), dst: new(*float64), pgtype: "decimal"},
 		{src: float64(math.SmallestNonzeroFloat64), dst: new(float64), pgtype: "decimal"},
 
+		{src: nil, dst: types.Money(0), pgtype: "money", wanterr: "pg: Scan(nonsettable types.Money)"},
+		{src: nil, dst: new(types.Money), pgtype: "money", wantzero: true},
+		{src: types.Money(3.14), dst: new(types.Money), pgtype: "money"},
+		{src: types.Money(-3.14), dst: new(types.Money), pgtype: "money"},
+		{src: types.Money(3.14), dst: new(*types.Money), pgtype: "money"},
+
 		{src: nil, dst: []int(nil), pgtype: "jsonb", wanterr: "pg: Scan(nonsettable []int)"},
 		{src: nil, dst: new([]int), pgtype: "jsonb", wantnil: true},
 		{src: []int(nil), dst: new([]int), pgtype: "jsonb", wantnil: true},
