@@ -141,7 +141,9 @@ func scanDuration(v reflect.Value, values []string) error {
 }
 
 func scanNullBool(v reflect.Value, values []string) error {
-	value := sql.NullBool{}
+	value := sql.NullBool{
+		Valid: true,
+	}
 
 	s := values[0]
 	if s == "" {
@@ -154,7 +156,6 @@ func scanNullBool(v reflect.Value, values []string) error {
 		return err
 	}
 
-	value.Valid = true
 	value.Bool = f
 	v.Set(reflect.ValueOf(value))
 
@@ -162,7 +163,9 @@ func scanNullBool(v reflect.Value, values []string) error {
 }
 
 func scanNullInt64(v reflect.Value, values []string) error {
-	value := sql.NullInt64{}
+	value := sql.NullInt64{
+		Valid: true,
+	}
 
 	s := values[0]
 	if s == "" {
@@ -175,7 +178,6 @@ func scanNullInt64(v reflect.Value, values []string) error {
 		return err
 	}
 
-	value.Valid = true
 	value.Int64 = n
 	v.Set(reflect.ValueOf(value))
 
@@ -183,7 +185,9 @@ func scanNullInt64(v reflect.Value, values []string) error {
 }
 
 func scanNullFloat64(v reflect.Value, values []string) error {
-	value := sql.NullFloat64{}
+	value := sql.NullFloat64{
+		Valid: true,
+	}
 
 	s := values[0]
 	if s == "" {
@@ -196,7 +200,6 @@ func scanNullFloat64(v reflect.Value, values []string) error {
 		return err
 	}
 
-	value.Valid = true
 	value.Float64 = n
 	v.Set(reflect.ValueOf(value))
 
@@ -204,7 +207,9 @@ func scanNullFloat64(v reflect.Value, values []string) error {
 }
 
 func scanNullString(v reflect.Value, values []string) error {
-	value := sql.NullString{}
+	value := sql.NullString{
+		Valid: true,
+	}
 
 	s := values[0]
 	if s == "" {
@@ -212,7 +217,6 @@ func scanNullString(v reflect.Value, values []string) error {
 		return nil
 	}
 
-	value.Valid = true
 	value.String = s
 	v.Set(reflect.ValueOf(value))
 
