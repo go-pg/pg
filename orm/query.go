@@ -677,7 +677,7 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
-	q, err = model.BeforeSelectQuery(q.db, q)
+	q, err = model.BeforeSelectQuery(q.ctx, q.db, q)
 	if err != nil {
 		return err
 	}
@@ -693,7 +693,7 @@ func (q *Query) Select(values ...interface{}) error {
 				return err
 			}
 		}
-		if err := model.AfterSelect(q.db); err != nil {
+		if err := model.AfterSelect(q.ctx, q.db); err != nil {
 			return err
 		}
 	}
@@ -858,7 +858,7 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 	}
 
 	if q.model != nil && q.model.Table().HasFlag(BeforeInsertHookFlag) {
-		err = q.model.BeforeInsert(q.db)
+		err = q.model.BeforeInsert(q.ctx, q.db)
 		if err != nil {
 			return nil, err
 		}
@@ -871,7 +871,7 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 	}
 
 	if q.model != nil {
-		err = q.model.AfterInsert(q.db)
+		err = q.model.AfterInsert(q.ctx, q.db)
 		if err != nil {
 			return nil, err
 		}
@@ -962,7 +962,7 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 	}
 
 	if q.model != nil {
-		err = q.model.BeforeUpdate(q.db)
+		err = q.model.BeforeUpdate(q.ctx, q.db)
 		if err != nil {
 			return nil, err
 		}
@@ -975,7 +975,7 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 	}
 
 	if q.model != nil {
-		err = q.model.AfterUpdate(q.db)
+		err = q.model.AfterUpdate(q.ctx, q.db)
 		if err != nil {
 			return nil, err
 		}
@@ -1027,7 +1027,7 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 	}
 
 	if q.model != nil {
-		err = q.model.BeforeDelete(q.db)
+		err = q.model.BeforeDelete(q.ctx, q.db)
 		if err != nil {
 			return nil, err
 		}
@@ -1039,7 +1039,7 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 	}
 
 	if q.model != nil {
-		err = q.model.AfterDelete(q.db)
+		err = q.model.AfterDelete(q.ctx, q.db)
 		if err != nil {
 			return nil, err
 		}

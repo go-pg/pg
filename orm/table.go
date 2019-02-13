@@ -118,6 +118,34 @@ func newTable(typ reflect.Type) *Table {
 		t.SetFlag(AfterDeleteHookFlag)
 	}
 
+	if typ.Implements(oldAfterQueryHookType) {
+		panic(fmt.Sprintf("%s.AfterQuery must be updated - https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName))
+	}
+	if typ.Implements(oldBeforeSelectQueryHookType) {
+		panic(fmt.Sprintf("%s.BeforeSelectQuery must be updated - https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName))
+	}
+	if typ.Implements(oldAfterSelectHookType) {
+		panic(fmt.Sprintf("%s.AfterSelect must be updated - https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName))
+	}
+	if typ.Implements(oldBeforeInsertHookType) {
+		panic(fmt.Sprintf("%s.BeforeInsert must be updated - https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName))
+	}
+	if typ.Implements(oldAfterInsertHookType) {
+		panic(fmt.Sprintf("%s.AfterInsert must be updated - https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName))
+	}
+	if typ.Implements(oldBeforeUpdateHookType) {
+		panic(fmt.Sprintf("%s.BeforeUpdate must be updated - https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName))
+	}
+	if typ.Implements(oldAfterUpdateHookType) {
+		panic(fmt.Sprintf("%s.AfterUpdate must be updated - https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName))
+	}
+	if typ.Implements(oldBeforeDeleteHookType) {
+		panic(fmt.Sprintf("%s.BeforeDelete must be updated - https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName))
+	}
+	if typ.Implements(oldAfterDeleteHookType) {
+		panic(fmt.Sprintf("%s.AfterDelete must be updated - https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName))
+	}
+
 	t.initFields()
 	t.initMethods()
 

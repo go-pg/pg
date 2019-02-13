@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -32,19 +33,19 @@ type HooklessModel interface {
 type Model interface {
 	HooklessModel
 
-	AfterQuery(DB) error
+	AfterQuery(context.Context, DB) error
 
-	BeforeSelectQuery(DB, *Query) (*Query, error)
-	AfterSelect(DB) error
+	BeforeSelectQuery(context.Context, DB, *Query) (*Query, error)
+	AfterSelect(context.Context, DB) error
 
-	BeforeInsert(DB) error
-	AfterInsert(DB) error
+	BeforeInsert(context.Context, DB) error
+	AfterInsert(context.Context, DB) error
 
-	BeforeUpdate(DB) error
-	AfterUpdate(DB) error
+	BeforeUpdate(context.Context, DB) error
+	AfterUpdate(context.Context, DB) error
 
-	BeforeDelete(DB) error
-	AfterDelete(DB) error
+	BeforeDelete(context.Context, DB) error
+	AfterDelete(context.Context, DB) error
 }
 
 func NewModel(values ...interface{}) (Model, error) {

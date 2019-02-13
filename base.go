@@ -256,7 +256,7 @@ func (db *baseDB) query(c context.Context, model, query interface{}, params ...i
 	}
 
 	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
-		if err = mod.AfterQuery(db.db); err != nil {
+		if err = mod.AfterQuery(c, db.db); err != nil {
 			return res, err
 		}
 	}

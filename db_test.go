@@ -898,7 +898,7 @@ func (b Book) String() string {
 	return fmt.Sprintf("Book<Id=%d Title=%q>", b.Id, b.Title)
 }
 
-func (b *Book) BeforeInsert(db orm.DB) error {
+func (b *Book) BeforeInsert(c context.Context, db orm.DB) error {
 	if b.CreatedAt.IsZero() {
 		b.CreatedAt = time.Now()
 	}

@@ -1,6 +1,7 @@
 package pg_test
 
 import (
+	"context"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -27,42 +28,42 @@ type HookTest struct {
 	afterDelete  int
 }
 
-func (t *HookTest) AfterQuery(db orm.DB) error {
+func (t *HookTest) AfterQuery(c context.Context, db orm.DB) error {
 	t.afterQuery++
 	return nil
 }
 
-func (t *HookTest) AfterSelect(db orm.DB) error {
+func (t *HookTest) AfterSelect(c context.Context, db orm.DB) error {
 	t.afterSelect++
 	return nil
 }
 
-func (t *HookTest) BeforeInsert(db orm.DB) error {
+func (t *HookTest) BeforeInsert(c context.Context, db orm.DB) error {
 	t.beforeInsert++
 	return nil
 }
 
-func (t *HookTest) AfterInsert(db orm.DB) error {
+func (t *HookTest) AfterInsert(c context.Context, db orm.DB) error {
 	t.afterInsert++
 	return nil
 }
 
-func (t *HookTest) BeforeUpdate(db orm.DB) error {
+func (t *HookTest) BeforeUpdate(c context.Context, db orm.DB) error {
 	t.beforeUpdate++
 	return nil
 }
 
-func (t *HookTest) AfterUpdate(db orm.DB) error {
+func (t *HookTest) AfterUpdate(c context.Context, db orm.DB) error {
 	t.afterUpdate++
 	return nil
 }
 
-func (t *HookTest) BeforeDelete(db orm.DB) error {
+func (t *HookTest) BeforeDelete(c context.Context, db orm.DB) error {
 	t.beforeDelete++
 	return nil
 }
 
-func (t *HookTest) AfterDelete(db orm.DB) error {
+func (t *HookTest) AfterDelete(c context.Context, db orm.DB) error {
 	t.afterDelete++
 	return nil
 }
@@ -312,7 +313,9 @@ type BeforeSelectQueryModel struct {
 	DeletedAt time.Time
 }
 
-func (BeforeSelectQueryModel) BeforeSelectQuery(db orm.DB, q *orm.Query) (*orm.Query, error) {
+func (BeforeSelectQueryModel) BeforeSelectQuery(
+	c context.Context, db orm.DB, q *orm.Query,
+) (*orm.Query, error) {
 	q = q.Where("?TableAlias.deleted_at IS NULL")
 	return q, nil
 }
