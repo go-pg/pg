@@ -176,7 +176,7 @@ func (tx *Tx) query(c context.Context, model interface{}, query interface{}, par
 	}
 
 	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
-		if err = mod.AfterQuery(tx); err != nil {
+		if err = mod.AfterQuery(c, tx); err != nil {
 			return res, err
 		}
 	}

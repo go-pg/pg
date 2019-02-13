@@ -138,7 +138,7 @@ func (stmt *Stmt) query(c context.Context, model interface{}, params ...interfac
 	}
 
 	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
-		if err = mod.AfterQuery(stmt.db.db); err != nil {
+		if err = mod.AfterQuery(c, stmt.db.db); err != nil {
 			return res, err
 		}
 	}
