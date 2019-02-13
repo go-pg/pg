@@ -123,12 +123,12 @@ func (db *baseDB) withConn(c context.Context, fn func(cn *pool.Conn) error) erro
 		return err
 	}
 
-	var done chan struct{}
-	if c != nil {
-		done = make(chan struct{})
+	var fnDone chan struct{}
+	if c != nil && c.Done() != nil {
+		fnDone = make(chan struct{})
 		go func() {
 			select {
-			case <-done:
+			case <-fnDone:
 			case <-c.Done():
 				_ = db.cancelRequest(cn.ProcessId, cn.SecretKey)
 			}
@@ -136,8 +136,8 @@ func (db *baseDB) withConn(c context.Context, fn func(cn *pool.Conn) error) erro
 	}
 
 	defer func() {
-		if done != nil {
-			close(done)
+		if fnDone != nil {
+			close(fnDone)
 		}
 		db.freeConn(cn, err)
 	}()
