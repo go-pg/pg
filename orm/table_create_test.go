@@ -101,6 +101,6 @@ var _ = Describe("CreateTable", func() {
 		opt := &CreateTableOptions{}
 		b, err := (&createTableQuery{q: q, opt: opt}).AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_with_tablespaces" ("string" text) TABLESPACE "ssd"`))
+		Expect(string(b)).To(Equal(`CREATE TABLE "create_table_with_tablespaces" ("string" text) TABLESPACE ssd`))
 	})
 })

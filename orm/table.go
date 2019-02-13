@@ -79,10 +79,6 @@ func (t *Table) setName(name types.Q) {
 	}
 }
 
-func (t *Table) setTableSpace(name types.Q) {
-	t.Tablespace = name
-}
-
 func newTable(typ reflect.Type) *Table {
 	t := new(Table)
 	t.Type = typ
@@ -271,12 +267,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		tableSpace, ok := sqlTag.Options["tablespace"]
 		if ok {
-			if tableSpace == "_" {
-				t.setTableSpace("")
-			} else if tableSpace != "" {
-				s, _ := tag.Unquote(tableSpace)
-				t.setTableSpace(types.Q(fmt.Sprintf(`"%s"`, s)))
-			}
+			s, _ := tag.Unquote(tableSpace)
+			t.Tablespace = types.Q(internal.QuoteTableName(s))
 		}
 
 		if sqlTag.Name == "_" {
