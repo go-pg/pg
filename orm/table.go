@@ -52,6 +52,8 @@ type Table struct {
 	FullName           types.Q
 	FullNameForSelects types.Q
 
+	Tablespace types.Q
+
 	allFields     []*Field // read only
 	skippedFields []*Field
 
@@ -75,6 +77,10 @@ func (t *Table) setName(name types.Q) {
 	if t.Alias == "" {
 		t.Alias = name
 	}
+}
+
+func (t *Table) setTableSpace(name types.Q) {
+	t.Tablespace = name
 }
 
 func newTable(typ reflect.Type) *Table {
@@ -261,6 +267,16 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	case "tableName", "TableName":
 		if len(index) > 0 {
 			return nil
+		}
+
+		tableSpace, ok := sqlTag.Options["tablespace"]
+		if ok {
+			if tableSpace == "_" {
+				t.setTableSpace("")
+			} else if tableSpace != "" {
+				s, _ := tag.Unquote(tableSpace)
+				t.setTableSpace(types.Q(fmt.Sprintf(`"%s"`, s)))
+			}
 		}
 
 		if sqlTag.Name == "_" {
