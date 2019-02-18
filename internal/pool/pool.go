@@ -69,11 +69,10 @@ type ConnPool struct {
 
 	queue chan struct{}
 
-	connsMu      sync.Mutex
-	conns        []*Conn
-	idleConns    []*Conn
-	poolSize     int
-	idleConnsLen int
+	connsMu   sync.Mutex
+	conns     []*Conn
+	idleConns []*Conn
+	poolSize  int
 
 	stats Stats
 
@@ -92,7 +91,9 @@ func NewConnPool(opt *Options) *ConnPool {
 	}
 
 	for i := 0; i < opt.MinIdleConns; i++ {
+		p.connsMu.Lock()
 		p.checkMinIdleConns()
+		p.connsMu.Unlock()
 	}
 
 	if opt.IdleTimeout > 0 && opt.IdleCheckFrequency > 0 {
@@ -106,9 +107,8 @@ func (p *ConnPool) checkMinIdleConns() {
 	if p.opt.MinIdleConns == 0 {
 		return
 	}
-	if p.poolSize < p.opt.PoolSize && p.idleConnsLen < p.opt.MinIdleConns {
+	if p.poolSize < p.opt.PoolSize && len(p.idleConns) < p.opt.MinIdleConns {
 		p.poolSize++
-		p.idleConnsLen++
 		go p.addIdleConn()
 	}
 }
@@ -282,7 +282,6 @@ func (p *ConnPool) popIdle() *Conn {
 	idx := len(p.idleConns) - 1
 	cn := p.idleConns[idx]
 	p.idleConns = p.idleConns[:idx]
-	p.idleConnsLen--
 	p.checkMinIdleConns()
 	return cn
 }
@@ -295,7 +294,6 @@ func (p *ConnPool) Put(cn *Conn) {
 
 	p.connsMu.Lock()
 	p.idleConns = append(p.idleConns, cn)
-	p.idleConnsLen++
 	p.connsMu.Unlock()
 	p.freeTurn()
 }
@@ -344,7 +342,7 @@ func (p *ConnPool) Len() int {
 // IdleLen returns number of idle connections.
 func (p *ConnPool) IdleLen() int {
 	p.connsMu.Lock()
-	n := p.idleConnsLen
+	n := len(p.idleConns)
 	p.connsMu.Unlock()
 	return n
 }
@@ -395,7 +393,6 @@ func (p *ConnPool) Close() error {
 	p.conns = nil
 	p.poolSize = 0
 	p.idleConns = nil
-	p.idleConnsLen = 0
 	p.connsMu.Unlock()
 
 	return firstErr
@@ -412,7 +409,6 @@ func (p *ConnPool) reapStaleConn() *Conn {
 	}
 
 	p.idleConns = append(p.idleConns[:0], p.idleConns[1:]...)
-	p.idleConnsLen--
 
 	return cn
 }
