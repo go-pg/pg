@@ -1,5 +1,10 @@
 # Changelog
 
+## v8
+
+- Added `QueryContext`, `ExecContext`, and `ModelContext` which accept `context.Context`. Queries are cancelled when context is cancelled.
+- Model hooks are changed to accept `context.Context` as first argument.
+
 ## v7
 
 - DB.OnQueryProcessed is replaced with DB.AddQueryHook.
