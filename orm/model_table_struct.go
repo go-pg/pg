@@ -365,10 +365,10 @@ func (m *structTableModel) setSoftDeleteField() {
 	value := field.Value(m.strct)
 
 	now := time.Now()
-	if field.Type == timeType {
-		value.Set(reflect.ValueOf(now))
-	} else if value.Kind() == reflect.Ptr {
+	if value.Kind() == reflect.Ptr {
 		value.Set(reflect.ValueOf(&now))
+	} else if field.Type == timeType {
+		value.Set(reflect.ValueOf(now))
 	} else {
 		value.Set(reflect.ValueOf(types.NullTime{Time: now}))
 	}
