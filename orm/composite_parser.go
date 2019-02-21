@@ -61,16 +61,17 @@ func (p *compositeParser) NextElem() ([]byte, error) {
 
 	var b []byte
 	for {
-		bb, err := p.p.ReadSlice(',')
-		if b == nil {
-			b = bb[:len(bb):len(bb)]
-		} else {
-			b = append(b, bb...)
-		}
+		tmp, err := p.p.ReadSlice(',')
 		if err == nil {
+			if b == nil {
+				b = tmp
+			} else {
+				b = append(b, tmp...)
+			}
 			b = b[:len(b)-1]
 			break
 		}
+		b = append(b, tmp...)
 		if err == bufio.ErrBufferFull {
 			continue
 		}
