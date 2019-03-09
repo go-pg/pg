@@ -62,7 +62,11 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 			}
 
 			field := table.Fields[i]
-			err = field.ScanValue(v, elemReader, len(elem))
+			if elem == nil {
+				err = field.ScanValue(v, elemReader, -1)
+			} else {
+				err = field.ScanValue(v, elemReader, len(elem))
+			}
 			if err != nil && firstErr == nil {
 				firstErr = err
 			}
