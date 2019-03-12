@@ -2,6 +2,8 @@ package pg
 
 import (
 	"errors"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,7 +17,7 @@ const gopgChannel = "gopg:ping"
 var errListenerClosed = errors.New("pg: listener is closed")
 var errPingTimeout = errors.New("pg: ping timeout")
 
-// A notification received with LISTEN command.
+// Notification which is received with LISTEN command.
 type Notification struct {
 	Channel string
 	Payload string
@@ -37,6 +39,10 @@ type Listener struct {
 	chOnce sync.Once
 	ch     chan *Notification
 	pingCh chan struct{}
+}
+
+func (ln *Listener) String() string {
+	return fmt.Sprintf("Listener(%s)", strings.Join(ln.channels, ", "))
 }
 
 func (ln *Listener) init() {
@@ -196,22 +202,43 @@ func (ln *Listener) ReceiveTimeout(timeout time.Duration) (channel, payload stri
 }
 
 // Channel returns a channel for concurrently receiving notifications.
-// It periodically sends Ping messages to test connection health.
+// It periodically sends Ping notification to test connection health.
 //
 // The channel is closed with Listener. Receive* APIs can not be used
 // after channel is created.
 func (ln *Listener) Channel() <-chan *Notification {
-	ln.chOnce.Do(ln.initChannel)
+	return ln.channel(100)
+}
+
+// ChannelSize is like Channel, but creates a Go channel
+// with specified buffer size.
+func (ln *Listener) ChannelSize(size int) <-chan *Notification {
+	return ln.channel(size)
+}
+
+func (ln *Listener) channel(size int) <-chan *Notification {
+	ln.chOnce.Do(func() {
+		ln.initChannel(size)
+	})
+	if cap(ln.ch) != size {
+		err := fmt.Errorf("redis: Listener.Channel is called with different buffer size")
+		panic(err)
+	}
 	return ln.ch
 }
 
-func (ln *Listener) initChannel() {
+func (ln *Listener) initChannel(size int) {
+	const timeout = 30 * time.Second
+
 	_ = ln.Listen(gopgChannel)
 
-	ln.ch = make(chan *Notification, 100)
-	ln.pingCh = make(chan struct{}, 10)
+	ln.ch = make(chan *Notification, size)
+	ln.pingCh = make(chan struct{}, 1)
 
 	go func() {
+		timer := time.NewTimer(timeout)
+		timer.Stop()
+
 		var errCount int
 		for {
 			channel, payload, err := ln.Receive()
@@ -226,9 +253,10 @@ func (ln *Listener) initChannel() {
 				errCount++
 				continue
 			}
+
 			errCount = 0
 
-			// Any message is as good as a ping.
+			// Any notification is as good as a ping.
 			select {
 			case ln.pingCh <- struct{}{}:
 			default:
@@ -238,14 +266,22 @@ func (ln *Listener) initChannel() {
 			case gopgChannel:
 				// ignore
 			default:
-				ln.ch <- &Notification{channel, payload}
+				timer.Reset(timeout)
+				select {
+				case ln.ch <- &Notification{channel, payload}:
+					if !timer.Stop() {
+						<-timer.C
+					}
+				case <-timer.C:
+					internal.Logf(
+						"pg: %s channel is full for %s (notification is dropped)",
+						ln, timeout)
+				}
 			}
 		}
 	}()
 
 	go func() {
-		const timeout = 5 * time.Second
-
 		timer := time.NewTimer(timeout)
 		timer.Stop()
 

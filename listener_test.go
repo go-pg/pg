@@ -28,6 +28,13 @@ var _ = Context("Listener", func() {
 		_ = db.Close()
 	})
 
+	It("implements Stringer", func() {
+		Expect(ln.String()).To(Equal("Listener(test_channel)"))
+
+		_ = ln.Channel()
+		Expect(ln.String()).To(Equal("Listener(test_channel, gopg:ping)"))
+	})
+
 	It("reuses connection", func() {
 		for i := 0; i < 100; i++ {
 			_, _, err := ln.ReceiveTimeout(time.Nanosecond)
