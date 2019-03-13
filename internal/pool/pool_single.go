@@ -43,11 +43,11 @@ func (p *SingleConnPool) SetConn(cn *Conn) {
 }
 
 func (p *SingleConnPool) NewConn() (*Conn, error) {
-	panic("not implemented")
+	return p.pool.NewConn()
 }
 
-func (p *SingleConnPool) CloseConn(*Conn) error {
-	panic("not implemented")
+func (p *SingleConnPool) CloseConn(cn *Conn) error {
+	return p.pool.CloseConn(cn)
 }
 
 func (p *SingleConnPool) Get() (*Conn, error) {
