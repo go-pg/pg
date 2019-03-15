@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/go-pg/pg/internal/iszero"
@@ -80,11 +81,17 @@ func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 	if f.OmitZero() && f.isZero(fv) {
 		return types.AppendNull(b, quote)
 	}
+	if f.append == nil {
+		panic(fmt.Errorf("pg: AppendValue(unsupported %s)", fv.Type()))
+	}
 	return f.append(b, fv, quote)
 }
 
 func (f *Field) ScanValue(strct reflect.Value, rd types.Reader, n int) error {
 	fv := fieldByIndex(strct, f.Index)
+	if f.scan == nil {
+		return fmt.Errorf("pg: ScanValue(unsupported %s)", fv.Type())
+	}
 	return f.scan(fv, rd, n)
 }
 

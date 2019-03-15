@@ -41,7 +41,7 @@ func init() {
 		reflect.Float64:       scanFloatValue,
 		reflect.Complex64:     nil,
 		reflect.Complex128:    nil,
-		reflect.Array:         nil,
+		reflect.Array:         scanJSONValue,
 		reflect.Chan:          nil,
 		reflect.Func:          nil,
 		reflect.Interface:     scanIfaceValue,

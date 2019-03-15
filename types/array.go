@@ -18,7 +18,7 @@ var _ ValueScanner = (*Array)(nil)
 func NewArray(vi interface{}) *Array {
 	v := reflect.ValueOf(vi)
 	if !v.IsValid() {
-		panic(fmt.Errorf("pg.Array(nil)"))
+		panic(fmt.Errorf("pg: Array(nil)"))
 	}
 	return &Array{
 		v: v,
@@ -30,14 +30,14 @@ func NewArray(vi interface{}) *Array {
 
 func (a *Array) AppendValue(b []byte, quote int) []byte {
 	if a.append == nil {
-		panic(fmt.Errorf("pg.Array(unsupported %s)", a.v.Type()))
+		panic(fmt.Errorf("pg: Array(unsupported %s)", a.v.Type()))
 	}
 	return a.append(b, a.v, quote)
 }
 
 func (a *Array) ScanValue(rd Reader, n int) error {
 	if a.scan == nil {
-		return fmt.Errorf("pg.Array(unsupported %s)", a.v.Type())
+		return fmt.Errorf("pg: Array(unsupported %s)", a.v.Type())
 	}
 	return a.scan(a.v, rd, n)
 }

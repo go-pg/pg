@@ -6,6 +6,15 @@ import (
 )
 
 func MakeSliceNextElemFunc(v reflect.Value) func() reflect.Value {
+	if v.Kind() == reflect.Array {
+		var pos int
+		return func() reflect.Value {
+			v := v.Index(pos)
+			pos++
+			return v
+		}
+	}
+
 	elemType := v.Type().Elem()
 
 	if elemType.Kind() == reflect.Ptr {
