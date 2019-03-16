@@ -26,20 +26,26 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 		kind = typ.Kind()
 	}
 
-	if kind != reflect.Slice {
+	switch kind {
+	case reflect.Slice, reflect.Array:
+		// ok:
+	default:
 		return nil
 	}
 
 	elemType := typ.Elem()
-	switch elemType {
-	case stringType:
-		return scanSliceStringValue
-	case intType:
-		return scanSliceIntValue
-	case int64Type:
-		return scanSliceInt64Value
-	case float64Type:
-		return scanSliceFloat64Value
+
+	if kind == reflect.Slice {
+		switch elemType {
+		case stringType:
+			return scanSliceStringValue
+		case intType:
+			return scanSliceIntValue
+		case int64Type:
+			return scanSliceInt64Value
+		case float64Type:
+			return scanSliceFloat64Value
+		}
 	}
 
 	scanElem := scanner(elemType, true)
@@ -49,17 +55,21 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 		}
 
+		kind := v.Kind()
+
 		if n == -1 {
-			if !v.IsNil() {
+			if kind != reflect.Slice || !v.IsNil() {
 				v.Set(reflect.Zero(v.Type()))
 			}
 			return nil
 		}
 
-		if v.IsNil() {
-			v.Set(reflect.MakeSlice(v.Type(), 0, 0))
-		} else if v.Len() > 0 {
-			v.Set(v.Slice(0, 0))
+		if kind == reflect.Slice {
+			if v.IsNil() {
+				v.Set(reflect.MakeSlice(v.Type(), 0, 0))
+			} else if v.Len() > 0 {
+				v.Set(v.Slice(0, 0))
+			}
 		}
 
 		p := newArrayParser(rd)

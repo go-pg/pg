@@ -24,26 +24,40 @@ func ArrayAppender(typ reflect.Type) AppenderFunc {
 		kind = typ.Kind()
 	}
 
-	if kind != reflect.Slice {
+	switch kind {
+	case reflect.Slice, reflect.Array:
+		// ok:
+	default:
 		return nil
 	}
 
 	elemType := typ.Elem()
-	switch elemType {
-	case stringType:
-		return appendSliceStringValue
-	case intType:
-		return appendSliceIntValue
-	case int64Type:
-		return appendSliceInt64Value
-	case float64Type:
-		return appendSliceFloat64Value
+
+	if kind == reflect.Slice {
+		switch elemType {
+		case stringType:
+			return appendSliceStringValue
+		case intType:
+			return appendSliceIntValue
+		case int64Type:
+			return appendSliceInt64Value
+		case float64Type:
+			return appendSliceFloat64Value
+		}
 	}
 
 	appendElem := appender(elemType, true)
 	return func(b []byte, v reflect.Value, quote int) []byte {
-		if v.IsNil() {
-			return AppendNull(b, quote)
+		kind := v.Kind()
+		switch kind {
+		case reflect.Ptr, reflect.Slice:
+			if v.IsNil() {
+				return AppendNull(b, quote)
+			}
+		}
+
+		if kind == reflect.Ptr {
+			v = v.Elem()
 		}
 
 		if quote == 1 {

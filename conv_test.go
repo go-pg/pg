@@ -257,11 +257,13 @@ func conversionTests() []conversionTest {
 		{src: []int(nil), dst: new([]int), pgtype: "jsonb", wantnil: true},
 		{src: []int{}, dst: new([]int), pgtype: "jsonb", wantzero: true},
 		{src: []int{1, 2, 3}, dst: new([]int), pgtype: "jsonb"},
+		{src: [3]int{1, 2, 3}, dst: new([3]int), pgtype: "jsonb"},
 
 		{src: nil, dst: pg.Array([]int(nil)), pgtype: "int[]", wanterr: "pg: Scan(nonsettable []int)"},
 		{src: pg.Array([]int(nil)), dst: pg.Array(new([]int)), pgtype: "int[]", wantnil: true},
 		{src: pg.Array([]int{}), dst: pg.Array(new([]int)), pgtype: "int[]"},
 		{src: pg.Array([]int{1, 2, 3}), dst: pg.Array(new([]int)), pgtype: "int[]"},
+		{src: pg.Array(&[3]int{1, 2, 3}), dst: pg.Array(new([3]int)), pgtype: "int[]"},
 
 		{src: nil, dst: pg.Array([]int64(nil)), pgtype: "bigint[]", wanterr: "pg: Scan(nonsettable []int64)"},
 		{src: nil, dst: pg.Array(new([]int64)), pgtype: "bigint[]", wantnil: true},
