@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 
-	"mellium.im/sasl"
+	"github.com/mellium/sasl"
 
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/pool"
