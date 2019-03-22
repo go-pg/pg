@@ -7,6 +7,7 @@ import (
 	"net"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-pg/pg/internal"
@@ -57,10 +58,11 @@ type Table struct {
 	allFields     []*Field // read only
 	skippedFields []*Field
 
-	Fields     []*Field // PKs + DataFields
-	PKs        []*Field
-	DataFields []*Field
-	FieldsMap  map[string]*Field
+	Fields      []*Field // PKs + DataFields
+	PKs         []*Field
+	DataFields  []*Field
+	fieldsMapMu sync.RWMutex
+	FieldsMap   map[string]*Field
 
 	Methods   map[string]*Method
 	Relations map[string]*Relation
@@ -69,14 +71,6 @@ type Table struct {
 	SoftDeleteField *Field
 
 	flags uint16
-}
-
-func (t *Table) setName(name types.Q) {
-	t.FullName = name
-	t.FullNameForSelects = name
-	if t.Alias == "" {
-		t.Alias = name
-	}
 }
 
 func newTable(typ reflect.Type) *Table {
@@ -146,10 +140,26 @@ func newTable(typ reflect.Type) *Table {
 		panic(fmt.Sprintf("%s.AfterDelete must be updated - https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName))
 	}
 
+	return t
+}
+
+func (t *Table) init1() {
 	t.initFields()
 	t.initMethods()
+}
 
-	return t
+func (t *Table) init2() {
+	t.initInlines()
+	t.initRelations()
+	t.skippedFields = nil
+}
+
+func (t *Table) setName(name types.Q) {
+	t.FullName = name
+	t.FullNameForSelects = name
+	if t.Alias == "" {
+		t.Alias = name
+	}
 }
 
 func (t *Table) String() string {
@@ -165,11 +175,6 @@ func (t *Table) HasFlag(flag uint16) bool {
 		return false
 	}
 	return t.flags&flag != 0
-}
-
-func (t *Table) HasField(field string) bool {
-	_, err := t.GetField(field)
-	return err == nil
 }
 
 func (t *Table) checkPKs() error {
@@ -215,10 +220,22 @@ func removeField(fields []*Field, field *Field) []*Field {
 	return fields
 }
 
-func (t *Table) GetField(fieldName string) (*Field, error) {
-	field, ok := t.FieldsMap[fieldName]
+func (t *Table) getField(name string) *Field {
+	t.fieldsMapMu.RLock()
+	field := t.FieldsMap[name]
+	t.fieldsMapMu.RUnlock()
+	return field
+}
+
+func (t *Table) HasField(name string) bool {
+	_, ok := t.FieldsMap[name]
+	return ok
+}
+
+func (t *Table) GetField(name string) (*Field, error) {
+	field, ok := t.FieldsMap[name]
 	if !ok {
-		return nil, fmt.Errorf("can't find column=%s in %s", fieldName, t)
+		return nil, fmt.Errorf("pg: can't find column=%s in %s", name, t)
 	}
 	return field, nil
 }
@@ -266,7 +283,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 			_, inherit := pgTag.Options["inherit"]
 			_, override := pgTag.Options["override"]
 			if inherit || override {
-				embeddedTable := newTable(fieldType)
+				embeddedTable := _tables.get(fieldType, true)
 				t.TypeName = embeddedTable.TypeName
 				t.FullName = embeddedTable.FullName
 				t.FullNameForSelects = embeddedTable.FullNameForSelects
@@ -334,7 +351,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 
 	index = append(index, f.Index...)
-	if field, ok := t.FieldsMap[sqlTag.Name]; ok {
+	if field := t.getField(sqlTag.Name); field != nil {
 		if indexEqual(field.Index, index) {
 			return field
 		}
@@ -480,9 +497,12 @@ func (t *Table) initMethods() {
 	}
 }
 
-func (t *Table) init() {
-	t.initRelations()
-	t.initInlines()
+func (t *Table) initInlines() {
+	for _, f := range t.skippedFields {
+		if f.Type.Kind() == reflect.Struct {
+			t.inlineFields(f, nil)
+		}
+	}
 }
 
 func (t *Table) initRelations() {
@@ -493,15 +513,6 @@ func (t *Table) initRelations() {
 			t.DataFields = removeField(t.DataFields, f)
 		} else {
 			i++
-		}
-	}
-}
-
-func (t *Table) initInlines() {
-	for _, f := range t.skippedFields {
-		if f.Type.Kind() == reflect.Struct {
-			joinTable := _tables.get(f.Type, true)
-			t.inlineFields(f, joinTable, nil)
 		}
 	}
 }
@@ -670,33 +681,42 @@ func (t *Table) tryRelationStruct(field *Field) bool {
 
 	res := t.tryHasOne(joinTable, field, pgTag) ||
 		t.tryBelongsToOne(joinTable, field, pgTag)
-	t.inlineFields(field, joinTable, nil)
+	t.inlineFields(field, nil)
 	return res
 }
 
-func (t *Table) inlineFields(strct *Field, joinTable *Table, path map[*Table]struct{}) {
+func (t *Table) inlineFields(strct *Field, path map[reflect.Type]struct{}) {
 	if path == nil {
-		path = make(map[*Table]struct{}, 0)
+		path = map[reflect.Type]struct{}{
+			t.Type: struct{}{},
+		}
 	}
-	path[joinTable] = struct{}{}
 
+	if _, ok := path[strct.Type]; ok {
+		return
+	}
+	path[strct.Type] = struct{}{}
+
+	joinTable := _tables.get(strct.Type, true)
 	for _, f := range joinTable.allFields {
 		f = f.Copy()
 		f.GoName = strct.GoName + "_" + f.GoName
 		f.SQLName = strct.SQLName + "__" + f.SQLName
 		f.Column = types.Q(types.AppendField(nil, f.SQLName, 1))
 		f.Index = appendNew(strct.Index, f.Index...)
+
+		t.fieldsMapMu.Lock()
 		if _, ok := t.FieldsMap[f.SQLName]; !ok {
 			t.FieldsMap[f.SQLName] = f
 		}
+		t.fieldsMapMu.Unlock()
 
 		if f.Type.Kind() != reflect.Struct {
 			continue
 		}
 
-		tt := _tables.get(f.Type, true)
-		if _, ok := path[tt]; !ok {
-			t.inlineFields(f, tt, path)
+		if _, ok := path[f.Type]; !ok {
+			t.inlineFields(f, path)
 		}
 	}
 }
@@ -941,10 +961,6 @@ func foreignKeys(base, join *Table, fk string, tryFK bool) []*Field {
 	}
 
 	return nil
-}
-
-func (t *Table) getField(name string) *Field {
-	return t.FieldsMap[name]
 }
 
 func scanJSONValue(v reflect.Value, rd types.Reader, n int) error {

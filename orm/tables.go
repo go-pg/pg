@@ -10,7 +10,43 @@ var _tables = newTables()
 
 type tableInProgress struct {
 	table *Table
-	wg    sync.WaitGroup
+
+	init1Once sync.Once
+	init1WG   sync.WaitGroup
+
+	init2Once sync.Once
+	init2WG   sync.WaitGroup
+}
+
+func newTableInProgress(table *Table) *tableInProgress {
+	inp := &tableInProgress{
+		table: table,
+	}
+	inp.init1WG.Add(1)
+	inp.init2WG.Add(1)
+	return inp
+}
+
+func (inp *tableInProgress) init1() bool {
+	var inited bool
+	inp.init1Once.Do(func() {
+		inp.table.init1()
+		inp.init1WG.Done()
+		inited = true
+	})
+	inp.init1WG.Wait()
+	return inited
+}
+
+func (inp *tableInProgress) init2() bool {
+	var inited bool
+	inp.init2Once.Do(func() {
+		inp.table.init2()
+		inp.init2WG.Done()
+		inited = true
+	})
+	inp.init2WG.Wait()
+	return inited
 }
 
 // GetTable returns a Table for a struct type.
@@ -67,30 +103,28 @@ func (t *tables) get(typ reflect.Type, allowInProgress bool) *Table {
 	}
 
 	inProgress := t.inProgress[typ]
-	if inProgress != nil {
+	if inProgress == nil {
+		table = newTable(typ)
+		inProgress = newTableInProgress(table)
+		t.inProgress[typ] = inProgress
+	} else {
+		table = inProgress.table
+	}
+
+	t.mu.Unlock()
+
+	inProgress.init1()
+	if allowInProgress {
+		return table
+	}
+
+	if inProgress.init2() {
+		t.mu.Lock()
+		delete(t.inProgress, typ)
+		t.tables[typ] = table
 		t.mu.Unlock()
-		if !allowInProgress {
-			inProgress.wg.Wait()
-		}
-		return inProgress.table
 	}
 
-	table = newTable(typ)
-	inProgress = &tableInProgress{
-		table: table,
-	}
-	inProgress.wg.Add(1)
-	t.inProgress[typ] = inProgress
-
-	t.mu.Unlock()
-	table.init()
-	inProgress.wg.Done()
-	t.mu.Lock()
-
-	delete(t.inProgress, typ)
-	t.tables[typ] = table
-
-	t.mu.Unlock()
 	return table
 }
 
