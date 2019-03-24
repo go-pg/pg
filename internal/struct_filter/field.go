@@ -132,7 +132,7 @@ func splitColumnOperator(s, sep string) (string, opCode, string) {
 	case "lte":
 		return col, opCodeLTE, opLTE
 	case "ieq":
-		return col, opCodeIEq, opEq
+		return col, opCodeIEq, opIEq
 	case "match":
 		return col, opCodeMatch, opMatch
 	default:
