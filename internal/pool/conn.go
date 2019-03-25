@@ -18,9 +18,10 @@ type Conn struct {
 	rd  *internal.BufReader
 	wb  *WriteBuffer
 
-	InitedAt time.Time
-	pooled   bool
-	usedAt   atomic.Value
+	Inited    bool
+	pooled    bool
+	createdAt time.Time
+	usedAt    atomic.Value
 
 	ProcessId int32
 	SecretKey int32
@@ -33,6 +34,8 @@ func NewConn(netConn net.Conn) *Conn {
 		buf: makeBuffer(),
 		rd:  internal.NewBufReader(netConn),
 		wb:  NewWriteBuffer(),
+
+		createdAt: time.Now(),
 	}
 	cn.SetNetConn(netConn)
 	cn.SetUsedAt(time.Now())

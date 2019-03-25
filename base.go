@@ -75,19 +75,21 @@ func (db *baseDB) conn() (*pool.Conn, error) {
 		return nil, err
 	}
 
-	if cn.InitedAt.IsZero() {
-		cn.InitedAt = time.Now()
-		err = db.initConn(cn)
-		if err != nil {
-			db.pool.Remove(cn)
-			return nil, err
-		}
+	err = db.initConn(cn)
+	if err != nil {
+		db.pool.Remove(cn)
+		return nil, err
 	}
 
 	return cn, nil
 }
 
 func (db *baseDB) initConn(cn *pool.Conn) error {
+	if cn.Inited {
+		return nil
+	}
+	cn.Inited = true
+
 	if db.opt.TLSConfig != nil {
 		err := db.enableSSL(cn, db.opt.TLSConfig)
 		if err != nil {

@@ -82,13 +82,10 @@ func (ln *Listener) _conn() (*pool.Conn, error) {
 		return nil, err
 	}
 
-	if cn.InitedAt.IsZero() {
-		err := ln.db.initConn(cn)
-		if err != nil {
-			_ = ln.db.pool.CloseConn(cn)
-			return nil, err
-		}
-		cn.InitedAt = time.Now()
+	err = ln.db.initConn(cn)
+	if err != nil {
+		_ = ln.db.pool.CloseConn(cn)
+		return nil, err
 	}
 
 	if len(ln.channels) > 0 {
