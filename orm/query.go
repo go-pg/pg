@@ -1123,7 +1123,7 @@ func (q *Query) Exists() (bool, error) {
 	cp.columns = []FormatAppender{fieldAppender{"1"}}
 	cp.order = nil
 	cp.limit = 1
-	res, err := q.db.ExecContext(q.ctx, &selectQuery{q: q})
+	res, err := q.db.ExecContext(q.ctx, &selectQuery{q: cp})
 	if err != nil {
 		return false, err
 	}
