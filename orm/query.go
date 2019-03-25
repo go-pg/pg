@@ -1120,7 +1120,7 @@ func (q *Query) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 // Exists returns true or false depending if there are any rows matching the query.
 func (q *Query) Exists() (bool, error) {
 	cp := q.Copy() // copy to not change original query
-	cp.columns = []FormatAppender{fieldAppender{"1"}}
+	cp.columns = []FormatAppender{Q("1")}
 	cp.order = nil
 	cp.limit = 1
 	res, err := q.db.ExecContext(q.ctx, &selectQuery{q: cp})
