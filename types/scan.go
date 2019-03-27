@@ -28,6 +28,9 @@ func Scan(v interface{}, rd Reader, n int) error {
 	case *time.Time:
 		*v, err = ScanTime(rd, n)
 		return err
+	case *Money:
+		*v, err = ScanMoney(rd, n)
+		return err
 	}
 
 	vv := reflect.ValueOf(v)
@@ -168,4 +171,21 @@ func ScanTime(rd Reader, n int) (time.Time, error) {
 	}
 
 	return ParseTime(tmp)
+}
+
+func ScanMoney(rd Reader, n int) (Money, error) {
+	if n <= 0 {
+		return 0, nil
+	}
+
+	tmp, err := rd.ReadFullTemp()
+	if err != nil {
+		return 0, err
+	}
+
+	money := Money(0)
+	if err := money.Scan(tmp); err != nil {
+		return 0, err
+	}
+	return money, nil
 }

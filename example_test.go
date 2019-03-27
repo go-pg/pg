@@ -3,6 +3,7 @@ package pg_test
 import (
 	"bytes"
 	"fmt"
+	"github.com/elliotcourant/gomonetary"
 	"github.com/go-pg/pg/types"
 	"strings"
 	"sync"
@@ -73,7 +74,8 @@ func ExampleMoney() {
 		Amount types.Money
 	}
 
-	types.SetMonetaryLocale("en_US")
+	err := monetary.SetDefaultLocale("en_US")
+	panicIf(err)
 
 	res, err := pgdb.QueryOne(&testCash, `
         SELECT '5.43'::money AS Amount

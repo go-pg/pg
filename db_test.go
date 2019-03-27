@@ -3,11 +3,12 @@ package pg_test
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"github.com/elliotcourant/gomonetary"
 	"github.com/go-pg/pg/types"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,9 +29,9 @@ func pgOptions() *pg.Options {
 		User:     "postgres",
 		Database: "postgres",
 
-		TLSConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
+		// TLSConfig: &tls.Config{
+		// 	InsecureSkipVerify: true,
+		// },
 
 		MaxRetries:      1,
 		MinRetryBackoff: -1,
@@ -335,162 +336,7 @@ var _ = Describe("Money", func() {
 		{-52.13, types.Money(-52.13)},
 	}
 
-	var locales = []string{
-		"af_ZA.UTF-8",
-		"af_ZA",
-		"am_ET.UTF-8",
-		"am_ET",
-		"be_BY.UTF-8",
-		"be_BY",
-		"bg_BG.UTF-8",
-		"bg_BG",
-		"C",
-		"ca_ES.ISO8859-1",
-		"ca_ES.ISO8859-15",
-		"ca_ES.UTF-8",
-		"ca_ES",
-		"cs_CZ.UTF-8",
-		"cs_CZ",
-		"da_DK.ISO8859-1",
-		"da_DK.ISO8859-15",
-		"da_DK.UTF-8",
-		"da_DK",
-		"de_AT.ISO8859-1",
-		"de_AT.ISO8859-15",
-		"de_AT.UTF-8",
-		"de_AT",
-		"de_CH.ISO8859-1",
-		"de_CH.ISO8859-15",
-		"de_CH.UTF-8",
-		"de_CH",
-		"de_DE.ISO8859-1",
-		"de_DE.ISO8859-15",
-		"de_DE.UTF-8",
-		"de_DE",
-		"el_GR.ISO8859-7",
-		"el_GR.UTF-8",
-		"el_GR",
-		"en_AU.ISO8859-1",
-		"en_AU.ISO8859-15",
-		"en_AU.UTF-8",
-		"en_AU",
-		"en_CA.ISO8859-1",
-		"en_CA.ISO8859-15",
-		"en_CA.UTF-8",
-		"en_CA",
-		"en_GB.UTF-8",
-		"en_GB",
-		"en_IE.UTF-8",
-		"en_IE",
-		"en_NZ.ISO8859-1",
-		"en_NZ.ISO8859-15",
-		"en_NZ.UTF-8",
-		"en_NZ",
-		"en_US.ISO8859-1",
-		"en_US.ISO8859-15",
-		"en_US.UTF-8",
-		"en_US",
-		"es_ES.ISO8859-1",
-		"es_ES.ISO8859-15",
-		"es_ES.UTF-8",
-		"es_ES",
-		"et_EE.ISO8859-15",
-		"et_EE.UTF-8",
-		"et_EE",
-		"eu_ES.ISO8859-1",
-		"eu_ES.ISO8859-15",
-		"eu_ES.UTF-8",
-		"eu_ES",
-		"fi_FI.ISO8859-1",
-		"fi_FI.ISO8859-15",
-		"fi_FI.UTF-8",
-		"fi_FI",
-		"fr_BE.ISO8859-1",
-		"fr_BE.ISO8859-15",
-		"fr_BE.UTF-8",
-		"fr_BE",
-		"fr_CA.ISO8859-1",
-		"fr_CA.ISO8859-15",
-		"fr_CA.UTF-8",
-		"fr_CA",
-		"fr_CH.ISO8859-1",
-		"fr_CH.ISO8859-15",
-		"fr_CH.UTF-8",
-		"fr_CH",
-		"fr_FR.ISO8859-1",
-		"fr_FR.ISO8859-15",
-		"fr_FR.UTF-8",
-		"fr_FR",
-		"he_IL.UTF-8",
-		"he_IL",
-		"hr_HR.ISO8859-2",
-		"hr_HR.UTF-8",
-		"hr_HR",
-		"hu_HU.ISO8859-2",
-		"hu_HU.UTF-8",
-		"hu_HU",
-		"it_CH.ISO8859-1",
-		"it_CH.ISO8859-15",
-		"it_CH.UTF-8",
-		"it_CH",
-		"it_IT.ISO8859-1",
-		"it_IT.ISO8859-15",
-		"it_IT.UTF-8",
-		"it_IT",
-		"kk_KZ.UTF-8",
-		"kk_KZ",
-		"lt_LT.ISO8859-13",
-		"lt_LT.ISO8859-4",
-		"lt_LT.UTF-8",
-		"lt_LT",
-		"nl_BE.ISO8859-1",
-		"nl_BE.ISO8859-15",
-		"nl_BE.UTF-8",
-		"nl_BE",
-		"nl_NL.ISO8859-1",
-		"nl_NL.ISO8859-15",
-		"nl_NL.UTF-8",
-		"nl_NL",
-		"no_NO.ISO8859-1",
-		"no_NO.ISO8859-15",
-		"no_NO.UTF-8",
-		"no_NO",
-		"pl_PL.UTF-8",
-		"pl_PL",
-		"POSIX",
-		"pt_BR.ISO8859-1",
-		"pt_BR.UTF-8",
-		"pt_BR",
-		"ro_RO.ISO8859-2",
-		"ro_RO.UTF-8",
-		"ro_RO",
-		"ru_RU.UTF-8",
-		"ru_RU",
-		"sk_SK.ISO8859-2",
-		"sk_SK.UTF-8",
-		"sk_SK",
-		"sl_SI.ISO8859-2",
-		"sl_SI.UTF-8",
-		"sl_SI",
-		"sr_YU.ISO8859-2",
-		"sr_YU.UTF-8",
-		"sr_YU",
-		"sv_SE.ISO8859-1",
-		"sv_SE.ISO8859-15",
-		"sv_SE.UTF-8",
-		"sv_SE",
-		"tr_TR.ISO8859-9",
-		"tr_TR.UTF-8",
-		"tr_TR",
-		"uk_UA.UTF-8",
-		"uk_UA",
-		"zh_CN.UTF-8",
-		"zh_CN",
-		"zh_HK.UTF-8",
-		"zh_HK",
-		"zh_TW.UTF-8",
-		"zh_TW",
-	}
+	var locales = monetary.GetSupportedLocales()
 
 	var db *pg.DB
 
@@ -505,18 +351,40 @@ var _ = Describe("Money", func() {
 	It("is formatted correctly", func() {
 		for i, test := range tests {
 			for _, locale := range locales {
+				if strings.Contains(locale, ".") && !strings.HasSuffix(locale, "UTF-8") {
+					continue
+				}
 				var tm types.Money
-				types.SetMonetaryLocale(locale)
-				_, err := db.QueryOne(pg.Scan(&tm), fmt.Sprintf("SET lc_monetary TO '%s'; SELECT '?'::numeric::money", locale), test.input)
-				if err != nil && err.Error() == fmt.Sprintf(`ERROR #22023 invalid value for parameter "lc_monetary": "%s"`, locale) {
+				err := monetary.SetDefaultLocale(locale)
+				Expect(err).NotTo(HaveOccurred())
+
+				formatted, err := monetary.FormatDefault(test.input)
+				Expect(err).NotTo(HaveOccurred())
+
+				parsed, err := monetary.ParseDefault(formatted)
+				Expect(err).NotTo(HaveOccurred())
+
+				_, err = db.QueryOne(pg.Scan(&tm), fmt.Sprintf("SET lc_monetary TO '%s'; SELECT '?'::numeric::money", locale), test.input)
+				if err != nil {
+					msg := err.Error()
+					switch msg {
+					case fmt.Sprintf(`ERROR #22023 invalid value for parameter "lc_monetary": "%s"`, locale):
+						continue
+					case `ERROR #42883 default conversion function for encoding "" to "UTF8" does not exist`:
+						continue
+					default:
+						fmt.Println(msg)
+					}
 					// The locale is not supported
 				} else {
-					Expect(err).NotTo(HaveOccurred())
-					Expect(tm).To(
-						Equal(test.wanted),
-						"#%d str=%v wanted=%v locale=%s", i, test.input, test.wanted, locale,
-					)
+
 				}
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(tm).To(
+					Equal(types.Money(parsed)),
+					"#%d str=%v wanted=%v locale=%s", i, test.input, parsed, locale,
+				)
 			}
 		}
 	})
