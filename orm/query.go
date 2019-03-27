@@ -68,6 +68,7 @@ func NewQueryContext(c context.Context, db DB, model ...interface{}) *Query {
 // New returns new zero Query binded to the current db.
 func (q *Query) New() *Query {
 	cp := &Query{
+		ctx:           q.ctx,
 		db:            q.db,
 		model:         q.model,
 		implicitModel: true,
