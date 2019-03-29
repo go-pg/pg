@@ -68,7 +68,10 @@ func (q *Query) CountEstimate(threshold int) (int, error) {
 				// undefined_function
 				err = q.createCountEstimateFunc()
 				if err != nil {
-					return 0, err
+					pgerr, ok := err.(internal.PGError)
+					if !ok || !pgerr.IntegrityViolation() {
+						return 0, err
+					}
 				}
 				continue
 			}
