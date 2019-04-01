@@ -199,7 +199,7 @@ func appendAlias(b []byte, j *join, topLevel bool) []byte {
 	return b
 }
 
-func (j *join) appendHasOneColumns(b []byte) []byte {
+func (j *join) appendHasOneColumns(b []byte, excludeAlias bool) []byte {
 	if j.Columns == nil {
 		for i, f := range j.JoinModel.Table().Fields {
 			if i > 0 {
@@ -208,8 +208,10 @@ func (j *join) appendHasOneColumns(b []byte) []byte {
 			b = j.appendAlias(b)
 			b = append(b, '.')
 			b = append(b, f.Column...)
-			b = append(b, " AS "...)
-			b = j.appendAliasColumn(b, f.SQLName)
+			if !excludeAlias {
+				b = append(b, " AS "...)
+				b = j.appendAliasColumn(b, f.SQLName)
+			}
 		}
 		return b
 	}
@@ -221,8 +223,10 @@ func (j *join) appendHasOneColumns(b []byte) []byte {
 		b = j.appendAlias(b)
 		b = append(b, '.')
 		b = types.AppendField(b, column, 1)
-		b = append(b, " AS "...)
-		b = j.appendAliasColumn(b, column)
+		if !excludeAlias {
+			b = append(b, " AS "...)
+			b = j.appendAliasColumn(b, column)
+		}
 	}
 
 	return b
