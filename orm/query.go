@@ -820,6 +820,13 @@ func (q *Query) forEachHasOneJoin(fn func(*join)) {
 	q._forEachHasOneJoin(fn, q.model.GetJoins())
 }
 
+func (q *Query) forEachHasManyJoin(fn func(*join)) {
+	if q.model == nil {
+		return
+	}
+	q._forEachHasManyJoin(fn, q.model.GetJoins())
+}
+
 func (q *Query) _forEachHasOneJoin(fn func(*join), joins []join) {
 	for i := range joins {
 		j := &joins[i]
@@ -831,14 +838,23 @@ func (q *Query) _forEachHasOneJoin(fn func(*join), joins []join) {
 	}
 }
 
+func (q *Query) _forEachHasManyJoin(fn func(*join), joins []join) {
+	for i := range joins {
+		j := &joins[i]
+		switch j.Rel.Type {
+		case HasManyRelation:
+			fn(j)
+			q._forEachHasManyJoin(fn, j.JoinModel.GetJoins())
+		}
+	}
+}
+
 func (q *Query) selectJoins(joins []join) error {
 	var err error
 	for i := range joins {
 		j := &joins[i]
 		if j.Rel.Type == HasOneRelation || j.Rel.Type == BelongsToRelation {
 			err = q.selectJoins(j.JoinModel.GetJoins())
-		} else {
-			err = j.Select(q.New())
 		}
 		if err != nil {
 			return err

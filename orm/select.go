@@ -63,6 +63,12 @@ func (q *selectQuery) AppendQuery(b []byte) ([]byte, error) {
 		b = append(b, ' ')
 		b = j.appendHasOneJoin(q.q, b)
 	})
+	hasHasMany := false
+	q.q.forEachHasManyJoin(func(j *join) {
+		b = append(b, ' ')
+		b = j.appendHasManyJoin(q.q, b)
+		hasHasMany = true
+	})
 	if len(q.q.joins) > 0 {
 		for _, j := range q.q.joins {
 			b = append(b, ' ')
@@ -92,6 +98,9 @@ func (q *selectQuery) AppendQuery(b []byte) ([]byte, error) {
 			}
 			b = f.AppendFormat(b, q.q)
 		}
+	} else if hasHasMany {
+		b = append(b, " GROUP BY "...)
+		b = q.appendBaseColumns(b)
 	}
 
 	if len(q.q.having) > 0 {
@@ -140,9 +149,7 @@ func (q *selectQuery) AppendQuery(b []byte) ([]byte, error) {
 	return b, q.q.stickyErr
 }
 
-func (q selectQuery) appendColumns(b []byte) []byte {
-	start := len(b)
-
+func (q selectQuery) appendBaseColumns(b []byte) []byte {
 	if q.q.columns != nil {
 		b = q.q.appendColumns(b)
 	} else if q.q.hasExplicitModel() {
@@ -151,6 +158,13 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 	} else {
 		b = append(b, '*')
 	}
+	return b
+}
+
+func (q selectQuery) appendColumns(b []byte) []byte {
+	start := len(b)
+
+	b = q.appendBaseColumns(b)
 
 	q.q.forEachHasOneJoin(func(j *join) {
 		if len(b) != start {
@@ -159,6 +173,19 @@ func (q selectQuery) appendColumns(b []byte) []byte {
 		}
 
 		b = j.appendHasOneColumns(b)
+
+		if len(b) == start {
+			b = b[:len(b)-2]
+		}
+	})
+
+	q.q.forEachHasManyJoin(func(j *join) {
+		if len(b) != start {
+			b = append(b, ", "...)
+			start = len(b)
+		}
+
+		b = j.appendHasManyColumns(b)
 
 		if len(b) == start {
 			b = b[:len(b)-2]

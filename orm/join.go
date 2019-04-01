@@ -228,6 +228,36 @@ func (j *join) appendHasOneColumns(b []byte) []byte {
 	return b
 }
 
+func (j *join) appendHasManyColumns(b []byte) []byte {
+	b = append(b, "json_agg(json_build_object("...)
+
+	for i, f := range j.JoinModel.Table().Fields {
+		jsonName, ok := f.Field.Tag.Lookup("json")
+		if jsonName == "-" {
+			// If the user is ignoring this json field then we cannot marshal it using this.
+			continue
+		}
+		if !ok || jsonName == "omitempty" {
+			// If a json field name isn't specified, default to the name of the go field.
+			jsonName = f.GoName
+		}
+
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = append(b, `'`...)
+		b = append(b, jsonName...)
+		b = append(b, `', `...)
+		b = j.appendAlias(b)
+		b = append(b, '.')
+		b = append(b, f.Column...)
+	}
+
+	b = append(b, ")) AS "...)
+	b = j.Rel.Field.Column.AppendValue(b, 1)
+	return b
+}
+
 func (j *join) appendHasOneJoin(q *Query, b []byte) []byte {
 	b = append(b, "LEFT JOIN "...)
 	b = q.FormatQuery(b, string(j.JoinModel.Table().FullNameForSelects))
@@ -267,6 +297,48 @@ func (j *join) appendHasOneJoin(q *Query, b []byte) []byte {
 			b = append(b, '.')
 			b = append(b, baseTable.PKs[i].Column...)
 		}
+	}
+	if len(j.Rel.FKs) > 1 {
+		b = append(b, ')')
+	}
+
+	for _, on := range j.on {
+		b = on.AppendSep(b)
+		b = on.AppendFormat(b, q)
+	}
+
+	if q.softDelete() {
+		b = append(b, " AND "...)
+		b = j.appendBaseAlias(b)
+		b = q.appendSoftDelete(b)
+	}
+
+	return b
+}
+
+func (j *join) appendHasManyJoin(q *Query, b []byte) []byte {
+	b = append(b, "LEFT JOIN "...)
+	b = q.FormatQuery(b, string(j.JoinModel.Table().FullNameForSelects))
+	b = append(b, " AS "...)
+	b = j.appendAlias(b)
+
+	b = append(b, " ON "...)
+
+	if len(j.Rel.FKs) > 1 {
+		b = append(b, '(')
+	}
+	baseTable := j.BaseModel.Table()
+	for i, fk := range j.Rel.FKs {
+		if i > 0 {
+			b = append(b, " AND "...)
+		}
+		b = j.appendAlias(b)
+		b = append(b, '.')
+		b = append(b, fk.Column...)
+		b = append(b, " = "...)
+		b = j.appendBaseAlias(b)
+		b = append(b, '.')
+		b = append(b, baseTable.PKs[i].Column...)
 	}
 	if len(j.Rel.FKs) > 1 {
 		b = append(b, ')')
