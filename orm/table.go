@@ -64,9 +64,10 @@ type Table struct {
 	fieldsMapMu sync.RWMutex
 	FieldsMap   map[string]*Field
 
-	Methods   map[string]*Method
-	Relations map[string]*Relation
-	Unique    map[string][]*Field
+	Methods     map[string]*Method
+	Relations   map[string]*Relation
+	Unique      map[string][]*Field
+	UniqueWhere map[string]types.Q
 
 	SoftDeleteField *Field
 
@@ -339,6 +340,18 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 
 		return nil
+	case "uniqueWhere", "UniqueWhere":
+		// Unique where should be the first field or second field on a struct.
+		if len(index) > 1 {
+			return nil
+		}
+		t.UniqueWhere = map[string]types.Q{}
+		for uniqueName, uniqueWhere := range sqlTag.Options {
+			u, _ := tag.Unquote(uniqueWhere)
+			t.UniqueWhere[uniqueName] = types.Q(u)
+		}
+
+		return nil
 	}
 
 	if f.PkgPath != "" {
@@ -379,7 +392,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			if t.Unique == nil {
 				t.Unique = make(map[string][]*Field)
 			}
-			t.Unique[v] = append(t.Unique[v], field)
+			// Allow for multiple unique names on a single field.
+			// Example: unique:'first,second'
+			v, _ = tag.Unquote(v)
+			for _, uv := range strings.Split(v, ",") {
+				t.Unique[uv] = append(t.Unique[uv], field)
+			}
 		}
 	}
 	if v, ok := sqlTag.Options["default"]; ok {

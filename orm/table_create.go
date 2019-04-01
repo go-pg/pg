@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/types"
 	"strconv"
 )
@@ -91,8 +92,12 @@ func (q *createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	}
 
 	b = appendPKConstraint(b, table.PKs)
-	for _, fields := range table.Unique {
-		b = appendUnique(b, fields)
+	for uniqueName, fields := range table.Unique {
+		// Only append the simple unique constraints to the create table stmt.
+		// The more partial unique indexes will be performed after table creation.
+		if _, ok := table.UniqueWhere[uniqueName]; !ok {
+			b = appendUnique(b, fields)
+		}
 	}
 
 	if q.opt != nil && q.opt.FKConstraints {
@@ -105,6 +110,20 @@ func (q *createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	if table.Tablespace != "" {
 		b = q.appendTablespace(b, table.Tablespace)
+	}
+
+	if len(table.UniqueWhere) == 0 {
+		return b, q.q.stickyErr
+	}
+
+	b = append(b, ";"...) // We only need to append this if there are indexes to create.
+	for uniqueName, fields := range table.Unique {
+		// If there were any partial unique indexes that needed to be created -> append them as
+		// individual statements, since they cannot be executed within the CREATE TABLE statement
+		// unfortunately.
+		if where, ok := table.UniqueWhere[uniqueName]; ok {
+			b = appendUniqueWhere(b, uniqueName, table.Alias, fields, where)
+		}
 	}
 
 	return b, q.q.stickyErr
@@ -125,6 +144,19 @@ func appendUnique(b []byte, fields []*Field) []byte {
 	b = append(b, ", UNIQUE ("...)
 	b = appendColumns(b, "", fields)
 	b = append(b, ")"...)
+	return b
+}
+
+func appendUniqueWhere(b []byte, uniqueName string, tableName types.Q, fields []*Field, where types.Q) []byte {
+	b = append(b, " CREATE UNIQUE INDEX "...)
+	b = append(b, internal.QuoteTableName(uniqueName)...)
+	b = append(b, " ON "...)
+	b = append(b, tableName...)
+	b = append(b, " ("...)
+	b = appendColumns(b, "", fields)
+	b = append(b, ") WHERE "...)
+	b = append(b, where...)
+	b = append(b, ";"...)
 	return b
 }
 

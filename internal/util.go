@@ -3,6 +3,7 @@ package internal
 import (
 	"reflect"
 	"strings"
+	"unicode"
 )
 
 func MakeSliceNextElemFunc(v reflect.Value) func() reflect.Value {
@@ -48,7 +49,9 @@ func MakeSliceNextElemFunc(v reflect.Value) func() reflect.Value {
 }
 
 func QuoteTableName(s string) string {
-	if isPostgresKeyword(s) {
+	// The IsDigit will save names if they begin with a number.
+	// PostgreSQL doesn't allow a normal name to begin with a number, but if it's quoted it works.
+	if isPostgresKeyword(s) || unicode.IsDigit(rune(s[0])) {
 		return `"` + s + `"`
 	}
 	return s
