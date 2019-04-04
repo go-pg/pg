@@ -130,16 +130,21 @@ func (db *baseDB) withConn(c context.Context, fn func(cn *pool.Conn) error) erro
 		fnDone = make(chan struct{})
 		go func() {
 			select {
-			case <-fnDone:
+			case <-fnDone: // fn has finished, skip cancel
 			case <-c.Done():
 				_ = db.cancelRequest(cn.ProcessId, cn.SecretKey)
+				// Indicate end of conn use
+				fnDone <- struct{}{}
 			}
 		}()
 	}
 
 	defer func() {
 		if fnDone != nil {
-			close(fnDone)
+			select {
+			case <-fnDone: // Wait for cancel to finish request
+			case fnDone <- struct{}{}: // Indicate fn finish, skip cancel goroutine
+			}
 		}
 		db.freeConn(cn, err)
 	}()
