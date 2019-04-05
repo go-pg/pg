@@ -90,7 +90,7 @@ func compositeAppender(typ reflect.Type) types.AppenderFunc {
 			v = v.Elem()
 		}
 
-		b = append(b, '(')
+		b = append(b, "ROW("...)
 		for i, f := range table.Fields {
 			if i > 0 {
 				b = append(b, ',')
