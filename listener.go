@@ -144,6 +144,9 @@ func (ln *Listener) Close() error {
 
 // Listen starts listening for notifications on channels.
 func (ln *Listener) Listen(channels ...string) error {
+	// Always append channels so DB.Listen works correctly.
+	ln.channels = appendIfNotExists(ln.channels, channels...)
+
 	cn, err := ln.conn()
 	if err != nil {
 		return err
@@ -155,7 +158,6 @@ func (ln *Listener) Listen(channels ...string) error {
 		return err
 	}
 
-	ln.channels = appendIfNotExists(ln.channels, channels...)
 	return nil
 }
 
