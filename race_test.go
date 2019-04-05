@@ -188,6 +188,19 @@ var _ = Describe("DB race", func() {
 		})
 	})
 
+	It("context timeout is race free", func() {
+		perform(C, func(id int) {
+			for i := 0; i < N; i++ {
+				func() {
+					ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+					defer cancel()
+					_, err := db.ExecContext(ctx, "SELECT 1")
+					Expect(err).NotTo(HaveOccurred())
+				}()
+			}
+		})
+	})
+
 	It("fully initializes model table", func() {
 		type TestTable struct {
 			tableName struct{} `sql:"'generate_series(0, 9)'"`
