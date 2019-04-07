@@ -171,7 +171,7 @@ func (q *Query) GetModel() TableModel {
 	return q.model
 }
 
-func (q *Query) softDelete() bool {
+func (q *Query) isSoftDelete() bool {
 	if q.model != nil {
 		return q.model.Table().SoftDeleteField != nil
 	}
@@ -1213,7 +1213,7 @@ func (q *Query) appendColumns(b []byte) []byte {
 }
 
 func (q *Query) hasWhere() bool {
-	return len(q.where) > 0 || q.softDelete()
+	return len(q.where) > 0 || q.isSoftDelete()
 }
 
 func (q *Query) mustAppendWhere(b []byte) ([]byte, error) {
@@ -1228,14 +1228,26 @@ func (q *Query) mustAppendWhere(b []byte) ([]byte, error) {
 }
 
 func (q *Query) appendWhere(b []byte) []byte {
-	b = q._appendWhere(b, q.where)
-	if q.softDelete() {
+	isSoftDelete := q.isSoftDelete()
+
+	if len(q.where) > 0 {
+		if isSoftDelete {
+			b = append(b, '(')
+		}
+		b = q._appendWhere(b, q.where)
+		if isSoftDelete {
+			b = append(b, ')')
+		}
+	}
+
+	if isSoftDelete {
 		if len(q.where) > 0 {
 			b = append(b, " AND "...)
 		}
 		b = append(b, q.model.Table().Alias...)
 		b = q.appendSoftDelete(b)
 	}
+
 	return b
 }
 
