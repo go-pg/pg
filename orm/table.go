@@ -688,7 +688,7 @@ func (t *Table) tryRelationStruct(field *Field) bool {
 func (t *Table) inlineFields(strct *Field, path map[reflect.Type]struct{}) {
 	if path == nil {
 		path = map[reflect.Type]struct{}{
-			t.Type: struct{}{},
+			t.Type: {},
 		}
 	}
 
@@ -766,8 +766,7 @@ func fieldSQLType(field *Field, pgTag, sqlTag *tag.Tag) string {
 		return pkSQLType(sqlType)
 	}
 
-	switch sqlType {
-	case "timestamptz":
+	if sqlType == "timestamptz" {
 		field.SetFlag(customTypeFlag)
 	}
 

@@ -1008,7 +1008,7 @@ var _ = Describe("ORM", func() {
 			ID:       11,
 			Name:     "author 2",
 			AvatarId: images[1].Id,
-		}, Author{
+		}, {
 			ID:       12,
 			Name:     "author 3",
 			AvatarId: images[2].Id,
@@ -1027,7 +1027,7 @@ var _ = Describe("ORM", func() {
 			Title:    "book 2",
 			AuthorID: 10,
 			EditorID: 12,
-		}, Book{
+		}, {
 			Id:       102,
 			Title:    "book 3",
 			AuthorID: 11,

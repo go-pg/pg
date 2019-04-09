@@ -260,7 +260,12 @@ func (db *baseDB) authSASL(cn *pool.Conn, rd *internal.BufReader, user, password
 		wb.StartMessage(saslInitialResponseMsg)
 		wb.WriteString("SCRAM-SHA-256")
 		wb.WriteInt32(int32(len(resp)))
-		wb.Write(resp)
+
+		_, writeErr := wb.Write(resp)
+		if writeErr != nil {
+			return writeErr
+		}
+
 		wb.FinishMessage()
 		return nil
 	})
@@ -295,7 +300,10 @@ func (db *baseDB) authSASL(cn *pool.Conn, rd *internal.BufReader, user, password
 
 		err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 			wb.StartMessage(saslResponseMsg)
-			wb.Write(resp)
+			_, writeErr := wb.Write(resp)
+			if writeErr != nil {
+				return writeErr
+			}
 			wb.FinishMessage()
 			return nil
 		})
@@ -361,9 +369,8 @@ func readAuthSASLFinal(rd *internal.BufReader, client *sasl.Negotiator) error {
 }
 
 func md5s(s string) string {
-	h := md5.New()
-	h.Write([]byte(s))
-	return hex.EncodeToString(h.Sum(nil))
+	h := md5.Sum([]byte(s))
+	return hex.EncodeToString(h[:])
 }
 
 func writeStartupMsg(buf *pool.WriteBuffer, user, database, appName string) {
@@ -414,7 +421,11 @@ func writeQueryMsg(buf *pool.WriteBuffer, fmter orm.QueryFormatter, query interf
 		return err
 	}
 	buf.Bytes = bytes
-	buf.WriteByte(0x0)
+	err = buf.WriteByte(0x0)
+	if err != nil {
+		buf.Reset()
+		return err
+	}
 	buf.FinishMessage()
 	return nil
 }

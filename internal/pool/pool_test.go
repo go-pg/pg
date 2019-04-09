@@ -93,9 +93,7 @@ var _ = Describe("MinIdleConns", func() {
 			IdleTimeout:        -1,
 			IdleCheckFrequency: -1,
 		})
-		Eventually(func() int {
-			return connPool.Len()
-		}).Should(Equal(minIdleConns))
+		Eventually(connPool.Len).Should(Equal(minIdleConns))
 		return connPool
 	}
 
@@ -152,9 +150,7 @@ var _ = Describe("MinIdleConns", func() {
 					mu.Unlock()
 				})
 
-				Eventually(func() int {
-					return connPool.Len()
-				}).Should(BeNumerically(">=", poolSize))
+				Eventually(connPool.Len).Should(BeNumerically(">=", poolSize))
 			})
 
 			It("Get is blocked", func() {

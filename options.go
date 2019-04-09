@@ -33,7 +33,7 @@ type Options struct {
 	Database string
 
 	// ApplicationName is the application name. Used in logs on Pg side.
-	// Only availaible from pg-9.0.
+	// Only available from pg-9.0.
 	ApplicationName string
 
 	// TLS config for secure connections.
@@ -156,7 +156,7 @@ func ParseURL(sURL string) (*Options, error) {
 		Addr: parsedUrl.Host,
 	}
 	if !strings.Contains(options.Addr, ":") {
-		options.Addr = options.Addr + ":5432"
+		options.Addr += ":5432"
 	}
 
 	// username and password
@@ -230,10 +230,8 @@ func (opt *Options) getDialer() func() (net.Conn, error) {
 
 func newConnPool(opt *Options) *pool.ConnPool {
 	return pool.NewConnPool(&pool.Options{
-		Dialer: opt.getDialer(),
-		OnClose: func(cn *pool.Conn) error {
-			return terminateConn(cn)
-		},
+		Dialer:  opt.getDialer(),
+		OnClose: terminateConn,
 
 		PoolSize:           opt.PoolSize,
 		MinIdleConns:       opt.MinIdleConns,

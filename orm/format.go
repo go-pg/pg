@@ -137,15 +137,17 @@ func (f Formatter) String() string {
 		return ""
 	}
 
-	var keys []string
-	for k, _ := range f.namedParams {
-		keys = append(keys, k)
+	keys := make([]string, len(f.namedParams))
+	index := 0
+	for k := range f.namedParams {
+		keys[index] = k
+		index++
 	}
 	sort.Strings(keys)
 
-	var ss []string
-	for _, k := range keys {
-		ss = append(ss, fmt.Sprintf("%s=%v", k, f.namedParams[k]))
+	ss := make([]string, len(keys))
+	for i, k := range keys {
+		ss[i] = fmt.Sprintf("%s=%v", k, f.namedParams[k])
 	}
 	return " " + strings.Join(ss, " ")
 }

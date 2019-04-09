@@ -130,7 +130,7 @@ func (strings *Strings) ScanColumn(colIdx int, _ string, rd types.Reader, n int)
 }
 
 func (strings Strings) AppendValue(dst []byte, quote int) []byte {
-	if len(strings) <= 0 {
+	if len(strings) == 0 {
 		return dst
 	}
 
@@ -175,7 +175,7 @@ func (ints *Ints) ScanColumn(colIdx int, colName string, rd types.Reader, n int)
 }
 
 func (ints Ints) AppendValue(dst []byte, quote int) []byte {
-	if len(ints) <= 0 {
+	if len(ints) == 0 {
 		return dst
 	}
 

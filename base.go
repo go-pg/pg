@@ -311,9 +311,7 @@ func (db *baseDB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params
 		return nil, err
 	}
 
-	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
-		return readCopyInResponse(rd)
-	})
+	err = cn.WithReader(db.opt.ReadTimeout, readCopyInResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -546,8 +544,5 @@ func (db *baseDB) closeStmt(cn *pool.Conn, name string) error {
 		return err
 	}
 
-	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
-		return readCloseCompleteMsg(rd)
-	})
-	return err
+	return cn.WithReader(db.opt.ReadTimeout, readCloseCompleteMsg)
 }
