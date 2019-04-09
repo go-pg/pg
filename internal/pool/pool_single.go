@@ -82,12 +82,10 @@ func (p *SingleConnPool) Put(cn *Conn) {
 }
 
 func (p *SingleConnPool) Remove(cn *Conn) {
-	defer func() {
-		if recover() != nil {
-			p.pool.Remove(cn)
-		}
-	}()
-	p.ch <- cn
+	// Remove connection from source pool and switch state to default
+	if atomic.CompareAndSwapUint32(&p.state, stateInited, stateDefault) {
+		p.pool.Remove(cn)
+	}
 }
 
 func (p *SingleConnPool) Len() int {
