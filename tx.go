@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/pool"
@@ -39,9 +40,13 @@ func (db *baseDB) Begin() (*Tx, error) {
 		db:  db.withPool(pool.NewSingleConnPool(db.pool)),
 		ctx: db.db.Context(),
 	}
-	if err := tx.begin(); err != nil {
+
+	err := tx.begin()
+	if err != nil {
+		tx.close()
 		return nil, err
 	}
+
 	return tx, nil
 }
 
@@ -56,7 +61,7 @@ func (db *baseDB) RunInTransaction(fn func(*Tx) error) error {
 	return tx.RunInTransaction(fn)
 }
 
-// Begin returns the transaction.
+// Begin returns current transaction. It does not start new transaction.
 func (tx *Tx) Begin() (*Tx, error) {
 	return tx, nil
 }
@@ -277,28 +282,41 @@ func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byt
 }
 
 func (tx *Tx) begin() error {
-	_, err := tx.Exec("BEGIN")
-	if err != nil {
-		tx.close(err)
+	var lastErr error
+	for attempt := 0; attempt <= tx.db.opt.MaxRetries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(tx.db.retryBackoff(attempt - 1))
+
+			err := tx.db.pool.(*pool.SingleConnPool).Reset()
+			if err != nil {
+				internal.Logf(err.Error())
+				continue
+			}
+		}
+
+		_, lastErr = tx.Exec("BEGIN")
+		if !tx.db.shouldRetry(lastErr) {
+			break
+		}
 	}
-	return err
+	return lastErr
 }
 
 // Commit commits the transaction.
 func (tx *Tx) Commit() error {
 	_, err := tx.Exec("COMMIT")
-	tx.close(err)
+	tx.close()
 	return err
 }
 
 // Rollback aborts the transaction.
 func (tx *Tx) Rollback() error {
 	_, err := tx.Exec("ROLLBACK")
-	tx.close(err)
+	tx.close()
 	return err
 }
 
-func (tx *Tx) close(lastErr error) {
+func (tx *Tx) close() {
 	tx.stmtsMu.Lock()
 	defer tx.stmtsMu.Unlock()
 
