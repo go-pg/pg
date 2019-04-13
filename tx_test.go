@@ -21,6 +21,20 @@ var _ = Describe("Tx", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	It("reconnects on bad connection", func() {
+		cn, err := db.Pool().Get()
+		Expect(err).NotTo(HaveOccurred())
+
+		cn.SetNetConn(&badConn{})
+		db.Pool().Put(cn)
+
+		tx, err := db.Begin()
+		Expect(err).NotTo(HaveOccurred())
+
+		err = tx.Rollback()
+		Expect(err).NotTo(HaveOccurred())
+	})
+
 	It("supports multiple statements", func() {
 		tx, err := db.Begin()
 		Expect(err).NotTo(HaveOccurred())

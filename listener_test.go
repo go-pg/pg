@@ -134,7 +134,7 @@ var _ = Context("Listener", func() {
 		Expect(payload).To(Equal(""))
 	})
 
-	It("reconnects on listen error", func() {
+	It("reconnects on bad connection", func() {
 		cn := ln.CurrentConn()
 		Expect(cn).NotTo(BeNil())
 		cn.SetNetConn(&badConn{})
