@@ -30,16 +30,37 @@ func prepareStmt(db *baseDB, q string) (*Stmt, error) {
 		q: q,
 	}
 
-	err := db.withConn(nil, func(cn *pool.Conn) error {
-		var err error
-		stmt.name, stmt.columns, err = db.prepare(cn, q)
-		return err
-	})
+	err := stmt.prepare(q)
 	if err != nil {
+		_ = stmt.Close()
 		return nil, err
 	}
-
 	return stmt, nil
+}
+
+func (stmt *Stmt) prepare(q string) error {
+	var lastErr error
+	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
+		if attempt > 0 {
+			time.Sleep(stmt.db.retryBackoff(attempt - 1))
+
+			err := stmt.db.pool.(*pool.SingleConnPool).Reset()
+			if err != nil {
+				internal.Logf(err.Error())
+				continue
+			}
+		}
+
+		lastErr = stmt.withConn(nil, func(cn *pool.Conn) error {
+			var err error
+			stmt.name, stmt.columns, err = stmt.db.prepare(cn, q)
+			return err
+		})
+		if !stmt.db.shouldRetry(lastErr) {
+			break
+		}
+	}
+	return lastErr
 }
 
 func (stmt *Stmt) withConn(c context.Context, fn func(cn *pool.Conn) error) error {
@@ -65,7 +86,7 @@ func (stmt *Stmt) ExecContext(c context.Context, params ...interface{}) (Result,
 
 func (stmt *Stmt) exec(c context.Context, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
-		if attempt >= 1 {
+		if attempt > 0 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
@@ -119,7 +140,7 @@ func (stmt *Stmt) QueryContext(c context.Context, model interface{}, params ...i
 
 func (stmt *Stmt) query(c context.Context, model interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
-		if attempt >= 1 {
+		if attempt > 0 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
@@ -176,11 +197,18 @@ func (stmt *Stmt) queryOne(c context.Context, model interface{}, params ...inter
 
 // Close closes the statement.
 func (stmt *Stmt) Close() error {
-	err := stmt.closeStmt()
-	if err != nil {
-		return err
+	var firstErr error
+
+	if stmt.name != "" {
+		firstErr = stmt.closeStmt()
 	}
-	return stmt.db.Close()
+
+	err := stmt.db.Close()
+	if err != nil && firstErr == nil {
+		firstErr = err
+	}
+
+	return firstErr
 }
 
 func (stmt *Stmt) extQuery(cn *pool.Conn, name string, params ...interface{}) (Result, error) {

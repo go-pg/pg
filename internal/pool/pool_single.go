@@ -17,7 +17,8 @@ type SingleConnPool struct {
 	state uint32 // atomic
 	ch    chan *Conn
 
-	opened int32 // atomic
+	level      int32  // atomic
+	hasBadConn uint32 // atomic
 }
 
 var _ Pooler = (*SingleConnPool)(nil)
@@ -30,8 +31,12 @@ func NewSingleConnPool(pool Pooler) *SingleConnPool {
 			ch:   make(chan *Conn, 1),
 		}
 	}
-	atomic.AddInt32(&p.opened, 1)
+	atomic.AddInt32(&p.level, 1)
 	return p
+}
+
+func (p *SingleConnPool) Clone() *SingleConnPool {
+	return NewSingleConnPool(p.pool)
 }
 
 func (p *SingleConnPool) SetConn(cn *Conn) {
@@ -87,6 +92,7 @@ func (p *SingleConnPool) Remove(cn *Conn) {
 			p.pool.Remove(cn)
 		}
 	}()
+	atomic.StoreUint32(&p.hasBadConn, 1)
 	p.ch <- cn
 }
 
@@ -112,8 +118,8 @@ func (p *SingleConnPool) Stats() *Stats {
 }
 
 func (p *SingleConnPool) Close() error {
-	opened := atomic.AddInt32(&p.opened, -1)
-	if opened > 0 {
+	level := atomic.AddInt32(&p.level, -1)
+	if level > 0 {
 		return nil
 	}
 
@@ -126,11 +132,34 @@ func (p *SingleConnPool) Close() error {
 			close(p.ch)
 			cn, ok := <-p.ch
 			if ok {
-				p.pool.Put(cn)
+				if atomic.LoadUint32(&p.hasBadConn) == 1 {
+					p.pool.Remove(cn)
+				} else {
+					p.pool.Put(cn)
+				}
 			}
 			return nil
 		}
 	}
 
 	return fmt.Errorf("pg: SingleConnPool.Close: infinite loop")
+}
+
+func (p *SingleConnPool) Reset() error {
+	if atomic.LoadUint32(&p.hasBadConn) == 0 {
+		return nil
+	}
+
+	cn, ok := <-p.ch
+	if !ok {
+		return fmt.Errorf("pg: SingleConnPool does not have a Conn")
+	}
+	p.pool.Remove(cn)
+
+	if !atomic.CompareAndSwapUint32(&p.state, stateInited, stateDefault) {
+		state := atomic.LoadUint32(&p.state)
+		return fmt.Errorf("pg: invalid SingleConnPool state: %d", state)
+	}
+
+	return nil
 }

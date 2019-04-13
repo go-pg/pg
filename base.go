@@ -192,7 +192,7 @@ func (db *baseDB) ExecContext(c context.Context, query interface{}, params ...in
 
 func (db *baseDB) exec(c context.Context, query interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
-		if attempt >= 1 {
+		if attempt > 0 {
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
 
@@ -244,7 +244,7 @@ func (db *baseDB) QueryContext(c context.Context, model, query interface{}, para
 
 func (db *baseDB) query(c context.Context, model, query interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
-		if attempt >= 1 {
+		if attempt > 0 {
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
 
