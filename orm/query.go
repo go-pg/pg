@@ -436,11 +436,14 @@ func (q *Query) whereGroup(conj string, fn func(*Query) (*Query, error)) *Query 
 	return newq
 }
 
-// WhereIn is a shortcut for Where and pg.In to work with IN operator:
-//
-//    WhereIn("id IN (?)", 1, 2, 3)
-func (q *Query) WhereIn(where string, values ...interface{}) *Query {
-	return q.Where(where, types.InSlice(values))
+// WhereIn is a shortcut for Where and pg.In:
+func (q *Query) WhereIn(where string, slice interface{}) *Query {
+	return q.Where(where, types.InSlice(slice))
+}
+
+// WhereInMulti is a shortcut for Where and pg.InMulti:
+func (q *Query) WhereInMulti(where string, values ...interface{}) *Query {
+	return q.Where(where, types.InMulti(values...))
 }
 
 func (q *Query) addWhere(f sepFormatAppender) {

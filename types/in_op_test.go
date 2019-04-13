@@ -11,12 +11,12 @@ func TestInOp(t *testing.T) {
 		app    types.ValueAppender
 		wanted string
 	}{
-		{types.In(), ""},
-		{types.In(1), "1"},
-		{types.In(1, 2, 3), "1,2,3"},
-		{types.In([]int{1, 2, 3}), "(1,2,3)"},
-		{types.In([]int{1, 2}, []int{3, 4}), "(1,2),(3,4)"},
-		{types.In(types.NewArray([]int{1, 2}), types.NewArray([]int{3, 4})), "{1,2},{3,4}"},
+		{types.InMulti(), ""},
+		{types.InMulti(1), "1"},
+		{types.InMulti(1, 2, 3), "1,2,3"},
+		{types.InMulti([]int{1, 2, 3}), "(1,2,3)"},
+		{types.InMulti([]int{1, 2}, []int{3, 4}), "(1,2),(3,4)"},
+		{types.InMulti(types.NewArray([]int{1, 2}), types.NewArray([]int{3, 4})), "{1,2},{3,4}"},
 	}
 
 	for _, test := range tests {

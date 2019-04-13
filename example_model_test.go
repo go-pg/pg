@@ -338,7 +338,7 @@ func ExampleDB_Select_whereIn() {
 	db := modelDB()
 
 	var books []Book
-	err := db.Model(&books).WhereIn("id IN (?)", 1, 2).Select()
+	err := db.Model(&books).WhereIn("id IN (?)", []int{1, 2}).Select()
 	if err != nil {
 		panic(err)
 	}
