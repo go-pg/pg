@@ -10,7 +10,7 @@ type inOp struct {
 
 var _ ValueAppender = (*inOp)(nil)
 
-func In(values ...interface{}) ValueAppender {
+func InMulti(values ...interface{}) ValueAppender {
 	return &inOp{
 		slice: reflect.ValueOf(values),
 	}

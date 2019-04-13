@@ -68,7 +68,7 @@ func In(slice interface{}) types.ValueAppender {
 //
 //    WHERE (id1, id2) IN ((1, 2), (3, 4))
 func InMulti(values ...interface{}) types.ValueAppender {
-	return types.In(values...)
+	return types.InMulti(values...)
 }
 
 // Array accepts a slice and returns a wrapper for working with PostgreSQL
