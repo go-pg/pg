@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-pg/pg"
-
 	. "github.com/onsi/ginkgo"
 	. "gopkg.in/check.v1"
+
+	"github.com/go-pg/pg"
 )
 
 func TestUnixSocket(t *testing.T) {
@@ -43,17 +43,6 @@ func (t *DBTest) SetUpTest(c *C) {
 
 func (t *DBTest) TearDownTest(c *C) {
 	c.Assert(t.db.Close(), IsNil)
-}
-
-func (t *DBTest) TestQueryZeroRows(c *C) {
-	res, err := t.db.Query(pg.Discard, "SELECT 1 WHERE 1 != 1")
-	c.Assert(err, IsNil)
-	c.Assert(res.RowsAffected(), Equals, 0)
-}
-
-func (t *DBTest) TestQueryOneErrNoRows(c *C) {
-	_, err := t.db.QueryOne(pg.Discard, "SELECT 1 WHERE 1 != 1")
-	c.Assert(err, Equals, pg.ErrNoRows)
 }
 
 func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
