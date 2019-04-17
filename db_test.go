@@ -127,13 +127,28 @@ var _ = Describe("DB", func() {
 
 	Describe("Query", func() {
 		It("does not return an error when there are no results", func() {
-			_, err := db.Query(pg.Discard, "SELECT 1 WHERE 1 = 2")
+			res, err := db.Query(pg.Discard, "SELECT 1 WHERE 1 = 2")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(res.RowsAffected()).To(Equal(0))
+
+			res, err = tx.Query(pg.Discard, "SELECT 1 WHERE 1 = 2")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.RowsAffected()).To(Equal(0))
 		})
 
-		It("does not return an error when there are no results", func() {
-			_, err := tx.Query(pg.Discard, "SELECT 1 WHERE 1 = 2")
+		It("selects into embedded struct pointer", func() {
+			type One struct {
+				ID int
+			}
+
+			type Two struct {
+				*One
+			}
+
+			two := new(Two)
+			_, err := db.QueryOne(two, "SELECT 1 AS id")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(two.One.ID).To(Equal(1))
 		})
 	})
 
@@ -141,23 +156,22 @@ var _ = Describe("DB", func() {
 		It("returns pg.ErrNoRows when there are no results", func() {
 			_, err := db.QueryOne(pg.Discard, "SELECT 1 WHERE 1 = 2")
 			Expect(err).To(Equal(pg.ErrNoRows))
-		})
 
-		It("returns pg.ErrNoRows when there are no results", func() {
-			_, err := tx.QueryOne(pg.Discard, "SELECT 1 WHERE 1 = 2")
+			_, err = tx.QueryOne(pg.Discard, "SELECT 1 WHERE 1 = 2")
 			Expect(err).To(Equal(pg.ErrNoRows))
 		})
+
 	})
 
 	Describe("Exec", func() {
 		It("does not return an error when there are no results", func() {
-			_, err := db.Exec("SELECT 1 WHERE 1 = 2")
+			res, err := db.Exec("SELECT 1 WHERE 1 = 2")
 			Expect(err).NotTo(HaveOccurred())
-		})
+			Expect(res.RowsAffected()).To(Equal(0))
 
-		It("does not return an error when there are no results", func() {
-			_, err := tx.Exec("SELECT 1 WHERE 1 = 2")
+			res, err = tx.Exec("SELECT 1 WHERE 1 = 2")
 			Expect(err).NotTo(HaveOccurred())
+			Expect(res.RowsAffected()).To(Equal(0))
 		})
 	})
 
@@ -165,10 +179,8 @@ var _ = Describe("DB", func() {
 		It("returns pg.ErrNoRows when there are no results", func() {
 			_, err := db.ExecOne("SELECT 1 WHERE 1 = 2")
 			Expect(err).To(Equal(pg.ErrNoRows))
-		})
 
-		It("returns pg.ErrNoRows when there are no results", func() {
-			_, err := tx.ExecOne("SELECT 1 WHERE 1 = 2")
+			_, err = tx.ExecOne("SELECT 1 WHERE 1 = 2")
 			Expect(err).To(Equal(pg.ErrNoRows))
 		})
 	})
@@ -197,7 +209,7 @@ var _ = Describe("DB", func() {
 	})
 })
 
-var _ = Describe("db.Conn", func() {
+var _ = Describe("DB.Conn", func() {
 	var db *pg.DB
 
 	BeforeEach(func() {
@@ -695,7 +707,13 @@ var _ = Describe("DB.Select", func() {
 
 	BeforeEach(func() {
 		db = pg.Connect(pgOptions())
+	})
 
+	AfterEach(func() {
+		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
+	It("selects bytea", func() {
 		qs := []string{
 			`CREATE TEMP TABLE tests (col bytea)`,
 			fmt.Sprintf(`INSERT INTO tests VALUES ('\x%x')`, []byte("bytes")),
@@ -704,16 +722,37 @@ var _ = Describe("DB.Select", func() {
 			_, err := db.Exec(q)
 			Expect(err).NotTo(HaveOccurred())
 		}
-	})
 
-	AfterEach(func() {
-		Expect(db.Close()).NotTo(HaveOccurred())
-	})
-
-	It("selects bytea", func() {
 		var col []byte
 		err := db.Model().Table("tests").Column("col").Select(pg.Scan(&col))
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("selects into embedded struct pointer", func() {
+		type One struct {
+			ID int
+		}
+
+		type Two struct {
+			*One
+		}
+
+		err := db.CreateTable((*Two)(nil), &orm.CreateTableOptions{
+			Temp: true,
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Insert(&Two{
+			One: &One{
+				ID: 1,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		two := new(Two)
+		err = db.Model(two).Where("id = 1").Select()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(two.One.ID).To(Equal(1))
 	})
 })
 

@@ -65,7 +65,7 @@ func (f *Field) HasFlag(flag uint8) bool {
 }
 
 func (f *Field) Value(strct reflect.Value) reflect.Value {
-	return strct.FieldByIndex(f.Index)
+	return fieldByIndex(strct, f.Index)
 }
 
 func (f *Field) IsZeroValue(strct reflect.Value) bool {
