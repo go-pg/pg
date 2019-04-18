@@ -29,5 +29,5 @@ install:
   - go get mellium.im/sasl
 
 script:
-  - golangci-lint run
+  - 'if [ "${TRAVIS_GO_VERSION}" != "1.9.x" ]; then golangci-lint run; fi'
   - make
