@@ -11,6 +11,8 @@ go:
   - 1.12.x
   - tip
 
+go_import_path: github.com/go-pg/pg
+
 matrix:
   allow_failures:
     - go: tip
