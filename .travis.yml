@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 language: go
 
 addons:
@@ -30,4 +30,4 @@ install:
 
 script:
   - golangci-lint run
-  - travis_script_go {gobuild-args}
+  - make
