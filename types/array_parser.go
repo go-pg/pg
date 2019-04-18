@@ -10,7 +10,7 @@ import (
 	"github.com/go-pg/pg/internal/parser"
 )
 
-var endOfArray = errors.New("pg: end of array")
+var errEndOfArray = errors.New("pg: end of array")
 
 type arrayParser struct {
 	p parser.StreamingParser
@@ -43,7 +43,7 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 	c, err := p.p.ReadByte()
 	if err != nil {
 		if err == io.EOF {
-			return nil, endOfArray
+			return nil, errEndOfArray
 		}
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 		}
 		return b, nil
 	case '}':
-		return nil, endOfArray
+		return nil, errEndOfArray
 	default:
 		err = p.p.UnreadByte()
 		if err != nil {

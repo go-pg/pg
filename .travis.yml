@@ -17,6 +17,7 @@ matrix:
 
 before_install:
   - psql -U postgres -c "CREATE EXTENSION hstore"
+  - go install github.com/golangci/golangci-lint/cmd/golangci-lint
 
 install:
   - go get github.com/jinzhu/inflection
@@ -24,3 +25,7 @@ install:
   - go get github.com/onsi/ginkgo
   - go get github.com/onsi/gomega
   - go get mellium.im/sasl
+
+script:
+  - golangci-lint run
+  - travis_script_go {gobuild-args}

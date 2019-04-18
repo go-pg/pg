@@ -4,13 +4,13 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-pg/pg/internal/struct_filter"
+	"github.com/go-pg/pg/internal/structfilter"
 )
 
 // Decode decodes url values into the struct.
 func Decode(strct interface{}, values Values) error {
 	v := reflect.Indirect(reflect.ValueOf(strct))
-	meta := struct_filter.GetStruct(v.Type())
+	meta := structfilter.GetStruct(v.Type())
 
 	for name, values := range values {
 		if strings.HasSuffix(name, "[]") {

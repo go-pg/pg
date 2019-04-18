@@ -13,7 +13,7 @@ import (
 	"github.com/go-pg/pg/internal/pool"
 )
 
-// Database connection options.
+// Options contains database connection options.
 type Options struct {
 	// Network type, either tcp or unix.
 	// Default is tcp.
@@ -33,7 +33,7 @@ type Options struct {
 	Database string
 
 	// ApplicationName is the application name. Used in logs on Pg side.
-	// Only availaible from pg-9.0.
+	// Only available from pg-9.0.
 	ApplicationName string
 
 	// TLS config for secure connections.
@@ -141,29 +141,29 @@ func (opt *Options) init() {
 
 // ParseURL parses an URL into options that can be used to connect to PostgreSQL.
 func ParseURL(sURL string) (*Options, error) {
-	parsedUrl, err := url.Parse(sURL)
+	parsedURL, err := url.Parse(sURL)
 	if err != nil {
 		return nil, err
 	}
 
 	// scheme
-	if parsedUrl.Scheme != "postgres" && parsedUrl.Scheme != "postgresql" {
-		return nil, errors.New("pg: invalid scheme: " + parsedUrl.Scheme)
+	if parsedURL.Scheme != "postgres" && parsedURL.Scheme != "postgresql" {
+		return nil, errors.New("pg: invalid scheme: " + parsedURL.Scheme)
 	}
 
 	// host and port
 	options := &Options{
-		Addr: parsedUrl.Host,
+		Addr: parsedURL.Host,
 	}
 	if !strings.Contains(options.Addr, ":") {
-		options.Addr = options.Addr + ":5432"
+		options.Addr += ":5432"
 	}
 
 	// username and password
-	if parsedUrl.User != nil {
-		options.User = parsedUrl.User.Username()
+	if parsedURL.User != nil {
+		options.User = parsedURL.User.Username()
 
-		if password, ok := parsedUrl.User.Password(); ok {
+		if password, ok := parsedURL.User.Password(); ok {
 			options.Password = password
 		}
 	}
@@ -173,14 +173,14 @@ func ParseURL(sURL string) (*Options, error) {
 	}
 
 	// database
-	if len(strings.Trim(parsedUrl.Path, "/")) > 0 {
-		options.Database = parsedUrl.Path[1:]
+	if len(strings.Trim(parsedURL.Path, "/")) > 0 {
+		options.Database = parsedURL.Path[1:]
 	} else {
 		return nil, errors.New("pg: database name not provided")
 	}
 
 	// ssl mode
-	query, err := url.ParseQuery(parsedUrl.RawQuery)
+	query, err := url.ParseQuery(parsedURL.RawQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -188,14 +188,14 @@ func ParseURL(sURL string) (*Options, error) {
 	if sslMode, ok := query["sslmode"]; ok && len(sslMode) > 0 {
 		switch sslMode[0] {
 		case "allow", "prefer", "require":
-			options.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+			options.TLSConfig = &tls.Config{InsecureSkipVerify: true} //nolint
 		case "disable":
 			options.TLSConfig = nil
 		default:
-			return nil, errors.New(fmt.Sprintf("pg: sslmode '%v' is not supported", sslMode[0]))
+			return nil, fmt.Errorf("pg: sslmode '%v' is not supported", sslMode[0])
 		}
 	} else {
-		options.TLSConfig = &tls.Config{InsecureSkipVerify: true}
+		options.TLSConfig = &tls.Config{InsecureSkipVerify: true} //nolint
 	}
 
 	delete(query, "sslmode")
@@ -230,10 +230,8 @@ func (opt *Options) getDialer() func() (net.Conn, error) {
 
 func newConnPool(opt *Options) *pool.ConnPool {
 	return pool.NewConnPool(&pool.Options{
-		Dialer: opt.getDialer(),
-		OnClose: func(cn *pool.Conn) error {
-			return terminateConn(cn)
-		},
+		Dialer:  opt.getDialer(),
+		OnClose: terminateConn,
 
 		PoolSize:           opt.PoolSize,
 		MinIdleConns:       opt.MinIdleConns,

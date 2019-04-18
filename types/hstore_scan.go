@@ -38,7 +38,7 @@ func scanMapStringString(rd Reader, n int) (map[string]string, error) {
 	for {
 		key, err := p.NextKey()
 		if err != nil {
-			if err == endOfHstore {
+			if err == errEndOfHstore {
 				break
 			}
 			return nil, err

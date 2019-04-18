@@ -118,6 +118,8 @@ func (j *join) m2mQuery(q *Query) (*Query, error) {
 
 	index := j.JoinModel.ParentIndex()
 	baseTable := j.BaseModel.Table()
+
+	//nolint
 	var join []byte
 	join = append(join, "JOIN "...)
 	join = q.FormatQuery(join, string(j.Rel.M2MTableName))

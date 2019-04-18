@@ -241,7 +241,7 @@ func (b *BufReader) ReadSlice(delim byte) (line []byte, err error) {
 		b.lastByte = int(line[i])
 	}
 
-	return
+	return line, err
 }
 
 func (b *BufReader) ReadBytes(fn func(byte) bool) (line []byte, err error) {
@@ -249,7 +249,7 @@ func (b *BufReader) ReadBytes(fn func(byte) bool) (line []byte, err error) {
 		for i, c := range b.Bytes() {
 			if !fn(c) {
 				i--
-				line = b.buf[b.r : b.r+i]
+				line = b.buf[b.r : b.r+i] //nolint
 				b.r += i
 				b.changeAvailable(-i)
 				break
@@ -258,7 +258,7 @@ func (b *BufReader) ReadBytes(fn func(byte) bool) (line []byte, err error) {
 
 		// Pending error?
 		if b.err != nil {
-			line = b.flush()
+			line = b.flush() //nolint
 			err = b.readErr()
 			break
 		}
@@ -287,7 +287,7 @@ func (b *BufReader) ReadBytes(fn func(byte) bool) (line []byte, err error) {
 		b.lastByte = int(line[i])
 	}
 
-	return
+	return line, err
 }
 
 func (b *BufReader) ReadByte() (byte, error) {
@@ -406,7 +406,7 @@ func (b *BufReader) ReadN(n int) (line []byte, err error) {
 		b.lastByte = int(line[i])
 	}
 
-	return
+	return line, err
 }
 
 func (b *BufReader) ReadFull() ([]byte, error) {

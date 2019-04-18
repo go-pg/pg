@@ -40,7 +40,7 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 		for i := 0; ; i++ {
 			elem, err := p.NextElem()
 			if err != nil {
-				if err == endOfComposite {
+				if err == errEndOfComposite {
 					break
 				}
 				return err

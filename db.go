@@ -15,13 +15,16 @@ import (
 // and maintains its own connection pool.
 func Connect(opt *Options) *DB {
 	opt.init()
-	return newDB(&baseDB{
-		opt:  opt,
-		pool: newConnPool(opt),
-	}, nil)
+	return newDB(
+		context.TODO(),
+		&baseDB{
+			opt:  opt,
+			pool: newConnPool(opt),
+		},
+	)
 }
 
-func newDB(baseDB *baseDB, ctx context.Context) *DB {
+func newDB(ctx context.Context, baseDB *baseDB) *DB {
 	db := &DB{
 		baseDB: baseDB.clone(),
 		ctx:    ctx,
@@ -59,18 +62,18 @@ func (db *DB) Context() context.Context {
 
 // WithContext returns a copy of the DB that uses the ctx.
 func (db *DB) WithContext(ctx context.Context) *DB {
-	return newDB(db.baseDB, ctx)
+	return newDB(ctx, db.baseDB)
 }
 
 // WithTimeout returns a copy of the DB that uses d as the read/write timeout.
 func (db *DB) WithTimeout(d time.Duration) *DB {
-	return newDB(db.baseDB.WithTimeout(d), db.ctx)
+	return newDB(db.ctx, db.baseDB.WithTimeout(d))
 }
 
 // WithParam returns a copy of the DB that replaces the param with the value
 // in queries.
 func (db *DB) WithParam(param string, value interface{}) *DB {
-	return newDB(db.baseDB.WithParam(param, value), db.ctx)
+	return newDB(db.ctx, db.baseDB.WithParam(param, value))
 }
 
 // Listen listens for notifications sent with NOTIFY command.
@@ -106,10 +109,10 @@ var _ orm.DB = (*Conn)(nil)
 // Every Conn must be returned to the database pool after use by
 // calling Conn.Close.
 func (db *DB) Conn() *Conn {
-	return newConn(db.baseDB.withPool(pool.NewSingleConnPool(db.pool)), db.ctx)
+	return newConn(db.ctx, db.baseDB.withPool(pool.NewSingleConnPool(db.pool)))
 }
 
-func newConn(baseDB *baseDB, ctx context.Context) *Conn {
+func newConn(ctx context.Context, baseDB *baseDB) *Conn {
 	conn := &Conn{
 		baseDB: baseDB,
 		ctx:    ctx,
@@ -128,16 +131,16 @@ func (db *Conn) Context() context.Context {
 
 // WithContext returns a copy of the DB that uses the ctx.
 func (db *Conn) WithContext(ctx context.Context) *Conn {
-	return newConn(db.baseDB, ctx)
+	return newConn(ctx, db.baseDB)
 }
 
 // WithTimeout returns a copy of the DB that uses d as the read/write timeout.
 func (db *Conn) WithTimeout(d time.Duration) *Conn {
-	return newConn(db.baseDB.WithTimeout(d), db.ctx)
+	return newConn(db.ctx, db.baseDB.WithTimeout(d))
 }
 
 // WithParam returns a copy of the DB that replaces the param with the value
 // in queries.
 func (db *Conn) WithParam(param string, value interface{}) *Conn {
-	return newConn(db.baseDB.WithParam(param, value), db.ctx)
+	return newConn(db.ctx, db.baseDB.WithParam(param, value))
 }

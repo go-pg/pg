@@ -1,6 +1,6 @@
 package orm
 
-// A Result summarizes an executed SQL command.
+// Result summarizes an executed SQL command.
 type Result interface {
 	Model() Model
 

@@ -122,9 +122,10 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 
 // Exec is an alias for DB.Exec.
 func (tx *Tx) Exec(query interface{}, params ...interface{}) (Result, error) {
-	return tx.exec(nil, query, params...)
+	return tx.exec(context.TODO(), query, params...)
 }
 
+// ExecContext acts like Exec but additionally receives a context
 func (tx *Tx) ExecContext(c context.Context, query interface{}, params ...interface{}) (Result, error) {
 	return tx.exec(c, query, params...)
 }
@@ -141,9 +142,10 @@ func (tx *Tx) exec(c context.Context, query interface{}, params ...interface{}) 
 
 // ExecOne is an alias for DB.ExecOne.
 func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (Result, error) {
-	return tx.execOne(nil, query, params...)
+	return tx.execOne(context.TODO(), query, params...)
 }
 
+// ExecOneContext acts like ExecOne but additionally receives a context
 func (tx *Tx) ExecOneContext(c context.Context, query interface{}, params ...interface{}) (Result, error) {
 	return tx.execOne(c, query, params...)
 }
@@ -162,14 +164,25 @@ func (tx *Tx) execOne(c context.Context, query interface{}, params ...interface{
 
 // Query is an alias for DB.Query.
 func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (Result, error) {
-	return tx.query(nil, model, query, params...)
+	return tx.query(context.TODO(), model, query, params...)
 }
 
-func (tx *Tx) QueryContext(c context.Context, model interface{}, query interface{}, params ...interface{}) (Result, error) {
+// QueryContext acts like Query but additionally receives a context
+func (tx *Tx) QueryContext(
+	c context.Context,
+	model interface{},
+	query interface{},
+	params ...interface{},
+) (Result, error) {
 	return tx.query(c, model, query, params...)
 }
 
-func (tx *Tx) query(c context.Context, model interface{}, query interface{}, params ...interface{}) (res Result, err error) {
+func (tx *Tx) query(
+	c context.Context,
+	model interface{},
+	query interface{},
+	params ...interface{},
+) (res Result, err error) {
 	err = tx.withConn(c, func(cn *pool.Conn) error {
 		event := tx.db.queryStarted(c, tx, query, params, 0)
 		res, err = tx.db.simpleQueryData(cn, model, query, params...)
@@ -191,14 +204,25 @@ func (tx *Tx) query(c context.Context, model interface{}, query interface{}, par
 
 // QueryOne is an alias for DB.QueryOne.
 func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (Result, error) {
-	return tx.queryOne(nil, model, query, params...)
+	return tx.queryOne(context.TODO(), model, query, params...)
 }
 
-func (tx *Tx) QueryOneContext(c context.Context, model interface{}, query interface{}, params ...interface{}) (Result, error) {
+// QueryOneContext acts like QueryOne but additionally receives a context
+func (tx *Tx) QueryOneContext(
+	c context.Context,
+	model interface{},
+	query interface{},
+	params ...interface{},
+) (Result, error) {
 	return tx.queryOne(c, model, query, params...)
 }
 
-func (tx *Tx) queryOne(c context.Context, model interface{}, query interface{}, params ...interface{}) (Result, error) {
+func (tx *Tx) queryOne(
+	c context.Context,
+	model interface{},
+	query interface{},
+	params ...interface{},
+) (Result, error) {
 	mod, err := orm.NewModel(model)
 	if err != nil {
 		return nil, err
@@ -220,6 +244,7 @@ func (tx *Tx) Model(model ...interface{}) *orm.Query {
 	return orm.NewQuery(tx, model...)
 }
 
+// ModelContext acts like Model but additionally receives a context
 func (tx *Tx) ModelContext(c context.Context, model ...interface{}) *orm.Query {
 	return orm.NewQueryContext(c, tx, model...)
 }
@@ -244,7 +269,7 @@ func (tx *Tx) Delete(model interface{}) error {
 	return orm.Delete(tx, model)
 }
 
-// Delete forces delete of the model with deleted_at column.
+// ForceDelete forces the deletion of the model with deleted_at column.
 func (tx *Tx) ForceDelete(model interface{}) error {
 	return orm.ForceDelete(tx, model)
 }
@@ -261,7 +286,7 @@ func (tx *Tx) DropTable(model interface{}, opt *orm.DropTableOptions) error {
 
 // CopyFrom is an alias for DB.CopyFrom.
 func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
-	err = tx.withConn(nil, func(cn *pool.Conn) error {
+	err = tx.withConn(context.TODO(), func(cn *pool.Conn) error {
 		res, err = tx.db.copyFrom(cn, r, query, params...)
 		return err
 	})
@@ -270,13 +295,14 @@ func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (r
 
 // CopyTo is an alias for DB.CopyTo.
 func (tx *Tx) CopyTo(w io.Writer, query interface{}, params ...interface{}) (res Result, err error) {
-	err = tx.withConn(nil, func(cn *pool.Conn) error {
+	err = tx.withConn(context.TODO(), func(cn *pool.Conn) error {
 		res, err = tx.db.copyTo(cn, w, query, params...)
 		return err
 	})
 	return res, err
 }
 
+// FormatQuery is an alias for DB.FormatQuery
 func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
 	return tx.db.FormatQuery(dst, query, params...)
 }
@@ -327,6 +353,7 @@ func (tx *Tx) close() {
 	_ = tx.db.Close()
 }
 
+// Context returns the context.Context of the transaction
 func (tx *Tx) Context() context.Context {
 	return tx.ctx
 }

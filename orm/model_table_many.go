@@ -49,7 +49,7 @@ func (m *manyModel) NewModel() ColumnScanner {
 }
 
 func (m *manyModel) AddModel(model ColumnScanner) error {
-	m.buf = modelId(m.buf[:0], m.strct, m.rel.FKs)
+	m.buf = modelID(m.buf[:0], m.strct, m.rel.FKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
 		return fmt.Errorf(
@@ -68,12 +68,12 @@ func (m *manyModel) AddModel(model ColumnScanner) error {
 	return nil
 }
 
-func (m *manyModel) AfterQuery(c context.Context, db DB) error {
+func (m *manyModel) AfterQuery(ctx context.Context, db DB) error {
 	if m.rel.JoinTable.HasFlag(AfterQueryHookFlag) {
 		var firstErrr error
 		for _, slices := range m.dstValues {
 			for _, slice := range slices {
-				err := callAfterQueryHookSlice(slice, m.sliceOfPtr, c, db)
+				err := callAfterQueryHookSlice(ctx, slice, m.sliceOfPtr, db)
 				if err != nil && firstErrr == nil {
 					firstErrr = err
 				}

@@ -22,7 +22,7 @@ func Append(b []byte, v interface{}, quote int) []byte {
 	case int32:
 		return strconv.AppendInt(b, int64(v), 10)
 	case int64:
-		return strconv.AppendInt(b, int64(v), 10)
+		return strconv.AppendInt(b, v, 10)
 	case int:
 		return strconv.AppendInt(b, int64(v), 10)
 	case uint8:
@@ -64,9 +64,8 @@ func AppendError(b []byte, err error) []byte {
 func AppendNull(b []byte, quote int) []byte {
 	if quote == 1 {
 		return append(b, "NULL"...)
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func appendBool(dst []byte, v bool) []byte {

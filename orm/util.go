@@ -28,9 +28,8 @@ func sliceElemType(v reflect.Value) reflect.Type {
 	elemType := v.Type().Elem()
 	if elemType.Kind() == reflect.Interface && v.Len() > 0 {
 		return indirect(v.Index(0).Elem()).Type()
-	} else {
-		return indirectType(elemType)
 	}
+	return indirectType(elemType)
 }
 
 func typeByIndex(t reflect.Type, index []int) reflect.Type {
@@ -95,13 +94,13 @@ func dstValues(model TableModel, fields []*Field) map[string][]reflect.Value {
 	mp := make(map[string][]reflect.Value)
 	var id []byte
 	walk(model.Root(), model.ParentIndex(), func(v reflect.Value) {
-		id = modelId(id[:0], v, fields)
+		id = modelID(id[:0], v, fields)
 		mp[string(id)] = append(mp[string(id)], v.FieldByIndex(model.Relation().Field.Index))
 	})
 	return mp
 }
 
-func modelId(b []byte, v reflect.Value, fields []*Field) []byte {
+func modelID(b []byte, v reflect.Value, fields []*Field) []byte {
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ',')

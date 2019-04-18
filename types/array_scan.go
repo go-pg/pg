@@ -79,7 +79,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 		for {
 			elem, err := p.NextElem()
 			if err != nil {
-				if err == endOfArray {
+				if err == errEndOfArray {
 					break
 				}
 				return err
@@ -134,7 +134,7 @@ func decodeSliceString(rd Reader, n int) ([]string, error) {
 	for {
 		elem, err := p.NextElem()
 		if err != nil {
-			if err == endOfArray {
+			if err == errEndOfArray {
 				break
 			}
 			return nil, err
@@ -171,7 +171,7 @@ func decodeSliceInt(rd Reader, n int) ([]int, error) {
 	for {
 		elem, err := p.NextElem()
 		if err != nil {
-			if err == endOfArray {
+			if err == errEndOfArray {
 				break
 			}
 			return nil, err
@@ -218,7 +218,7 @@ func decodeSliceInt64(rd Reader, n int) ([]int64, error) {
 	for {
 		elem, err := p.NextElem()
 		if err != nil {
-			if err == endOfArray {
+			if err == errEndOfArray {
 				break
 			}
 			return nil, err
@@ -265,7 +265,7 @@ func decodeSliceFloat64(rd Reader, n int) ([]float64, error) {
 	for {
 		elem, err := p.NextElem()
 		if err != nil {
-			if err == endOfArray {
+			if err == errEndOfArray {
 				break
 			}
 			return nil, err
@@ -316,7 +316,7 @@ func scanArrayValueScannerValue(v reflect.Value, rd Reader, n int) error {
 	for {
 		elem, err := p.NextElem()
 		if err != nil {
-			if err == endOfArray {
+			if err == errEndOfArray {
 				break
 			}
 			return err

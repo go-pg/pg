@@ -8,6 +8,7 @@ import (
 	"github.com/go-pg/pg/orm"
 )
 
+// Result summarizes an executed SQL command.
 type Result = orm.Result
 
 // A result summarizes an executed SQL command.
@@ -20,6 +21,7 @@ type result struct {
 
 var _ Result = (*result)(nil)
 
+//nolint
 func (res *result) parse(b []byte) error {
 	res.affected = -1
 

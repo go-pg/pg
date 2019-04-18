@@ -38,6 +38,7 @@ func (m *sliceTableModel) init(sliceType reflect.Type) {
 	}
 }
 
+//nolint
 func (*sliceTableModel) useQueryOne() {}
 
 func (m *sliceTableModel) IsNil() bool {
@@ -82,58 +83,58 @@ func (m *sliceTableModel) NewModel() ColumnScanner {
 	return m
 }
 
-func (m *sliceTableModel) AfterQuery(c context.Context, db DB) error {
+func (m *sliceTableModel) AfterQuery(ctx context.Context, db DB) error {
 	if m.table.HasFlag(AfterQueryHookFlag) {
-		return callAfterQueryHookSlice(m.slice, m.sliceOfPtr, c, db)
+		return callAfterQueryHookSlice(ctx, m.slice, m.sliceOfPtr, db)
 	}
 	return nil
 }
 
-func (m *sliceTableModel) AfterSelect(c context.Context, db DB) error {
+func (m *sliceTableModel) AfterSelect(ctx context.Context, db DB) error {
 	if m.table.HasFlag(AfterSelectHookFlag) {
-		return callAfterSelectHookSlice(m.slice, m.sliceOfPtr, c, db)
+		return callAfterSelectHookSlice(ctx, m.slice, m.sliceOfPtr, db)
 	}
 	return nil
 }
 
-func (m *sliceTableModel) BeforeInsert(c context.Context, db DB) error {
+func (m *sliceTableModel) BeforeInsert(ctx context.Context, db DB) error {
 	if m.table.HasFlag(BeforeInsertHookFlag) {
-		return callBeforeInsertHookSlice(m.slice, m.sliceOfPtr, c, db)
+		return callBeforeInsertHookSlice(ctx, m.slice, m.sliceOfPtr, db)
 	}
 	return nil
 }
 
-func (m *sliceTableModel) AfterInsert(c context.Context, db DB) error {
+func (m *sliceTableModel) AfterInsert(ctx context.Context, db DB) error {
 	if m.table.HasFlag(AfterInsertHookFlag) {
-		return callAfterInsertHookSlice(m.slice, m.sliceOfPtr, c, db)
+		return callAfterInsertHookSlice(ctx, m.slice, m.sliceOfPtr, db)
 	}
 	return nil
 }
 
-func (m *sliceTableModel) BeforeUpdate(c context.Context, db DB) error {
+func (m *sliceTableModel) BeforeUpdate(ctx context.Context, db DB) error {
 	if m.table.HasFlag(BeforeUpdateHookFlag) {
-		return callBeforeUpdateHookSlice(m.slice, m.sliceOfPtr, c, db)
+		return callBeforeUpdateHookSlice(ctx, m.slice, m.sliceOfPtr, db)
 	}
 	return nil
 }
 
-func (m *sliceTableModel) AfterUpdate(c context.Context, db DB) error {
+func (m *sliceTableModel) AfterUpdate(ctx context.Context, db DB) error {
 	if m.table.HasFlag(AfterUpdateHookFlag) {
-		return callAfterUpdateHookSlice(m.slice, m.sliceOfPtr, c, db)
+		return callAfterUpdateHookSlice(ctx, m.slice, m.sliceOfPtr, db)
 	}
 	return nil
 }
 
-func (m *sliceTableModel) BeforeDelete(c context.Context, db DB) error {
+func (m *sliceTableModel) BeforeDelete(ctx context.Context, db DB) error {
 	if m.table.HasFlag(BeforeDeleteHookFlag) {
-		return callBeforeDeleteHookSlice(m.slice, m.sliceOfPtr, c, db)
+		return callBeforeDeleteHookSlice(ctx, m.slice, m.sliceOfPtr, db)
 	}
 	return nil
 }
 
-func (m *sliceTableModel) AfterDelete(c context.Context, db DB) error {
+func (m *sliceTableModel) AfterDelete(ctx context.Context, db DB) error {
 	if m.table.HasFlag(AfterDeleteHookFlag) {
-		return callAfterDeleteHookSlice(m.slice, m.sliceOfPtr, c, db)
+		return callAfterDeleteHookSlice(ctx, m.slice, m.sliceOfPtr, db)
 	}
 	return nil
 }
@@ -165,11 +166,13 @@ func (m *sliceTableModel) setSoftDeleteField() {
 	field := m.table.SoftDeleteField
 	now := time.Now()
 	var value reflect.Value
-	if m.sliceOfPtr {
+
+	switch {
+	case m.sliceOfPtr:
 		value = reflect.ValueOf(&now)
-	} else if field.Type == timeType {
+	case field.Type == timeType:
 		value = reflect.ValueOf(now)
-	} else {
+	default:
 		value = reflect.ValueOf(types.NullTime{Time: now})
 	}
 

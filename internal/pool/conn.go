@@ -23,10 +23,10 @@ type Conn struct {
 	createdAt time.Time
 	usedAt    atomic.Value
 
-	ProcessId int32
+	ProcessID int32
 	SecretKey int32
 
-	_lastId int64
+	_lastID int64
 }
 
 func NewConn(netConn net.Conn) *Conn {
@@ -63,9 +63,9 @@ func (cn *Conn) NetConn() net.Conn {
 	return cn.netConn
 }
 
-func (cn *Conn) NextId() string {
-	cn._lastId++
-	return strconv.FormatInt(cn._lastId, 10)
+func (cn *Conn) NextID() string {
+	cn._lastID++
+	return strconv.FormatInt(cn._lastID, 10)
 }
 
 func (cn *Conn) setReadTimeout(timeout time.Duration) error {

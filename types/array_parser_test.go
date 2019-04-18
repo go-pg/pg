@@ -31,7 +31,7 @@ func TestArrayParser(t *testing.T) {
 		for {
 			b, err := p.NextElem()
 			if err != nil {
-				if err == endOfArray {
+				if err == errEndOfArray {
 					break
 				}
 				t.Fatal(err)
@@ -68,7 +68,7 @@ func BenchmarkArrayParserArray(b *testing.B) {
 		for {
 			_, err := p.NextElem()
 			if err != nil {
-				if err == endOfArray {
+				if err == errEndOfArray {
 					break
 				}
 				b.Fatal(err)
@@ -97,7 +97,7 @@ func BenchmarkArrayParserSubArray(b *testing.B) {
 		for {
 			_, err := p.NextElem()
 			if err != nil {
-				if err == endOfArray {
+				if err == errEndOfArray {
 					break
 				}
 				b.Fatal(err)

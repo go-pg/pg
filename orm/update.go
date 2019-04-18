@@ -125,7 +125,7 @@ func (q *updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 		b, err = q.appendSetStruct(b, value)
 	} else {
 		if value.Len() > 0 {
-			b, err = q.appendSetSlice(b, value)
+			b, err = q.appendSetSlice(b)
 		} else {
 			err = fmt.Errorf("pg: can't bulk-update empty slice %s", value.Type())
 		}
@@ -178,7 +178,7 @@ func (q *updateQuery) appendSetStruct(b []byte, strct reflect.Value) ([]byte, er
 	return b, nil
 }
 
-func (q *updateQuery) appendSetSlice(b []byte, slice reflect.Value) ([]byte, error) {
+func (q *updateQuery) appendSetSlice(b []byte) ([]byte, error) {
 	fields, err := q.q.getFields()
 	if err != nil {
 		return nil, err
