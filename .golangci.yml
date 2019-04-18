@@ -1,0 +1,8 @@
+run:
+  concurrency: 8
+  deadline: 5m
+  tests: false
+linters:
+  enable-all: true
+  disable:
+    - gochecknoglobals
