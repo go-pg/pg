@@ -23,7 +23,7 @@ func NewPager(values Values) *Pager {
 }
 
 func (p *Pager) FromURLValues(values Values) error {
-	return p.FromValues(Values(values))
+	return p.FromValues(values)
 }
 
 func (p *Pager) FromValues(values Values) error {
@@ -31,13 +31,13 @@ func (p *Pager) FromValues(values Values) error {
 	if err != nil {
 		return err
 	}
-	p.Limit = int(limit)
+	p.Limit = limit
 
 	page, err := values.Int("page")
 	if err != nil {
 		return err
 	}
-	p.SetPage(int(page))
+	p.SetPage(page)
 
 	return nil
 }

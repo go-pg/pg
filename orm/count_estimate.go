@@ -10,6 +10,7 @@ import (
 const placeholder = `'_go_pg_placeholder'`
 
 // https://wiki.postgresql.org/wiki/Count_estimate
+//nolint
 var pgCountEstimateFunc = fmt.Sprintf(`
 CREATE OR REPLACE FUNCTION _go_pg_count_estimate_v2(query text, threshold int)
 RETURNS int AS $$

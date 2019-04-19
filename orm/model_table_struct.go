@@ -154,74 +154,74 @@ func (m *structTableModel) AddModel(_ ColumnScanner) error {
 	return nil
 }
 
-func (m *structTableModel) AfterQuery(c context.Context, db DB) error {
+func (m *structTableModel) AfterQuery(ctx context.Context, db DB) error {
 	if !m.table.HasFlag(AfterQueryHookFlag) {
 		return nil
 	}
-	return callAfterQueryHook(m.strct.Addr(), c, db)
+	return callAfterQueryHook(ctx, m.strct.Addr(), db)
 }
 
-func (m *structTableModel) BeforeSelectQuery(c context.Context, db DB, q *Query) (*Query, error) {
+func (m *structTableModel) BeforeSelectQuery(ctx context.Context, db DB, q *Query) (*Query, error) {
 	if m.table.HasFlag(BeforeSelectQueryHookFlag) {
-		return callBeforeSelectQueryHook(m.table.zeroStruct.Addr(), c, db, q)
+		return callBeforeSelectQueryHook(ctx, m.table.zeroStruct.Addr(), db, q)
 	}
 	return q, nil
 }
 
-func (m *structTableModel) AfterSelect(c context.Context, db DB) error {
+func (m *structTableModel) AfterSelect(ctx context.Context, db DB) error {
 	if m.table.HasFlag(AfterSelectHookFlag) {
 		if m.IsNil() {
 			return errModelNil
 		}
-		return callAfterSelectHook(m.strct.Addr(), c, db)
+		return callAfterSelectHook(ctx, m.strct.Addr(), db)
 	}
 	return nil
 }
 
-func (m *structTableModel) BeforeInsert(c context.Context, db DB) error {
+func (m *structTableModel) BeforeInsert(ctx context.Context, db DB) error {
 	if m.table.HasFlag(BeforeInsertHookFlag) {
 		if m.IsNil() {
 			return errModelNil
 		}
-		return callBeforeInsertHook(m.strct.Addr(), c, db)
+		return callBeforeInsertHook(ctx, m.strct.Addr(), db)
 	}
 	return nil
 }
 
-func (m *structTableModel) AfterInsert(c context.Context, db DB) error {
+func (m *structTableModel) AfterInsert(ctx context.Context, db DB) error {
 	if m.table.HasFlag(AfterInsertHookFlag) {
 		if m.IsNil() {
 			return errModelNil
 		}
-		return callAfterInsertHook(m.strct.Addr(), c, db)
+		return callAfterInsertHook(ctx, m.strct.Addr(), db)
 	}
 	return nil
 }
 
-func (m *structTableModel) BeforeUpdate(c context.Context, db DB) error {
+func (m *structTableModel) BeforeUpdate(ctx context.Context, db DB) error {
 	if m.table.HasFlag(BeforeUpdateHookFlag) && !m.IsNil() {
-		return callBeforeUpdateHook(m.strct.Addr(), c, db)
+		return callBeforeUpdateHook(ctx, m.strct.Addr(), db)
 	}
 	return nil
 }
 
-func (m *structTableModel) AfterUpdate(c context.Context, db DB) error {
+func (m *structTableModel) AfterUpdate(ctx context.Context, db DB) error {
 	if m.table.HasFlag(AfterUpdateHookFlag) && !m.IsNil() {
-		return callAfterUpdateHook(m.strct.Addr(), c, db)
+		return callAfterUpdateHook(ctx, m.strct.Addr(), db)
 	}
 	return nil
 }
 
-func (m *structTableModel) BeforeDelete(c context.Context, db DB) error {
+func (m *structTableModel) BeforeDelete(ctx context.Context, db DB) error {
 	if m.table.HasFlag(BeforeDeleteHookFlag) && !m.IsNil() {
-		return callBeforeDeleteHook(m.strct.Addr(), c, db)
+		return callBeforeDeleteHook(ctx, m.strct.Addr(), db)
 	}
 	return nil
 }
 
-func (m *structTableModel) AfterDelete(c context.Context, db DB) error {
+func (m *structTableModel) AfterDelete(ctx context.Context, db DB) error {
 	if m.table.HasFlag(AfterDeleteHookFlag) && !m.IsNil() {
-		return callAfterDeleteHook(m.strct.Addr(), c, db)
+		return callAfterDeleteHook(ctx, m.strct.Addr(), db)
 	}
 	return nil
 }
@@ -365,11 +365,12 @@ func (m *structTableModel) setSoftDeleteField() {
 	value := field.Value(m.strct)
 
 	now := time.Now()
-	if value.Kind() == reflect.Ptr {
+	switch {
+	case value.Kind() == reflect.Ptr:
 		value.Set(reflect.ValueOf(&now))
-	} else if field.Type == timeType {
+	case field.Type == timeType:
 		value.Set(reflect.ValueOf(now))
-	} else {
+	default:
 		value.Set(reflect.ValueOf(types.NullTime{Time: now}))
 	}
 }

@@ -13,6 +13,7 @@ func (dummyFormatter) FormatQuery(b []byte, query string, params ...interface{})
 	return append(b, query...)
 }
 
+// QueryEvent ...
 type QueryEvent struct {
 	Ctx     context.Context
 	DB      orm.DB
@@ -25,11 +26,13 @@ type QueryEvent struct {
 	Data map[interface{}]interface{}
 }
 
+// QueryHook ...
 type QueryHook interface {
 	BeforeQuery(*QueryEvent)
 	AfterQuery(*QueryEvent)
 }
 
+// UnformattedQuery returns the unformatted query of a query event
 func (ev *QueryEvent) UnformattedQuery() (string, error) {
 	b, err := queryString(ev.Query)
 	if err != nil {
@@ -38,6 +41,7 @@ func (ev *QueryEvent) UnformattedQuery() (string, error) {
 	return string(b), nil
 }
 
+// FormattedQuery returns the formatted query of a query event
 func (ev *QueryEvent) FormattedQuery() (string, error) {
 	b, err := appendQuery(nil, ev.DB, ev.Query, ev.Params...)
 	if err != nil {

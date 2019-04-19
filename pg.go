@@ -15,8 +15,11 @@ import (
 // Discard is used with Query and QueryOne to discard rows.
 var Discard orm.Discard
 
+// NullTime is a time.Time wrapper that marshals zero time as JSON null and
+// PostgreSQL NULL.
 type NullTime = types.NullTime
 
+//nolint
 func init() {
 	SetLogger(log.New(os.Stderr, "pg: ", log.LstdFlags|log.Lshortfile))
 }
@@ -26,6 +29,7 @@ func Model(model ...interface{}) *orm.Query {
 	return orm.NewQuery(nil, model...)
 }
 
+// ModelContext returns a new query for the optional model with a context
 func ModelContext(c context.Context, model ...interface{}) *orm.Query {
 	return orm.NewQueryContext(c, nil, model...)
 }
@@ -92,17 +96,20 @@ func Hstore(v interface{}) *types.Hstore {
 	return types.NewHstore(v)
 }
 
+// SetLogger sets the logger to the given one
 func SetLogger(logger *log.Logger) {
 	internal.Logger = logger
 }
 
 //------------------------------------------------------------------------------
 
+// Strings is a typealias for a slice of strings
 type Strings []string
 
 var _ orm.HooklessModel = (*Strings)(nil)
 var _ types.ValueAppender = (*Strings)(nil)
 
+// Init initializes the Strings slice
 func (strings *Strings) Init() error {
 	if s := *strings; len(s) > 0 {
 		*strings = s[:0]
@@ -110,14 +117,17 @@ func (strings *Strings) Init() error {
 	return nil
 }
 
+// NewModel returns `Strings` as orm.ColumnScanner
 func (strings *Strings) NewModel() orm.ColumnScanner {
 	return strings
 }
 
+// AddModel ...
 func (Strings) AddModel(_ orm.ColumnScanner) error {
 	return nil
 }
 
+// ScanColumn scans the columns and appends them to `strings`
 func (strings *Strings) ScanColumn(colIdx int, _ string, rd types.Reader, n int) error {
 	b := make([]byte, n)
 	_, err := io.ReadFull(rd, b)
@@ -129,8 +139,9 @@ func (strings *Strings) ScanColumn(colIdx int, _ string, rd types.Reader, n int)
 	return nil
 }
 
+// AppendValue appends the values from `strings` to the given byte slice
 func (strings Strings) AppendValue(dst []byte, quote int) []byte {
-	if len(strings) <= 0 {
+	if len(strings) == 0 {
 		return dst
 	}
 
@@ -144,11 +155,13 @@ func (strings Strings) AppendValue(dst []byte, quote int) []byte {
 
 //------------------------------------------------------------------------------
 
+// Ints is a typealias for a slice of int64 values
 type Ints []int64
 
 var _ orm.HooklessModel = (*Ints)(nil)
 var _ types.ValueAppender = (*Ints)(nil)
 
+// Init initializes the Int slice
 func (ints *Ints) Init() error {
 	if s := *ints; len(s) > 0 {
 		*ints = s[:0]
@@ -156,14 +169,17 @@ func (ints *Ints) Init() error {
 	return nil
 }
 
+// NewModel returns `Ints` as orm.ColumnScanner
 func (ints *Ints) NewModel() orm.ColumnScanner {
 	return ints
 }
 
+// AddModel ...
 func (Ints) AddModel(_ orm.ColumnScanner) error {
 	return nil
 }
 
+// ScanColumn scans the columns and appends them to `ints`
 func (ints *Ints) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
 	num, err := types.ScanInt64(rd, n)
 	if err != nil {
@@ -174,8 +190,9 @@ func (ints *Ints) ScanColumn(colIdx int, colName string, rd types.Reader, n int)
 	return nil
 }
 
+// AppendValue appends the values from `ints` to the given byte slice
 func (ints Ints) AppendValue(dst []byte, quote int) []byte {
-	if len(ints) <= 0 {
+	if len(ints) == 0 {
 		return dst
 	}
 
@@ -189,10 +206,12 @@ func (ints Ints) AppendValue(dst []byte, quote int) []byte {
 
 //------------------------------------------------------------------------------
 
+// IntSet is a set of int64 values
 type IntSet map[int64]struct{}
 
 var _ orm.HooklessModel = (*IntSet)(nil)
 
+// Init initializes the IntSet
 func (set *IntSet) Init() error {
 	if len(*set) > 0 {
 		*set = make(map[int64]struct{})
@@ -200,26 +219,29 @@ func (set *IntSet) Init() error {
 	return nil
 }
 
+// NewModel returns `Ints` as orm.ColumnScanner
 func (set *IntSet) NewModel() orm.ColumnScanner {
 	return set
 }
 
+// AddModel ...
 func (IntSet) AddModel(_ orm.ColumnScanner) error {
 	return nil
 }
 
-func (setptr *IntSet) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
+// ScanColumn scans the columns and appends them to `IntSet`
+func (set *IntSet) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
 	num, err := types.ScanInt64(rd, n)
 	if err != nil {
 		return err
 	}
 
-	set := *setptr
-	if set == nil {
-		*setptr = make(IntSet)
-		set = *setptr
+	setVal := *set
+	if setVal == nil {
+		*set = make(IntSet)
+		setVal = *set
 	}
 
-	set[num] = struct{}{}
+	setVal[num] = struct{}{}
 	return nil
 }

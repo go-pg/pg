@@ -64,20 +64,21 @@ type ConnPool struct {
 
 	dialErrorsNum uint32 // atomic
 
+	_closed uint32 // atomic
+
 	lastDialErrorMu sync.RWMutex
 	lastDialError   error
 
 	queue chan struct{}
 
-	connsMu      sync.Mutex
-	conns        []*Conn
-	idleConns    []*Conn
-	poolSize     int
-	idleConnsLen int
-
 	stats Stats
 
-	_closed uint32 // atomic
+	connsMu   sync.Mutex
+	conns     []*Conn
+	idleConns []*Conn
+
+	poolSize     int
+	idleConnsLen int
 }
 
 var _ Pooler = (*ConnPool)(nil)
@@ -433,7 +434,7 @@ func (p *ConnPool) ReapStaleConns() (int, error) {
 		p.freeTurn()
 
 		if cn != nil {
-			p.closeConn(cn)
+			_ = p.closeConn(cn)
 			n++
 		} else {
 			break

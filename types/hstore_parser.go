@@ -7,7 +7,7 @@ import (
 	"github.com/go-pg/pg/internal/parser"
 )
 
-var endOfHstore = errors.New("pg: end of hstore")
+var errEndOfHstore = errors.New("pg: end of hstore")
 
 type hstoreParser struct {
 	p parser.StreamingParser
@@ -23,7 +23,7 @@ func (p *hstoreParser) NextKey() ([]byte, error) {
 	err := p.p.SkipByte('"')
 	if err != nil {
 		if err == io.EOF {
-			return nil, endOfHstore
+			return nil, errEndOfHstore
 		}
 		return nil, err
 	}

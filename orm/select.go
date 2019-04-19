@@ -142,13 +142,13 @@ func (q *selectQuery) AppendQuery(b []byte) ([]byte, error) {
 
 func (q selectQuery) appendColumns(b []byte) []byte {
 	start := len(b)
-
-	if q.q.columns != nil {
+	switch {
+	case q.q.columns != nil:
 		b = q.q.appendColumns(b)
-	} else if q.q.hasExplicitModel() {
+	case q.q.hasExplicitModel():
 		table := q.q.model.Table()
 		b = appendColumns(b, table.Alias, table.Fields)
-	} else {
+	default:
 		b = append(b, '*')
 	}
 

@@ -10,7 +10,7 @@ import (
 	"github.com/go-pg/pg/types"
 )
 
-var endOfComposite = errors.New("pg: end of composite")
+var errEndOfComposite = errors.New("pg: end of composite")
 
 type compositeParser struct {
 	p parser.StreamingParser
@@ -43,7 +43,7 @@ func (p *compositeParser) NextElem() ([]byte, error) {
 	c, err := p.p.ReadByte()
 	if err != nil {
 		if err == io.EOF {
-			return nil, endOfComposite
+			return nil, errEndOfComposite
 		}
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (p *compositeParser) NextElem() ([]byte, error) {
 	case ',':
 		return nil, nil
 	case ')':
-		return nil, endOfComposite
+		return nil, errEndOfComposite
 	default:
 		_ = p.p.UnreadByte()
 	}

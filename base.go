@@ -19,6 +19,7 @@ type baseDB struct {
 	queryHooks []QueryHook
 }
 
+// PoolStats contains the stats of a connection pool
 type PoolStats pool.Stats
 
 // PoolStats returns connection pool stats.
@@ -105,7 +106,7 @@ func (db *baseDB) initConn(cn *pool.Conn) error {
 	if db.opt.OnConnect != nil {
 		p := pool.NewSingleConnPool(nil)
 		p.SetConn(cn)
-		return db.opt.OnConnect(newConn(db.withPool(p), nil))
+		return db.opt.OnConnect(newConn(context.TODO(), db.withPool(p)))
 	}
 
 	return nil
@@ -132,7 +133,7 @@ func (db *baseDB) withConn(c context.Context, fn func(cn *pool.Conn) error) erro
 			select {
 			case <-fnDone: // fn has finished, skip cancel
 			case <-c.Done():
-				_ = db.cancelRequest(cn.ProcessId, cn.SecretKey)
+				_ = db.cancelRequest(cn.ProcessID, cn.SecretKey)
 				// Indicate end of conn use
 				fnDone <- struct{}{}
 			}
@@ -183,7 +184,7 @@ func (db *baseDB) Close() error {
 // Exec executes a query ignoring returned rows. The params are for any
 // placeholders in the query.
 func (db *baseDB) Exec(query interface{}, params ...interface{}) (res Result, err error) {
-	return db.exec(nil, query, params...)
+	return db.exec(context.TODO(), query, params...)
 }
 
 func (db *baseDB) ExecContext(c context.Context, query interface{}, params ...interface{}) (Result, error) {
@@ -192,6 +193,7 @@ func (db *baseDB) ExecContext(c context.Context, query interface{}, params ...in
 
 func (db *baseDB) exec(c context.Context, query interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
+		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
@@ -213,7 +215,7 @@ func (db *baseDB) exec(c context.Context, query interface{}, params ...interface
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (db *baseDB) ExecOne(query interface{}, params ...interface{}) (Result, error) {
-	return db.execOne(nil, query, params...)
+	return db.execOne(context.TODO(), query, params...)
 }
 
 func (db *baseDB) ExecOneContext(c context.Context, query interface{}, params ...interface{}) (Result, error) {
@@ -235,7 +237,7 @@ func (db *baseDB) execOne(c context.Context, query interface{}, params ...interf
 // Query executes a query that returns rows, typically a SELECT.
 // The params are for any placeholders in the query.
 func (db *baseDB) Query(model, query interface{}, params ...interface{}) (res Result, err error) {
-	return db.query(nil, model, query, params...)
+	return db.query(context.TODO(), model, query, params...)
 }
 
 func (db *baseDB) QueryContext(c context.Context, model, query interface{}, params ...interface{}) (Result, error) {
@@ -244,6 +246,7 @@ func (db *baseDB) QueryContext(c context.Context, model, query interface{}, para
 
 func (db *baseDB) query(c context.Context, model, query interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
+		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
@@ -275,7 +278,7 @@ func (db *baseDB) query(c context.Context, model, query interface{}, params ...i
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (db *baseDB) QueryOne(model, query interface{}, params ...interface{}) (Result, error) {
-	return db.queryOne(nil, model, query, params...)
+	return db.queryOne(context.TODO(), model, query, params...)
 }
 
 func (db *baseDB) QueryOneContext(c context.Context, model, query interface{}, params ...interface{}) (Result, error) {
@@ -296,7 +299,7 @@ func (db *baseDB) queryOne(c context.Context, model, query interface{}, params .
 
 // CopyFrom copies data from reader to a table.
 func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
-	err = db.withConn(nil, func(cn *pool.Conn) error {
+	err = db.withConn(context.TODO(), func(cn *pool.Conn) error {
 		res, err = db.copyFrom(cn, r, query, params...)
 		return err
 	})
@@ -311,9 +314,7 @@ func (db *baseDB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params
 		return nil, err
 	}
 
-	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
-		return readCopyInResponse(rd)
-	})
+	err = cn.WithReader(db.opt.ReadTimeout, readCopyInResponse)
 	if err != nil {
 		return nil, err
 	}
@@ -352,7 +353,7 @@ func (db *baseDB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params
 
 // CopyTo copies data from a table to writer.
 func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (res Result, err error) {
-	err = db.withConn(nil, func(cn *pool.Conn) error {
+	err = db.withConn(context.TODO(), func(cn *pool.Conn) error {
 		res, err = db.copyTo(cn, w, query, params...)
 		return err
 	})
@@ -443,7 +444,7 @@ func (db *baseDB) FormatQuery(dst []byte, query string, params ...interface{}) [
 	return db.fmter.Append(dst, query, params...)
 }
 
-func (db *baseDB) cancelRequest(processId, secretKey int32) error {
+func (db *baseDB) cancelRequest(processID, secretKey int32) error {
 	cn, err := db.pool.NewConn()
 	if err != nil {
 		return err
@@ -453,7 +454,7 @@ func (db *baseDB) cancelRequest(processId, secretKey int32) error {
 	}()
 
 	err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
-		writeCancelRequestMsg(wb, processId, secretKey)
+		writeCancelRequestMsg(wb, processID, secretKey)
 		return nil
 	})
 	if err != nil {
@@ -515,7 +516,7 @@ func (db *baseDB) Prepare(q string) (*Stmt, error) {
 }
 
 func (db *baseDB) prepare(cn *pool.Conn, q string) (string, [][]byte, error) {
-	name := cn.NextId()
+	name := cn.NextID()
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writeParseDescribeSyncMsg(wb, name, q)
 		return nil
@@ -546,8 +547,6 @@ func (db *baseDB) closeStmt(cn *pool.Conn, name string) error {
 		return err
 	}
 
-	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
-		return readCloseCompleteMsg(rd)
-	})
+	err = cn.WithReader(db.opt.ReadTimeout, readCloseCompleteMsg)
 	return err
 }

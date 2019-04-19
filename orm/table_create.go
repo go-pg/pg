@@ -1,14 +1,15 @@
 package orm
 
 import (
-	"github.com/go-pg/pg/types"
 	"strconv"
+
+	"github.com/go-pg/pg/types"
 )
 
 type CreateTableOptions struct {
+	Varchar     int // replaces PostgreSQL data type `text` with `varchar(n)`
 	Temp        bool
 	IfNotExists bool
-	Varchar     int // replaces PostgreSQL data type `text` with `varchar(n)`
 
 	// FKConstraints causes CreateTable to create foreign key constraints
 	// for has one relations. ON DELETE hook can be added using tag
@@ -97,7 +98,7 @@ func (q *createTableQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	if q.opt != nil && q.opt.FKConstraints {
 		for _, rel := range table.Relations {
-			b = q.appendFKConstraint(b, table, rel)
+			b = q.appendFKConstraint(b, rel)
 		}
 	}
 
@@ -128,7 +129,7 @@ func appendUnique(b []byte, fields []*Field) []byte {
 	return b
 }
 
-func (q createTableQuery) appendFKConstraint(b []byte, table *Table, rel *Relation) []byte {
+func (q createTableQuery) appendFKConstraint(b []byte, rel *Relation) []byte {
 	if rel.Type != HasOneRelation {
 		return b
 	}

@@ -1,4 +1,4 @@
-package struct_filter
+package structfilter
 
 import (
 	"database/sql"

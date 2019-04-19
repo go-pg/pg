@@ -91,6 +91,6 @@ func (buf *WriteBuffer) WriteByte(c byte) error {
 
 func (buf *WriteBuffer) ReadFrom(r io.Reader) (int64, error) {
 	n, err := r.Read(buf.Bytes[len(buf.Bytes):cap(buf.Bytes)])
-	buf.Bytes = buf.Bytes[:len(buf.Bytes)+int(n)]
+	buf.Bytes = buf.Bytes[:len(buf.Bytes)+n]
 	return int64(n), err
 }

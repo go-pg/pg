@@ -4,14 +4,14 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/go-pg/pg/internal/struct_filter"
+	"github.com/go-pg/pg/internal/structfilter"
 )
 
 type structFilter struct {
 	value reflect.Value // reflect.Struct
 
 	strctOnce sync.Once
-	strct     *struct_filter.Struct // lazy
+	strct     *structfilter.Struct // lazy
 }
 
 var _ sepFormatAppender = (*structFilter)(nil)
@@ -31,7 +31,7 @@ func (sf *structFilter) AppendSep(b []byte) []byte {
 
 func (sf *structFilter) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	sf.strctOnce.Do(func() {
-		sf.strct = struct_filter.GetStruct(sf.value.Type())
+		sf.strct = structfilter.GetStruct(sf.value.Type())
 	})
 
 	isPlaceholder := isPlaceholderFormatter(fmter)

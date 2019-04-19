@@ -301,6 +301,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 	}
 }
 
+//nolint
 func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	sqlTag := tag.Parse(f.Tag.Get("sql"))
 
@@ -391,6 +392,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 	}
 
+	//nolint
 	if _, ok := sqlTag.Options["pk"]; ok {
 		field.SetFlag(PrimaryKeyFlag)
 	} else if strings.HasSuffix(field.SQLName, "_id") ||
@@ -531,6 +533,7 @@ func (t *Table) tryRelation(field *Field) bool {
 	return false
 }
 
+//nolint
 func (t *Table) tryRelationSlice(field *Field) bool {
 	elemType := indirectType(field.Type.Elem())
 	if elemType.Kind() != reflect.Struct {
@@ -548,7 +551,7 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 		fk = tryUnderscorePrefix(fk)
 	}
 
-	if m2mTableName, _ := pgTag.Options["many2many"]; m2mTableName != "" {
+	if m2mTableName := pgTag.Options["many2many"]; m2mTableName != "" {
 		m2mTable := _tables.getByName(m2mTableName)
 
 		var m2mTableAlias types.Q
@@ -688,7 +691,7 @@ func (t *Table) tryRelationStruct(field *Field) bool {
 func (t *Table) inlineFields(strct *Field, path map[reflect.Type]struct{}) {
 	if path == nil {
 		path = map[reflect.Type]struct{}{
-			t.Type: struct{}{},
+			t.Type: {},
 		}
 	}
 
@@ -766,8 +769,7 @@ func fieldSQLType(field *Field, pgTag, sqlTag *tag.Tag) string {
 		return pkSQLType(sqlType)
 	}
 
-	switch sqlType {
-	case "timestamptz":
+	if sqlType == "timestamptz" {
 		field.SetFlag(customTypeFlag)
 	}
 
@@ -777,48 +779,48 @@ func fieldSQLType(field *Field, pgTag, sqlTag *tag.Tag) string {
 func sqlType(typ reflect.Type) string {
 	switch typ {
 	case timeType:
-		return "timestamptz"
+		return pgTypeTimestampTz
 	case ipType:
-		return "inet"
+		return pgTypeInet
 	case ipNetType:
-		return "cidr"
+		return pgTypeCidr
 	case nullBoolType:
-		return "boolean"
+		return pgTypeBoolean
 	case nullFloatType:
-		return "double precision"
+		return pgTypeDoublePrecision
 	case nullIntType:
-		return "bigint"
+		return pgTypeBigint
 	case nullStringType:
-		return "text"
+		return pgTypeText
 	case jsonRawMessageType:
-		return "jsonb"
+		return pgTypeJSONB
 	}
 
 	switch typ.Kind() {
 	case reflect.Int8, reflect.Uint8, reflect.Int16:
-		return "smallint"
+		return pgTypeSmallint
 	case reflect.Uint16, reflect.Int32:
-		return "integer"
+		return pgTypeInteger
 	case reflect.Uint32, reflect.Int64, reflect.Int:
-		return "bigint"
+		return pgTypeBigint
 	case reflect.Uint, reflect.Uint64:
 		// The lesser of two evils.
-		return "bigint"
+		return pgTypeBigint
 	case reflect.Float32:
-		return "real"
+		return pgTypeReal
 	case reflect.Float64:
-		return "double precision"
+		return pgTypeDoublePrecision
 	case reflect.Bool:
-		return "boolean"
+		return pgTypeBoolean
 	case reflect.String:
-		return "text"
+		return pgTypeText
 	case reflect.Map, reflect.Struct:
-		return "jsonb"
+		return pgTypeJSONB
 	case reflect.Array, reflect.Slice:
 		if typ.Elem().Kind() == reflect.Uint8 {
-			return "bytea"
+			return pgTypeBytea
 		}
-		return "jsonb"
+		return pgTypeJSONB
 	default:
 		return typ.Kind().String()
 	}
@@ -826,12 +828,12 @@ func sqlType(typ reflect.Type) string {
 
 func pkSQLType(s string) string {
 	switch s {
-	case "smallint":
-		return "smallserial"
-	case "integer":
-		return "serial"
-	case "bigint":
-		return "bigserial"
+	case pgTypeSmallint:
+		return pgTypeSmallserial
+	case pgTypeInteger:
+		return pgTypeSerial
+	case pgTypeBigint:
+		return pgTypeBigserial
 	}
 	return s
 }

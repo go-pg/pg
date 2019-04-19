@@ -6,6 +6,7 @@ import (
 
 var tableNameInflector func(string) string
 
+//nolint
 func init() {
 	SetTableNameInflector(inflection.Plural)
 }

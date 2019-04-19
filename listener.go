@@ -33,8 +33,8 @@ type Listener struct {
 
 	mu     sync.Mutex
 	cn     *pool.Conn
-	closed bool
 	exit   chan struct{}
+	closed bool
 
 	chOnce sync.Once
 	ch     chan *Notification

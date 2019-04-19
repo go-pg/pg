@@ -217,8 +217,10 @@ func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
 	return q
 }
 
-// Column adds a column to the Query quoting it according to PostgreSQL rules. Does not expand params like ?TableAlias etc.
-// ColumnExpr can be used to bypass quoting restriction or for params expansion. Column name can be:
+// Column adds a column to the Query quoting it according to PostgreSQL rules.
+// Does not expand params like ?TableAlias etc.
+// ColumnExpr can be used to bypass quoting restriction or for params expansion.
+// Column name can be:
 //   - column_name,
 //   - table_alias.column_name,
 //   - table_alias.*.
@@ -285,6 +287,8 @@ func (q *Query) getDataFields() ([]*Field, error) {
 
 func (q *Query) _getFields(omitPKs bool) ([]*Field, error) {
 	table := q.model.Table()
+
+	//nolint
 	var columns []*Field
 	for _, col := range q.columns {
 		f, ok := col.(fieldAppender)
@@ -1344,9 +1348,8 @@ func (q wherePKQuery) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 	value := q.model.Value()
 	if q.model.Kind() == reflect.Slice {
 		return appendColumnAndSliceValue(fmter, b, value, table.Alias, table.PKs)
-	} else {
-		return appendColumnAndValue(fmter, b, value, table.Alias, table.PKs)
 	}
+	return appendColumnAndValue(fmter, b, value, table.Alias, table.PKs)
 }
 
 func appendColumnAndValue(

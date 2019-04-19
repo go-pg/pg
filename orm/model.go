@@ -82,9 +82,8 @@ func NewModel(values ...interface{}) (Model, error) {
 		elemType := indirectType(typ.Elem())
 		if elemType.Kind() == reflect.Struct && elemType != timeType {
 			return newSliceTableModel(v, elemType), nil
-		} else {
-			return newSliceModel(v, elemType), nil
 		}
+		return newSliceModel(v, elemType), nil
 	}
 
 	return Scan(v0), nil

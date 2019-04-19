@@ -1,4 +1,4 @@
-dist: trusty
+dist: xenial
 language: go
 
 addons:
@@ -11,12 +11,15 @@ go:
   - 1.12.x
   - tip
 
+go_import_path: github.com/go-pg/pg
+
 matrix:
   allow_failures:
     - go: tip
 
 before_install:
   - psql -U postgres -c "CREATE EXTENSION hstore"
+  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.16.0
 
 install:
   - go get github.com/jinzhu/inflection
@@ -24,3 +27,7 @@ install:
   - go get github.com/onsi/ginkgo
   - go get github.com/onsi/gomega
   - go get mellium.im/sasl
+
+script:
+  - 'if [ "${TRAVIS_GO_VERSION}" != "1.9.x" ]; then golangci-lint run; fi'
+  - make

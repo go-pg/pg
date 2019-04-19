@@ -134,12 +134,13 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, strct reflect.Valu
 			continue
 		}
 
-		if q.placeholder {
+		switch {
+		case q.placeholder:
 			b = append(b, '?')
-		} else if (f.Default != "" || f.OmitZero()) && f.IsZeroValue(strct) {
+		case f.Default != "" || f.OmitZero() && f.IsZeroValue(strct):
 			b = append(b, "DEFAULT"...)
 			q.addReturningField(f)
-		} else {
+		default:
 			b = f.AppendValue(b, strct, 1)
 		}
 	}

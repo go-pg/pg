@@ -18,6 +18,7 @@ type AppenderFunc func([]byte, reflect.Value, int) []byte
 
 var valueAppenders []AppenderFunc
 
+//nolint
 func init() {
 	valueAppenders = []AppenderFunc{
 		reflect.Bool:          appendBoolValue,

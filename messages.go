@@ -1,7 +1,7 @@
 package pg
 
 import (
-	"crypto/md5"
+	"crypto/md5" //nolint
 	"crypto/tls"
 	"encoding/binary"
 	"encoding/hex"
@@ -89,7 +89,7 @@ func (db *baseDB) startup(cn *pool.Conn, user, password, database, appName strin
 
 			switch c {
 			case backendKeyDataMsg:
-				processId, err := readInt32(rd)
+				processID, err := readInt32(rd)
 				if err != nil {
 					return err
 				}
@@ -97,7 +97,7 @@ func (db *baseDB) startup(cn *pool.Conn, user, password, database, appName strin
 				if err != nil {
 					return err
 				}
-				cn.ProcessId = processId
+				cn.ProcessID = processID
 				cn.SecretKey = secretKey
 			case parameterStatusMsg:
 				if err := logParameterStatus(rd, msgLen); err != nil {
@@ -260,7 +260,10 @@ func (db *baseDB) authSASL(cn *pool.Conn, rd *internal.BufReader, user, password
 		wb.StartMessage(saslInitialResponseMsg)
 		wb.WriteString("SCRAM-SHA-256")
 		wb.WriteInt32(int32(len(resp)))
-		wb.Write(resp)
+		_, err := wb.Write(resp)
+		if err != nil {
+			return err
+		}
 		wb.FinishMessage()
 		return nil
 	})
@@ -295,7 +298,10 @@ func (db *baseDB) authSASL(cn *pool.Conn, rd *internal.BufReader, user, password
 
 		err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 			wb.StartMessage(saslResponseMsg)
-			wb.Write(resp)
+			_, err := wb.Write(resp)
+			if err != nil {
+				return err
+			}
 			wb.FinishMessage()
 			return nil
 		})
@@ -361,9 +367,9 @@ func readAuthSASLFinal(rd *internal.BufReader, client *sasl.Negotiator) error {
 }
 
 func md5s(s string) string {
-	h := md5.New()
-	h.Write([]byte(s))
-	return hex.EncodeToString(h.Sum(nil))
+	//nolint
+	h := md5.Sum([]byte(s))
+	return hex.EncodeToString(h[:])
 }
 
 func writeStartupMsg(buf *pool.WriteBuffer, user, database, appName string) {
@@ -398,10 +404,10 @@ func writeFlushMsg(buf *pool.WriteBuffer) {
 	buf.FinishMessage()
 }
 
-func writeCancelRequestMsg(buf *pool.WriteBuffer, processId, secretKey int32) {
+func writeCancelRequestMsg(buf *pool.WriteBuffer, processID, secretKey int32) {
 	buf.StartMessage(0)
 	buf.WriteInt32(80877102)
-	buf.WriteInt32(processId)
+	buf.WriteInt32(processID)
 	buf.WriteInt32(secretKey)
 	buf.FinishMessage()
 }
@@ -414,7 +420,10 @@ func writeQueryMsg(buf *pool.WriteBuffer, fmter orm.QueryFormatter, query interf
 		return err
 	}
 	buf.Bytes = bytes
-	buf.WriteByte(0x0)
+	err = buf.WriteByte(0x0)
+	if err != nil {
+		return err
+	}
 	buf.FinishMessage()
 	return nil
 }
@@ -443,7 +452,7 @@ func writeParseDescribeSyncMsg(buf *pool.WriteBuffer, name, q string) {
 	buf.FinishMessage()
 
 	buf.StartMessage(describeMsg)
-	buf.WriteByte('S')
+	buf.WriteByte('S') //nolint
 	buf.WriteString(name)
 	buf.FinishMessage()
 
@@ -542,7 +551,7 @@ func writeBindExecuteMsg(buf *pool.WriteBuffer, name string, params ...interface
 
 func writeCloseMsg(buf *pool.WriteBuffer, name string) {
 	buf.StartMessage(closeMsg)
-	buf.WriteByte('S')
+	buf.WriteByte('S') //nolint
 	buf.WriteString(name)
 	buf.FinishMessage()
 }

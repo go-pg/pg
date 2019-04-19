@@ -4,6 +4,7 @@ import (
 	"github.com/go-pg/pg/internal"
 )
 
+// Delete deletes a given model from the db
 func Delete(db DB, model interface{}) error {
 	res, err := NewQuery(db, model).WherePK().Delete()
 	if err != nil {
@@ -12,6 +13,7 @@ func Delete(db DB, model interface{}) error {
 	return internal.AssertOneRow(res.RowsAffected())
 }
 
+// ForceDelete force deletes a given model from the db
 func ForceDelete(db DB, model interface{}) error {
 	res, err := NewQuery(db, model).WherePK().ForceDelete()
 	if err != nil {

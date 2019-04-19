@@ -53,7 +53,7 @@ func (m *m2mModel) NewModel() ColumnScanner {
 }
 
 func (m *m2mModel) AddModel(model ColumnScanner) error {
-	m.buf = modelIdMap(m.buf[:0], m.columns, m.rel.BaseFKs)
+	m.buf = modelIDMap(m.buf[:0], m.columns, m.rel.BaseFKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
 		return fmt.Errorf(
@@ -72,7 +72,7 @@ func (m *m2mModel) AddModel(model ColumnScanner) error {
 	return nil
 }
 
-func modelIdMap(b []byte, m map[string]string, columns []string) []byte {
+func modelIDMap(b []byte, m map[string]string, columns []string) []byte {
 	for i, col := range columns {
 		if i > 0 {
 			b = append(b, ',')
@@ -82,12 +82,12 @@ func modelIdMap(b []byte, m map[string]string, columns []string) []byte {
 	return b
 }
 
-func (m *m2mModel) AfterQuery(c context.Context, db DB) error {
+func (m *m2mModel) AfterQuery(ctx context.Context, db DB) error {
 	if m.rel.JoinTable.HasFlag(AfterQueryHookFlag) {
 		var firstErr error
 		for _, slices := range m.dstValues {
 			for _, slice := range slices {
-				err := callAfterQueryHookSlice(slice, m.sliceOfPtr, c, db)
+				err := callAfterQueryHookSlice(ctx, slice, m.sliceOfPtr, db)
 				if err != nil && firstErr == nil {
 					firstErr = err
 				}

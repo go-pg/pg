@@ -51,7 +51,7 @@ func (stmt *Stmt) prepare(q string) error {
 			}
 		}
 
-		lastErr = stmt.withConn(nil, func(cn *pool.Conn) error {
+		lastErr = stmt.withConn(context.TODO(), func(cn *pool.Conn) error {
 			var err error
 			stmt.name, stmt.columns, err = stmt.db.prepare(cn, q)
 			return err
@@ -76,7 +76,7 @@ func (stmt *Stmt) withConn(c context.Context, fn func(cn *pool.Conn) error) erro
 
 // Exec executes a prepared statement with the given parameters.
 func (stmt *Stmt) Exec(params ...interface{}) (Result, error) {
-	return stmt.exec(nil, params...)
+	return stmt.exec(context.TODO(), params...)
 }
 
 // ExecContext executes a prepared statement with the given parameters.
@@ -86,6 +86,7 @@ func (stmt *Stmt) ExecContext(c context.Context, params ...interface{}) (Result,
 
 func (stmt *Stmt) exec(c context.Context, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
+		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
@@ -110,9 +111,10 @@ func (stmt *Stmt) exec(c context.Context, params ...interface{}) (res Result, er
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (stmt *Stmt) ExecOne(params ...interface{}) (Result, error) {
-	return stmt.execOne(nil, params...)
+	return stmt.execOne(context.TODO(), params...)
 }
 
+// ExecOneContext acts like ExecOne but additionally receives a context
 func (stmt *Stmt) ExecOneContext(c context.Context, params ...interface{}) (Result, error) {
 	return stmt.execOne(c, params...)
 }
@@ -131,15 +133,17 @@ func (stmt *Stmt) execOne(c context.Context, params ...interface{}) (Result, err
 
 // Query executes a prepared query statement with the given parameters.
 func (stmt *Stmt) Query(model interface{}, params ...interface{}) (Result, error) {
-	return stmt.query(nil, model, params...)
+	return stmt.query(context.TODO(), model, params...)
 }
 
+// QueryContext acts like Query but additionally receives a context
 func (stmt *Stmt) QueryContext(c context.Context, model interface{}, params ...interface{}) (Result, error) {
 	return stmt.query(c, model, params...)
 }
 
 func (stmt *Stmt) query(c context.Context, model interface{}, params ...interface{}) (res Result, err error) {
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
+		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
@@ -171,9 +175,10 @@ func (stmt *Stmt) query(c context.Context, model interface{}, params ...interfac
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (Result, error) {
-	return stmt.queryOne(nil, model, params...)
+	return stmt.queryOne(context.TODO(), model, params...)
 }
 
+// QueryOneContext acts like QueryOne but additionally receives a context
 func (stmt *Stmt) QueryOneContext(c context.Context, model interface{}, params ...interface{}) (Result, error) {
 	return stmt.queryOne(c, model, params...)
 }
@@ -254,7 +259,7 @@ func (stmt *Stmt) extQueryData(
 }
 
 func (stmt *Stmt) closeStmt() error {
-	return stmt.withConn(nil, func(cn *pool.Conn) error {
+	return stmt.withConn(context.TODO(), func(cn *pool.Conn) error {
 		return stmt.db.closeStmt(cn, stmt.name)
 	})
 }

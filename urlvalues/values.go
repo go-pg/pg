@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-pg/pg/internal/struct_filter"
+	"github.com/go-pg/pg/internal/structfilter"
 )
 
 type Values map[string][]string
@@ -92,7 +92,7 @@ func (v Values) Time(name string) (time.Time, error) {
 	if s == "" {
 		return time.Time{}, nil
 	}
-	return struct_filter.ParseTime(s)
+	return structfilter.ParseTime(s)
 }
 
 func (v Values) MaybeTime(name string) time.Time {

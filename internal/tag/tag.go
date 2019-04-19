@@ -15,14 +15,14 @@ func (t *Tag) HasOption(name string) bool {
 }
 
 func Parse(s string) *Tag {
-	p := &TagParser{
+	p := &Parser{
 		Parser: parser.NewString(s),
 	}
 	p.parseKey()
 	return &p.Tag
 }
 
-type TagParser struct {
+type Parser struct {
 	*parser.Parser
 
 	Tag     Tag
@@ -30,7 +30,7 @@ type TagParser struct {
 	key     string
 }
 
-func (p *TagParser) setTagOption(key, value string) {
+func (p *Parser) setTagOption(key, value string) {
 	if !p.hasName {
 		p.hasName = true
 		if key == "" {
@@ -48,7 +48,7 @@ func (p *TagParser) setTagOption(key, value string) {
 	}
 }
 
-func (p *TagParser) parseKey() {
+func (p *Parser) parseKey() {
 	p.key = ""
 
 	var b []byte
@@ -77,7 +77,7 @@ func (p *TagParser) parseKey() {
 	}
 }
 
-func (p *TagParser) parseValue() {
+func (p *Parser) parseValue() {
 	const quote = '\''
 
 	c := p.Peek()
@@ -106,7 +106,7 @@ func (p *TagParser) parseValue() {
 	p.setTagOption(p.key, string(b))
 }
 
-func (p *TagParser) parseQuotedValue() {
+func (p *Parser) parseQuotedValue() {
 	const quote = '\''
 
 	var b []byte
