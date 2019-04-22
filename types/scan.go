@@ -58,10 +58,16 @@ func ScanString(rd Reader, n int) (string, error) {
 }
 
 func ScanBytes(rd Reader, n int) ([]byte, error) {
-	if n <= 0 {
+	if n == -1 {
 		return nil, nil
 	}
+	if n == 0 {
+		return []byte{}, nil
+	}
+	return readBytes(rd, nil)
+}
 
+func readBytes(rd Reader, b []byte) ([]byte, error) {
 	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return nil, err
@@ -76,7 +82,9 @@ func ScanBytes(rd Reader, n int) ([]byte, error) {
 	}
 	tmp = tmp[2:] // Trim off "\\x".
 
-	b := make([]byte, hex.DecodedLen(len(tmp)))
+	if b == nil {
+		b = make([]byte, hex.DecodedLen(len(tmp)))
+	}
 	written, err := hex.Decode(b, tmp)
 	if err != nil {
 		return nil, err

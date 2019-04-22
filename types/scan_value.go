@@ -95,6 +95,10 @@ func scanner(typ reflect.Type, pgArray bool) ScannerFunc {
 		if pgArray {
 			return ArrayScanner(typ)
 		}
+	case reflect.Array:
+		if typ.Elem().Kind() == reflect.Uint8 {
+			return scanArrayBytesValue
+		}
 	}
 	return valueScanners[kind]
 }
@@ -342,6 +346,20 @@ func scanBytesValue(v reflect.Value, rd Reader, n int) error {
 
 	v.SetBytes(b)
 	return nil
+}
+
+func scanArrayBytesValue(v reflect.Value, rd Reader, n int) error {
+	b := v.Slice(0, v.Len()).Bytes()
+
+	if n == -1 {
+		for i := range b {
+			b[i] = 0
+		}
+		return nil
+	}
+
+	_, err := readBytes(rd, b)
+	return err
 }
 
 func scanValueScannerValue(v reflect.Value, rd Reader, n int) error {
