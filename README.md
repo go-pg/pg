@@ -165,4 +165,4 @@ func createSchema(db *pg.DB) error {
 ## See also
 
 - [Golang msgpack](https://github.com/vmihailenco/msgpack)
-- [Golang message task queue](https://github.com/go-msgqueue/msgqueue)
+- [Golang message task queue](https://github.com/vmihailenco/taskq)
