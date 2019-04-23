@@ -307,6 +307,20 @@ var _ = Describe("With", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT "id", "name" FROM "select_models" AS "select_model"`))
 	})
+
+	It("supports WithDelete", func() {
+		subq := NewQuery(nil, &SelectModel{}).
+			Where("cond1")
+
+		q := NewQuery(nil).
+			WithDelete("wrapper", subq).
+			Table("wrapper").
+			Where("cond2")
+
+		b, err := (&selectQuery{q: q}).AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`WITH "wrapper" AS (DELETE FROM "select_models" AS "select_model" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
+	})
 })
 
 type orderTest struct {

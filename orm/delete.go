@@ -29,6 +29,12 @@ type deleteQuery struct {
 
 var _ QueryAppender = (*deleteQuery)(nil)
 
+func newDeleteQuery(q *Query) *deleteQuery {
+	return &deleteQuery{
+		q: q,
+	}
+}
+
 func (q *deleteQuery) Copy() *deleteQuery {
 	return &deleteQuery{
 		q:           q.q.Copy(),
@@ -52,8 +58,13 @@ func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 		return nil, q.q.stickyErr
 	}
 
+	var err error
+
 	if len(q.q.with) > 0 {
-		b = q.q.appendWith(b)
+		b, err = q.q.appendWith(b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	b = append(b, "DELETE FROM "...)
@@ -68,7 +79,7 @@ func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 	value := q.q.model.Value()
 	if q.q.isSliceModelWithData() {
 		table := q.q.model.Table()
-		err := table.checkPKs()
+		err = table.checkPKs()
 		if err != nil {
 			return nil, err
 		}
@@ -80,7 +91,6 @@ func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 			b = q.q.appendWhere(b)
 		}
 	} else {
-		var err error
 		b, err = q.q.mustAppendWhere(b)
 		if err != nil {
 			return nil, err

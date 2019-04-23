@@ -16,7 +16,7 @@ import (
 
 type withQuery struct {
 	name  string
-	query *Query
+	query QueryAppender
 }
 
 type joinQuery struct {
@@ -191,7 +191,18 @@ func (q *Query) Deleted() *Query {
 
 // With adds subq as common table expression with the given name.
 func (q *Query) With(name string, subq *Query) *Query {
-	q.with = append(q.with, withQuery{name, subq})
+	return q._with(name, newSelectQuery(subq))
+}
+
+func (q *Query) WithDelete(name string, subq *Query) *Query {
+	return q._with(name, newDeleteQuery(subq))
+}
+
+func (q *Query) _with(name string, subq QueryAppender) *Query {
+	q.with = append(q.with, withQuery{
+		name:  name,
+		query: subq,
+	})
 	return q
 }
 
@@ -1310,7 +1321,7 @@ func (q *Query) appendReturning(b []byte) []byte {
 	return b
 }
 
-func (q *Query) appendWith(b []byte) []byte {
+func (q *Query) appendWith(b []byte) ([]byte, error) {
 	b = append(b, "WITH "...)
 	for i, with := range q.with {
 		if i > 0 {
@@ -1318,11 +1329,17 @@ func (q *Query) appendWith(b []byte) []byte {
 		}
 		b = types.AppendField(b, with.name, 1)
 		b = append(b, " AS ("...)
-		b = with.query.AppendFormat(b, q)
+
+		var err error
+		b, err = with.query.AppendQuery(b)
+		if err != nil {
+			return nil, err
+		}
+
 		b = append(b, ')')
 	}
 	b = append(b, ' ')
-	return b
+	return b, nil
 }
 
 func (q *Query) isSliceModelWithData() bool {

@@ -48,14 +48,19 @@ func (q *updateQuery) AppendQuery(b []byte) ([]byte, error) {
 		return nil, q.q.stickyErr
 	}
 
+	var err error
+
 	if len(q.q.with) > 0 {
-		b = q.q.appendWith(b)
+		b, err = q.q.appendWith(b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	b = append(b, "UPDATE "...)
 	b = q.q.appendFirstTableWithAlias(b)
 
-	b, err := q.mustAppendSet(b)
+	b, err = q.mustAppendSet(b)
 	if err != nil {
 		return nil, err
 	}
