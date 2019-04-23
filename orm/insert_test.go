@@ -37,6 +37,11 @@ type InsertNullTest struct {
 	F4 int `sql:",pk,notnull"`
 }
 
+type InsertDefaultTest struct {
+	Id    int
+	Value string `sql:"default:hello"`
+}
+
 type InsertQTest struct {
 	Geo  types.Q
 	Func types.ValueAppender
@@ -138,6 +143,14 @@ var _ = Describe("Insert", func() {
 		b, err := (&insertQuery{q: q}).AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`INSERT INTO name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
+	})
+
+	It("supports value when default value is set", func() {
+		q := NewQuery(nil, &InsertDefaultTest{Id: 1, Value: "world"})
+
+		b, err := (&insertQuery{q: q}).AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`INSERT INTO "insert_default_tests" ("id", "value") VALUES (1, 'world')`))
 	})
 
 	It("supports notnull", func() {
