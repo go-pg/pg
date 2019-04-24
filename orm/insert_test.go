@@ -137,11 +137,10 @@ var _ = Describe("Insert", func() {
 	})
 
 	It("supports value when default value is set", func() {
-		q := NewQuery(nil, &InsertDefaultTest{Id: 1, Value: "world"})
+		q := NewQuery(nil, &InsertDefaultTest{Id: 1})
 
-		b, err := (&insertQuery{q: q}).AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`INSERT INTO "insert_default_tests" ("id", "value") VALUES (1, 'world')`))
+		s := insertQueryString(q)
+		Expect(s).To(Equal(`INSERT INTO "insert_default_tests" ("id", "value") VALUES (1, DEFAULT) RETURNING "value"`))
 	})
 
 	It("supports notnull", func() {
