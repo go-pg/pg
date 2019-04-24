@@ -33,7 +33,8 @@ var _ = Describe("structFilter", func() {
 	It("omits empty fields", func() {
 		f := newStructFilter(&Filter{})
 
-		b := f.AppendFormat(nil, nil)
+		b, err := f.AppendQuery(defaultFmter, nil)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(b).To(BeNil())
 	})
 
@@ -56,7 +57,8 @@ var _ = Describe("structFilter", func() {
 			Time: time.Unix(0, 0),
 		})
 
-		b := f.AppendFormat(nil, nil)
+		b, err := f.AppendQuery(defaultFmter, nil)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`field = 'one' AND field != 'two' AND field < 1 AND field <= 2 AND field > 3 AND field >= 4 AND field ILIKE 'three' AND field SIMILAR TO 'four' AND multi = ANY('{"one","two"}') AND multi != ALL('{3,4}') AND time = '1970-01-01 00:00:00+00:00:00'`))
 	})
 })

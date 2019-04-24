@@ -308,7 +308,7 @@ func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}
 
 func (db *baseDB) copyFrom(cn *pool.Conn, r io.Reader, query interface{}, params ...interface{}) (Result, error) {
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
-		return writeQueryMsg(wb, db, query, params...)
+		return writeQueryMsg(wb, db.fmter, query, params...)
 	})
 	if err != nil {
 		return nil, err
@@ -362,7 +362,7 @@ func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) 
 
 func (db *baseDB) copyTo(cn *pool.Conn, w io.Writer, query interface{}, params ...interface{}) (Result, error) {
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
-		return writeQueryMsg(wb, db, query, params...)
+		return writeQueryMsg(wb, db.fmter, query, params...)
 	})
 	if err != nil {
 		return nil, err
@@ -441,7 +441,7 @@ func (db *baseDB) DropComposite(model interface{}, opt *orm.DropCompositeOptions
 }
 
 func (db *baseDB) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
-	return db.fmter.Append(dst, query, params...)
+	return db.fmter.FormatQuery(dst, query, params...)
 }
 
 func (db *baseDB) cancelRequest(processID, secretKey int32) error {
@@ -468,7 +468,7 @@ func (db *baseDB) simpleQuery(
 	cn *pool.Conn, query interface{}, params ...interface{},
 ) (Result, error) {
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
-		return writeQueryMsg(wb, db, query, params...)
+		return writeQueryMsg(wb, db.fmter, query, params...)
 	})
 	if err != nil {
 		return nil, err
@@ -490,7 +490,7 @@ func (db *baseDB) simpleQueryData(
 	cn *pool.Conn, model, query interface{}, params ...interface{},
 ) (Result, error) {
 	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
-		return writeQueryMsg(wb, db, query, params...)
+		return writeQueryMsg(wb, db.fmter, query, params...)
 	})
 	if err != nil {
 		return nil, err

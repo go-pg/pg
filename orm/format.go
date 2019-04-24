@@ -14,12 +14,8 @@ import (
 
 var defaultFmter Formatter
 
-type FormatAppender interface {
-	AppendFormat([]byte, QueryFormatter) []byte
-}
-
-type sepFormatAppender interface {
-	FormatAppender
+type queryWithSepAppender interface {
+	QueryAppender
 	AppendSep([]byte) []byte
 }
 
@@ -30,7 +26,7 @@ type queryParamsAppender struct {
 	params []interface{}
 }
 
-var _ FormatAppender = (*queryParamsAppender)(nil)
+var _ QueryAppender = (*queryParamsAppender)(nil)
 var _ types.ValueAppender = (*queryParamsAppender)(nil)
 
 //nolint
@@ -38,12 +34,13 @@ func Q(query string, params ...interface{}) *queryParamsAppender {
 	return &queryParamsAppender{query, params}
 }
 
-func (q *queryParamsAppender) AppendFormat(b []byte, fmter QueryFormatter) []byte {
-	return fmter.FormatQuery(b, q.query, q.params...)
+func (q *queryParamsAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
+	return fmter.FormatQuery(b, q.query, q.params...), nil
 }
 
 func (q *queryParamsAppender) AppendValue(b []byte, quote int) []byte {
-	return q.AppendFormat(b, defaultFmter)
+	b, _ = q.AppendQuery(defaultFmter, b)
+	return b
 }
 
 func (q *queryParamsAppender) Value() types.Q {
@@ -55,26 +52,29 @@ func (q *queryParamsAppender) Value() types.Q {
 
 type condGroupAppender struct {
 	sep  string
-	cond []sepFormatAppender
+	cond []queryWithSepAppender
 }
 
-var _ FormatAppender = (*condAppender)(nil)
-var _ sepFormatAppender = (*condAppender)(nil)
+var _ QueryAppender = (*condAppender)(nil)
+var _ queryWithSepAppender = (*condAppender)(nil)
 
 func (q *condGroupAppender) AppendSep(b []byte) []byte {
 	return append(b, q.sep...)
 }
 
-func (q *condGroupAppender) AppendFormat(b []byte, fmter QueryFormatter) []byte {
+func (q *condGroupAppender) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	b = append(b, '(')
 	for i, app := range q.cond {
 		if i > 0 {
 			b = app.AppendSep(b)
 		}
-		b = app.AppendFormat(b, fmter)
+		b, err = app.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 	}
 	b = append(b, ')')
-	return b
+	return b, nil
 }
 
 //------------------------------------------------------------------------------
@@ -85,18 +85,18 @@ type condAppender struct {
 	params []interface{}
 }
 
-var _ FormatAppender = (*condAppender)(nil)
-var _ sepFormatAppender = (*condAppender)(nil)
+var _ QueryAppender = (*condAppender)(nil)
+var _ queryWithSepAppender = (*condAppender)(nil)
 
 func (q *condAppender) AppendSep(b []byte) []byte {
 	return append(b, q.sep...)
 }
 
-func (q *condAppender) AppendFormat(b []byte, fmter QueryFormatter) []byte {
+func (q *condAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	b = append(b, '(')
 	b = fmter.FormatQuery(b, q.cond, q.params...)
 	b = append(b, ')')
-	return b
+	return b, nil
 }
 
 //------------------------------------------------------------------------------
@@ -105,10 +105,10 @@ type fieldAppender struct {
 	field string
 }
 
-var _ FormatAppender = (*fieldAppender)(nil)
+var _ QueryAppender = (*fieldAppender)(nil)
 
-func (a fieldAppender) AppendFormat(b []byte, fmter QueryFormatter) []byte {
-	return types.AppendField(b, a.field, 1)
+func (a fieldAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
+	return types.AppendField(b, a.field, 1), nil
 }
 
 //------------------------------------------------------------------------------
@@ -131,6 +131,7 @@ func isPlaceholderFormatter(fmter QueryFormatter) bool {
 
 type Formatter struct {
 	namedParams map[string]interface{}
+	model       TableModel
 }
 
 func (f Formatter) String() string {
@@ -156,13 +157,34 @@ func (f Formatter) String() string {
 
 func (f Formatter) clone() Formatter {
 	var cp Formatter
+
+	cp.model = f.model
+	if len(f.namedParams) > 0 {
+		cp.namedParams = make(map[string]interface{}, len(f.namedParams))
+	}
 	for param, value := range f.namedParams {
-		cp.SetParam(param, value)
+		cp.setParam(param, value)
+	}
+
+	return cp
+}
+
+func (f Formatter) WithModel(model interface{}) Formatter {
+	cp := f.clone()
+	switch model := model.(type) {
+	case TableModel:
+		cp.model = model
+	case *Query:
+		cp.model = model.model
+	case queryCommand:
+		cp.model = model.Query().model
+	default:
+		panic(fmt.Errorf("pg: unsupported model %T", model))
 	}
 	return cp
 }
 
-func (f *Formatter) SetParam(param string, value interface{}) {
+func (f *Formatter) setParam(param string, value interface{}) {
 	if f.namedParams == nil {
 		f.namedParams = make(map[string]interface{})
 	}
@@ -171,7 +193,7 @@ func (f *Formatter) SetParam(param string, value interface{}) {
 
 func (f Formatter) WithParam(param string, value interface{}) Formatter {
 	cp := f.clone()
-	cp.SetParam(param, value)
+	cp.setParam(param, value)
 	return cp
 }
 
@@ -179,37 +201,28 @@ func (f Formatter) Param(param string) interface{} {
 	return f.namedParams[param]
 }
 
-func (f Formatter) Append(dst []byte, src string, params ...interface{}) []byte {
-	if (params == nil && f.namedParams == nil) || strings.IndexByte(src, '?') == -1 {
-		return append(dst, src...)
-	}
-	return f.append(dst, parser.NewString(src), params)
+func (f Formatter) hasParams() bool {
+	return len(f.namedParams) > 0 || f.model != nil
 }
 
-func (f Formatter) AppendBytes(dst, src []byte, params ...interface{}) []byte {
-	if (params == nil && f.namedParams == nil) || bytes.IndexByte(src, '?') == -1 {
-		return append(dst, src...)
+func (f Formatter) FormatQueryBytes(dst, query []byte, params ...interface{}) []byte {
+	if (params == nil && !f.hasParams()) || bytes.IndexByte(query, '?') == -1 {
+		return append(dst, query...)
 	}
-	return f.append(dst, parser.New(src), params)
+	return f.append(dst, parser.New(query), params)
 }
 
 func (f Formatter) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
-	return f.Append(dst, query, params...)
+	if (params == nil && !f.hasParams()) || strings.IndexByte(query, '?') == -1 {
+		return append(dst, query...)
+	}
+	return f.append(dst, parser.NewString(query), params)
 }
 
 func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []byte {
 	var paramsIndex int
 	var namedParamsOnce bool
 	var tableParams *tableParams
-	var model TableModel
-
-	if len(params) > 0 {
-		var ok bool
-		model, ok = params[len(params)-1].(TableModel)
-		if ok {
-			params = params[:len(params)-1]
-		}
-	}
 
 	for p.Valid() {
 		b, ok := p.ReadSep('?')
@@ -254,14 +267,14 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 			}
 
 			if tableParams != nil {
-				dst, ok = tableParams.AppendParam(dst, f, id)
+				dst, ok = tableParams.AppendParam(f, dst, id)
 				if ok {
 					continue
 				}
 			}
 
-			if model != nil {
-				dst, ok = model.AppendParam(dst, f, id)
+			if f.model != nil {
+				dst, ok = f.model.AppendParam(f, dst, id)
 				if ok {
 					continue
 				}
@@ -287,20 +300,14 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 	return dst
 }
 
-type queryAppender interface {
-	AppendQuery(dst []byte) ([]byte, error)
-}
-
 func (f Formatter) appendParam(b []byte, param interface{}) []byte {
 	switch param := param.(type) {
-	case queryAppender:
-		bb, err := param.AppendQuery(b)
+	case QueryAppender:
+		bb, err := param.AppendQuery(f, b)
 		if err != nil {
 			return types.AppendError(b, err)
 		}
 		return bb
-	case FormatAppender:
-		return param.AppendFormat(b, f)
 	default:
 		return types.Append(b, param, 1)
 	}

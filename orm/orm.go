@@ -17,15 +17,22 @@ type ColumnScanner interface {
 }
 
 type QueryAppender interface {
-	AppendQuery([]byte) ([]byte, error)
+	AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error)
 }
 
 type TemplateAppender interface {
-	AppendTemplate([]byte) ([]byte, error)
+	AppendTemplate(b []byte) ([]byte, error)
 }
 
 type QueryFormatter interface {
 	FormatQuery(b []byte, query string, params ...interface{}) []byte
+}
+
+type queryCommand interface {
+	QueryAppender
+	TemplateAppender
+	Clone() queryCommand
+	Query() *Query
 }
 
 // DB is a common interface for pg.DB and pg.Tx types.

@@ -45,13 +45,13 @@ func (m *sliceTableModel) IsNil() bool {
 	return false
 }
 
-func (m *sliceTableModel) AppendParam(b []byte, f QueryFormatter, name string) ([]byte, bool) {
+func (m *sliceTableModel) AppendParam(fmter QueryFormatter, b []byte, name string) ([]byte, bool) {
 	if field, ok := m.table.FieldsMap[name]; ok {
 		b = append(b, "_data."...)
 		b = append(b, field.Column...)
 		return b, true
 	}
-	return m.structTableModel.AppendParam(b, f, name)
+	return m.structTableModel.AppendParam(fmter, b, name)
 }
 
 func (m *sliceTableModel) Join(name string, apply func(*Query) (*Query, error)) *join {

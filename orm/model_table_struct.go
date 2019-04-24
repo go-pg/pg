@@ -39,6 +39,10 @@ func newStructTableModelValue(v reflect.Value) *structTableModel {
 	}
 }
 
+func (m *structTableModel) String() string {
+	return m.table.String()
+}
+
 func (*structTableModel) useQueryOne() bool {
 	return true
 }
@@ -55,7 +59,7 @@ func (m *structTableModel) Relation() *Relation {
 	return m.rel
 }
 
-func (m *structTableModel) AppendParam(b []byte, f QueryFormatter, name string) ([]byte, bool) {
+func (m *structTableModel) AppendParam(fmter QueryFormatter, b []byte, name string) ([]byte, bool) {
 	b, ok := m.table.AppendParam(b, m.strct, name)
 	if ok {
 		return b, true
@@ -63,7 +67,7 @@ func (m *structTableModel) AppendParam(b []byte, f QueryFormatter, name string) 
 
 	switch name {
 	case "TableName":
-		b = f.FormatQuery(b, string(m.table.FullName))
+		b = fmter.FormatQuery(b, string(m.table.FullName))
 		return b, true
 	case "TableAlias":
 		b = append(b, m.table.Alias...)

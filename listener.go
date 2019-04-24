@@ -164,7 +164,7 @@ func (ln *Listener) Listen(channels ...string) error {
 func (ln *Listener) listen(cn *pool.Conn, channels ...string) error {
 	err := cn.WithWriter(ln.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		for _, channel := range channels {
-			err := writeQueryMsg(wb, ln.db, "LISTEN ?", pgChan(channel))
+			err := writeQueryMsg(wb, ln.db.fmter, "LISTEN ?", pgChan(channel))
 			if err != nil {
 				return err
 			}
