@@ -19,7 +19,10 @@ type dropCompositeQuery struct {
 	opt *DropCompositeOptions
 }
 
-func (q *dropCompositeQuery) Copy() *dropCompositeQuery {
+var _ QueryAppender = (*dropCompositeQuery)(nil)
+var _ queryCommand = (*dropCompositeQuery)(nil)
+
+func (q *dropCompositeQuery) Clone() queryCommand {
 	return &dropCompositeQuery{
 		q:   q.q.Copy(),
 		opt: q.opt,
@@ -31,12 +34,10 @@ func (q *dropCompositeQuery) Query() *Query {
 }
 
 func (q *dropCompositeQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Copy()
-	cp.q = cp.q.Formatter(dummyFormatter{})
-	return cp.AppendQuery(b)
+	return q.AppendQuery(dummyFormatter{}, b)
 }
 
-func (q *dropCompositeQuery) AppendQuery(b []byte) ([]byte, error) {
+func (q *dropCompositeQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}

@@ -43,7 +43,7 @@ func (ev *QueryEvent) UnformattedQuery() (string, error) {
 
 // FormattedQuery returns the formatted query of a query event
 func (ev *QueryEvent) FormattedQuery() (string, error) {
-	b, err := appendQuery(nil, ev.DB, ev.Query, ev.Params...)
+	b, err := appendQuery(ev.DB, nil, ev.Query, ev.Params...)
 	if err != nil {
 		return "", err
 	}

@@ -77,8 +77,8 @@ var _ = Describe("URLValues", func() {
 			q := orm.NewQuery(nil, &URLValuesModel{})
 			q = q.Apply(urlvalues.Filters(urlvalues.Values(values)))
 
-			b := q.AppendFormat(nil, nil)
-			Expect(string(b)).To(Equal(test.query), "#%d", i)
+			s := queryString(q)
+			Expect(s).To(Equal(test.query), "#%d", i)
 		}
 	})
 
@@ -89,10 +89,10 @@ var _ = Describe("URLValues", func() {
 		q := orm.NewQuery(nil, &URLValuesModel{})
 		q = q.Apply(urlvalues.Filters(urlvalues.Values(values)))
 
-		b := q.AppendFormat(nil, nil)
-		Expect(string(b)).To(ContainSubstring(`"name" > '1'`))
-		Expect(string(b)).To(ContainSubstring(`"name" < '2'`))
-		Expect(string(b)).To(ContainSubstring(` AND `))
+		s := queryString(q)
+		Expect(s).To(ContainSubstring(`"name" > '1'`))
+		Expect(s).To(ContainSubstring(`"name" < '2'`))
+		Expect(s).To(ContainSubstring(` AND `))
 	})
 })
 
@@ -117,8 +117,15 @@ var _ = Describe("Pager", func() {
 			q := orm.NewQuery(nil, &URLValuesModel{})
 			q = q.Apply(urlvalues.Pagination(urlvalues.Values(values)))
 
-			b := q.AppendFormat(nil, nil)
-			Expect(string(b)).To(Equal(test.query))
+			s := queryString(q)
+			Expect(s).To(Equal(test.query))
 		}
 	})
 })
+
+func queryString(f orm.QueryAppender) string {
+	fmter := orm.Formatter{}
+	b, err := f.AppendQuery(fmter, nil)
+	Expect(err).NotTo(HaveOccurred())
+	return string(b)
+}

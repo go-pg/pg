@@ -14,7 +14,17 @@ type dropTableQuery struct {
 	opt *DropTableOptions
 }
 
-func (q *dropTableQuery) Copy() *dropTableQuery {
+var _ QueryAppender = (*dropTableQuery)(nil)
+var _ queryCommand = (*dropTableQuery)(nil)
+
+func newDropTableQuery(q *Query, opt *DropTableOptions) *dropTableQuery { //nolint:deadcode
+	return &dropTableQuery{
+		q:   q,
+		opt: opt,
+	}
+}
+
+func (q *dropTableQuery) Clone() queryCommand {
 	return &dropTableQuery{
 		q:   q.q.Copy(),
 		opt: q.opt,
@@ -26,12 +36,10 @@ func (q *dropTableQuery) Query() *Query {
 }
 
 func (q *dropTableQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Copy()
-	cp.q = cp.q.Formatter(dummyFormatter{})
-	return cp.AppendQuery(b)
+	return q.AppendQuery(dummyFormatter{}, b)
 }
 
-func (q *dropTableQuery) AppendQuery(b []byte) ([]byte, error) {
+func (q *dropTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
@@ -43,7 +51,10 @@ func (q *dropTableQuery) AppendQuery(b []byte) ([]byte, error) {
 	if q.opt != nil && q.opt.IfExists {
 		b = append(b, "IF EXISTS "...)
 	}
-	b = q.q.appendFirstTable(b)
+	b, err = q.q.appendFirstTable(fmter, b)
+	if err != nil {
+		return nil, err
+	}
 	if q.opt != nil && q.opt.Cascade {
 		b = append(b, " CASCADE"...)
 	}

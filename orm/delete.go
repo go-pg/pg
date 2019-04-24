@@ -28,6 +28,7 @@ type deleteQuery struct {
 }
 
 var _ QueryAppender = (*deleteQuery)(nil)
+var _ queryCommand = (*deleteQuery)(nil)
 
 func newDeleteQuery(q *Query) *deleteQuery {
 	return &deleteQuery{
@@ -35,7 +36,7 @@ func newDeleteQuery(q *Query) *deleteQuery {
 	}
 }
 
-func (q *deleteQuery) Copy() *deleteQuery {
+func (q *deleteQuery) Clone() queryCommand {
 	return &deleteQuery{
 		q:           q.q.Copy(),
 		placeholder: q.placeholder,
@@ -47,32 +48,35 @@ func (q *deleteQuery) Query() *Query {
 }
 
 func (q *deleteQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Copy()
-	cp.q = cp.q.Formatter(dummyFormatter{})
+	cp := q.Clone().(*deleteQuery)
 	cp.placeholder = true
-	return cp.AppendQuery(b)
+	return cp.AppendQuery(dummyFormatter{}, b)
 }
 
-func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
+func (q *deleteQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
 
-	var err error
-
 	if len(q.q.with) > 0 {
-		b, err = q.q.appendWith(b)
+		b, err = q.q.appendWith(fmter, b)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	b = append(b, "DELETE FROM "...)
-	b = q.q.appendFirstTableWithAlias(b)
+	b, err = q.q.appendFirstTableWithAlias(fmter, b)
+	if err != nil {
+		return nil, err
+	}
 
 	if q.q.hasMultiTables() {
 		b = append(b, " USING "...)
-		b = q.q.appendOtherTables(b)
+		b, err = q.q.appendOtherTables(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	b = append(b, " WHERE "...)
@@ -84,21 +88,27 @@ func (q *deleteQuery) AppendQuery(b []byte) ([]byte, error) {
 			return nil, err
 		}
 
-		b = appendColumnAndSliceValue(q.q, b, value, table.Alias, table.PKs)
+		b = appendColumnAndSliceValue(fmter, b, value, table.Alias, table.PKs)
 
 		if q.q.hasWhere() {
 			b = append(b, " AND "...)
-			b = q.q.appendWhere(b)
+			b, err = q.q.appendWhere(fmter, b)
+			if err != nil {
+				return nil, err
+			}
 		}
 	} else {
-		b, err = q.q.mustAppendWhere(b)
+		b, err = q.q.mustAppendWhere(fmter, b)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	if len(q.q.returning) > 0 {
-		b = q.q.appendReturning(b)
+		b, err = q.q.appendReturning(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return b, q.q.stickyErr

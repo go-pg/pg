@@ -1,9 +1,7 @@
-package orm_test
+package orm
 
 import (
 	"testing"
-
-	"github.com/go-pg/pg/orm"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,14 +13,15 @@ func TestQueryFormatQuery(t *testing.T) {
 		Bar string
 	}
 
-	q := orm.NewQuery(nil, &FormatModel{"foo", "bar"})
+	q := NewQuery(nil, &FormatModel{"foo", "bar"})
 
 	params := &struct {
 		Foo string
 	}{
 		"not_foo",
 	}
-	b := q.FormatQuery(nil, "?foo ?TableName ?TableAlias ?TableColumns ?Columns", params)
+	fmter := Formatter{}.WithModel(q)
+	b := fmter.FormatQuery(nil, "?foo ?TableName ?TableAlias ?TableColumns ?Columns", params)
 
 	wanted := `'not_foo' "format_models" "format_model" "format_model"."foo", "format_model"."bar" "foo", "bar"`
 	if string(b) != wanted {
@@ -32,9 +31,10 @@ func TestQueryFormatQuery(t *testing.T) {
 
 var _ = Describe("NewQuery", func() {
 	It("works with nil db", func() {
-		q := orm.NewQuery(nil)
+		q := NewQuery(nil)
 
-		b := q.AppendFormat(nil, nil)
+		b, err := q.AppendQuery(defaultFmter, nil)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal("SELECT *"))
 	})
 
@@ -42,9 +42,10 @@ var _ = Describe("NewQuery", func() {
 		type Model struct {
 			Id int
 		}
-		q := orm.NewQuery(nil, (*Model)(nil))
+		q := NewQuery(nil, (*Model)(nil))
 
-		b := q.AppendFormat(nil, nil)
+		b, err := q.AppendQuery(defaultFmter, nil)
+		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`SELECT "model"."id" FROM "models" AS "model"`))
 	})
 })

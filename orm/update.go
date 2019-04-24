@@ -23,8 +23,16 @@ type updateQuery struct {
 }
 
 var _ QueryAppender = (*updateQuery)(nil)
+var _ queryCommand = (*updateQuery)(nil)
 
-func (q *updateQuery) Copy() *updateQuery {
+func newUpdateQuery(q *Query, omitZero bool) *updateQuery {
+	return &updateQuery{
+		q:        q,
+		omitZero: omitZero,
+	}
+}
+
+func (q *updateQuery) Clone() queryCommand {
 	return &updateQuery{
 		q:           q.q.Copy(),
 		omitZero:    q.omitZero,
@@ -37,30 +45,30 @@ func (q *updateQuery) Query() *Query {
 }
 
 func (q *updateQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Copy()
-	cp.q = cp.q.Formatter(dummyFormatter{})
+	cp := q.Clone().(*updateQuery)
 	cp.placeholder = true
-	return cp.AppendQuery(b)
+	return cp.AppendQuery(dummyFormatter{}, b)
 }
 
-func (q *updateQuery) AppendQuery(b []byte) ([]byte, error) {
+func (q *updateQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
 
-	var err error
-
 	if len(q.q.with) > 0 {
-		b, err = q.q.appendWith(b)
+		b, err = q.q.appendWith(fmter, b)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	b = append(b, "UPDATE "...)
-	b = q.q.appendFirstTableWithAlias(b)
+	b, err = q.q.appendFirstTableWithAlias(fmter, b)
+	if err != nil {
+		return nil, err
+	}
 
-	b, err = q.mustAppendSet(b)
+	b, err = q.mustAppendSet(fmter, b)
 	if err != nil {
 		return nil, err
 	}
@@ -68,29 +76,37 @@ func (q *updateQuery) AppendQuery(b []byte) ([]byte, error) {
 	isSliceModelWithData := q.q.isSliceModelWithData()
 	if isSliceModelWithData || q.q.hasMultiTables() {
 		b = append(b, " FROM "...)
-		b = q.q.appendOtherTables(b)
+		b, err = q.q.appendOtherTables(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 
 		if isSliceModelWithData {
-			b, err = q.appendSliceModelData(b)
+			b, err = q.appendSliceModelData(fmter, b)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	b, err = q.mustAppendWhere(b, isSliceModelWithData)
+	b, err = q.mustAppendWhere(fmter, b, isSliceModelWithData)
 	if err != nil {
 		return nil, err
 	}
 
 	if len(q.q.returning) > 0 {
-		b = q.q.appendReturning(b)
+		b, err = q.q.appendReturning(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return b, q.q.stickyErr
 }
 
-func (q *updateQuery) mustAppendWhere(b []byte, isSliceModelWithData bool) ([]byte, error) {
+func (q *updateQuery) mustAppendWhere(
+	fmter QueryFormatter, b []byte, isSliceModelWithData bool,
+) (_ []byte, err error) {
 	b = append(b, " WHERE "...)
 
 	if isSliceModelWithData {
@@ -103,19 +119,21 @@ func (q *updateQuery) mustAppendWhere(b []byte, isSliceModelWithData bool) ([]by
 			b = appendWhereColumnAndColumn(b, table.Alias, table.PKs)
 			if q.q.hasWhere() {
 				b = append(b, " AND "...)
-				b = q.q.appendWhere(b)
+				b, err = q.q.appendWhere(fmter, b)
+				if err != nil {
+					return nil, err
+				}
 			}
 			return b, nil
 		}
 	}
 
-	return q.q.mustAppendWhere(b)
+	return q.q.mustAppendWhere(fmter, b)
 }
 
-func (q *updateQuery) mustAppendSet(b []byte) ([]byte, error) {
+func (q *updateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if len(q.q.set) > 0 {
-		b = q.q.appendSet(b)
-		return b, nil
+		return q.q.appendSet(fmter, b)
 	}
 
 	if !q.q.hasModel() {
@@ -125,9 +143,8 @@ func (q *updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 	b = append(b, " SET "...)
 
 	value := q.q.model.Value()
-	var err error
 	if value.Kind() == reflect.Struct {
-		b, err = q.appendSetStruct(b, value)
+		b, err = q.appendSetStruct(fmter, b, value)
 	} else {
 		if value.Len() > 0 {
 			b, err = q.appendSetSlice(b)
@@ -142,7 +159,7 @@ func (q *updateQuery) mustAppendSet(b []byte) ([]byte, error) {
 	return b, nil
 }
 
-func (q *updateQuery) appendSetStruct(b []byte, strct reflect.Value) ([]byte, error) {
+func (q *updateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct reflect.Value) ([]byte, error) {
 	fields, err := q.q.getFields()
 	if err != nil {
 		return nil, err
@@ -169,7 +186,10 @@ func (q *updateQuery) appendSetStruct(b []byte, strct reflect.Value) ([]byte, er
 
 		app, ok := q.q.modelValues[f.SQLName]
 		if ok {
-			b = app.AppendFormat(b, q.q)
+			b, err = app.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
 			continue
 		}
 
@@ -207,7 +227,7 @@ func (q *updateQuery) appendSetSlice(b []byte) ([]byte, error) {
 	return b, nil
 }
 
-func (q *updateQuery) appendSliceModelData(b []byte) ([]byte, error) {
+func (q *updateQuery) appendSliceModelData(fmter QueryFormatter, b []byte) ([]byte, error) {
 	columns, err := q.q.getDataFields()
 	if err != nil {
 		return nil, err
@@ -219,20 +239,28 @@ func (q *updateQuery) appendSliceModelData(b []byte) ([]byte, error) {
 		columns = q.q.model.Table().Fields
 	}
 
-	return q.appendSliceValues(b, columns, q.q.model.Value()), nil
+	return q.appendSliceValues(fmter, b, columns, q.q.model.Value())
 }
 
-func (q *updateQuery) appendSliceValues(b []byte, fields []*Field, slice reflect.Value) []byte {
+func (q *updateQuery) appendSliceValues(
+	fmter QueryFormatter, b []byte, fields []*Field, slice reflect.Value,
+) (_ []byte, err error) {
 	b = append(b, "(VALUES ("...)
 
 	if q.placeholder {
-		b = q.appendValues(b, fields, reflect.Value{})
+		b, err = q.appendValues(fmter, b, fields, reflect.Value{})
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		for i := 0; i < slice.Len(); i++ {
 			if i > 0 {
 				b = append(b, "), ("...)
 			}
-			b = q.appendValues(b, fields, slice.Index(i))
+			b, err = q.appendValues(fmter, b, fields, slice.Index(i))
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
@@ -240,10 +268,12 @@ func (q *updateQuery) appendSliceValues(b []byte, fields []*Field, slice reflect
 	b = appendColumns(b, "", fields)
 	b = append(b, ")"...)
 
-	return b
+	return b, nil
 }
 
-func (q *updateQuery) appendValues(b []byte, fields []*Field, strct reflect.Value) []byte {
+func (q *updateQuery) appendValues(
+	fmter QueryFormatter, b []byte, fields []*Field, strct reflect.Value,
+) (_ []byte, err error) {
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)
@@ -251,7 +281,10 @@ func (q *updateQuery) appendValues(b []byte, fields []*Field, strct reflect.Valu
 
 		app, ok := q.q.modelValues[f.SQLName]
 		if ok {
-			b = app.AppendFormat(b, q.q)
+			b, err = app.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
 			continue
 		}
 
@@ -265,7 +298,7 @@ func (q *updateQuery) appendValues(b []byte, fields []*Field, strct reflect.Valu
 			b = append(b, f.SQLType...)
 		}
 	}
-	return b
+	return b, nil
 }
 
 func appendWhereColumnAndColumn(b []byte, alias types.Q, fields []*Field) []byte {

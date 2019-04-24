@@ -11,19 +11,19 @@ var _ = Describe("CreateTable", func() {
 	It("drops table", func() {
 		q := NewQuery(nil, &DropTableModel{})
 
-		b, err := (&dropTableQuery{q: q}).AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`DROP TABLE "drop_table_models"`))
+		s := dropTableQueryString(q, nil)
+		Expect(s).To(Equal(`DROP TABLE "drop_table_models"`))
 	})
 
 	It("drops table if exists", func() {
 		q := NewQuery(nil, &DropTableModel{})
 
-		b, err := (&dropTableQuery{
-			q:   q,
-			opt: &DropTableOptions{IfExists: true},
-		}).AppendQuery(nil)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`DROP TABLE IF EXISTS "drop_table_models"`))
+		s := dropTableQueryString(q, &DropTableOptions{IfExists: true})
+		Expect(s).To(Equal(`DROP TABLE IF EXISTS "drop_table_models"`))
 	})
 })
+
+func dropTableQueryString(q *Query, opt *DropTableOptions) string {
+	qq := newDropTableQuery(q, opt)
+	return queryString(qq)
+}

@@ -24,6 +24,6 @@ func newTableParams(strct interface{}) (*tableParams, bool) {
 	}, true
 }
 
-func (m tableParams) AppendParam(b []byte, f QueryFormatter, name string) ([]byte, bool) {
+func (m tableParams) AppendParam(fmter QueryFormatter, b []byte, name string) ([]byte, bool) {
 	return m.table.AppendParam(b, m.strct, name)
 }

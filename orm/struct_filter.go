@@ -14,7 +14,7 @@ type structFilter struct {
 	strct     *structfilter.Struct // lazy
 }
 
-var _ sepFormatAppender = (*structFilter)(nil)
+var _ queryWithSepAppender = (*structFilter)(nil)
 
 func newStructFilter(v interface{}) *structFilter {
 	if v, ok := v.(*structFilter); ok {
@@ -29,7 +29,7 @@ func (sf *structFilter) AppendSep(b []byte) []byte {
 	return append(b, " AND "...)
 }
 
-func (sf *structFilter) AppendFormat(b []byte, fmter QueryFormatter) []byte {
+func (sf *structFilter) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	sf.strctOnce.Do(func() {
 		sf.strct = structfilter.GetStruct(sf.value.Type())
 	})
@@ -66,5 +66,5 @@ func (sf *structFilter) AppendFormat(b []byte, fmter QueryFormatter) []byte {
 		}
 	}
 
-	return b
+	return b, nil
 }

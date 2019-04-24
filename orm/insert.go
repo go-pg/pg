@@ -17,8 +17,15 @@ type insertQuery struct {
 }
 
 var _ QueryAppender = (*insertQuery)(nil)
+var _ queryCommand = (*insertQuery)(nil)
 
-func (q *insertQuery) Copy() *insertQuery {
+func newInsertQuery(q *Query) *insertQuery {
+	return &insertQuery{
+		q: q,
+	}
+}
+
+func (q *insertQuery) Clone() queryCommand {
 	return &insertQuery{
 		q:           q.q.Copy(),
 		placeholder: q.placeholder,
@@ -30,21 +37,18 @@ func (q *insertQuery) Query() *Query {
 }
 
 func (q *insertQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Copy()
-	cp.q = cp.q.Formatter(dummyFormatter{})
+	cp := q.Clone().(*insertQuery)
 	cp.placeholder = true
-	return cp.AppendQuery(b)
+	return cp.AppendQuery(dummyFormatter{}, b)
 }
 
-func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
+func (q *insertQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
 
-	var err error
-
 	if len(q.q.with) > 0 {
-		b, err = q.q.appendWith(b)
+		b, err = q.q.appendWith(fmter, b)
 		if err != nil {
 			return nil, err
 		}
@@ -52,19 +56,28 @@ func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 
 	b = append(b, "INSERT INTO "...)
 	if q.q.onConflict != nil {
-		b = q.q.appendFirstTableWithAlias(b)
+		b, err = q.q.appendFirstTableWithAlias(fmter, b)
 	} else {
-		b = q.q.appendFirstTable(b)
+		b, err = q.q.appendFirstTable(fmter, b)
+	}
+	if err != nil {
+		return nil, err
 	}
 
 	if q.q.hasMultiTables() {
 		if q.q.columns != nil {
 			b = append(b, " ("...)
-			b = q.q.appendColumns(b)
+			b, err = q.q.appendColumns(fmter, b)
+			if err != nil {
+				return nil, err
+			}
 			b = append(b, ")"...)
 		}
 		b = append(b, " SELECT * FROM "...)
-		b = q.q.appendOtherTables(b)
+		b, err = q.q.appendOtherTables(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		fields, err := q.q.getFields()
 		if err != nil {
@@ -84,20 +97,32 @@ func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 				err = fmt.Errorf("pg: can't bulk-insert empty slice %s", value.Type())
 				return nil, err
 			}
-			b = q.appendSliceValues(b, fields, value)
+			b, err = q.appendSliceValues(fmter, b, fields, value)
+			if err != nil {
+				return nil, err
+			}
 		} else {
-			b = q.appendValues(b, fields, value)
+			b, err = q.appendValues(fmter, b, fields, value)
+			if err != nil {
+				return nil, err
+			}
 		}
 		b = append(b, ")"...)
 	}
 
 	if q.q.onConflict != nil {
 		b = append(b, " ON CONFLICT "...)
-		b = q.q.onConflict.AppendFormat(b, q.q)
+		b, err = q.q.onConflict.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 
 		if q.q.onConflictDoUpdate() {
 			if len(q.q.set) > 0 {
-				b = q.q.appendSet(b)
+				b, err = q.q.appendSet(fmter, b)
+				if err != nil {
+					return nil, err
+				}
 			} else {
 				fields, err := q.q.getDataFields()
 				if err != nil {
@@ -113,13 +138,19 @@ func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 
 			if len(q.q.updWhere) > 0 {
 				b = append(b, " WHERE "...)
-				b = q.q.appendUpdWhere(b)
+				b, err = q.q.appendUpdWhere(fmter, b)
+				if err != nil {
+					return nil, err
+				}
 			}
 		}
 	}
 
 	if len(q.q.returning) > 0 {
-		b = q.q.appendReturning(b)
+		b, err = q.q.appendReturning(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 	} else if len(q.returningFields) > 0 {
 		b = appendReturningFields(b, q.returningFields)
 	}
@@ -127,7 +158,9 @@ func (q *insertQuery) AppendQuery(b []byte) ([]byte, error) {
 	return b, q.q.stickyErr
 }
 
-func (q *insertQuery) appendValues(b []byte, fields []*Field, strct reflect.Value) []byte {
+func (q *insertQuery) appendValues(
+	fmter QueryFormatter, b []byte, fields []*Field, strct reflect.Value,
+) (_ []byte, err error) {
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)
@@ -135,7 +168,10 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, strct reflect.Valu
 
 		app, ok := q.q.modelValues[f.SQLName]
 		if ok {
-			b = app.AppendFormat(b, q.q)
+			b, err = app.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
 			continue
 		}
 
@@ -149,13 +185,14 @@ func (q *insertQuery) appendValues(b []byte, fields []*Field, strct reflect.Valu
 			b = f.AppendValue(b, strct, 1)
 		}
 	}
-	return b
+	return b, nil
 }
 
-func (q *insertQuery) appendSliceValues(b []byte, fields []*Field, slice reflect.Value) []byte {
+func (q *insertQuery) appendSliceValues(
+	fmter QueryFormatter, b []byte, fields []*Field, slice reflect.Value,
+) (_ []byte, err error) {
 	if q.placeholder {
-		b = q.appendValues(b, fields, reflect.Value{})
-		return b
+		return q.appendValues(fmter, b, fields, reflect.Value{})
 	}
 
 	for i := 0; i < slice.Len(); i++ {
@@ -163,9 +200,12 @@ func (q *insertQuery) appendSliceValues(b []byte, fields []*Field, slice reflect
 			b = append(b, "), ("...)
 		}
 		el := indirect(slice.Index(i))
-		b = q.appendValues(b, fields, el)
+		b, err = q.appendValues(fmter, b, fields, el)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return b
+	return b, nil
 }
 
 func (q *insertQuery) addReturningField(field *Field) {

@@ -22,17 +22,17 @@ func (j *join) AppendOn(app *condAppender) {
 	j.on = append(j.on, app)
 }
 
-func (j *join) Select(q *Query) error {
+func (j *join) Select(fmter QueryFormatter, q *Query) error {
 	switch j.Rel.Type {
 	case HasManyRelation:
-		return j.selectMany(q)
+		return j.selectMany(fmter, q)
 	case Many2ManyRelation:
-		return j.selectM2M(q)
+		return j.selectM2M(fmter, q)
 	}
 	panic("not reached")
 }
 
-func (j *join) selectMany(q *Query) error {
+func (j *join) selectMany(_ QueryFormatter, q *Query) error {
 	q, err := j.manyQuery(q)
 	if err != nil {
 		return err
@@ -59,7 +59,7 @@ func (j *join) manyQuery(q *Query) (*Query, error) {
 	}
 
 	if len(q.columns) == 0 {
-		q.columns = append(q.columns, hasManyColumnsAppender{j})
+		q.columns = append(q.columns, &hasManyColumnsAppender{j})
 	}
 
 	baseTable := j.BaseModel.Table()
@@ -86,8 +86,8 @@ func (j *join) manyQuery(q *Query) (*Query, error) {
 	return q, nil
 }
 
-func (j *join) selectM2M(q *Query) error {
-	q, err := j.m2mQuery(q)
+func (j *join) selectM2M(fmter QueryFormatter, q *Query) error {
+	q, err := j.m2mQuery(fmter, q)
 	if err != nil {
 		return err
 	}
@@ -97,7 +97,7 @@ func (j *join) selectM2M(q *Query) error {
 	return q.Select()
 }
 
-func (j *join) m2mQuery(q *Query) (*Query, error) {
+func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 	m2mModel := newM2MModel(j)
 	if m2mModel == nil {
 		return nil, nil
@@ -113,7 +113,7 @@ func (j *join) m2mQuery(q *Query) (*Query, error) {
 	}
 
 	if len(q.columns) == 0 {
-		q.columns = append(q.columns, hasManyColumnsAppender{j})
+		q.columns = append(q.columns, &hasManyColumnsAppender{j})
 	}
 
 	index := j.JoinModel.ParentIndex()
@@ -122,7 +122,7 @@ func (j *join) m2mQuery(q *Query) (*Query, error) {
 	//nolint
 	var join []byte
 	join = append(join, "JOIN "...)
-	join = q.FormatQuery(join, string(j.Rel.M2MTableName))
+	join = fmter.FormatQuery(join, string(j.Rel.M2MTableName))
 	join = append(join, " AS "...)
 	join = append(join, j.Rel.M2MTableAlias...)
 	join = append(join, " ON ("...)
@@ -230,11 +230,11 @@ func (j *join) appendHasOneColumns(b []byte) []byte {
 	return b
 }
 
-func (j *join) appendHasOneJoin(q *Query, b []byte) []byte {
+func (j *join) appendHasOneJoin(fmter QueryFormatter, b []byte, q *Query) (_ []byte, err error) {
 	isSoftDelete := q.isSoftDelete()
 
 	b = append(b, "LEFT JOIN "...)
-	b = q.FormatQuery(b, string(j.JoinModel.Table().FullNameForSelects))
+	b = fmter.FormatQuery(b, string(j.JoinModel.Table().FullNameForSelects))
 	b = append(b, " AS "...)
 	b = j.appendAlias(b)
 
@@ -282,7 +282,10 @@ func (j *join) appendHasOneJoin(q *Query, b []byte) []byte {
 
 	for _, on := range j.on {
 		b = on.AppendSep(b)
-		b = on.AppendFormat(b, q)
+		b, err = on.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if isSoftDelete {
@@ -295,14 +298,16 @@ func (j *join) appendHasOneJoin(q *Query, b []byte) []byte {
 		b = q.appendSoftDelete(b)
 	}
 
-	return b
+	return b, nil
 }
 
 type hasManyColumnsAppender struct {
 	*join
 }
 
-func (q hasManyColumnsAppender) AppendFormat(b []byte, fmter QueryFormatter) []byte {
+var _ QueryAppender = (*hasManyColumnsAppender)(nil)
+
+func (q *hasManyColumnsAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	if q.Rel.M2MTableAlias != "" {
 		b = append(b, q.Rel.M2MTableAlias...)
 		b = append(b, ".*, "...)
@@ -319,10 +324,11 @@ func (q hasManyColumnsAppender) AppendFormat(b []byte, fmter QueryFormatter) []b
 			b = append(b, '.')
 			b = types.AppendField(b, column, 1)
 		}
-		return b
+		return b, nil
 	}
 
-	return appendColumns(b, joinTable.Alias, joinTable.Fields)
+	b = appendColumns(b, joinTable.Alias, joinTable.Fields)
+	return b, nil
 }
 
 func appendChildValues(b []byte, v reflect.Value, index []int, fields []*Field) []byte {

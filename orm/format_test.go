@@ -148,10 +148,10 @@ func TestFormatQuery(t *testing.T) {
 	for _, test := range formatTests {
 		var f orm.Formatter
 		for k, v := range test.paramsMap {
-			f.SetParam(k, v)
+			f = f.WithParam(k, v)
 		}
 
-		got := f.Append(nil, test.q, test.params...)
+		got := f.FormatQuery(nil, test.q, test.params...)
 		if string(got) != test.wanted {
 			t.Fatalf(
 				"got %q, wanted %q (q=%q params=%v paramsMap=%v)",

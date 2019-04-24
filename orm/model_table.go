@@ -13,7 +13,7 @@ type TableModel interface {
 	IsNil() bool
 	Table() *Table
 	Relation() *Relation
-	AppendParam([]byte, QueryFormatter, string) ([]byte, bool)
+	AppendParam(QueryFormatter, []byte, string) ([]byte, bool)
 
 	Join(string, func(*Query) (*Query, error)) *join
 	GetJoin(string) *join

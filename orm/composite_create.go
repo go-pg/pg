@@ -22,7 +22,10 @@ type createCompositeQuery struct {
 	opt *CreateCompositeOptions
 }
 
-func (q *createCompositeQuery) Copy() *createCompositeQuery {
+var _ QueryAppender = (*createCompositeQuery)(nil)
+var _ queryCommand = (*createCompositeQuery)(nil)
+
+func (q *createCompositeQuery) Clone() queryCommand {
 	return &createCompositeQuery{
 		q:   q.q.Copy(),
 		opt: q.opt,
@@ -34,12 +37,10 @@ func (q *createCompositeQuery) Query() *Query {
 }
 
 func (q *createCompositeQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Copy()
-	cp.q = cp.q.Formatter(dummyFormatter{})
-	return cp.AppendQuery(b)
+	return q.AppendQuery(dummyFormatter{}, b)
 }
 
-func (q *createCompositeQuery) AppendQuery(b []byte) ([]byte, error) {
+func (q *createCompositeQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
