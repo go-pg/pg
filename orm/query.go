@@ -898,7 +898,6 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
 	}
 
 	var insertq *Query
-
 	var insertErr error
 	for i := 0; i < 5; i++ {
 		if i >= 2 {
@@ -911,7 +910,6 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
 		}
 		if err != internal.ErrNoRows {
 			return false, err
-
 		}
 
 		if insertq == nil {
@@ -946,8 +944,7 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
 
 	err := fmt.Errorf(
 		"pg: SelectOrInsert: select returns no rows (insert fails with err=%q)",
-		insertErr,
-	)
+		insertErr)
 	return false, err
 }
 
