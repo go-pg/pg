@@ -11,6 +11,9 @@ go:
   - 1.12.x
   - tip
 
+env:
+  - GO111MODULE=on
+
 go_import_path: github.com/go-pg/pg
 
 matrix:
