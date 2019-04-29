@@ -28,7 +28,7 @@ func (p *hstoreParser) NextKey() ([]byte, error) {
 		return nil, err
 	}
 
-	key, err := p.p.ReadSubstring()
+	key, err := p.p.ReadSubstring(nil)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (p *hstoreParser) NextValue() ([]byte, error) {
 		return nil, err
 	}
 
-	value, err := p.p.ReadSubstring()
+	value, err := p.p.ReadSubstring(nil)
 	if err != nil {
 		return nil, err
 	}

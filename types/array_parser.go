@@ -16,11 +16,13 @@ type arrayParser struct {
 	p parser.StreamingParser
 
 	stickyErr error
+	buf       []byte
 }
 
 func newArrayParserErr(err error) *arrayParser {
 	return &arrayParser{
 		stickyErr: err,
+		buf:       make([]byte, 32),
 	}
 }
 
@@ -50,24 +52,30 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 
 	switch c {
 	case '"':
-		b, err := p.p.ReadSubstring()
+		b, err := p.p.ReadSubstring(p.buf[:0])
 		if err != nil {
 			return nil, err
 		}
+		p.buf = b
+
 		err = p.readCommaBrace()
 		if err != nil {
 			return nil, err
 		}
+
 		return b, nil
 	case '{':
-		b, err := p.readSubArray()
+		b, err := p.readSubArray(p.buf[:0])
 		if err != nil {
 			return nil, err
 		}
+		p.buf = b
+
 		err = p.readCommaBrace()
 		if err != nil {
 			return nil, err
 		}
+
 		return b, nil
 	case '}':
 		return nil, errEndOfArray
@@ -77,41 +85,48 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 			return nil, err
 		}
 
-		var b []byte
-		for {
-			tmp, err := p.p.ReadSlice(',')
-			if err == nil {
-				if b == nil {
-					b = tmp
-				} else {
-					b = append(b, tmp...)
-				}
-				b = b[:len(b)-1]
-				break
-			}
-			b = append(b, tmp...)
-			if err == bufio.ErrBufferFull {
-				continue
-			}
-			if err == io.EOF {
-				if b[len(b)-1] == '}' {
-					b = b[:len(b)-1]
-					break
-				}
-			}
+		b, err := p.readSimple(p.buf[:0])
+		if err != nil {
 			return nil, err
 		}
-
-		if bytes.Equal(b, []byte("NULL")) {
-			return nil, nil
-		}
-
+		p.buf = b
 		return b, nil
 	}
 }
 
-func (p *arrayParser) readSubArray() ([]byte, error) {
-	var b []byte
+func (p *arrayParser) readSimple(b []byte) ([]byte, error) {
+	for {
+		tmp, err := p.p.ReadSlice(',')
+		if err == nil {
+			if b == nil {
+				b = tmp
+			} else {
+				b = append(b, tmp...)
+			}
+			b = b[:len(b)-1]
+			break
+		}
+		b = append(b, tmp...)
+		if err == bufio.ErrBufferFull {
+			continue
+		}
+		if err == io.EOF {
+			if b[len(b)-1] == '}' {
+				b = b[:len(b)-1]
+				break
+			}
+		}
+		return nil, err
+	}
+
+	if bytes.Equal(b, []byte("NULL")) {
+		return nil, nil
+	}
+
+	return b, nil
+}
+
+func (p *arrayParser) readSubArray(b []byte) ([]byte, error) {
 	b = append(b, '{')
 	for {
 		c, err := p.p.ReadByte()
