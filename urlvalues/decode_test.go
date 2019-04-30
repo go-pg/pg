@@ -83,6 +83,24 @@ var _ = Describe("Decode", func() {
 		Expect(f.NullString.String).To(Equal("string"))
 	})
 
+	It("supports names with suffix `[]`", func() {
+		f := &Filter{}
+		err := urlvalues.Decode(f, urlvalues.Values{
+			"field[]": {"one"},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(f.Field).To(Equal("one"))
+	})
+
+	It("supports names with prefix `:`", func() {
+		f := &Filter{}
+		err := urlvalues.Decode(f, urlvalues.Values{
+			":field": {"one"},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(f.Field).To(Equal("one"))
+	})
+
 	It("decodes sql.Null*", func() {
 		f := &Filter{}
 		err := urlvalues.Decode(f, urlvalues.Values{
