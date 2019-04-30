@@ -90,6 +90,10 @@ func (p *arrayParser) NextElem() ([]byte, error) {
 			return nil, err
 		}
 		p.buf = b
+
+		if bytes.Equal(b, []byte("NULL")) {
+			return nil, nil
+		}
 		return b, nil
 	}
 }
@@ -98,11 +102,7 @@ func (p *arrayParser) readSimple(b []byte) ([]byte, error) {
 	for {
 		tmp, err := p.p.ReadSlice(',')
 		if err == nil {
-			if b == nil {
-				b = tmp
-			} else {
-				b = append(b, tmp...)
-			}
+			b = append(b, tmp...)
 			b = b[:len(b)-1]
 			break
 		}
@@ -118,11 +118,6 @@ func (p *arrayParser) readSimple(b []byte) ([]byte, error) {
 		}
 		return nil, err
 	}
-
-	if bytes.Equal(b, []byte("NULL")) {
-		return nil, nil
-	}
-
 	return b, nil
 }
 
