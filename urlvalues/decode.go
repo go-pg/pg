@@ -13,12 +13,8 @@ func Decode(strct interface{}, values Values) error {
 	meta := structfilter.GetStruct(v.Type())
 
 	for name, values := range values {
-		if strings.HasPrefix(name, ":") {
-			name = name[1:]
-		}
-		if strings.HasSuffix(name, "[]") {
-			name = name[:len(name)-2]
-		}
+		name = strings.TrimPrefix(name, ":")
+		name = strings.TrimSuffix(name, "[]")
 
 		field := meta.Field(name)
 		if field != nil && !field.NoDecode() {
