@@ -83,6 +83,13 @@ func (m *sliceTableModel) NewModel() ColumnScanner {
 	return m
 }
 
+func (m *sliceTableModel) BeforeQuery(ctx context.Context, db DB) error {
+	if m.table.HasFlag(BeforeQueryHookFlag) {
+		return callBeforeQueryHookSlice(ctx, m.slice, m.sliceOfPtr, db)
+	}
+	return nil
+}
+
 func (m *sliceTableModel) AfterQuery(ctx context.Context, db DB) error {
 	if m.table.HasFlag(AfterQueryHookFlag) {
 		return callAfterQueryHookSlice(ctx, m.slice, m.sliceOfPtr, db)

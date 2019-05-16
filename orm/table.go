@@ -17,7 +17,8 @@ import (
 )
 
 const (
-	AfterQueryHookFlag = uint16(1) << iota
+	BeforeQueryHookFlag = uint16(1) << iota
+	AfterQueryHookFlag
 	BeforeSelectQueryHookFlag
 	AfterSelectHookFlag
 	BeforeInsertHookFlag
@@ -84,6 +85,9 @@ func newTable(typ reflect.Type) *Table {
 	t.Alias = types.Q(types.AppendField(nil, t.ModelName, 1))
 
 	typ = reflect.PtrTo(t.Type)
+	if typ.Implements(beforeQueryHookType) {
+		t.SetFlag(BeforeQueryHookFlag)
+	}
 	if typ.Implements(afterQueryHookType) {
 		t.SetFlag(AfterQueryHookFlag)
 	}

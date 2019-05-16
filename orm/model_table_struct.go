@@ -158,6 +158,13 @@ func (m *structTableModel) AddModel(_ ColumnScanner) error {
 	return nil
 }
 
+func (m *structTableModel) BeforeQuery(ctx context.Context, db DB) error {
+	if !m.table.HasFlag(BeforeQueryHookFlag) {
+		return nil
+	}
+	return callBeforeQueryHook(ctx, m.strct.Addr(), db)
+}
+
 func (m *structTableModel) AfterQuery(ctx context.Context, db DB) error {
 	if !m.table.HasFlag(AfterQueryHookFlag) {
 		return nil

@@ -7,6 +7,10 @@ import (
 
 type hookStubs struct{}
 
+func (hookStubs) BeforeQuery(_ context.Context, _ DB) error {
+	return nil
+}
+
 func (hookStubs) AfterQuery(_ context.Context, _ DB) error {
 	return nil
 }
@@ -77,10 +81,24 @@ type afterQueryHook interface {
 	AfterQuery(context.Context, DB) error
 }
 
+type beforeQueryHook interface {
+	BeforeQuery(context.Context, DB) error
+}
+
 var afterQueryHookType = reflect.TypeOf((*afterQueryHook)(nil)).Elem()
+
+var beforeQueryHookType = reflect.TypeOf((*beforeQueryHook)(nil)).Elem()
+
+func callBeforeQueryHook(ctx context.Context, v reflect.Value, db DB) error {
+	return v.Interface().(beforeQueryHook).BeforeQuery(ctx, db)
+}
 
 func callAfterQueryHook(ctx context.Context, v reflect.Value, db DB) error {
 	return v.Interface().(afterQueryHook).AfterQuery(ctx, db)
+}
+
+func callBeforeQueryHookSlice(ctx context.Context, slice reflect.Value, ptr bool, db DB) error {
+	return callHookSlice(ctx, slice, ptr, db, callAfterQueryHook)
 }
 
 func callAfterQueryHookSlice(ctx context.Context, slice reflect.Value, ptr bool, db DB) error {

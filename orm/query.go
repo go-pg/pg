@@ -145,6 +145,10 @@ func (q *Query) Model(model ...interface{}) *Query {
 	}
 	if err != nil {
 		q = q.err(err)
+	} else if q.model != nil && q.model.Table().HasFlag(BeforeQueryHookFlag) {
+		if err = q.model.BeforeQuery(q.ctx, q.db); err != nil {
+			q = q.err(err)
+		}
 	}
 	q.implicitModel = false
 	return q
@@ -707,11 +711,15 @@ func (q *Query) Select(values ...interface{}) error {
 	return nil
 }
 
-func (q *Query) newModel(values ...interface{}) (Model, error) {
+func (q *Query) newModel(values ...interface{}) (model Model, err error) {
+	model = q.model
 	if len(values) > 0 {
-		return NewModel(values...)
+		model, err = NewModel(values...)
 	}
-	return q.model, nil
+	if err == nil {
+		err = model.BeforeQuery(q.ctx, q.db)
+	}
+	return
 }
 
 func (q *Query) query(model Model, query interface{}) (Result, error) {

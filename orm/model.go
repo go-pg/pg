@@ -33,6 +33,7 @@ type HooklessModel interface {
 type Model interface {
 	HooklessModel
 
+	BeforeQuery(context.Context, DB) error
 	AfterQuery(context.Context, DB) error
 
 	BeforeSelectQuery(context.Context, DB, *Query) (*Query, error)
@@ -48,7 +49,7 @@ type Model interface {
 	AfterDelete(context.Context, DB) error
 }
 
-func NewModel(values ...interface{}) (Model, error) {
+func NewModel(values ...interface{}) (model Model, err error) {
 	if len(values) > 1 {
 		return Scan(values...), nil
 	}
