@@ -520,7 +520,7 @@ func (t *Table) initRelations() {
 }
 
 func (t *Table) tryRelation(field *Field) bool {
-	if isColumn(field.Type) {
+	if field.HasFlag(customTypeFlag) || isScanner(field.Type) {
 		return false
 	}
 
@@ -731,7 +731,7 @@ func appendNew(dst []int, src ...int) []int {
 	return cp
 }
 
-func isColumn(typ reflect.Type) bool {
+func isScanner(typ reflect.Type) bool {
 	return typ.Implements(scannerType) || reflect.PtrTo(typ).Implements(scannerType)
 }
 
