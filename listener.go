@@ -220,7 +220,7 @@ func (ln *Listener) channel(size int) <-chan *Notification {
 		ln.initChannel(size)
 	})
 	if cap(ln.ch) != size {
-		err := fmt.Errorf("redis: Listener.Channel is called with different buffer size")
+		err := fmt.Errorf("pg: Listener.Channel is called with different buffer size")
 		panic(err)
 	}
 	return ln.ch
