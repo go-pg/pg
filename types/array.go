@@ -28,11 +28,11 @@ func NewArray(vi interface{}) *Array {
 	}
 }
 
-func (a *Array) AppendValue(b []byte, quote int) []byte {
+func (a *Array) AppendValue(b []byte, quote int) ([]byte, error) {
 	if a.append == nil {
 		panic(fmt.Errorf("pg: Array(unsupported %s)", a.v.Type()))
 	}
-	return a.append(b, a.v, quote)
+	return a.append(b, a.v, quote), nil
 }
 
 func (a *Array) ScanValue(rd Reader, n int) error {
