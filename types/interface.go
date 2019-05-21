@@ -7,7 +7,7 @@ type ValueScanner interface {
 }
 
 type ValueAppender interface {
-	AppendValue(b []byte, quote int) []byte
+	AppendValue(b []byte, quote int) ([]byte, error)
 }
 
 //------------------------------------------------------------------------------
@@ -17,8 +17,8 @@ type Q string
 
 var _ ValueAppender = Q("")
 
-func (q Q) AppendValue(b []byte, quote int) []byte {
-	return append(b, q...)
+func (q Q) AppendValue(b []byte, quote int) ([]byte, error) {
+	return append(b, q...), nil
 }
 
 //------------------------------------------------------------------------------
@@ -28,8 +28,8 @@ type F string
 
 var _ ValueAppender = F("")
 
-func (f F) AppendValue(b []byte, quote int) []byte {
-	return AppendField(b, string(f), quote)
+func (f F) AppendValue(b []byte, quote int) ([]byte, error) {
+	return AppendField(b, string(f), quote), nil
 }
 
 //------------------------------------------------------------------------------

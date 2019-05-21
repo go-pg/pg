@@ -334,9 +334,9 @@ type pgChan string
 
 var _ types.ValueAppender = pgChan("")
 
-func (ch pgChan) AppendValue(b []byte, quote int) []byte {
+func (ch pgChan) AppendValue(b []byte, quote int) ([]byte, error) {
 	if quote == 0 {
-		return append(b, ch...)
+		return append(b, ch...), nil
 	}
 
 	b = append(b, '"')
@@ -349,5 +349,5 @@ func (ch pgChan) AppendValue(b []byte, quote int) []byte {
 	}
 	b = append(b, '"')
 
-	return b
+	return b, nil
 }
