@@ -109,26 +109,22 @@ func (q *updateQuery) mustAppendWhere(
 ) (_ []byte, err error) {
 	b = append(b, " WHERE "...)
 
-	if isSliceModelWithData {
-		if !q.q.hasModel() {
-			return nil, errModelNil
-		}
-
-		table := q.q.model.Table()
-		if len(table.PKs) > 0 {
-			b = appendWhereColumnAndColumn(b, table.Alias, table.PKs)
-			if q.q.hasWhere() {
-				b = append(b, " AND "...)
-				b, err = q.q.appendWhere(fmter, b)
-				if err != nil {
-					return nil, err
-				}
-			}
-			return b, nil
-		}
+	if !isSliceModelWithData {
+		return q.q.mustAppendWhere(fmter, b)
 	}
 
-	return q.q.mustAppendWhere(fmter, b)
+	if len(q.q.where) > 0 {
+		return q.q.appendWhere(fmter, b)
+	}
+
+	table := q.q.model.Table()
+	err = table.checkPKs()
+	if err != nil {
+		return nil, err
+	}
+
+	b = appendWhereColumnAndColumn(b, table.Alias, table.PKs)
+	return b, nil
 }
 
 func (q *updateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, err error) {
