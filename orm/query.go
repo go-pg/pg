@@ -39,6 +39,7 @@ type Query struct {
 
 	with         []withQuery
 	tables       []QueryAppender
+	distinctOn   []*queryParamsAppender
 	columns      []QueryAppender
 	set          []QueryAppender
 	modelValues  map[string]*queryParamsAppender
@@ -208,6 +209,16 @@ func (q *Query) Table(tables ...string) *Query {
 
 func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
 	q.tables = append(q.tables, &queryParamsAppender{expr, params})
+	return q
+}
+
+func (q *Query) Distinct() *Query {
+	q.distinctOn = make([]*queryParamsAppender, 0)
+	return q
+}
+
+func (q *Query) DistinctOn(expr string, params ...interface{}) *Query {
+	q.distinctOn = append(q.distinctOn, &queryParamsAppender{expr, params})
 	return q
 }
 
