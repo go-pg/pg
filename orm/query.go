@@ -1214,18 +1214,13 @@ func (q *Query) appendColumns(fmter QueryFormatter, b []byte) (_ []byte, err err
 	return b, nil
 }
 
-func (q *Query) hasWhere() bool {
-	return len(q.where) > 0 || q.isSoftDelete()
-}
-
 func (q *Query) mustAppendWhere(fmter QueryFormatter, b []byte) ([]byte, error) {
-	if q.hasWhere() {
-		return q.appendWhere(fmter, b)
+	if len(q.where) == 0 {
+		err := errors.New(
+			"pg: Update and Delete queries require Where clause (try WherePK)")
+		return nil, err
 	}
-
-	err := errors.New(
-		"pg: Update and Delete queries require Where clause (try WherePK)")
-	return nil, err
+	return q.appendWhere(fmter, b)
 }
 
 func (q *Query) appendWhere(fmter QueryFormatter, b []byte) (_ []byte, err error) {

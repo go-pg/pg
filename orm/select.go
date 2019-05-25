@@ -104,7 +104,7 @@ func (q *selectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		}
 	}
 
-	if q.q.hasWhere() {
+	if len(q.q.where) > 0 || q.q.isSoftDelete() {
 		b = append(b, " WHERE "...)
 		b, err = q.q.appendWhere(fmter, b)
 		if err != nil {
