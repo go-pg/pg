@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/url"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -206,8 +207,18 @@ func ParseURL(sURL string) (*Options, error) {
 
 	delete(query, "application_name")
 
+	if connTimeout, ok := query["connect_timeout"]; ok && len(connTimeout) > 0 {
+		ct, err := strconv.Atoi(connTimeout[0])
+		if err != nil {
+			return nil, fmt.Errorf("pg: cannot parse connect_timeout option as int")
+		}
+		options.DialTimeout = time.Second * time.Duration(ct)
+	}
+
+	delete(query, "connect_timeout")
+
 	if len(query) > 0 {
-		return nil, errors.New("pg: options other than 'sslmode' and 'application_name' are not supported")
+		return nil, errors.New("pg: options other than 'sslmode', 'application_name' and 'connect_timeout' are not supported")
 	}
 
 	return options, nil
