@@ -130,11 +130,18 @@ func (tx *Tx) ExecContext(c context.Context, query interface{}, params ...interf
 	return tx.exec(c, query, params...)
 }
 
-func (tx *Tx) exec(c context.Context, query interface{}, params ...interface{}) (res Result, err error) {
+func (tx *Tx) exec(c context.Context, query interface{}, params ...interface{}) (Result, error) {
+	c, evt, err := tx.db.beforeQuery(c, tx, query, params, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	var res Result
 	err = tx.withConn(c, func(cn *pool.Conn) error {
-		event := tx.db.queryStarted(c, tx, query, params, 0)
 		res, err = tx.db.simpleQuery(cn, query, params...)
-		tx.db.queryProcessed(res, err, event)
+		if err := tx.db.afterQuery(c, evt, res, err); err != nil {
+			return err
+		}
 		return err
 	})
 	return res, err
@@ -182,11 +189,18 @@ func (tx *Tx) query(
 	model interface{},
 	query interface{},
 	params ...interface{},
-) (res Result, err error) {
+) (Result, error) {
+	c, evt, err := tx.db.beforeQuery(c, tx, query, params, 0)
+	if err != nil {
+		return nil, err
+	}
+
+	var res Result
 	err = tx.withConn(c, func(cn *pool.Conn) error {
-		event := tx.db.queryStarted(c, tx, query, params, 0)
 		res, err = tx.db.simpleQueryData(cn, model, query, params...)
-		tx.db.queryProcessed(res, err, event)
+		if err := tx.db.afterQuery(c, evt, res, err); err != nil {
+			return err
+		}
 		return err
 	})
 	if err != nil {
@@ -194,7 +208,7 @@ func (tx *Tx) query(
 	}
 
 	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
-		if err = mod.AfterQuery(c, tx); err != nil {
+		if err := mod.AfterQuery(c, tx); err != nil {
 			return res, err
 		}
 	}

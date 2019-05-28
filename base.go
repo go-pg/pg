@@ -191,24 +191,32 @@ func (db *baseDB) ExecContext(c context.Context, query interface{}, params ...in
 	return db.exec(c, query, params...)
 }
 
-func (db *baseDB) exec(c context.Context, query interface{}, params ...interface{}) (res Result, err error) {
+func (db *baseDB) exec(c context.Context, query interface{}, params ...interface{}) (Result, error) {
+	var res Result
+	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
 
-		err = db.withConn(c, func(cn *pool.Conn) error {
-			event := db.queryStarted(c, db.db, query, params, attempt)
+		c, evt, err := db.beforeQuery(c, db.db, query, params, attempt)
+		if err != nil {
+			return nil, err
+		}
+
+		lastErr = db.withConn(c, func(cn *pool.Conn) error {
 			res, err = db.simpleQuery(cn, query, params...)
-			db.queryProcessed(res, err, event)
+			if err := db.afterQuery(c, evt, res, err); err != nil {
+				return err
+			}
 			return err
 		})
-		if !db.shouldRetry(err) {
+		if !db.shouldRetry(lastErr) {
 			break
 		}
 	}
-	return res, err
+	return res, lastErr
 }
 
 // ExecOne acts like Exec, but query must affect only one row. It
@@ -244,29 +252,37 @@ func (db *baseDB) QueryContext(c context.Context, model, query interface{}, para
 	return db.query(c, model, query, params...)
 }
 
-func (db *baseDB) query(c context.Context, model, query interface{}, params ...interface{}) (res Result, err error) {
+func (db *baseDB) query(c context.Context, model, query interface{}, params ...interface{}) (Result, error) {
+	var res Result
+	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
 
-		err = db.withConn(c, func(cn *pool.Conn) error {
-			event := db.queryStarted(c, db.db, query, params, attempt)
+		c, evt, err := db.beforeQuery(c, db.db, query, params, attempt)
+		if err != nil {
+			return nil, err
+		}
+
+		lastErr = db.withConn(c, func(cn *pool.Conn) error {
 			res, err = db.simpleQueryData(cn, model, query, params...)
-			db.queryProcessed(res, err, event)
+			if err := db.afterQuery(c, evt, res, err); err != nil {
+				return err
+			}
 			return err
 		})
-		if !db.shouldRetry(err) {
+		if !db.shouldRetry(lastErr) {
 			break
 		}
 	}
-	if err != nil {
-		return nil, err
+	if lastErr != nil {
+		return nil, lastErr
 	}
 
 	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
-		if err = mod.AfterQuery(c, db.db); err != nil {
+		if err := mod.AfterQuery(c, db.db); err != nil {
 			return res, err
 		}
 	}

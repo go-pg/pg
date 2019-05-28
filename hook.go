@@ -3,6 +3,7 @@ package pg
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-pg/pg/orm"
 )
@@ -15,21 +16,21 @@ func (dummyFormatter) FormatQuery(b []byte, query string, params ...interface{})
 
 // QueryEvent ...
 type QueryEvent struct {
-	Ctx     context.Context
-	DB      orm.DB
-	Query   interface{}
-	Params  []interface{}
-	Attempt int
-	Result  Result
-	Error   error
+	StartTime time.Time
+	DB        orm.DB
+	Query     interface{}
+	Params    []interface{}
+	Attempt   int
+	Result    Result
+	Error     error
 
-	Data map[interface{}]interface{}
+	Stash map[interface{}]interface{}
 }
 
 // QueryHook ...
 type QueryHook interface {
-	BeforeQuery(*QueryEvent)
-	AfterQuery(*QueryEvent)
+	BeforeQuery(context.Context, *QueryEvent) (context.Context, error)
+	AfterQuery(context.Context, *QueryEvent) (context.Context, error)
 }
 
 // UnformattedQuery returns the unformatted query of a query event
@@ -66,45 +67,53 @@ func (db *baseDB) AddQueryHook(hook QueryHook) {
 	db.queryHooks = append(db.queryHooks, hook)
 }
 
-func (db *baseDB) queryStarted(
+func (db *baseDB) beforeQuery(
 	c context.Context,
 	ormDB orm.DB,
 	query interface{},
 	params []interface{},
 	attempt int,
-) *QueryEvent {
+) (context.Context, *QueryEvent, error) {
 	if len(db.queryHooks) == 0 {
-		return nil
+		return c, nil, nil
 	}
 
 	event := &QueryEvent{
-		Ctx:     c,
-		DB:      ormDB,
-		Query:   query,
-		Params:  params,
-		Attempt: attempt,
-		Data:    make(map[interface{}]interface{}),
+		StartTime: time.Now(),
+		DB:        ormDB,
+		Query:     query,
+		Params:    params,
+		Attempt:   attempt,
 	}
 	for _, hook := range db.queryHooks {
-		hook.BeforeQuery(event)
+		var err error
+		c, err = hook.BeforeQuery(c, event)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
-	return event
+	return c, event, nil
 }
 
-func (db *baseDB) queryProcessed(
+func (db *baseDB) afterQuery(
+	c context.Context,
+	event *QueryEvent,
 	res Result,
 	err error,
-	event *QueryEvent,
-) {
+) error {
 	if event == nil {
-		return
+		return nil
 	}
 
 	event.Error = err
 	event.Result = res
 	for _, hook := range db.queryHooks {
-		hook.AfterQuery(event)
+		_, err := hook.AfterQuery(c, event)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func copyQueryHooks(s []QueryHook) []QueryHook {

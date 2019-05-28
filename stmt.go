@@ -84,27 +84,32 @@ func (stmt *Stmt) ExecContext(c context.Context, params ...interface{}) (Result,
 	return stmt.exec(c, params...)
 }
 
-func (stmt *Stmt) exec(c context.Context, params ...interface{}) (res Result, err error) {
+func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error) {
+	var res Result
+	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		err = stmt.withConn(c, func(cn *pool.Conn) error {
-			event := stmt.db.queryStarted(c, stmt.db.db, stmt.q, params, attempt)
+		c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, stmt.q, params, attempt)
+		if err != nil {
+			return nil, err
+		}
+
+		lastErr = stmt.withConn(c, func(cn *pool.Conn) error {
 			res, err = stmt.extQuery(cn, stmt.name, params...)
-			stmt.db.queryProcessed(res, err, event)
+			if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
+				return err
+			}
 			return err
 		})
-		if !stmt.db.shouldRetry(err) {
+		if !stmt.db.shouldRetry(lastErr) {
 			break
 		}
 	}
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return res, lastErr
 }
 
 // ExecOne acts like Exec, but query must affect only one row. It
@@ -141,29 +146,37 @@ func (stmt *Stmt) QueryContext(c context.Context, model interface{}, params ...i
 	return stmt.query(c, model, params...)
 }
 
-func (stmt *Stmt) query(c context.Context, model interface{}, params ...interface{}) (res Result, err error) {
+func (stmt *Stmt) query(c context.Context, model interface{}, params ...interface{}) (Result, error) {
+	var res Result
+	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		err = stmt.withConn(c, func(cn *pool.Conn) error {
-			event := stmt.db.queryStarted(c, stmt.db.db, stmt.q, params, attempt)
+		c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, stmt.q, params, attempt)
+		if err != nil {
+			return nil, err
+		}
+
+		lastErr = stmt.withConn(c, func(cn *pool.Conn) error {
 			res, err = stmt.extQueryData(cn, stmt.name, model, stmt.columns, params...)
-			stmt.db.queryProcessed(res, err, event)
+			if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
+				return err
+			}
 			return err
 		})
-		if !stmt.db.shouldRetry(err) {
+		if !stmt.db.shouldRetry(lastErr) {
 			break
 		}
 	}
-	if err != nil {
-		return nil, err
+	if lastErr != nil {
+		return nil, lastErr
 	}
 
 	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
-		if err = mod.AfterQuery(c, stmt.db.db); err != nil {
+		if err := mod.AfterQuery(c, stmt.db.db); err != nil {
 			return res, err
 		}
 	}
