@@ -49,7 +49,7 @@ var _ = Describe("Select", func() {
 
 	It("copies query", func() {
 		q1 := NewQuery(nil).Where("1 = 1").Where("2 = 2").Where("3 = 3")
-		q2 := q1.Copy().Where("q2 = ?", "v2")
+		q2 := q1.Clone().Where("q2 = ?", "v2")
 		_ = q1.Where("q1 = ?", "v1")
 
 		s := selectQueryString(q2)

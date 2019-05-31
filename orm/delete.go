@@ -38,7 +38,7 @@ func newDeleteQuery(q *Query) *deleteQuery {
 
 func (q *deleteQuery) Clone() queryCommand {
 	return &deleteQuery{
-		q:           q.q.Copy(),
+		q:           q.q.Clone(),
 		placeholder: q.placeholder,
 	}
 }

@@ -77,8 +77,8 @@ func (q *Query) New() *Query {
 	return cp
 }
 
-// Copy returns copy of the Query.
-func (q *Query) Copy() *Query {
+// Clone clones the Query.
+func (q *Query) Clone() *Query {
 	var modelValues map[string]*queryParamsAppender
 	if len(q.modelValues) > 0 {
 		modelValues = make(map[string]*queryParamsAppender, len(q.modelValues))
@@ -930,7 +930,7 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
 		if insertq == nil {
 			insertq = q
 			if len(insertq.columns) > 0 {
-				insertq = insertq.Copy()
+				insertq = insertq.Clone()
 				insertq.columns = nil
 			}
 		}
@@ -1124,7 +1124,7 @@ func (q *Query) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 
 // Exists returns true or false depending if there are any rows matching the query.
 func (q *Query) Exists() (bool, error) {
-	cp := q.Copy() // copy to not change original query
+	cp := q.Clone() // copy to not change original query
 	cp.columns = []QueryAppender{Q("1")}
 	cp.order = nil
 	cp.limit = 1

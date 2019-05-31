@@ -25,7 +25,7 @@ func newSelectQuery(q *Query) *selectQuery {
 
 func (q *selectQuery) Clone() queryCommand {
 	return &selectQuery{
-		q:     q.q.Copy(),
+		q:     q.q.Clone(),
 		count: q.count,
 	}
 }

@@ -39,7 +39,7 @@ func newCreateTableQuery(q *Query, opt *CreateTableOptions) *createTableQuery {
 
 func (q *createTableQuery) Clone() queryCommand {
 	return &createTableQuery{
-		q:   q.q.Copy(),
+		q:   q.q.Clone(),
 		opt: q.opt,
 	}
 }

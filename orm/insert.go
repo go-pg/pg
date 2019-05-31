@@ -27,7 +27,7 @@ func newInsertQuery(q *Query) *insertQuery {
 
 func (q *insertQuery) Clone() queryCommand {
 	return &insertQuery{
-		q:           q.q.Copy(),
+		q:           q.q.Clone(),
 		placeholder: q.placeholder,
 	}
 }

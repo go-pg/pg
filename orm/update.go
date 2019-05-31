@@ -34,7 +34,7 @@ func newUpdateQuery(q *Query, omitZero bool) *updateQuery {
 
 func (q *updateQuery) Clone() queryCommand {
 	return &updateQuery{
-		q:           q.q.Copy(),
+		q:           q.q.Clone(),
 		omitZero:    q.omitZero,
 		placeholder: q.placeholder,
 	}

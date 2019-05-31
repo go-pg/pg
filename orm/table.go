@@ -702,7 +702,7 @@ func (t *Table) inlineFields(strct *Field, path map[reflect.Type]struct{}) {
 
 	joinTable := _tables.get(strct.Type, true)
 	for _, f := range joinTable.allFields {
-		f = f.Copy()
+		f = f.Clone()
 		f.GoName = strct.GoName + "_" + f.GoName
 		f.SQLName = strct.SQLName + "__" + f.SQLName
 		f.Column = types.Q(types.AppendField(nil, f.SQLName, 1))
