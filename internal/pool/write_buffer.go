@@ -12,11 +12,9 @@ type WriteBuffer struct {
 }
 
 func NewWriteBuffer() *WriteBuffer {
-	return new(WriteBuffer)
-}
-
-func (buf *WriteBuffer) Buffer() []byte {
-	return buf.Bytes[:cap(buf.Bytes)]
+	return &WriteBuffer{
+		Bytes: make([]byte, 0, 4096),
+	}
 }
 
 func (buf *WriteBuffer) Reset() {
@@ -25,6 +23,12 @@ func (buf *WriteBuffer) Reset() {
 
 func (buf *WriteBuffer) ResetBuffer(b []byte) {
 	buf.Bytes = b[:0]
+}
+
+func (buf *WriteBuffer) Flush() []byte {
+	b := buf.Bytes
+	buf.Reset()
+	return b
 }
 
 func (buf *WriteBuffer) StartMessage(c byte) {
