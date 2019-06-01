@@ -14,26 +14,23 @@ var noDeadline = time.Time{}
 type Conn struct {
 	netConn net.Conn
 
-	buf []byte
-	rd  *internal.BufReader
-	wb  *WriteBuffer
-
-	Inited    bool
-	pooled    bool
-	createdAt time.Time
-	usedAt    atomic.Value
+	rd *internal.BufReader
+	wb *WriteBuffer
 
 	ProcessID int32
 	SecretKey int32
+	lastID    int64
 
-	_lastID int64
+	pooled    bool
+	Inited    bool
+	createdAt time.Time
+	usedAt    int64 // atomic
 }
 
 func NewConn(netConn net.Conn) *Conn {
 	cn := &Conn{
-		buf: makeBuffer(),
-		rd:  internal.NewBufReader(netConn),
-		wb:  NewWriteBuffer(),
+		rd: internal.NewBufReader(netConn),
+		wb: NewWriteBuffer(),
 
 		createdAt: time.Now(),
 	}
@@ -43,11 +40,12 @@ func NewConn(netConn net.Conn) *Conn {
 }
 
 func (cn *Conn) UsedAt() time.Time {
-	return cn.usedAt.Load().(time.Time)
+	unix := atomic.LoadInt64(&cn.usedAt)
+	return time.Unix(unix, 0)
 }
 
 func (cn *Conn) SetUsedAt(tm time.Time) {
-	cn.usedAt.Store(tm)
+	atomic.StoreInt64(&cn.usedAt, tm.Unix())
 }
 
 func (cn *Conn) RemoteAddr() net.Addr {
@@ -64,8 +62,8 @@ func (cn *Conn) NetConn() net.Conn {
 }
 
 func (cn *Conn) NextID() string {
-	cn._lastID++
-	return strconv.FormatInt(cn._lastID, 10)
+	cn.lastID++
+	return strconv.FormatInt(cn.lastID, 10)
 }
 
 func (cn *Conn) setReadTimeout(timeout time.Duration) error {
@@ -88,21 +86,16 @@ func (cn *Conn) setWriteTimeout(timeout time.Duration) error {
 
 func (cn *Conn) WithReader(timeout time.Duration, fn func(rd *internal.BufReader) error) error {
 	_ = cn.setReadTimeout(timeout)
-
 	err := fn(cn.rd)
-
 	return err
 }
 
 func (cn *Conn) WithWriter(timeout time.Duration, fn func(wb *WriteBuffer) error) error {
 	_ = cn.setWriteTimeout(timeout)
-
-	cn.wb.ResetBuffer(cn.buf)
-
 	firstErr := fn(cn.wb)
 
-	_, err := cn.netConn.Write(cn.wb.Bytes)
-	cn.buf = cn.wb.Buffer()
+	buf := cn.wb.Flush()
+	_, err := cn.netConn.Write(buf)
 	if err != nil && firstErr == nil {
 		firstErr = err
 	}
@@ -112,9 +105,4 @@ func (cn *Conn) WithWriter(timeout time.Duration, fn func(wb *WriteBuffer) error
 
 func (cn *Conn) Close() error {
 	return cn.netConn.Close()
-}
-
-func makeBuffer() []byte {
-	const defaulBufSize = 4096
-	return make([]byte, defaulBufSize)
 }
