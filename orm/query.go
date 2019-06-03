@@ -381,9 +381,27 @@ func (q *Query) Where(condition string, params ...interface{}) *Query {
 	return q
 }
 
+func (q *Query) WhereNot(condition string, params ...interface{}) *Query {
+	q.addWhere(&condAppender{
+		sep:    " AND NOT ",
+		cond:   condition,
+		params: params,
+	})
+	return q
+}
+
 func (q *Query) WhereOr(condition string, params ...interface{}) *Query {
 	q.addWhere(&condAppender{
 		sep:    " OR ",
+		cond:   condition,
+		params: params,
+	})
+	return q
+}
+
+func (q *Query) WhereOrNot(condition string, params ...interface{}) *Query {
+	q.addWhere(&condAppender{
+		sep:    " OR NOT ",
 		cond:   condition,
 		params: params,
 	})
@@ -405,6 +423,21 @@ func (q *Query) WhereGroup(fn func(*Query) (*Query, error)) *Query {
 	return q.whereGroup(" AND ", fn)
 }
 
+// WhereGroup encloses conditions added in the function in parentheses.
+//
+//    q.Where("TRUE").
+//    	WhereNotGroup(func(q *orm.Query) (*orm.Query, error) {
+//    		q = q.WhereOr("FALSE").WhereOr("TRUE").
+//    		return q, nil
+//    	})
+//
+// generates
+//
+//    WHERE TRUE AND NOT (FALSE OR TRUE)
+func (q *Query) WhereNotGroup(fn func(*Query) (*Query, error)) *Query {
+	return q.whereGroup(" AND NOT ", fn)
+}
+
 // WhereOrGroup encloses conditions added in the function in parentheses.
 //
 //    q.Where("TRUE").
@@ -418,6 +451,21 @@ func (q *Query) WhereGroup(fn func(*Query) (*Query, error)) *Query {
 //    WHERE TRUE OR (FALSE AND TRUE)
 func (q *Query) WhereOrGroup(fn func(*Query) (*Query, error)) *Query {
 	return q.whereGroup(" OR ", fn)
+}
+
+// WhereOrGroup encloses conditions added in the function in parentheses.
+//
+//    q.Where("TRUE").
+//    	WhereOrGroup(func(q *orm.Query) (*orm.Query, error) {
+//    		q = q.Where("FALSE").Where("TRUE").
+//    		return q, nil
+//    	})
+//
+// generates
+//
+//    WHERE TRUE OR NOT (FALSE AND TRUE)
+func (q *Query) WhereOrNotGroup(fn func(*Query) (*Query, error)) *Query {
+	return q.whereGroup(" OR NOT ", fn)
 }
 
 func (q *Query) whereGroup(conj string, fn func(*Query) (*Query, error)) *Query {
