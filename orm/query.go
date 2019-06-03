@@ -1019,18 +1019,23 @@ func (q *Query) returningQuery(model Model, query interface{}) (Result, error) {
 // Delete deletes the model. When model has deleted_at column the row
 // is soft deleted instead.
 func (q *Query) Delete(values ...interface{}) (Result, error) {
-	if q.hasModel() {
-		table := q.model.Table()
-		if table.SoftDeleteField != nil {
-			q.model.setSoftDeleteField()
-			columns := q.columns
-			q.columns = nil
-			res, err := q.Column(table.SoftDeleteField.SQLName).Update(values...)
-			q.columns = columns
-			return res, err
-		}
+	if q.model == nil {
+		return q.ForceDelete(values...)
 	}
-	return q.ForceDelete(values...)
+
+	table := q.model.Table()
+	if table.SoftDeleteField == nil {
+		return q.ForceDelete(values...)
+	}
+
+	clone := q.Clone()
+	if q.model.IsNil() {
+		clone = clone.Set("? = ?", table.SoftDeleteField.Column, time.Now())
+	} else {
+		clone.model.setSoftDeleteField()
+		clone = clone.Column(table.SoftDeleteField.SQLName)
+	}
+	return clone.Update(values...)
 }
 
 // Delete forces delete of the model with deleted_at column.
