@@ -381,27 +381,9 @@ func (q *Query) Where(condition string, params ...interface{}) *Query {
 	return q
 }
 
-func (q *Query) WhereNot(condition string, params ...interface{}) *Query {
-	q.addWhere(&condAppender{
-		sep:    " AND NOT ",
-		cond:   condition,
-		params: params,
-	})
-	return q
-}
-
 func (q *Query) WhereOr(condition string, params ...interface{}) *Query {
 	q.addWhere(&condAppender{
 		sep:    " OR ",
-		cond:   condition,
-		params: params,
-	})
-	return q
-}
-
-func (q *Query) WhereOrNot(condition string, params ...interface{}) *Query {
-	q.addWhere(&condAppender{
-		sep:    " OR NOT ",
 		cond:   condition,
 		params: params,
 	})
