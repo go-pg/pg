@@ -95,24 +95,24 @@ func appender(typ reflect.Type, pgArray bool) AppenderFunc {
 
 func ptrAppenderFunc(typ reflect.Type) AppenderFunc {
 	appender := Appender(typ.Elem())
-	return func(b []byte, v reflect.Value, quote int) []byte {
+	return func(b []byte, v reflect.Value, flags int) []byte {
 		if v.IsNil() {
-			return AppendNull(b, quote)
+			return AppendNull(b, flags)
 		}
-		return appender(b, v.Elem(), quote)
+		return appender(b, v.Elem(), flags)
 	}
 }
 
-func appendValue(b []byte, v reflect.Value, quote int) []byte {
+func appendValue(b []byte, v reflect.Value, flags int) []byte {
 	if v.Kind() == reflect.Ptr && v.IsNil() {
-		return AppendNull(b, quote)
+		return AppendNull(b, flags)
 	}
 	appender := Appender(v.Type())
-	return appender(b, v, quote)
+	return appender(b, v, flags)
 }
 
-func appendIfaceValue(b []byte, v reflect.Value, quote int) []byte {
-	return Append(b, v.Interface(), quote)
+func appendIfaceValue(b []byte, v reflect.Value, flags int) []byte {
+	return Append(b, v.Interface(), flags)
 }
 
 func appendBoolValue(b []byte, v reflect.Value, _ int) []byte {
@@ -127,60 +127,60 @@ func appendUintValue(b []byte, v reflect.Value, _ int) []byte {
 	return strconv.AppendUint(b, v.Uint(), 10)
 }
 
-func appendFloatValue(b []byte, v reflect.Value, quote int) []byte {
-	return appendFloat(b, v.Float(), quote)
+func appendFloatValue(b []byte, v reflect.Value, flags int) []byte {
+	return appendFloat(b, v.Float(), flags)
 }
 
-func appendBytesValue(b []byte, v reflect.Value, quote int) []byte {
-	return AppendBytes(b, v.Bytes(), quote)
+func appendBytesValue(b []byte, v reflect.Value, flags int) []byte {
+	return AppendBytes(b, v.Bytes(), flags)
 }
 
-func appendArrayBytesValue(b []byte, v reflect.Value, quote int) []byte {
-	return AppendBytes(b, v.Slice(0, v.Len()).Bytes(), quote)
+func appendArrayBytesValue(b []byte, v reflect.Value, flags int) []byte {
+	return AppendBytes(b, v.Slice(0, v.Len()).Bytes(), flags)
 }
 
-func appendStringValue(b []byte, v reflect.Value, quote int) []byte {
-	return AppendString(b, v.String(), quote)
+func appendStringValue(b []byte, v reflect.Value, flags int) []byte {
+	return AppendString(b, v.String(), flags)
 }
 
-func appendStructValue(b []byte, v reflect.Value, quote int) []byte {
+func appendStructValue(b []byte, v reflect.Value, flags int) []byte {
 	if v.Type() == timeType {
-		return appendTimeValue(b, v, quote)
+		return appendTimeValue(b, v, flags)
 	}
-	return appendJSONValue(b, v, quote)
+	return appendJSONValue(b, v, flags)
 }
 
-func appendJSONValue(b []byte, v reflect.Value, quote int) []byte {
+func appendJSONValue(b []byte, v reflect.Value, flags int) []byte {
 	bytes, err := json.Marshal(v.Interface())
 	if err != nil {
 		return AppendError(b, err)
 	}
-	return AppendJSONB(b, bytes, quote)
+	return AppendJSONB(b, bytes, flags)
 }
 
-func appendTimeValue(b []byte, v reflect.Value, quote int) []byte {
+func appendTimeValue(b []byte, v reflect.Value, flags int) []byte {
 	tm := v.Interface().(time.Time)
-	return AppendTime(b, tm, quote)
+	return AppendTime(b, tm, flags)
 }
 
-func appendIPValue(b []byte, v reflect.Value, quote int) []byte {
+func appendIPValue(b []byte, v reflect.Value, flags int) []byte {
 	ip := v.Interface().(net.IP)
-	return AppendString(b, ip.String(), quote)
+	return AppendString(b, ip.String(), flags)
 }
 
-func appendIPNetValue(b []byte, v reflect.Value, quote int) []byte {
+func appendIPNetValue(b []byte, v reflect.Value, flags int) []byte {
 	ipnet := v.Interface().(net.IPNet)
-	return AppendString(b, ipnet.String(), quote)
+	return AppendString(b, ipnet.String(), flags)
 }
 
-func appendJSONRawMessageValue(b []byte, v reflect.Value, quote int) []byte {
-	return AppendString(b, internal.BytesToString(v.Bytes()), quote)
+func appendJSONRawMessageValue(b []byte, v reflect.Value, flags int) []byte {
+	return AppendString(b, internal.BytesToString(v.Bytes()), flags)
 }
 
-func appendAppenderValue(b []byte, v reflect.Value, quote int) []byte {
-	return appendAppender(b, v.Interface().(ValueAppender), quote)
+func appendAppenderValue(b []byte, v reflect.Value, flags int) []byte {
+	return appendAppender(b, v.Interface().(ValueAppender), flags)
 }
 
-func appendDriverValuerValue(b []byte, v reflect.Value, quote int) []byte {
-	return appendDriverValuer(b, v.Interface().(driver.Valuer), quote)
+func appendDriverValuerValue(b []byte, v reflect.Value, flags int) []byte {
+	return appendDriverValuer(b, v.Interface().(driver.Valuer), flags)
 }

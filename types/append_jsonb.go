@@ -2,12 +2,11 @@ package types
 
 import "github.com/go-pg/pg/internal/parser"
 
-func AppendJSONB(b, jsonb []byte, quote int) []byte {
-	switch quote {
-	case 1:
-		b = append(b, '\'')
-	case 2:
+func AppendJSONB(b, jsonb []byte, flags int) []byte {
+	if hasFlag(flags, arrayFlag) {
 		b = append(b, '"')
+	} else if hasFlag(flags, quoteFlag) {
+		b = append(b, '\'')
 	}
 
 	p := parser.New(jsonb)
@@ -15,16 +14,15 @@ func AppendJSONB(b, jsonb []byte, quote int) []byte {
 		c := p.Read()
 		switch c {
 		case '"':
-			if quote == 2 {
+			if hasFlag(flags, arrayFlag) {
 				b = append(b, '\\')
 			}
 			b = append(b, '"')
 		case '\'':
-			if quote == 1 {
-				b = append(b, '\'', '\'')
-			} else {
+			if hasFlag(flags, quoteFlag) {
 				b = append(b, '\'')
 			}
+			b = append(b, '\'')
 		case '\000':
 			continue
 		case '\\':
@@ -41,11 +39,10 @@ func AppendJSONB(b, jsonb []byte, quote int) []byte {
 		}
 	}
 
-	switch quote {
-	case 1:
-		b = append(b, '\'')
-	case 2:
+	if hasFlag(flags, arrayFlag) {
 		b = append(b, '"')
+	} else if hasFlag(flags, quoteFlag) {
+		b = append(b, '\'')
 	}
 
 	return b
