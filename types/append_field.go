@@ -2,15 +2,15 @@ package types
 
 import "github.com/go-pg/pg/internal"
 
-func AppendField(b []byte, field string, quote int) []byte {
-	return appendField(b, internal.StringToBytes(field), quote)
+func AppendField(b []byte, field string, flags int) []byte {
+	return appendField(b, internal.StringToBytes(field), flags)
 }
 
-func AppendFieldBytes(b []byte, field []byte, quote int) []byte {
-	return appendField(b, field, quote)
+func AppendFieldBytes(b []byte, field []byte, flags int) []byte {
+	return appendField(b, field, flags)
 }
 
-func appendField(b, src []byte, quote int) []byte {
+func appendField(b, src []byte, flags int) []byte {
 	var quoted bool
 loop:
 	for _, c := range src {
@@ -21,7 +21,7 @@ loop:
 				continue loop
 			}
 		case '.':
-			if quoted && quote == 1 {
+			if quoted && hasFlag(flags, quoteFlag) {
 				b = append(b, '"')
 				quoted = false
 			}
@@ -29,7 +29,7 @@ loop:
 			continue loop
 		}
 
-		if !quoted && quote == 1 {
+		if !quoted && hasFlag(flags, quoteFlag) {
 			b = append(b, '"')
 			quoted = true
 		}
@@ -39,7 +39,7 @@ loop:
 			b = append(b, c)
 		}
 	}
-	if quoted && quote == 1 {
+	if quoted && hasFlag(flags, quoteFlag) {
 		b = append(b, '"')
 	}
 	return b

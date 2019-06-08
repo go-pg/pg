@@ -4,6 +4,7 @@
 
 - Added `QueryContext`, `ExecContext`, and `ModelContext` which accept `context.Context`. Queries are cancelled when context is cancelled.
 - Model hooks are changed to accept `context.Context` as first argument.
+- Fixed array and hstore parsers to handle multiple single quotes (#1235).
 
 ## v7
 

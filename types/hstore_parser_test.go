@@ -11,7 +11,7 @@ var hstoreTests = []struct {
 	m map[string]string
 }{
 	{`""=>""`, map[string]string{"": ""}},
-	{`"k''k"=>"k''k"`, map[string]string{"k'k": "k'k"}},
+	{`"k''k"=>"k''k"`, map[string]string{"k''k": "k''k"}},
 	{`"k\"k"=>"k\"k"`, map[string]string{`k"k`: `k"k`}},
 	{`"k\k"=>"k\k"`, map[string]string{`k\k`: `k\k`}},
 

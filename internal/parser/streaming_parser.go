@@ -59,20 +59,6 @@ func (p StreamingParser) ReadSubstring(b []byte) ([]byte, error) {
 			continue
 		}
 
-		if c == '\'' {
-			if next == '\'' {
-				b = append(b, '\'')
-				c, err = p.ReadByte()
-				if err != nil {
-					return nil, err
-				}
-			} else {
-				b = append(b, c)
-				c = next
-			}
-			continue
-		}
-
 		b = append(b, c)
 		c = next
 	}
