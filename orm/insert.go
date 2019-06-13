@@ -25,6 +25,21 @@ func newInsertQuery(q *Query) *insertQuery {
 	}
 }
 
+// InsertAsString to be used to print the sql statements
+func InsertAsString(q *Query) (string, error) {
+	iq := insertQuery{
+		q: q,
+	}
+	var b []byte
+
+	b, err := iq.AppendQuery(dummyFormatter{}, b)
+	if err != nil {
+		return "", err
+	}
+
+	return string(b), nil
+}
+
 func (q *insertQuery) Clone() queryCommand {
 	return &insertQuery{
 		q:           q.q.Clone(),
