@@ -277,6 +277,9 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 			}
 
 			fieldType := indirectType(f.Type)
+			if fieldType.Kind() != reflect.Struct {
+				continue
+			}
 			t.addFields(fieldType, append(index, f.Index...))
 
 			pgTag := tag.Parse(f.Tag.Get("pg"))
