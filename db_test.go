@@ -118,6 +118,23 @@ func TestEmptyQuery(t *testing.T) {
 	assert(err)
 }
 
+func TestAnynomousStructField(t *testing.T) {
+	type MyInt struct{ int }
+
+	type MyStruct struct {
+		Ints []MyInt `pg:",array"`
+	}
+
+	db := testDB()
+
+	var st MyStruct
+	_, err := db.Query(&st, "SELECT ARRAY[1,2,3,4] AS ints")
+	wanted := "json: cannot unmarshal number into Go value of type pg_test.MyInt"
+	if err.Error() != wanted {
+		t.Fatal(err)
+	}
+}
+
 var _ = Describe("DB", func() {
 	var db *pg.DB
 	var tx *pg.Tx
