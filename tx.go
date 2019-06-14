@@ -83,7 +83,7 @@ func (tx *Tx) RunInTransaction(fn func(*Tx) error) error {
 	return tx.Commit()
 }
 
-func (tx *Tx) withConn(c context.Context, fn func(cn *pool.Conn) error) error {
+func (tx *Tx) withConn(c context.Context, fn func(context.Context, *pool.Conn) error) error {
 	err := tx.db.withConn(c, fn)
 	if err == pool.ErrClosed {
 		return errTxDone
@@ -122,7 +122,7 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 
 // Exec is an alias for DB.Exec.
 func (tx *Tx) Exec(query interface{}, params ...interface{}) (Result, error) {
-	return tx.exec(context.TODO(), query, params...)
+	return tx.exec(context.Background(), query, params...)
 }
 
 // ExecContext acts like Exec but additionally receives a context
@@ -137,8 +137,8 @@ func (tx *Tx) exec(c context.Context, query interface{}, params ...interface{}) 
 	}
 
 	var res Result
-	err = tx.withConn(c, func(cn *pool.Conn) error {
-		res, err = tx.db.simpleQuery(cn, query, params...)
+	err = tx.withConn(c, func(c context.Context, cn *pool.Conn) error {
+		res, err = tx.db.simpleQuery(c, cn, query, params...)
 		if err := tx.db.afterQuery(c, evt, res, err); err != nil {
 			return err
 		}
@@ -149,7 +149,7 @@ func (tx *Tx) exec(c context.Context, query interface{}, params ...interface{}) 
 
 // ExecOne is an alias for DB.ExecOne.
 func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (Result, error) {
-	return tx.execOne(context.TODO(), query, params...)
+	return tx.execOne(context.Background(), query, params...)
 }
 
 // ExecOneContext acts like ExecOne but additionally receives a context
@@ -171,7 +171,7 @@ func (tx *Tx) execOne(c context.Context, query interface{}, params ...interface{
 
 // Query is an alias for DB.Query.
 func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (Result, error) {
-	return tx.query(context.TODO(), model, query, params...)
+	return tx.query(context.Background(), model, query, params...)
 }
 
 // QueryContext acts like Query but additionally receives a context
@@ -196,8 +196,8 @@ func (tx *Tx) query(
 	}
 
 	var res Result
-	err = tx.withConn(c, func(cn *pool.Conn) error {
-		res, err = tx.db.simpleQueryData(cn, model, query, params...)
+	err = tx.withConn(c, func(c context.Context, cn *pool.Conn) error {
+		res, err = tx.db.simpleQueryData(c, cn, model, query, params...)
 		if err := tx.db.afterQuery(c, evt, res, err); err != nil {
 			return err
 		}
@@ -218,7 +218,7 @@ func (tx *Tx) query(
 
 // QueryOne is an alias for DB.QueryOne.
 func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (Result, error) {
-	return tx.queryOne(context.TODO(), model, query, params...)
+	return tx.queryOne(context.Background(), model, query, params...)
 }
 
 // QueryOneContext acts like QueryOne but additionally receives a context
@@ -300,8 +300,8 @@ func (tx *Tx) DropTable(model interface{}, opt *orm.DropTableOptions) error {
 
 // CopyFrom is an alias for DB.CopyFrom.
 func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
-	err = tx.withConn(context.TODO(), func(cn *pool.Conn) error {
-		res, err = tx.db.copyFrom(cn, r, query, params...)
+	err = tx.withConn(context.TODO(), func(c context.Context, cn *pool.Conn) error {
+		res, err = tx.db.copyFrom(c, cn, r, query, params...)
 		return err
 	})
 	return res, err
@@ -309,8 +309,8 @@ func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (r
 
 // CopyTo is an alias for DB.CopyTo.
 func (tx *Tx) CopyTo(w io.Writer, query interface{}, params ...interface{}) (res Result, err error) {
-	err = tx.withConn(context.TODO(), func(cn *pool.Conn) error {
-		res, err = tx.db.copyTo(cn, w, query, params...)
+	err = tx.withConn(context.TODO(), func(c context.Context, cn *pool.Conn) error {
+		res, err = tx.db.copyTo(c, cn, w, query, params...)
 		return err
 	})
 	return res, err

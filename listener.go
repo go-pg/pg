@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -77,19 +78,21 @@ func (ln *Listener) _conn() (*pool.Conn, error) {
 		return ln.cn, nil
 	}
 
-	cn, err := ln.db.pool.NewConn()
+	c := context.TODO()
+
+	cn, err := ln.db.pool.NewConn(c)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ln.db.initConn(cn)
+	err = ln.db.initConn(c, cn)
 	if err != nil {
 		_ = ln.db.pool.CloseConn(cn)
 		return nil, err
 	}
 
 	if len(ln.channels) > 0 {
-		err := ln.listen(cn, ln.channels...)
+		err := ln.listen(c, cn, ln.channels...)
 		if err != nil {
 			_ = ln.db.pool.CloseConn(cn)
 			return nil, err
@@ -152,7 +155,7 @@ func (ln *Listener) Listen(channels ...string) error {
 		return err
 	}
 
-	err = ln.listen(cn, channels...)
+	err = ln.listen(context.TODO(), cn, channels...)
 	if err != nil {
 		ln.releaseConn(cn, err, false)
 		return err
@@ -161,8 +164,8 @@ func (ln *Listener) Listen(channels ...string) error {
 	return nil
 }
 
-func (ln *Listener) listen(cn *pool.Conn, channels ...string) error {
-	err := cn.WithWriter(ln.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+func (ln *Listener) listen(c context.Context, cn *pool.Conn, channels ...string) error {
+	err := cn.WithWriter(c, ln.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		for _, channel := range channels {
 			err := writeQueryMsg(wb, ln.db.fmter, "LISTEN ?", pgChan(channel))
 			if err != nil {
@@ -188,7 +191,7 @@ func (ln *Listener) ReceiveTimeout(timeout time.Duration) (channel, payload stri
 		return "", "", err
 	}
 
-	err = cn.WithReader(timeout, func(rd *internal.BufReader) error {
+	err = cn.WithReader(context.TODO(), timeout, func(rd *internal.BufReader) error {
 		channel, payload, err = readNotification(rd)
 		return err
 	})

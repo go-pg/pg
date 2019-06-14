@@ -225,12 +225,14 @@ var _ = Describe("DB", func() {
 
 	Describe("Context", func() {
 		It("cancels query when context is cancelled", func() {
-			c := context.Background()
-			c, cancel := context.WithTimeout(c, time.Second)
+			start := time.Now()
+
+			c, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			_, err := db.ExecContext(c, "SELECT pg_sleep(10)")
-			Expect(err).To(MatchError(`ERROR #57014 canceling statement due to user request`))
+			_, err := db.ExecContext(c, "SELECT pg_sleep(5)")
+			Expect(err).To(HaveOccurred())
+			Expect(time.Since(start)).To(BeNumerically("~", time.Second, 100*time.Millisecond))
 		})
 	})
 })
