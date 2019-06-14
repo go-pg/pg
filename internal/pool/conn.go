@@ -1,6 +1,7 @@
 package pool
 
 import (
+	"context"
 	"net"
 	"strconv"
 	"sync/atomic"
@@ -66,32 +67,17 @@ func (cn *Conn) NextID() string {
 	return strconv.FormatInt(cn.lastID, 10)
 }
 
-func (cn *Conn) setReadTimeout(timeout time.Duration) error {
-	now := time.Now()
-	cn.SetUsedAt(now)
-	if timeout > 0 {
-		return cn.netConn.SetReadDeadline(now.Add(timeout))
-	}
-	return cn.netConn.SetReadDeadline(noDeadline)
+func (cn *Conn) WithReader(
+	c context.Context, timeout time.Duration, fn func(rd *internal.BufReader) error,
+) error {
+	_ = cn.netConn.SetReadDeadline(cn.deadline(c, timeout))
+	return fn(cn.rd)
 }
 
-func (cn *Conn) setWriteTimeout(timeout time.Duration) error {
-	now := time.Now()
-	cn.SetUsedAt(now)
-	if timeout > 0 {
-		return cn.netConn.SetWriteDeadline(now.Add(timeout))
-	}
-	return cn.netConn.SetWriteDeadline(noDeadline)
-}
-
-func (cn *Conn) WithReader(timeout time.Duration, fn func(rd *internal.BufReader) error) error {
-	_ = cn.setReadTimeout(timeout)
-	err := fn(cn.rd)
-	return err
-}
-
-func (cn *Conn) WithWriter(timeout time.Duration, fn func(wb *WriteBuffer) error) error {
-	_ = cn.setWriteTimeout(timeout)
+func (cn *Conn) WithWriter(
+	c context.Context, timeout time.Duration, fn func(wb *WriteBuffer) error,
+) error {
+	_ = cn.netConn.SetWriteDeadline(cn.deadline(c, timeout))
 	firstErr := fn(cn.wb)
 
 	buf := cn.wb.Flush()
@@ -105,4 +91,32 @@ func (cn *Conn) WithWriter(timeout time.Duration, fn func(wb *WriteBuffer) error
 
 func (cn *Conn) Close() error {
 	return cn.netConn.Close()
+}
+
+func (cn *Conn) deadline(ctx context.Context, timeout time.Duration) time.Time {
+	tm := time.Now()
+	cn.SetUsedAt(tm)
+
+	if timeout > 0 {
+		tm = tm.Add(timeout)
+	}
+
+	if ctx != nil {
+		deadline, ok := ctx.Deadline()
+		if ok {
+			if timeout == 0 {
+				return deadline
+			}
+			if deadline.Before(tm) {
+				return deadline
+			}
+			return tm
+		}
+	}
+
+	if timeout > 0 {
+		return tm
+	}
+
+	return noDeadline
 }

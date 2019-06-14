@@ -1,6 +1,7 @@
 package pool
 
 import (
+	"context"
 	"errors"
 	"net"
 	"sync"
@@ -33,10 +34,10 @@ type Stats struct {
 }
 
 type Pooler interface {
-	NewConn() (*Conn, error)
+	NewConn(context.Context) (*Conn, error)
 	CloseConn(*Conn) error
 
-	Get() (*Conn, error)
+	Get(context.Context) (*Conn, error)
 	Put(*Conn)
 	Remove(*Conn)
 
@@ -48,7 +49,7 @@ type Pooler interface {
 }
 
 type Options struct {
-	Dialer  func() (net.Conn, error)
+	Dialer  func(context.Context) (net.Conn, error)
 	OnClose func(*Conn) error
 
 	PoolSize           int
@@ -115,7 +116,7 @@ func (p *ConnPool) checkMinIdleConns() {
 }
 
 func (p *ConnPool) addIdleConn() {
-	cn, err := p.newConn(true)
+	cn, err := p.newConn(context.TODO(), true)
 	if err != nil {
 		return
 	}
@@ -126,12 +127,12 @@ func (p *ConnPool) addIdleConn() {
 	p.connsMu.Unlock()
 }
 
-func (p *ConnPool) NewConn() (*Conn, error) {
-	return p._NewConn(false)
+func (p *ConnPool) NewConn(c context.Context) (*Conn, error) {
+	return p._NewConn(c, false)
 }
 
-func (p *ConnPool) _NewConn(pooled bool) (*Conn, error) {
-	cn, err := p.newConn(pooled)
+func (p *ConnPool) _NewConn(c context.Context, pooled bool) (*Conn, error) {
+	cn, err := p.newConn(c, pooled)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +150,7 @@ func (p *ConnPool) _NewConn(pooled bool) (*Conn, error) {
 	return cn, nil
 }
 
-func (p *ConnPool) newConn(pooled bool) (*Conn, error) {
+func (p *ConnPool) newConn(c context.Context, pooled bool) (*Conn, error) {
 	if p.closed() {
 		return nil, ErrClosed
 	}
@@ -158,7 +159,7 @@ func (p *ConnPool) newConn(pooled bool) (*Conn, error) {
 		return nil, p.getLastDialError()
 	}
 
-	netConn, err := p.opt.Dialer()
+	netConn, err := p.opt.Dialer(c)
 	if err != nil {
 		p.setLastDialError(err)
 		if atomic.AddUint32(&p.dialErrorsNum, 1) == uint32(p.opt.PoolSize) {
@@ -178,7 +179,7 @@ func (p *ConnPool) tryDial() {
 			return
 		}
 
-		conn, err := p.opt.Dialer()
+		conn, err := p.opt.Dialer(context.TODO())
 		if err != nil {
 			p.setLastDialError(err)
 			time.Sleep(time.Second)
@@ -205,12 +206,12 @@ func (p *ConnPool) getLastDialError() error {
 }
 
 // Get returns existed connection from the pool or creates a new one.
-func (p *ConnPool) Get() (*Conn, error) {
+func (p *ConnPool) Get(c context.Context) (*Conn, error) {
 	if p.closed() {
 		return nil, ErrClosed
 	}
 
-	err := p.waitTurn()
+	err := p.waitTurn(c)
 	if err != nil {
 		return nil, err
 	}
@@ -235,7 +236,7 @@ func (p *ConnPool) Get() (*Conn, error) {
 
 	atomic.AddUint32(&p.stats.Misses, 1)
 
-	newcn, err := p._NewConn(true)
+	newcn, err := p._NewConn(c, true)
 	if err != nil {
 		p.freeTurn()
 		return nil, err
@@ -248,8 +249,15 @@ func (p *ConnPool) getTurn() {
 	p.queue <- struct{}{}
 }
 
-func (p *ConnPool) waitTurn() error {
+func (p *ConnPool) waitTurn(c context.Context) error {
+	var done <-chan struct{}
+	if c != nil {
+		done = c.Done()
+	}
+
 	select {
+	case <-done:
+		return c.Err()
 	case p.queue <- struct{}{}:
 		return nil
 	default:
@@ -257,6 +265,12 @@ func (p *ConnPool) waitTurn() error {
 		timer.Reset(p.opt.PoolTimeout)
 
 		select {
+		case <-done:
+			if !timer.Stop() {
+				<-timer.C
+			}
+			timers.Put(timer)
+			return c.Err()
 		case p.queue <- struct{}{}:
 			if !timer.Stop() {
 				<-timer.C

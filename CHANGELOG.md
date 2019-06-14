@@ -1,5 +1,12 @@
 # Changelog
 
+## v9 WIP
+
+- ORM supports DistinctOn.
+- Hooks accept and return context.
+- Client respects Context.Deadline when setting net.Conn deadline.
+- Client listens on Context.Done while waiting for a connection from the pool.
+
 ## v8
 
 - Added `QueryContext`, `ExecContext`, and `ModelContext` which accept `context.Context`. Queries are cancelled when context is cancelled.

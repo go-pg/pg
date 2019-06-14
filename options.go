@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -24,7 +25,7 @@ type Options struct {
 
 	// Dialer creates new network connection and has priority over
 	// Network and Addr options.
-	Dialer func(network, addr string) (net.Conn, error)
+	Dialer func(ctx context.Context, network, addr string) (net.Conn, error)
 
 	// Hook that is called when new connection is established.
 	OnConnect func(*Conn) error
@@ -224,13 +225,13 @@ func ParseURL(sURL string) (*Options, error) {
 	return options, nil
 }
 
-func (opt *Options) getDialer() func() (net.Conn, error) {
+func (opt *Options) getDialer() func(context.Context) (net.Conn, error) {
 	if opt.Dialer != nil {
-		return func() (net.Conn, error) {
-			return opt.Dialer(opt.Network, opt.Addr)
+		return func(c context.Context) (net.Conn, error) {
+			return opt.Dialer(c, opt.Network, opt.Addr)
 		}
 	}
-	return func() (net.Conn, error) {
+	return func(c context.Context) (net.Conn, error) {
 		netDialer := &net.Dialer{
 			Timeout:   opt.DialTimeout,
 			KeepAlive: 5 * time.Minute,
