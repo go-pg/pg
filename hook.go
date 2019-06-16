@@ -84,6 +84,7 @@ func (db *baseDB) beforeQuery(
 		Query:     query,
 		Params:    params,
 		Attempt:   attempt,
+		Stash:     make(map[interface{}]interface{}),
 	}
 	for _, hook := range db.queryHooks {
 		var err error
