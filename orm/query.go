@@ -178,6 +178,14 @@ func (q *Query) With(name string, subq *Query) *Query {
 	return q._with(name, newSelectQuery(subq))
 }
 
+func (q *Query) WithInsert(name string, subq *Query) *Query {
+	return q._with(name, newInsertQuery(subq))
+}
+
+func (q *Query) WithUpdate(name string, subq *Query) *Query {
+	return q._with(name, newUpdateQuery(subq, false))
+}
+
 func (q *Query) WithDelete(name string, subq *Query) *Query {
 	return q._with(name, newDeleteQuery(subq))
 }
