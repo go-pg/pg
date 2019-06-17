@@ -98,6 +98,7 @@ func (q *Query) Clone() *Query {
 
 		with:        q.with[:len(q.with):len(q.with)],
 		tables:      q.tables[:len(q.tables):len(q.tables)],
+		distinctOn:  q.distinctOn[:len(q.distinctOn):len(q.distinctOn)],
 		columns:     q.columns[:len(q.columns):len(q.columns)],
 		set:         q.set[:len(q.set):len(q.set)],
 		modelValues: modelValues,
