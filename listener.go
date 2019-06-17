@@ -50,9 +50,9 @@ func (ln *Listener) init() {
 	ln.exit = make(chan struct{})
 }
 
-func (ln *Listener) conn() (*pool.Conn, error) {
+func (ln *Listener) connWithLock() (*pool.Conn, error) {
 	ln.mu.Lock()
-	cn, err := ln._conn()
+	cn, err := ln.conn()
 	ln.mu.Unlock()
 
 	switch err {
@@ -64,12 +64,12 @@ func (ln *Listener) conn() (*pool.Conn, error) {
 		_ = ln.Close()
 		return nil, errListenerClosed
 	default:
-		internal.Logf("pg: Listen failed: %s", err)
+		internal.Logger.Printf("pg: Listen failed: %s", err)
 		return nil, err
 	}
 }
 
-func (ln *Listener) _conn() (*pool.Conn, error) {
+func (ln *Listener) conn() (*pool.Conn, error) {
 	if ln.closed {
 		return nil, errListenerClosed
 	}
@@ -107,28 +107,28 @@ func (ln *Listener) releaseConn(cn *pool.Conn, err error, allowTimeout bool) {
 	ln.mu.Lock()
 	if ln.cn == cn {
 		if isBadConn(err, allowTimeout) {
-			ln._reconnect(err)
+			ln.reconnect(err)
 		}
 	}
 	ln.mu.Unlock()
 }
 
-func (ln *Listener) _closeTheCn(reason error) error {
+func (ln *Listener) reconnect(reason error) {
+	_ = ln.closeTheCn(reason)
+	_, _ = ln.conn()
+}
+
+func (ln *Listener) closeTheCn(reason error) error {
 	if ln.cn == nil {
 		return nil
 	}
 	if !ln.closed {
-		internal.Logf("pg: discarding bad listener connection: %s", reason)
+		internal.Logger.Printf("pg: discarding bad listener connection: %s", reason)
 	}
 
 	err := ln.db.pool.CloseConn(ln.cn)
 	ln.cn = nil
 	return err
-}
-
-func (ln *Listener) _reconnect(reason error) {
-	_ = ln._closeTheCn(reason)
-	_, _ = ln._conn()
 }
 
 // Close closes the listener, releasing any open resources.
@@ -142,7 +142,7 @@ func (ln *Listener) Close() error {
 	ln.closed = true
 	close(ln.exit)
 
-	return ln._closeTheCn(errListenerClosed)
+	return ln.closeTheCn(errListenerClosed)
 }
 
 // Listen starts listening for notifications on channels.
@@ -150,7 +150,7 @@ func (ln *Listener) Listen(channels ...string) error {
 	// Always append channels so DB.Listen works correctly.
 	ln.channels = appendIfNotExists(ln.channels, channels...)
 
-	cn, err := ln.conn()
+	cn, err := ln.connWithLock()
 	if err != nil {
 		return err
 	}
@@ -186,7 +186,7 @@ func (ln *Listener) Receive() (channel string, payload string, err error) {
 // ReceiveTimeout waits for a notification until timeout is reached.
 // This is low-level API and in most cases Channel should be used instead.
 func (ln *Listener) ReceiveTimeout(timeout time.Duration) (channel, payload string, err error) {
-	cn, err := ln.conn()
+	cn, err := ln.connWithLock()
 	if err != nil {
 		return "", "", err
 	}
@@ -275,7 +275,7 @@ func (ln *Listener) initChannel(size int) {
 						<-timer.C
 					}
 				case <-timer.C:
-					internal.Logf(
+					internal.Logger.Printf(
 						"pg: %s channel is full for %s (notification is dropped)",
 						ln, timeout)
 				}
@@ -305,7 +305,7 @@ func (ln *Listener) initChannel(size int) {
 						pingErr = errPingTimeout
 					}
 					ln.mu.Lock()
-					ln._reconnect(pingErr)
+					ln.reconnect(pingErr)
 					ln.mu.Unlock()
 				}
 			case <-ln.exit:

@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"log"
-	"os"
 	"strconv"
 
 	"github.com/go-pg/pg/internal"
@@ -18,11 +17,6 @@ var Discard orm.Discard
 // NullTime is a time.Time wrapper that marshals zero time as JSON null and
 // PostgreSQL NULL.
 type NullTime = types.NullTime
-
-//nolint
-func init() {
-	SetLogger(log.New(os.Stderr, "pg: ", log.LstdFlags|log.Lshortfile))
-}
 
 // Model returns new query for the optional model.
 func Model(model ...interface{}) *orm.Query {

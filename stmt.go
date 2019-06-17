@@ -46,7 +46,7 @@ func (stmt *Stmt) prepare(c context.Context, q string) error {
 
 			err := stmt.db.pool.(*pool.SingleConnPool).Reset()
 			if err != nil {
-				internal.Logf(err.Error())
+				internal.Logger.Printf(err.Error())
 				continue
 			}
 		}
