@@ -1,15 +1,8 @@
 package internal
 
 import (
-	"fmt"
 	"log"
+	"os"
 )
 
-var Logger *log.Logger
-
-func Logf(s string, args ...interface{}) {
-	if Logger == nil {
-		return
-	}
-	_ = Logger.Output(2, fmt.Sprintf(s, args...))
-}
+var Logger = log.New(os.Stderr, "pg: ", log.LstdFlags|log.Lshortfile)

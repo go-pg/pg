@@ -329,7 +329,7 @@ func (tx *Tx) begin() error {
 
 			err := tx.db.pool.(*pool.SingleConnPool).Reset()
 			if err != nil {
-				internal.Logf(err.Error())
+				internal.Logger.Printf(err.Error())
 				continue
 			}
 		}
