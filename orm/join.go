@@ -132,7 +132,7 @@ func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 		}
 		join = append(join, j.Rel.M2MTableAlias...)
 		join = append(join, '.')
-		join = types.AppendField(join, col, 1)
+		join = append(join, col...)
 	}
 	join = append(join, ") IN ("...)
 	join = appendChildValues(join, j.BaseModel.Root(), index, baseTable.PKs)
@@ -164,27 +164,20 @@ func (j *join) hasParent() bool {
 }
 
 func (j *join) appendAlias(b []byte) []byte {
-	b = append(b, '"')
 	b = appendAlias(b, j, true)
-	b = append(b, '"')
 	return b
 }
 
 func (j *join) appendAliasColumn(b []byte, column string) []byte {
-	b = append(b, '"')
 	b = appendAlias(b, j, true)
 	b = append(b, "__"...)
-	b = types.AppendField(b, column, 0)
-	b = append(b, '"')
+	b = append(b, column...)
 	return b
 }
 
 func (j *join) appendBaseAlias(b []byte) []byte {
 	if j.hasParent() {
-		b = append(b, '"')
-		b = appendAlias(b, j.Parent, true)
-		b = append(b, '"')
-		return b
+		return appendAlias(b, j.Parent, true)
 	}
 	return append(b, j.BaseModel.Table().Alias...)
 }

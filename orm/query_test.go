@@ -23,7 +23,7 @@ func TestQueryFormatQuery(t *testing.T) {
 	fmter := Formatter{}.WithModel(q)
 	b := fmter.FormatQuery(nil, "?foo ?TableName ?TableAlias ?TableColumns ?Columns", params)
 
-	wanted := `'not_foo' "format_models" "format_model" "format_model"."foo", "format_model"."bar" "foo", "bar"`
+	wanted := `'not_foo' format_models format_model format_model.foo, format_model.bar foo, bar`
 	if string(b) != wanted {
 		t.Fatalf("got `%s`, wanted `%s`", string(b), wanted)
 	}
@@ -46,6 +46,6 @@ var _ = Describe("NewQuery", func() {
 
 		b, err := q.AppendQuery(defaultFmter, nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`SELECT "model"."id" FROM "models" AS "model"`))
+		Expect(string(b)).To(Equal(`SELECT model.id FROM models AS model`))
 	})
 })

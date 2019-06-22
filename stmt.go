@@ -88,7 +88,6 @@ func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error)
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
-		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
@@ -150,7 +149,6 @@ func (stmt *Stmt) query(c context.Context, model interface{}, params ...interfac
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
-		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}

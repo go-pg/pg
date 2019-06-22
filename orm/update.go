@@ -63,6 +63,7 @@ func (q *updateQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	}
 
 	b = append(b, "UPDATE "...)
+
 	b, err = q.q.appendFirstTableWithAlias(fmter, b)
 	if err != nil {
 		return nil, err

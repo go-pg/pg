@@ -27,7 +27,7 @@ type urlValuesTest struct {
 }
 
 var _ = Describe("URLValues", func() {
-	query := `SELECT "url_values_model"."id", "url_values_model"."name" FROM "url_values_models" AS "url_values_model"`
+	query := `SELECT url_values_model.id, url_values_model.name FROM url_values_models AS url_values_model`
 	urlValuesTests := []urlValuesTest{{
 		urlQuery: "id__gt=1",
 		query:    query + ` WHERE ("id" > '1')`,
@@ -97,7 +97,7 @@ var _ = Describe("URLValues", func() {
 })
 
 var _ = Describe("Pager", func() {
-	query := `SELECT "url_values_model"."id", "url_values_model"."name" FROM "url_values_models" AS "url_values_model"`
+	query := `SELECT url_values_model.id, url_values_model.name FROM url_values_models AS url_values_model`
 	urlValuesTests := []urlValuesTest{{
 		urlQuery: "limit=10",
 		query:    query + " LIMIT 10",

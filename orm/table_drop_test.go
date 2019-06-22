@@ -12,14 +12,14 @@ var _ = Describe("CreateTable", func() {
 		q := NewQuery(nil, &DropTableModel{})
 
 		s := dropTableQueryString(q, nil)
-		Expect(s).To(Equal(`DROP TABLE "drop_table_models"`))
+		Expect(s).To(Equal(`DROP TABLE drop_table_models`))
 	})
 
 	It("drops table if exists", func() {
 		q := NewQuery(nil, &DropTableModel{})
 
 		s := dropTableQueryString(q, &DropTableOptions{IfExists: true})
-		Expect(s).To(Equal(`DROP TABLE IF EXISTS "drop_table_models"`))
+		Expect(s).To(Equal(`DROP TABLE IF EXISTS drop_table_models`))
 	})
 })
 

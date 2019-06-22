@@ -120,7 +120,7 @@ func appendColumns(b []byte, table types.Q, fields []*Field) []byte {
 			b = append(b, table...)
 			b = append(b, '.')
 		}
-		b = types.AppendField(b, f.SQLName, 1)
+		b = append(b, f.Column...)
 	}
 	return b
 }

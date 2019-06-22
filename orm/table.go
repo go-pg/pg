@@ -26,7 +26,7 @@ const (
 	AfterUpdateHookFlag
 	BeforeDeleteHookFlag
 	AfterDeleteHookFlag
-	discardUnknownColumns
+	discardUnknownColumnsFlag
 )
 
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
@@ -80,8 +80,8 @@ func newTable(typ reflect.Type) *Table {
 	t.TypeName = internal.ToExported(t.Type.Name())
 	t.ModelName = internal.Underscore(t.Type.Name())
 	t.Name = tableNameInflector(t.ModelName)
-	t.setName(types.Q(types.AppendField(nil, t.Name, 1)))
-	t.Alias = types.Q(types.AppendField(nil, t.ModelName, 1))
+	t.setName(types.Q(internal.QuoteTableName(t.Name)))
+	t.Alias = types.Q(internal.QuoteTableName(t.ModelName))
 
 	typ = reflect.PtrTo(t.Type)
 	if typ.Implements(afterQueryHookType) {
@@ -339,7 +339,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		pgTag := tag.Parse(f.Tag.Get("pg"))
 		if _, ok := pgTag.Options["discard_unknown_columns"]; ok {
-			t.SetFlag(discardUnknownColumns)
+			t.SetFlag(discardUnknownColumnsFlag)
 		}
 
 		return nil
@@ -368,7 +368,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		GoName:  f.Name,
 		SQLName: sqlTag.Name,
-		Column:  types.Q(types.AppendField(nil, sqlTag.Name, 1)),
+		Column:  types.Q(internal.QuoteTableName(sqlTag.Name)),
 
 		Index: index,
 	}
@@ -708,7 +708,7 @@ func (t *Table) inlineFields(strct *Field, path map[reflect.Type]struct{}) {
 		f = f.Clone()
 		f.GoName = strct.GoName + "_" + f.GoName
 		f.SQLName = strct.SQLName + "__" + f.SQLName
-		f.Column = types.Q(types.AppendField(nil, f.SQLName, 1))
+		f.Column = types.Q(internal.QuoteTableName(f.SQLName))
 		f.Index = appendNew(strct.Index, f.Index...)
 
 		t.fieldsMapMu.Lock()
