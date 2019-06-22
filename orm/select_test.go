@@ -60,14 +60,14 @@ var _ = Describe("Select", func() {
 		q := NewQuery(nil, &SelectModel{})
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
+		Expect(s).To(Equal(`SELECT select_model.id, select_model.name, select_model.has_one_id FROM select_models AS select_model`))
 	})
 
 	It("omits columns in main query", func() {
 		q := NewQuery(nil, &SelectModel{}).Column("_").Relation("HasOne")
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "has_one"."id" AS "has_one__id" FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
+		Expect(s).To(Equal(`SELECT has_one.id AS has_one__id FROM select_models AS select_model LEFT JOIN has_one_models AS has_one ON has_one.id = select_model.has_one_id`))
 	})
 
 	It("adds JoinOn", func() {
@@ -78,21 +78,21 @@ var _ = Describe("Select", func() {
 			})
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id", "has_one"."id" AS "has_one__id" FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id" AND (1 = 2)`))
+		Expect(s).To(Equal(`SELECT select_model.id, select_model.name, select_model.has_one_id, has_one.id AS has_one__id FROM select_models AS select_model LEFT JOIN has_one_models AS has_one ON has_one.id = select_model.has_one_id AND (1 = 2)`))
 	})
 
 	It("omits columns in join query", func() {
 		q := NewQuery(nil, &SelectModel{}).Relation("HasOne._")
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
+		Expect(s).To(Equal(`SELECT select_model.id, select_model.name, select_model.has_one_id FROM select_models AS select_model LEFT JOIN has_one_models AS has_one ON has_one.id = select_model.has_one_id`))
 	})
 
 	It("specifies all columns for has one", func() {
 		q := NewQuery(nil, &SelectModel{Id: 1}).Relation("HasOne")
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id", "has_one"."id" AS "has_one__id" FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
+		Expect(s).To(Equal(`SELECT select_model.id, select_model.name, select_model.has_one_id, has_one.id AS has_one__id FROM select_models AS select_model LEFT JOIN has_one_models AS has_one ON has_one.id = select_model.has_one_id`))
 	})
 
 	It("specifies all columns for has many", func() {
@@ -102,7 +102,7 @@ var _ = Describe("Select", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "has_many_model"."id", "has_many_model"."select_model_id" FROM "has_many_models" AS "has_many_model" WHERE ("has_many_model"."select_model_id" IN (1))`))
+		Expect(s).To(Equal(`SELECT has_many_model.id, has_many_model.select_model_id FROM has_many_models AS has_many_model WHERE (has_many_model.select_model_id IN (1))`))
 	})
 
 	It("overwrites columns for has many", func() {
@@ -116,21 +116,21 @@ var _ = Describe("Select", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT expr FROM "has_many_models" AS "has_many_model" WHERE ("has_many_model"."select_model_id" IN (1))`))
+		Expect(s).To(Equal(`SELECT expr FROM has_many_models AS has_many_model WHERE (has_many_model.select_model_id IN (1))`))
 	})
 
 	It("expands ?TableColumns", func() {
 		q := NewQuery(nil, &SelectModel{Id: 1}).ColumnExpr("?TableColumns")
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
+		Expect(s).To(Equal(`SELECT select_model.id, select_model.name, select_model.has_one_id FROM select_models AS select_model`))
 	})
 
 	It("expands ?Columns", func() {
 		q := NewQuery(nil, &SelectModel{Id: 1}).ColumnExpr("?Columns")
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "id", "name", "has_one_id" FROM "select_models" AS "select_model"`))
+		Expect(s).To(Equal(`SELECT id, name, has_one_id FROM select_models AS select_model`))
 	})
 
 	It("supports multiple groups", func() {
@@ -152,7 +152,7 @@ var _ = Describe("Select", func() {
 		q := NewQuery(nil).Where("id IN (?)", subq)
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT * WHERE (id IN (SELECT "id" FROM "select_models" AS "select_model" WHERE (name IS NOT NULL)))`))
+		Expect(s).To(Equal(`SELECT * WHERE (id IN (SELECT "id" FROM select_models AS select_model WHERE (name IS NOT NULL)))`))
 	})
 
 	It("supports locking", func() {
@@ -196,21 +196,21 @@ var _ = Describe("Select", func() {
 		q := NewQuery(nil, &SelectModel{}).Column("id").Where("?TableAlias.name > ?", t)
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "id" FROM "select_models" AS "select_model" WHERE ("select_model".name > '2006-02-03 10:30:35.987654321+00:00:00')`))
+		Expect(s).To(Equal(`SELECT "id" FROM select_models AS select_model WHERE (select_model.name > '2006-02-03 10:30:35.987654321+00:00:00')`))
 	})
 
 	It("supports DISTINCT", func() {
 		q := NewQuery(nil, &SelectModel{}).Distinct()
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT DISTINCT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
+		Expect(s).To(Equal(`SELECT DISTINCT select_model.id, select_model.name, select_model.has_one_id FROM select_models AS select_model`))
 	})
 
 	It("supports DISTINCT ON", func() {
 		q := NewQuery(nil, &SelectModel{}).DistinctOn("expr(?)", "foo")
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT DISTINCT ON (expr('foo')) "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
+		Expect(s).To(Equal(`SELECT DISTINCT ON (expr('foo')) select_model.id, select_model.name, select_model.has_one_id FROM select_models AS select_model`))
 	})
 })
 
@@ -242,7 +242,7 @@ var _ = Describe("Count", func() {
 		q := NewQuery(nil, &SelectModel{Id: 1}).Relation("HasOne")
 
 		s := queryString(q.countSelectQuery("count(*)"))
-		Expect(s).To(Equal(`SELECT count(*) FROM "select_models" AS "select_model" LEFT JOIN "has_one_models" AS "has_one" ON "has_one"."id" = "select_model"."has_one_id"`))
+		Expect(s).To(Equal(`SELECT count(*) FROM select_models AS select_model LEFT JOIN has_one_models AS has_one ON has_one.id = select_model.has_one_id`))
 	})
 
 	It("uses CTE when query contains GROUP BY", func() {
@@ -269,7 +269,7 @@ var _ = Describe("With", func() {
 			Where("cond2")
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`WITH "wrapper" AS (SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
+		Expect(s).To(Equal(`WITH "wrapper" AS (SELECT select_model.id, select_model.name, select_model.has_one_id FROM select_models AS select_model WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
 	})
 
 	It("generates nested CTE", func() {
@@ -295,7 +295,7 @@ var _ = Describe("With", func() {
 			ExcludeColumn("has_one_id")
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "id", "name" FROM "select_models" AS "select_model"`))
+		Expect(s).To(Equal(`SELECT id, name FROM select_models AS select_model`))
 	})
 
 	It("supports WithDelete", func() {
@@ -308,7 +308,7 @@ var _ = Describe("With", func() {
 			Where("cond2")
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`WITH "wrapper" AS (DELETE FROM "select_models" AS "select_model" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
+		Expect(s).To(Equal(`WITH "wrapper" AS (DELETE FROM select_models AS select_model WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
 	})
 })
 
@@ -347,7 +347,7 @@ var _ = Describe("SoftDeleteModel", func() {
 		q := NewQuery(nil, &SoftDeleteModel{})
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "soft_delete_model"."id", "soft_delete_model"."deleted_at" FROM "soft_delete_models" AS "soft_delete_model" WHERE "soft_delete_model"."deleted_at" IS NULL`))
+		Expect(s).To(Equal(`SELECT soft_delete_model.id, soft_delete_model.deleted_at FROM soft_delete_models AS soft_delete_model WHERE soft_delete_model.deleted_at IS NULL`))
 	})
 })
 

@@ -2167,7 +2167,7 @@ var _ = Describe("soft delete", func() {
 
 			err = db.Delete(model)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(model.DeletedAt).To(BeTemporally("~", time.Now()))
+			Expect(model.DeletedAt).To(BeTemporally("~", time.Now(), time.Second))
 		})
 
 		assert()

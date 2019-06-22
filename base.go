@@ -200,7 +200,6 @@ func (db *baseDB) exec(c context.Context, query interface{}, params ...interface
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
-		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
@@ -261,7 +260,6 @@ func (db *baseDB) query(c context.Context, model, query interface{}, params ...i
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
-		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}

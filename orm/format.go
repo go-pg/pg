@@ -103,6 +103,19 @@ func (q *condAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, erro
 
 //------------------------------------------------------------------------------
 
+type columnAppender struct {
+	sqlName string
+	column  types.Q
+}
+
+var _ QueryAppender = (*columnAppender)(nil)
+
+func (a columnAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
+	return append(b, a.column...), nil
+}
+
+//------------------------------------------------------------------------------
+
 type fieldAppender struct {
 	field string
 }
