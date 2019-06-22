@@ -28,6 +28,11 @@ func (q *joinQuery) AppendOn(app *condAppender) {
 	q.on = append(q.on, app)
 }
 
+type columnValue struct {
+	column string
+	value  *queryParamsAppender
+}
+
 type Query struct {
 	ctx       context.Context
 	db        DB
@@ -43,6 +48,7 @@ type Query struct {
 	columns      []QueryAppender
 	set          []QueryAppender
 	modelValues  map[string]*queryParamsAppender
+	extraValues  []*columnValue
 	where        []queryWithSepAppender
 	updWhere     []queryWithSepAppender
 	joins        []*joinQuery
@@ -369,15 +375,18 @@ func (q *Query) Value(column string, value string, params ...interface{}) *Query
 	}
 
 	table := q.model.Table()
-	if _, ok := table.FieldsMap[column]; !ok {
-		q.err(fmt.Errorf("%s does not have column=%q", table, column))
-		return q
+	if _, ok := table.FieldsMap[column]; ok {
+		if q.modelValues == nil {
+			q.modelValues = make(map[string]*queryParamsAppender)
+		}
+		q.modelValues[column] = &queryParamsAppender{value, params}
+	} else {
+		q.extraValues = append(q.extraValues, &columnValue{
+			column: column,
+			value:  &queryParamsAppender{value, params},
+		})
 	}
 
-	if q.modelValues == nil {
-		q.modelValues = make(map[string]*queryParamsAppender)
-	}
-	q.modelValues[column] = &queryParamsAppender{value, params}
 	return q
 }
 

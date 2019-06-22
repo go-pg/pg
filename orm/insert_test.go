@@ -81,6 +81,17 @@ var _ = Describe("Insert", func() {
 		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello'))`))
 	})
 
+	It("supports extra Value", func() {
+		model := &InsertTest{
+			Id:    1,
+			Value: "hello",
+		}
+		q := NewQuery(nil, model).Value("unknown", "upper(?)", model.Value)
+
+		s := insertQueryString(q)
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value", "unknown") VALUES (1, 'hello', upper('hello'))`))
+	})
+
 	It("multi inserts", func() {
 		q := NewQuery(nil, &InsertTest{
 			Id:    1,
