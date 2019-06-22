@@ -131,7 +131,6 @@ func (q *updateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, e
 	if len(q.q.set) > 0 {
 		return q.q.appendSet(fmter, b)
 	}
-
 	if !q.q.hasModel() {
 		return nil, errModelNil
 	}
@@ -180,19 +179,33 @@ func (q *updateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct refl
 		b = append(b, f.Column...)
 		b = append(b, " = "...)
 
+		if q.placeholder {
+			b = append(b, '?')
+			continue
+		}
+
 		app, ok := q.q.modelValues[f.SQLName]
 		if ok {
 			b, err = app.AppendQuery(fmter, b)
 			if err != nil {
 				return nil, err
 			}
-			continue
-		}
-
-		if q.placeholder {
-			b = append(b, '?')
 		} else {
 			b = f.AppendValue(b, strct, 1)
+		}
+	}
+
+	for i, v := range q.q.extraValues {
+		if i > 0 || len(fields) > 0 {
+			b = append(b, ", "...)
+		}
+
+		b = append(b, v.column...)
+		b = append(b, " = "...)
+
+		b, err = v.value.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
 		}
 	}
 
