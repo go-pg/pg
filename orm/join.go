@@ -164,12 +164,11 @@ func (j *join) hasParent() bool {
 }
 
 func (j *join) appendAlias(b []byte) []byte {
-	b = appendAlias(b, j, true)
-	return b
+	return appendAlias(b, j, true)
 }
 
 func (j *join) appendAliasColumn(b []byte, column string) []byte {
-	b = appendAlias(b, j, true)
+	b = appendAlias(b, j, false)
 	b = append(b, "__"...)
 	b = append(b, column...)
 	return b
@@ -182,15 +181,19 @@ func (j *join) appendBaseAlias(b []byte) []byte {
 	return append(b, j.BaseModel.Table().Alias...)
 }
 
-func appendAlias(b []byte, j *join, topLevel bool) []byte {
+func appendAlias(b []byte, j *join, quote bool) []byte {
 	if j.hasParent() {
-		b = appendAlias(b, j.Parent, topLevel)
-		topLevel = false
-	}
-	if !topLevel {
+		b = appendAlias(b, j.Parent, false)
 		b = append(b, "__"...)
+		b = append(b, j.Rel.Field.SQLName...)
+		return b
 	}
-	b = append(b, j.Rel.Field.SQLName...)
+
+	if quote {
+		b = append(b, j.Rel.Field.Column...)
+	} else {
+		b = append(b, j.Rel.Field.SQLName...)
+	}
 	return b
 }
 
