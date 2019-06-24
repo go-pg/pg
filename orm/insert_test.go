@@ -56,7 +56,7 @@ var _ = Describe("Insert", func() {
 		q := NewQuery(nil, model).Column("id")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_tests (id) VALUES (1)`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id") VALUES (1)`))
 	})
 
 	It("supports Value", func() {
@@ -67,7 +67,7 @@ var _ = Describe("Insert", func() {
 		q := NewQuery(nil, model).Value("value", "upper(?)", model.Value)
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_tests (id, value) VALUES (1, upper('hello'))`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello'))`))
 	})
 
 	It("supports Value 2", func() {
@@ -78,7 +78,7 @@ var _ = Describe("Insert", func() {
 		q := NewQuery(nil, model).Value("value", "upper(?value)")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_tests (id, value) VALUES (1, upper('hello'))`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello'))`))
 	})
 
 	It("supports extra Value", func() {
@@ -89,7 +89,7 @@ var _ = Describe("Insert", func() {
 		q := NewQuery(nil, model).Value("unknown", "upper(?)", model.Value)
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_tests (id, value, "unknown") VALUES (1, 'hello', upper('hello'))`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value", "unknown") VALUES (1, 'hello', upper('hello'))`))
 	})
 
 	It("multi inserts", func() {
@@ -101,7 +101,7 @@ var _ = Describe("Insert", func() {
 		})
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_tests (id, value) VALUES (1, 'hello'), (2, DEFAULT) RETURNING value`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, 'hello'), (2, DEFAULT) RETURNING "value"`))
 	})
 
 	It("supports ON CONFLICT DO UPDATE", func() {
@@ -112,7 +112,7 @@ var _ = Describe("Insert", func() {
 			Where("2 = 2")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_tests AS insert_test (id, value) VALUES (DEFAULT, DEFAULT) ON CONFLICT (unq1) DO UPDATE SET count1 = count1 + 1 WHERE (2 = 2) RETURNING id, value`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" ("id", "value") VALUES (DEFAULT, DEFAULT) ON CONFLICT (unq1) DO UPDATE SET count1 = count1 + 1 WHERE (2 = 2) RETURNING "id", "value"`))
 	})
 
 	It("supports ON CONFLICT DO UPDATE without SET", func() {
@@ -120,7 +120,7 @@ var _ = Describe("Insert", func() {
 			OnConflict("(unq1) DO UPDATE")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_tests AS insert_test (id, value) VALUES (DEFAULT, DEFAULT) ON CONFLICT (unq1) DO UPDATE SET value = EXCLUDED.value RETURNING id, value`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" ("id", "value") VALUES (DEFAULT, DEFAULT) ON CONFLICT (unq1) DO UPDATE SET "value" = EXCLUDED."value" RETURNING "id", "value"`))
 	})
 
 	It("supports ON CONFLICT DO NOTHING", func() {
@@ -130,42 +130,42 @@ var _ = Describe("Insert", func() {
 			Where("cond1 IS TRUE")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_tests AS insert_test (id, value) VALUES (DEFAULT, DEFAULT) ON CONFLICT (unq1) DO NOTHING RETURNING id, value`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" AS "insert_test" ("id", "value") VALUES (DEFAULT, DEFAULT) ON CONFLICT (unq1) DO NOTHING RETURNING "id", "value"`))
 	})
 
 	It("supports custom table name on embedded struct", func() {
 		q := NewQuery(nil, &EmbeddedInsertTest{})
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO my_name (id, field, field2) VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING id, field, field2`))
+		Expect(s).To(Equal(`INSERT INTO my_name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
 	})
 
 	It("inherits table name from embedded struct", func() {
 		q := NewQuery(nil, &InheritInsertTest{})
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO name (id, field, field2) VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING id, field, field2`))
+		Expect(s).To(Equal(`INSERT INTO name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
 	})
 
 	It("supports value when default value is set", func() {
 		q := NewQuery(nil, &InsertDefaultTest{Id: 1})
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_default_tests (id, value) VALUES (1, DEFAULT) RETURNING value`))
+		Expect(s).To(Equal(`INSERT INTO "insert_default_tests" ("id", "value") VALUES (1, DEFAULT) RETURNING "value"`))
 	})
 
 	It("supports RETURNING NULL", func() {
 		q := NewQuery(nil, &InsertDefaultTest{Id: 1}).Returning("NULL")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_default_tests (id, value) VALUES (1, DEFAULT)`))
+		Expect(s).To(Equal(`INSERT INTO "insert_default_tests" ("id", "value") VALUES (1, DEFAULT)`))
 	})
 
 	It("supports notnull", func() {
 		q := NewQuery(nil, &InsertNullTest{})
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_null_tests (f1, f2, f3, f4) VALUES (DEFAULT, 0, DEFAULT, 0) RETURNING f1, f3`))
+		Expect(s).To(Equal(`INSERT INTO "insert_null_tests" ("f1", "f2", "f3", "f4") VALUES (DEFAULT, 0, DEFAULT, 0) RETURNING "f1", "f3"`))
 	})
 
 	It("inserts types.Q", func() {
@@ -175,7 +175,7 @@ var _ = Describe("Insert", func() {
 		})
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_q_tests (geo, func) VALUES (ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))'), my_func('param'))`))
+		Expect(s).To(Equal(`INSERT INTO "insert_q_tests" ("geo", "func") VALUES (ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))'), my_func('param'))`))
 	})
 
 	It("supports FROM", func() {
@@ -186,14 +186,14 @@ var _ = Describe("Insert", func() {
 			TableExpr("data")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`WITH "data" AS (SELECT insert_test.id, insert_test.value FROM insert_tests AS insert_test) INSERT INTO dst (dst_col1, dst_col2) SELECT * FROM data`))
+		Expect(s).To(Equal(`WITH "data" AS (SELECT "insert_test"."id", "insert_test"."value" FROM "insert_tests" AS "insert_test") INSERT INTO dst (dst_col1, dst_col2) SELECT * FROM data`))
 	})
 
 	It("bulk inserts", func() {
 		q := NewQuery(nil, &InsertTest{}, &InsertTest{})
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_tests (id, value) VALUES (DEFAULT, DEFAULT), (DEFAULT, DEFAULT) RETURNING id, value`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (DEFAULT, DEFAULT), (DEFAULT, DEFAULT) RETURNING "id", "value"`))
 	})
 
 	It("bulk inserts overriding column value", func() {
@@ -201,7 +201,7 @@ var _ = Describe("Insert", func() {
 			Value("id", "123")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO insert_tests (id, value) VALUES (123, DEFAULT), (123, DEFAULT) RETURNING value`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (123, DEFAULT), (123, DEFAULT) RETURNING "value"`))
 	})
 
 	It("returns an error for empty bulk insert", func() {
@@ -221,7 +221,7 @@ var _ = Describe("Insert", func() {
 		q := NewQuery(nil, &Model{})
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO models (id, bool) VALUES (DEFAULT, DEFAULT) RETURNING id, bool`))
+		Expect(s).To(Equal(`INSERT INTO "models" ("id", "bool") VALUES (DEFAULT, DEFAULT) RETURNING "id", "bool"`))
 	})
 
 	It("support models without a name", func() {
@@ -233,7 +233,7 @@ var _ = Describe("Insert", func() {
 		q := NewQuery(nil, &Model{}).Table("dynamic_name")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO "dynamic_name" (id) VALUES (DEFAULT) RETURNING id`))
+		Expect(s).To(Equal(`INSERT INTO "dynamic_name" ("id") VALUES (DEFAULT) RETURNING "id"`))
 	})
 })
 

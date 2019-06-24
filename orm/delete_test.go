@@ -16,7 +16,7 @@ var _ = Describe("Delete", func() {
 			Where("delete_test.id = wrapper.id")
 
 		s := deleteQueryString(q)
-		Expect(s).To(Equal(`WITH "wrapper" AS (SELECT  FROM delete_tests AS delete_test) DELETE FROM delete_tests AS delete_test USING "wrapper" WHERE (delete_test.id = wrapper.id)`))
+		Expect(s).To(Equal(`WITH "wrapper" AS (SELECT  FROM "delete_tests" AS "delete_test") DELETE FROM "delete_tests" AS "delete_test" USING "wrapper" WHERE (delete_test.id = wrapper.id)`))
 	})
 })
 

@@ -56,8 +56,21 @@ func QuoteTableName(s string) string {
 
 func isPostgresKeyword(s string) bool {
 	switch strings.ToLower(s) {
-	case "user", "group", "order", "limit", "constraint",
-		"member", "placing", "references", "table":
+	case "user",
+		"select",
+		"insert",
+		"update",
+		"delete",
+		"group",
+		"order",
+		"limit",
+		"constraint",
+		"member",
+		"placing",
+		"references",
+		"table",
+		"from",
+		"to":
 		return true
 	default:
 		return false
