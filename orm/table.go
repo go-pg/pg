@@ -561,9 +561,9 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 		if m2mTable != nil {
 			m2mTableAlias = m2mTable.Alias
 		} else if ind := strings.IndexByte(m2mTableName, '.'); ind >= 0 {
-			m2mTableAlias = types.Q(m2mTableName[ind+1:])
+			m2mTableAlias = types.Q(internal.QuoteTableName(m2mTableName[ind+1:]))
 		} else {
-			m2mTableAlias = types.Q(m2mTableName)
+			m2mTableAlias = types.Q(internal.QuoteTableName(m2mTableName))
 		}
 
 		var fks []string
@@ -617,7 +617,7 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 			Type:          Many2ManyRelation,
 			Field:         field,
 			JoinTable:     joinTable,
-			M2MTableName:  types.Q(m2mTableName),
+			M2MTableName:  types.Q(internal.QuoteTableName(m2mTableName)),
 			M2MTableAlias: m2mTableAlias,
 			BaseFKs:       fks,
 			JoinFKs:       joinFKs,
