@@ -80,8 +80,8 @@ func newTable(typ reflect.Type) *Table {
 	t.TypeName = internal.ToExported(t.Type.Name())
 	t.ModelName = internal.Underscore(t.Type.Name())
 	t.Name = tableNameInflector(t.ModelName)
-	t.setName(types.Q(internal.QuoteTableName(t.Name)))
-	t.Alias = types.Q(internal.QuoteTableName(t.ModelName))
+	t.setName(quoteID(t.Name))
+	t.Alias = quoteID(t.ModelName)
 
 	typ = reflect.PtrTo(t.Type)
 	if typ.Implements(afterQueryHookType) {
@@ -317,7 +317,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		tableSpace, ok := sqlTag.Options["tablespace"]
 		if ok {
 			s, _ := tag.Unquote(tableSpace)
-			t.Tablespace = types.Q(internal.QuoteTableName(s))
+			t.Tablespace = quoteID(s)
 		}
 
 		if sqlTag.Name == "_" {
@@ -327,14 +327,14 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			t.setName(types.Q(internal.QuoteTableName(s)))
 		}
 
-		if v, ok := sqlTag.Options["select"]; ok {
-			v, _ = tag.Unquote(v)
-			t.FullNameForSelects = types.Q(internal.QuoteTableName(v))
+		if s, ok := sqlTag.Options["select"]; ok {
+			s, _ = tag.Unquote(s)
+			t.FullNameForSelects = types.Q(internal.QuoteTableName(s))
 		}
 
 		if v, ok := sqlTag.Options["alias"]; ok {
 			v, _ = tag.Unquote(v)
-			t.Alias = types.Q(internal.QuoteTableName(v))
+			t.Alias = quoteID(v)
 		}
 
 		pgTag := tag.Parse(f.Tag.Get("pg"))
@@ -368,7 +368,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		GoName:  f.Name,
 		SQLName: sqlTag.Name,
-		Column:  types.Q(internal.QuoteTableName(sqlTag.Name)),
+		Column:  quoteID(sqlTag.Name),
 
 		Index: index,
 	}
@@ -561,9 +561,9 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 		if m2mTable != nil {
 			m2mTableAlias = m2mTable.Alias
 		} else if ind := strings.IndexByte(m2mTableName, '.'); ind >= 0 {
-			m2mTableAlias = types.Q(internal.QuoteTableName(m2mTableName[ind+1:]))
+			m2mTableAlias = quoteID(m2mTableName[ind+1:])
 		} else {
-			m2mTableAlias = types.Q(internal.QuoteTableName(m2mTableName))
+			m2mTableAlias = quoteID(m2mTableName)
 		}
 
 		var fks []string
@@ -617,7 +617,7 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 			Type:          Many2ManyRelation,
 			Field:         field,
 			JoinTable:     joinTable,
-			M2MTableName:  types.Q(internal.QuoteTableName(m2mTableName)),
+			M2MTableName:  quoteID(m2mTableName),
 			M2MTableAlias: m2mTableAlias,
 			BaseFKs:       fks,
 			JoinFKs:       joinFKs,
@@ -708,7 +708,7 @@ func (t *Table) inlineFields(strct *Field, path map[reflect.Type]struct{}) {
 		f = f.Clone()
 		f.GoName = strct.GoName + "_" + f.GoName
 		f.SQLName = strct.SQLName + "__" + f.SQLName
-		f.Column = types.Q(internal.QuoteTableName(f.SQLName))
+		f.Column = quoteID(f.SQLName)
 		f.Index = appendNew(strct.Index, f.Index...)
 
 		t.fieldsMapMu.Lock()
@@ -991,4 +991,8 @@ func tryUnderscorePrefix(s string) string {
 		return internal.Underscore(s) + "_"
 	}
 	return s
+}
+
+func quoteID(s string) types.Q {
+	return types.Q(types.AppendField(nil, s, 1))
 }

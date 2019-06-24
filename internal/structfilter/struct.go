@@ -5,10 +5,11 @@ import (
 
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/tag"
+	"github.com/go-pg/pg/types"
 )
 
 type Struct struct {
-	TableName string
+	TableName types.Q
 	Fields    []*Field
 }
 
@@ -57,7 +58,7 @@ func addFields(s *Struct, typ reflect.Type, baseIndex []int) {
 		if sf.Name == "tableName" {
 			sqlTag := tag.Parse(sf.Tag.Get("sql"))
 			name, _ := tag.Unquote(sqlTag.Name)
-			s.TableName = internal.QuoteTableName(name)
+			s.TableName = types.Q(internal.QuoteTableName(name))
 			continue
 		}
 
