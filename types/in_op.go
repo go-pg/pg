@@ -22,11 +22,11 @@ func InSlice(slice interface{}) ValueAppender {
 	}
 }
 
-func (in *inOp) AppendValue(b []byte, quote int) []byte {
-	return appendIn(b, in.slice, quote)
+func (in *inOp) AppendValue(b []byte, flags int) ([]byte, error) {
+	return appendIn(b, in.slice, flags), nil
 }
 
-func appendIn(b []byte, slice reflect.Value, quote int) []byte {
+func appendIn(b []byte, slice reflect.Value, flags int) []byte {
 	for i := 0; i < slice.Len(); i++ {
 		if i > 0 {
 			b = append(b, ',')
@@ -39,10 +39,10 @@ func appendIn(b []byte, slice reflect.Value, quote int) []byte {
 
 		if elem.Kind() == reflect.Slice {
 			b = append(b, '(')
-			b = appendIn(b, elem, quote)
+			b = appendIn(b, elem, flags)
 			b = append(b, ')')
 		} else {
-			b = appendValue(b, elem, quote)
+			b = appendValue(b, elem, flags)
 		}
 	}
 	return b

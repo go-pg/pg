@@ -104,9 +104,23 @@ var _ = Describe("Update", func() {
 		s := updateQueryString(q)
 		Expect(s).To(Equal(`UPDATE "models" AS "model" SET "bool" = FALSE WHERE "model"."id" = NULL`))
 	})
+
+	It("allows disabling an alias", func() {
+		type Model struct {
+			tableName struct{} `sql:"alias:models"`
+
+			Id int
+		}
+
+		q := NewQuery(nil, &Model{}).WherePK()
+
+		s := updateQueryString(q)
+		Expect(s).To(Equal(`UPDATE "models" SET  WHERE "models"."id" = NULL`))
+	})
 })
 
 func updateQueryString(q *Query) string {
 	upd := newUpdateQuery(q, false)
-	return queryString(upd)
+	s := queryString(upd)
+	return s
 }

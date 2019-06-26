@@ -49,7 +49,7 @@ var _ = Describe("Select", func() {
 
 	It("copies query", func() {
 		q1 := NewQuery(nil).Where("1 = 1").Where("2 = 2").Where("3 = 3")
-		q2 := q1.Copy().Where("q2 = ?", "v2")
+		q2 := q1.Clone().Where("q2 = ?", "v2")
 		_ = q1.Where("q1 = ?", "v1")
 
 		s := selectQueryString(q2)
@@ -198,6 +198,20 @@ var _ = Describe("Select", func() {
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT "id" FROM "select_models" AS "select_model" WHERE ("select_model".name > '2006-02-03 10:30:35.987654321+00:00:00')`))
 	})
+
+	It("supports DISTINCT", func() {
+		q := NewQuery(nil, &SelectModel{}).Distinct()
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT DISTINCT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
+	})
+
+	It("supports DISTINCT ON", func() {
+		q := NewQuery(nil, &SelectModel{}).DistinctOn("expr(?)", "foo")
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT DISTINCT ON (expr('foo')) "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
+	})
 })
 
 var _ = Describe("Count", func() {
@@ -339,7 +353,8 @@ var _ = Describe("SoftDeleteModel", func() {
 
 func selectQueryString(q *Query) string {
 	sel := newSelectQuery(q)
-	return queryString(sel)
+	s := queryString(sel)
+	return s
 }
 
 func queryString(f QueryAppender) string {

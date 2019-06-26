@@ -3,6 +3,8 @@ package orm
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/go-pg/pg/types"
 )
 
 func Insert(db DB, model ...interface{}) error {
@@ -27,7 +29,7 @@ func newInsertQuery(q *Query) *insertQuery {
 
 func (q *insertQuery) Clone() queryCommand {
 	return &insertQuery{
-		q:           q.q.Copy(),
+		q:           q.q.Clone(),
 		placeholder: q.placeholder,
 	}
 }
@@ -90,7 +92,7 @@ func (q *insertQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		value := q.q.model.Value()
 
 		b = append(b, " ("...)
-		b = appendColumns(b, "", fields)
+		b = q.appendColumns(b, fields)
 		b = append(b, ") VALUES ("...)
 		if m, ok := q.q.model.(*sliceTableModel); ok {
 			if m.sliceLen == 0 {
@@ -185,6 +187,18 @@ func (q *insertQuery) appendValues(
 			b = f.AppendValue(b, strct, 1)
 		}
 	}
+
+	for i, v := range q.q.extraValues {
+		if i > 0 || len(fields) > 0 {
+			b = append(b, ", "...)
+		}
+
+		b, err = v.value.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return b, nil
 }
 
@@ -205,6 +219,18 @@ func (q *insertQuery) appendSliceValues(
 			return nil, err
 		}
 	}
+
+	for i, v := range q.q.extraValues {
+		if i > 0 || len(fields) > 0 {
+			b = append(b, ", "...)
+		}
+
+		b, err = v.value.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return b, nil
 }
 
@@ -226,6 +252,17 @@ func (q *insertQuery) appendSetExcluded(b []byte, fields []*Field) []byte {
 		b = append(b, f.Column...)
 		b = append(b, " = EXCLUDED."...)
 		b = append(b, f.Column...)
+	}
+	return b
+}
+
+func (q *insertQuery) appendColumns(b []byte, fields []*Field) []byte {
+	b = appendColumns(b, "", fields)
+	for i, v := range q.q.extraValues {
+		if i > 0 || len(fields) > 0 {
+			b = append(b, ", "...)
+		}
+		b = types.AppendField(b, v.column, 1)
 	}
 	return b
 }

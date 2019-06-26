@@ -27,7 +27,7 @@ var _ queryCommand = (*createCompositeQuery)(nil)
 
 func (q *createCompositeQuery) Clone() queryCommand {
 	return &createCompositeQuery{
-		q:   q.q.Copy(),
+		q:   q.q.Clone(),
 		opt: q.opt,
 	}
 }

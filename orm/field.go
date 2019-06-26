@@ -50,7 +50,7 @@ func indexEqual(ind1, ind2 []int) bool {
 	return true
 }
 
-func (f *Field) Copy() *Field {
+func (f *Field) Clone() *Field {
 	cp := *f
 	cp.Index = cp.Index[:len(f.Index):len(f.Index)]
 	return &cp

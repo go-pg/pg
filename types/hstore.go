@@ -39,8 +39,8 @@ func (h *Hstore) Value() interface{} {
 	return nil
 }
 
-func (h *Hstore) AppendValue(b []byte, quote int) []byte {
-	return h.append(b, h.v, quote)
+func (h *Hstore) AppendValue(b []byte, flags int) ([]byte, error) {
+	return h.append(b, h.v, flags), nil
 }
 
 func (h *Hstore) ScanValue(rd Reader, n int) error {

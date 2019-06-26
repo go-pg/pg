@@ -132,7 +132,7 @@ func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 		}
 		join = append(join, j.Rel.M2MTableAlias...)
 		join = append(join, '.')
-		join = types.AppendField(join, col, 1)
+		join = append(join, col...)
 	}
 	join = append(join, ") IN ("...)
 	join = appendChildValues(join, j.BaseModel.Root(), index, baseTable.PKs)
@@ -165,16 +165,16 @@ func (j *join) hasParent() bool {
 
 func (j *join) appendAlias(b []byte) []byte {
 	b = append(b, '"')
-	b = appendAlias(b, j, true)
+	b = appendAlias(b, j)
 	b = append(b, '"')
 	return b
 }
 
 func (j *join) appendAliasColumn(b []byte, column string) []byte {
 	b = append(b, '"')
-	b = appendAlias(b, j, true)
+	b = appendAlias(b, j)
 	b = append(b, "__"...)
-	b = types.AppendField(b, column, 0)
+	b = append(b, column...)
 	b = append(b, '"')
 	return b
 }
@@ -182,19 +182,16 @@ func (j *join) appendAliasColumn(b []byte, column string) []byte {
 func (j *join) appendBaseAlias(b []byte) []byte {
 	if j.hasParent() {
 		b = append(b, '"')
-		b = appendAlias(b, j.Parent, true)
+		b = appendAlias(b, j.Parent)
 		b = append(b, '"')
 		return b
 	}
 	return append(b, j.BaseModel.Table().Alias...)
 }
 
-func appendAlias(b []byte, j *join, topLevel bool) []byte {
+func appendAlias(b []byte, j *join) []byte {
 	if j.hasParent() {
-		b = appendAlias(b, j.Parent, topLevel)
-		topLevel = false
-	}
-	if !topLevel {
+		b = appendAlias(b, j.Parent)
 		b = append(b, "__"...)
 	}
 	b = append(b, j.Rel.Field.SQLName...)

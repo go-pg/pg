@@ -30,7 +30,7 @@ func prepareStmt(db *baseDB, q string) (*Stmt, error) {
 		q: q,
 	}
 
-	err := stmt.prepare(q)
+	err := stmt.prepare(context.TODO(), q)
 	if err != nil {
 		_ = stmt.Close()
 		return nil, err
@@ -38,7 +38,7 @@ func prepareStmt(db *baseDB, q string) (*Stmt, error) {
 	return stmt, nil
 }
 
-func (stmt *Stmt) prepare(q string) error {
+func (stmt *Stmt) prepare(c context.Context, q string) error {
 	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		if attempt > 0 {
@@ -46,14 +46,14 @@ func (stmt *Stmt) prepare(q string) error {
 
 			err := stmt.db.pool.(*pool.SingleConnPool).Reset()
 			if err != nil {
-				internal.Logf(err.Error())
+				internal.Logger.Printf(err.Error())
 				continue
 			}
 		}
 
-		lastErr = stmt.withConn(context.TODO(), func(cn *pool.Conn) error {
+		lastErr = stmt.withConn(c, func(c context.Context, cn *pool.Conn) error {
 			var err error
-			stmt.name, stmt.columns, err = stmt.db.prepare(cn, q)
+			stmt.name, stmt.columns, err = stmt.db.prepare(c, cn, q)
 			return err
 		})
 		if !stmt.db.shouldRetry(lastErr) {
@@ -63,7 +63,7 @@ func (stmt *Stmt) prepare(q string) error {
 	return lastErr
 }
 
-func (stmt *Stmt) withConn(c context.Context, fn func(cn *pool.Conn) error) error {
+func (stmt *Stmt) withConn(c context.Context, fn func(context.Context, *pool.Conn) error) error {
 	if stmt.stickyErr != nil {
 		return stmt.stickyErr
 	}
@@ -84,34 +84,38 @@ func (stmt *Stmt) ExecContext(c context.Context, params ...interface{}) (Result,
 	return stmt.exec(c, params...)
 }
 
-func (stmt *Stmt) exec(c context.Context, params ...interface{}) (res Result, err error) {
+func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error) {
+	var res Result
+	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
-		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		err = stmt.withConn(c, func(cn *pool.Conn) error {
-			event := stmt.db.queryStarted(c, stmt.db.db, stmt.q, params, attempt)
-			res, err = stmt.extQuery(cn, stmt.name, params...)
-			stmt.db.queryProcessed(res, err, event)
+		c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, stmt.q, params, attempt)
+		if err != nil {
+			return nil, err
+		}
+
+		lastErr = stmt.withConn(c, func(c context.Context, cn *pool.Conn) error {
+			res, err = stmt.extQuery(c, cn, stmt.name, params...)
+			if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
+				return err
+			}
 			return err
 		})
-		if !stmt.db.shouldRetry(err) {
+		if !stmt.db.shouldRetry(lastErr) {
 			break
 		}
 	}
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+	return res, lastErr
 }
 
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (stmt *Stmt) ExecOne(params ...interface{}) (Result, error) {
-	return stmt.execOne(context.TODO(), params...)
+	return stmt.execOne(context.Background(), params...)
 }
 
 // ExecOneContext acts like ExecOne but additionally receives a context
@@ -133,7 +137,7 @@ func (stmt *Stmt) execOne(c context.Context, params ...interface{}) (Result, err
 
 // Query executes a prepared query statement with the given parameters.
 func (stmt *Stmt) Query(model interface{}, params ...interface{}) (Result, error) {
-	return stmt.query(context.TODO(), model, params...)
+	return stmt.query(context.Background(), model, params...)
 }
 
 // QueryContext acts like Query but additionally receives a context
@@ -141,29 +145,36 @@ func (stmt *Stmt) QueryContext(c context.Context, model interface{}, params ...i
 	return stmt.query(c, model, params...)
 }
 
-func (stmt *Stmt) query(c context.Context, model interface{}, params ...interface{}) (res Result, err error) {
+func (stmt *Stmt) query(c context.Context, model interface{}, params ...interface{}) (Result, error) {
+	var res Result
+	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
-		attempt := attempt
 		if attempt > 0 {
 			time.Sleep(stmt.db.retryBackoff(attempt - 1))
 		}
 
-		err = stmt.withConn(c, func(cn *pool.Conn) error {
-			event := stmt.db.queryStarted(c, stmt.db.db, stmt.q, params, attempt)
-			res, err = stmt.extQueryData(cn, stmt.name, model, stmt.columns, params...)
-			stmt.db.queryProcessed(res, err, event)
+		c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, stmt.q, params, attempt)
+		if err != nil {
+			return nil, err
+		}
+
+		lastErr = stmt.withConn(c, func(c context.Context, cn *pool.Conn) error {
+			res, err = stmt.extQueryData(c, cn, stmt.name, model, stmt.columns, params...)
+			if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
+				return err
+			}
 			return err
 		})
-		if !stmt.db.shouldRetry(err) {
+		if !stmt.db.shouldRetry(lastErr) {
 			break
 		}
 	}
-	if err != nil {
-		return nil, err
+	if lastErr != nil {
+		return nil, lastErr
 	}
 
 	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
-		if err = mod.AfterQuery(c, stmt.db.db); err != nil {
+		if err := mod.AfterQuery(c, stmt.db.db); err != nil {
 			return res, err
 		}
 	}
@@ -175,7 +186,7 @@ func (stmt *Stmt) query(c context.Context, model interface{}, params ...interfac
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (Result, error) {
-	return stmt.queryOne(context.TODO(), model, params...)
+	return stmt.queryOne(context.Background(), model, params...)
 }
 
 // QueryOneContext acts like QueryOne but additionally receives a context
@@ -216,8 +227,10 @@ func (stmt *Stmt) Close() error {
 	return firstErr
 }
 
-func (stmt *Stmt) extQuery(cn *pool.Conn, name string, params ...interface{}) (Result, error) {
-	err := cn.WithWriter(stmt.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+func (stmt *Stmt) extQuery(
+	c context.Context, cn *pool.Conn, name string, params ...interface{},
+) (Result, error) {
+	err := cn.WithWriter(c, stmt.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeBindExecuteMsg(wb, name, params...)
 	})
 	if err != nil {
@@ -225,7 +238,7 @@ func (stmt *Stmt) extQuery(cn *pool.Conn, name string, params ...interface{}) (R
 	}
 
 	var res Result
-	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
+	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readExtQuery(rd)
 		return err
 	})
@@ -237,9 +250,14 @@ func (stmt *Stmt) extQuery(cn *pool.Conn, name string, params ...interface{}) (R
 }
 
 func (stmt *Stmt) extQueryData(
-	cn *pool.Conn, name string, model interface{}, columns [][]byte, params ...interface{},
+	c context.Context,
+	cn *pool.Conn,
+	name string,
+	model interface{},
+	columns [][]byte,
+	params ...interface{},
 ) (Result, error) {
-	err := cn.WithWriter(stmt.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+	err := cn.WithWriter(c, stmt.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeBindExecuteMsg(wb, name, params...)
 	})
 	if err != nil {
@@ -247,7 +265,7 @@ func (stmt *Stmt) extQueryData(
 	}
 
 	var res Result
-	err = cn.WithReader(stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
+	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readExtQueryData(rd, model, columns)
 		return err
 	})
@@ -259,7 +277,7 @@ func (stmt *Stmt) extQueryData(
 }
 
 func (stmt *Stmt) closeStmt() error {
-	return stmt.withConn(context.TODO(), func(cn *pool.Conn) error {
-		return stmt.db.closeStmt(cn, stmt.name)
+	return stmt.withConn(context.TODO(), func(c context.Context, cn *pool.Conn) error {
+		return stmt.db.closeStmt(c, cn, stmt.name)
 	})
 }

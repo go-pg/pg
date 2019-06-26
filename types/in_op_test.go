@@ -20,7 +20,10 @@ func TestInOp(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		b := test.app.AppendValue(nil, 0)
+		b, err := test.app.AppendValue(nil, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
 		if string(b) != test.wanted {
 			t.Fatalf("%s != %s", b, test.wanted)
 		}

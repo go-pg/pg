@@ -25,7 +25,7 @@ func newSelectQuery(q *Query) *selectQuery {
 
 func (q *selectQuery) Clone() queryCommand {
 	return &selectQuery{
-		q:     q.q.Copy(),
+		q:     q.q.Clone(),
 		count: q.count,
 	}
 }
@@ -56,6 +56,20 @@ func (q *selectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	}
 
 	b = append(b, "SELECT "...)
+
+	if len(q.q.distinctOn) > 0 {
+		b = append(b, "DISTINCT ON ("...)
+		for i, app := range q.q.distinctOn {
+			if i > 0 {
+				b = append(b, ", "...)
+			}
+			b, err = app.AppendQuery(fmter, b)
+		}
+		b = append(b, ") "...)
+	} else if q.q.distinctOn != nil {
+		b = append(b, "DISTINCT "...)
+	}
+
 	if q.count != "" && !cteCount {
 		b = append(b, q.count...)
 	} else {
@@ -104,7 +118,7 @@ func (q *selectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		}
 	}
 
-	if q.q.hasWhere() {
+	if len(q.q.where) > 0 || q.q.isSoftDelete() {
 		b = append(b, " WHERE "...)
 		b, err = q.q.appendWhere(fmter, b)
 		if err != nil {
@@ -217,6 +231,9 @@ func (q selectQuery) appendColumns(fmter QueryFormatter, b []byte) (_ []byte, er
 }
 
 func (q *selectQuery) isDistinct() bool {
+	if q.q.distinctOn != nil {
+		return true
+	}
 	for _, column := range q.q.columns {
 		column, ok := column.(*queryParamsAppender)
 		if ok {

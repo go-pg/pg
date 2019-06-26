@@ -1,6 +1,7 @@
 package pool
 
 import (
+	"context"
 	"fmt"
 	"sync/atomic"
 )
@@ -47,20 +48,20 @@ func (p *SingleConnPool) SetConn(cn *Conn) {
 	panic("not reached")
 }
 
-func (p *SingleConnPool) NewConn() (*Conn, error) {
-	return p.pool.NewConn()
+func (p *SingleConnPool) NewConn(c context.Context) (*Conn, error) {
+	return p.pool.NewConn(c)
 }
 
 func (p *SingleConnPool) CloseConn(cn *Conn) error {
 	return p.pool.CloseConn(cn)
 }
 
-func (p *SingleConnPool) Get() (*Conn, error) {
+func (p *SingleConnPool) Get(c context.Context) (*Conn, error) {
 	for i := 0; i < 1e6; i++ {
 		switch atomic.LoadUint32(&p.state) {
 		case stateDefault:
 			if atomic.CompareAndSwapUint32(&p.state, stateDefault, stateInited) {
-				return p.pool.Get()
+				return p.pool.Get(c)
 			}
 		case stateInited:
 			cn, ok := <-p.ch

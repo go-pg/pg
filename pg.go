@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"log"
-	"os"
 	"strconv"
 
 	"github.com/go-pg/pg/internal"
@@ -18,11 +17,6 @@ var Discard orm.Discard
 // NullTime is a time.Time wrapper that marshals zero time as JSON null and
 // PostgreSQL NULL.
 type NullTime = types.NullTime
-
-//nolint
-func init() {
-	SetLogger(log.New(os.Stderr, "pg: ", log.LstdFlags|log.Lshortfile))
-}
 
 // Model returns new query for the optional model.
 func Model(model ...interface{}) *orm.Query {
@@ -140,9 +134,9 @@ func (strings *Strings) ScanColumn(colIdx int, _ string, rd types.Reader, n int)
 }
 
 // AppendValue appends the values from `strings` to the given byte slice
-func (strings Strings) AppendValue(dst []byte, quote int) []byte {
+func (strings Strings) AppendValue(dst []byte, quote int) ([]byte, error) {
 	if len(strings) == 0 {
-		return dst
+		return dst, nil
 	}
 
 	for _, s := range strings {
@@ -150,7 +144,7 @@ func (strings Strings) AppendValue(dst []byte, quote int) []byte {
 		dst = append(dst, ',')
 	}
 	dst = dst[:len(dst)-1]
-	return dst
+	return dst, nil
 }
 
 //------------------------------------------------------------------------------
@@ -191,9 +185,9 @@ func (ints *Ints) ScanColumn(colIdx int, colName string, rd types.Reader, n int)
 }
 
 // AppendValue appends the values from `ints` to the given byte slice
-func (ints Ints) AppendValue(dst []byte, quote int) []byte {
+func (ints Ints) AppendValue(dst []byte, quote int) ([]byte, error) {
 	if len(ints) == 0 {
-		return dst
+		return dst, nil
 	}
 
 	for _, v := range ints {
@@ -201,7 +195,7 @@ func (ints Ints) AppendValue(dst []byte, quote int) []byte {
 		dst = append(dst, ',')
 	}
 	dst = dst[:len(dst)-1]
-	return dst
+	return dst, nil
 }
 
 //------------------------------------------------------------------------------

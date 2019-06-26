@@ -135,7 +135,14 @@ func forAllValues(
 	b = types.AppendField(b, field, 1)
 	b = append(b, multiOpValue...)
 	b = append(b, '(')
-	b = pg.Strings(values).AppendValue(b, 1)
+
+	bb, err := pg.Strings(values).AppendValue(b, 1)
+	if err != nil {
+		b = types.AppendError(b, err)
+	} else {
+		b = bb
+	}
+
 	b = append(b, ')')
 	return b
 }

@@ -47,12 +47,14 @@ func ArrayAppender(typ reflect.Type) AppenderFunc {
 	}
 
 	appendElem := appender(elemType, true)
-	return func(b []byte, v reflect.Value, quote int) []byte {
+	return func(b []byte, v reflect.Value, flags int) []byte {
+		flags |= arrayFlag
+
 		kind := v.Kind()
 		switch kind {
 		case reflect.Ptr, reflect.Slice:
 			if v.IsNil() {
-				return AppendNull(b, quote)
+				return AppendNull(b, flags)
 			}
 		}
 
@@ -60,14 +62,17 @@ func ArrayAppender(typ reflect.Type) AppenderFunc {
 			v = v.Elem()
 		}
 
-		if quote == 1 {
+		quote := shouldQuoteArray(flags)
+		if quote {
 			b = append(b, '\'')
 		}
+
+		flags |= subArrayFlag
 
 		b = append(b, '{')
 		for i := 0; i < v.Len(); i++ {
 			elem := v.Index(i)
-			b = appendElem(b, elem, 2)
+			b = appendElem(b, elem, flags)
 			b = append(b, ',')
 		}
 		if v.Len() > 0 {
@@ -76,7 +81,7 @@ func ArrayAppender(typ reflect.Type) AppenderFunc {
 			b = append(b, '}')
 		}
 
-		if quote == 1 {
+		if quote {
 			b = append(b, '\'')
 		}
 
@@ -84,23 +89,24 @@ func ArrayAppender(typ reflect.Type) AppenderFunc {
 	}
 }
 
-func appendSliceStringValue(b []byte, v reflect.Value, quote int) []byte {
+func appendSliceStringValue(b []byte, v reflect.Value, flags int) []byte {
 	ss := v.Convert(sliceStringType).Interface().([]string)
-	return appendSliceString(b, ss, quote)
+	return appendSliceString(b, ss, flags)
 }
 
-func appendSliceString(b []byte, ss []string, quote int) []byte {
+func appendSliceString(b []byte, ss []string, flags int) []byte {
 	if ss == nil {
-		return AppendNull(b, quote)
+		return AppendNull(b, flags)
 	}
 
-	if quote == 1 {
+	quote := shouldQuoteArray(flags)
+	if quote {
 		b = append(b, '\'')
 	}
 
 	b = append(b, '{')
 	for _, s := range ss {
-		b = AppendString(b, s, 2)
+		b = appendString2(b, s, flags)
 		b = append(b, ',')
 	}
 	if len(ss) > 0 {
@@ -109,24 +115,25 @@ func appendSliceString(b []byte, ss []string, quote int) []byte {
 		b = append(b, '}')
 	}
 
-	if quote == 1 {
+	if quote {
 		b = append(b, '\'')
 	}
 
 	return b
 }
 
-func appendSliceIntValue(b []byte, v reflect.Value, quote int) []byte {
+func appendSliceIntValue(b []byte, v reflect.Value, flags int) []byte {
 	ints := v.Convert(sliceIntType).Interface().([]int)
-	return appendSliceInt(b, ints, quote)
+	return appendSliceInt(b, ints, flags)
 }
 
-func appendSliceInt(b []byte, ints []int, quote int) []byte {
+func appendSliceInt(b []byte, ints []int, flags int) []byte {
 	if ints == nil {
-		return AppendNull(b, quote)
+		return AppendNull(b, flags)
 	}
 
-	if quote == 1 {
+	quote := shouldQuoteArray(flags)
+	if quote {
 		b = append(b, '\'')
 	}
 
@@ -141,24 +148,25 @@ func appendSliceInt(b []byte, ints []int, quote int) []byte {
 		b = append(b, '}')
 	}
 
-	if quote == 1 {
+	if quote {
 		b = append(b, '\'')
 	}
 
 	return b
 }
 
-func appendSliceInt64Value(b []byte, v reflect.Value, quote int) []byte {
+func appendSliceInt64Value(b []byte, v reflect.Value, flags int) []byte {
 	ints := v.Convert(sliceInt64Type).Interface().([]int64)
-	return appendSliceInt64(b, ints, quote)
+	return appendSliceInt64(b, ints, flags)
 }
 
-func appendSliceInt64(b []byte, ints []int64, quote int) []byte {
+func appendSliceInt64(b []byte, ints []int64, flags int) []byte {
 	if ints == nil {
-		return AppendNull(b, quote)
+		return AppendNull(b, flags)
 	}
 
-	if quote == 1 {
+	quote := shouldQuoteArray(flags)
+	if quote {
 		b = append(b, '\'')
 	}
 
@@ -173,30 +181,31 @@ func appendSliceInt64(b []byte, ints []int64, quote int) []byte {
 		b = append(b, '}')
 	}
 
-	if quote == 1 {
+	if quote {
 		b = append(b, '\'')
 	}
 
 	return b
 }
 
-func appendSliceFloat64Value(b []byte, v reflect.Value, quote int) []byte {
+func appendSliceFloat64Value(b []byte, v reflect.Value, flags int) []byte {
 	floats := v.Convert(sliceFloat64Type).Interface().([]float64)
-	return appendSliceFloat64(b, floats, quote)
+	return appendSliceFloat64(b, floats, flags)
 }
 
-func appendSliceFloat64(b []byte, floats []float64, quote int) []byte {
+func appendSliceFloat64(b []byte, floats []float64, flags int) []byte {
 	if floats == nil {
-		return AppendNull(b, quote)
+		return AppendNull(b, flags)
 	}
 
-	if quote == 1 {
+	quote := shouldQuoteArray(flags)
+	if quote {
 		b = append(b, '\'')
 	}
 
 	b = append(b, '{')
 	for _, n := range floats {
-		b = appendFloat(b, n, 2)
+		b = appendFloat2(b, n, flags)
 		b = append(b, ',')
 	}
 	if len(floats) > 0 {
@@ -205,7 +214,7 @@ func appendSliceFloat64(b []byte, floats []float64, quote int) []byte {
 		b = append(b, '}')
 	}
 
-	if quote == 1 {
+	if quote {
 		b = append(b, '\'')
 	}
 

@@ -38,7 +38,7 @@ func newDeleteQuery(q *Query) *deleteQuery {
 
 func (q *deleteQuery) Clone() queryCommand {
 	return &deleteQuery{
-		q:           q.q.Copy(),
+		q:           q.q.Clone(),
 		placeholder: q.placeholder,
 	}
 }
@@ -82,20 +82,19 @@ func (q *deleteQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	b = append(b, " WHERE "...)
 	value := q.q.model.Value()
 	if q.q.isSliceModelWithData() {
-		table := q.q.model.Table()
-		err = table.checkPKs()
-		if err != nil {
-			return nil, err
-		}
-
-		b = appendColumnAndSliceValue(fmter, b, value, table.Alias, table.PKs)
-
-		if q.q.hasWhere() {
-			b = append(b, " AND "...)
+		if len(q.q.where) > 0 {
 			b, err = q.q.appendWhere(fmter, b)
 			if err != nil {
 				return nil, err
 			}
+		} else {
+			table := q.q.model.Table()
+			err = table.checkPKs()
+			if err != nil {
+				return nil, err
+			}
+
+			b = appendColumnAndSliceValue(fmter, b, value, table.Alias, table.PKs)
 		}
 	} else {
 		b, err = q.q.mustAppendWhere(fmter, b)

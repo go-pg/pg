@@ -46,6 +46,15 @@ func pgOptions() *pg.Options {
 	}
 }
 
+var _testDB *pg.DB
+
+func testDB() *pg.DB {
+	if _testDB == nil {
+		_testDB = pg.Connect(pgOptions())
+	}
+	return _testDB
+}
+
 func TestDBString(t *testing.T) {
 	db := pg.Connect(pgOptions())
 	defer db.Close()
@@ -107,6 +116,23 @@ func TestEmptyQuery(t *testing.T) {
 
 	_, err = stmt.Exec()
 	assert(err)
+}
+
+func TestAnynomousStructField(t *testing.T) {
+	type MyInt struct{ int }
+
+	type MyStruct struct {
+		Ints []MyInt `pg:",array"`
+	}
+
+	db := testDB()
+
+	var st MyStruct
+	_, err := db.Query(&st, "SELECT ARRAY[1,2,3,4] AS ints")
+	wanted := "json: cannot unmarshal number into Go value of type pg_test.MyInt"
+	if err.Error() != wanted {
+		t.Fatal(err)
+	}
 }
 
 var _ = Describe("DB", func() {
@@ -199,12 +225,14 @@ var _ = Describe("DB", func() {
 
 	Describe("Context", func() {
 		It("cancels query when context is cancelled", func() {
-			c := context.Background()
-			c, cancel := context.WithTimeout(c, time.Second)
+			start := time.Now()
+
+			c, cancel := context.WithTimeout(context.Background(), time.Second)
 			defer cancel()
 
-			_, err := db.ExecContext(c, "SELECT pg_sleep(10)")
-			Expect(err).To(MatchError(`ERROR #57014 canceling statement due to user request`))
+			_, err := db.ExecContext(c, "SELECT pg_sleep(5)")
+			Expect(err).To(HaveOccurred())
+			Expect(time.Since(start)).To(BeNumerically("~", time.Second, 100*time.Millisecond))
 		})
 	})
 })
@@ -2053,16 +2081,7 @@ type SoftDeleteModel struct {
 	DeletedAt time.Time `pg:",soft_delete"`
 }
 
-var _testDB *pg.DB
-
-func testDB() *pg.DB {
-	if _testDB == nil {
-		_testDB = pg.Connect(pgOptions())
-	}
-	return _testDB
-}
-
-var _ = Describe("soft deletes", func() {
+var _ = Describe("soft delete", func() {
 	var db *pg.DB
 
 	BeforeEach(func() {
@@ -2072,15 +2091,6 @@ var _ = Describe("soft deletes", func() {
 			Temp: true,
 		})
 		Expect(err).NotTo(HaveOccurred())
-
-		model := &SoftDeleteModel{
-			Id: 1,
-		}
-		err = db.Insert(model)
-		Expect(err).NotTo(HaveOccurred())
-
-		err = db.Delete(model)
-		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -2088,45 +2098,78 @@ var _ = Describe("soft deletes", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("soft deletes the model", func() {
-		model := new(SoftDeleteModel)
-		err := db.Model(model).Select()
-		Expect(err).To(Equal(pg.ErrNoRows))
+	assert := func() {
+		It("soft deletes the model", func() {
+			model := new(SoftDeleteModel)
+			err := db.Model(model).Select()
+			Expect(err).To(Equal(pg.ErrNoRows))
 
-		n, err := db.Model((*SoftDeleteModel)(nil)).Count()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(n).To(Equal(0))
-	})
+			n, err := db.Model((*SoftDeleteModel)(nil)).Count()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(n).To(Equal(0))
+		})
 
-	It("Deleted allows to select the model", func() {
-		model := new(SoftDeleteModel)
-		err := db.Model(model).Deleted().Select()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(model.Id).To(Equal(1))
-		Expect(model.DeletedAt).To(BeTemporally("~", time.Now(), 3*time.Second))
+		It("Deleted allows to select deleted model", func() {
+			model := new(SoftDeleteModel)
+			err := db.Model(model).Deleted().Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(model.Id).To(Equal(1))
+			Expect(model.DeletedAt).To(BeTemporally("~", time.Now(), 3*time.Second))
 
-		n, err := db.Model((*SoftDeleteModel)(nil)).Deleted().Count()
-		Expect(err).NotTo(HaveOccurred())
-		Expect(n).To(Equal(1))
-	})
+			n, err := db.Model((*SoftDeleteModel)(nil)).Deleted().Count()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(n).To(Equal(1))
+		})
 
-	Describe("ForceDelete", func() {
+		Describe("ForceDelete", func() {
+			BeforeEach(func() {
+				model := &SoftDeleteModel{
+					Id: 1,
+				}
+				err := db.ForceDelete(model)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("deletes the model", func() {
+				model := new(SoftDeleteModel)
+				err := db.Model(model).Deleted().Select()
+				Expect(err).To(Equal(pg.ErrNoRows))
+
+				n, err := db.Model((*SoftDeleteModel)(nil)).Deleted().Count()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(n).To(Equal(0))
+			})
+		})
+	}
+
+	Describe("nil model", func() {
 		BeforeEach(func() {
 			model := &SoftDeleteModel{
 				Id: 1,
 			}
-			err := db.ForceDelete(model)
+			err := db.Insert(model)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = db.Model((*SoftDeleteModel)(nil)).Where("1 = 1").Delete()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("deletes the model", func() {
-			model := new(SoftDeleteModel)
-			err := db.Model(model).Deleted().Select()
-			Expect(err).To(Equal(pg.ErrNoRows))
+		assert()
+	})
 
-			n, err := db.Model((*SoftDeleteModel)(nil)).Deleted().Count()
+	Describe("model", func() {
+		BeforeEach(func() {
+			model := &SoftDeleteModel{
+				Id: 1,
+			}
+			err := db.Insert(model)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(n).To(Equal(0))
+
+			err = db.Delete(model)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(model.DeletedAt).To(BeTemporally("~", time.Now(), time.Second))
 		})
+
+		assert()
 	})
 })

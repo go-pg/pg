@@ -68,17 +68,17 @@ func (t *HookTest) AfterDelete(c context.Context, db orm.DB) error {
 	return nil
 }
 
-type eventHookTest struct {
-	beforeQueryMethod func(*pg.QueryEvent)
-	afterQueryMethod  func(*pg.QueryEvent)
+type queryHookTest struct {
+	beforeQueryMethod func(context.Context, *pg.QueryEvent) (context.Context, error)
+	afterQueryMethod  func(context.Context, *pg.QueryEvent) (context.Context, error)
 }
 
-func (e eventHookTest) BeforeQuery(event *pg.QueryEvent) {
-	e.beforeQueryMethod(event)
+func (e queryHookTest) BeforeQuery(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+	return e.beforeQueryMethod(c, evt)
 }
 
-func (e eventHookTest) AfterQuery(event *pg.QueryEvent) {
-	e.afterQueryMethod(event)
+func (e queryHookTest) AfterQuery(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+	return e.afterQueryMethod(c, evt)
 }
 
 var _ = Describe("HookTest", func() {
@@ -199,44 +199,52 @@ var _ = Describe("OnQueryEvent", func() {
 	})
 
 	Describe("Query/Exec", func() {
-		afterQuery := func(event *pg.QueryEvent) {
-			Expect(event.DB).To(Equal(db))
-			Expect(event.Query).To(Equal("SELECT ?"))
-			Expect(event.Params).To(Equal([]interface{}{1}))
-			Expect(event.Result).NotTo(BeNil())
-			Expect(event.Error).NotTo(HaveOccurred())
+		beforeQuery := func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+			Expect(evt.DB).To(Equal(db))
+			Expect(evt.Query).To(Equal("SELECT ?"))
+			Expect(evt.Params).To(Equal([]interface{}{1}))
+			Expect(evt.Result).To(BeNil())
+			Expect(evt.Error).To(BeNil())
 
-			q, err := event.UnformattedQuery()
+			q, err := evt.UnformattedQuery()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(q).To(Equal("SELECT ?"))
 
-			q, err = event.FormattedQuery()
+			q, err = evt.FormattedQuery()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(q).To(Equal("SELECT 1"))
-			Expect(event.Data["data"]).To(Equal(1))
 
-			count++
+			evt.Stash = map[interface{}]interface{}{
+				"data": 1,
+			}
+
+			return c, nil
 		}
 
-		beforeQuery := func(event *pg.QueryEvent) {
-			Expect(event.DB).To(Equal(db))
-			Expect(event.Query).To(Equal("SELECT ?"))
-			Expect(event.Params).To(Equal([]interface{}{1}))
-			Expect(event.Result).To(BeNil())
-			Expect(event.Error).To(BeNil())
+		afterQuery := func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+			Expect(evt.DB).To(Equal(db))
+			Expect(evt.Query).To(Equal("SELECT ?"))
+			Expect(evt.Params).To(Equal([]interface{}{1}))
+			Expect(evt.Result).NotTo(BeNil())
+			Expect(evt.Error).NotTo(HaveOccurred())
 
-			q, err := event.UnformattedQuery()
+			q, err := evt.UnformattedQuery()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(q).To(Equal("SELECT ?"))
 
-			q, err = event.FormattedQuery()
+			q, err = evt.FormattedQuery()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(q).To(Equal("SELECT 1"))
-			event.Data["data"] = 1
+
+			Expect(evt.Stash["data"]).To(Equal(1))
+
+			count++
+
+			return c, nil
 		}
 
 		BeforeEach(func() {
-			hookImpl := struct{ eventHookTest }{}
+			hookImpl := struct{ queryHookTest }{}
 			hookImpl.afterQueryMethod = afterQuery
 			hookImpl.beforeQueryMethod = beforeQuery
 			db.AddQueryHook(hookImpl)
@@ -256,44 +264,52 @@ var _ = Describe("OnQueryEvent", func() {
 	})
 
 	Describe("Model", func() {
-		afterQuery := func(event *pg.QueryEvent) {
-			Expect(event.DB).To(Equal(db))
-			Expect(event.Query).NotTo(BeNil())
-			Expect(event.Params).To(HaveLen(1))
-			Expect(event.Result).NotTo(BeNil())
-			Expect(event.Error).NotTo(HaveOccurred())
+		beforeQuery := func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+			Expect(evt.DB).To(Equal(db))
+			Expect(evt.Query).NotTo(BeNil())
+			Expect(evt.Params).To(HaveLen(1))
+			Expect(evt.Result).To(BeNil())
+			Expect(evt.Error).To(BeNil())
 
-			q, err := event.UnformattedQuery()
+			q, err := evt.UnformattedQuery()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(q).To(Equal("SELECT ?"))
 
-			q, err = event.FormattedQuery()
+			q, err = evt.FormattedQuery()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(q).To(Equal("SELECT 1"))
-			Expect(event.Data["data"]).To(Equal(1))
 
-			count++
+			evt.Stash = map[interface{}]interface{}{
+				"data": 1,
+			}
+
+			return c, nil
 		}
 
-		beforeQuery := func(event *pg.QueryEvent) {
-			Expect(event.DB).To(Equal(db))
-			Expect(event.Query).NotTo(BeNil())
-			Expect(event.Params).To(HaveLen(1))
-			Expect(event.Result).To(BeNil())
-			Expect(event.Error).To(BeNil())
+		afterQuery := func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+			Expect(evt.DB).To(Equal(db))
+			Expect(evt.Query).NotTo(BeNil())
+			Expect(evt.Params).To(HaveLen(1))
+			Expect(evt.Result).NotTo(BeNil())
+			Expect(evt.Error).NotTo(HaveOccurred())
 
-			q, err := event.UnformattedQuery()
+			q, err := evt.UnformattedQuery()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(q).To(Equal("SELECT ?"))
 
-			q, err = event.FormattedQuery()
+			q, err = evt.FormattedQuery()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(q).To(Equal("SELECT 1"))
-			event.Data["data"] = 1
+
+			Expect(evt.Stash["data"]).To(Equal(1))
+
+			count++
+
+			return c, nil
 		}
 
 		BeforeEach(func() {
-			hookImpl := struct{ eventHookTest }{}
+			hookImpl := struct{ queryHookTest }{}
 			hookImpl.afterQueryMethod = afterQuery
 			hookImpl.beforeQueryMethod = beforeQuery
 			db.AddQueryHook(hookImpl)

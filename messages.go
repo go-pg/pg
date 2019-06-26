@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"context"
 	"crypto/md5" //nolint
 	"crypto/tls"
 	"encoding/binary"
@@ -71,8 +72,10 @@ const (
 
 var errEmptyQuery = internal.Errorf("pg: query is empty")
 
-func (db *baseDB) startup(cn *pool.Conn, user, password, database, appName string) error {
-	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+func (db *baseDB) startup(
+	c context.Context, cn *pool.Conn, user, password, database, appName string,
+) error {
+	err := cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writeStartupMsg(wb, user, database, appName)
 		return nil
 	})
@@ -80,14 +83,14 @@ func (db *baseDB) startup(cn *pool.Conn, user, password, database, appName strin
 		return err
 	}
 
-	return cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
+	return cn.WithReader(c, db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		for {
-			c, msgLen, err := readMessageType(rd)
+			typ, msgLen, err := readMessageType(rd)
 			if err != nil {
 				return err
 			}
 
-			switch c {
+			switch typ {
 			case backendKeyDataMsg:
 				processID, err := readInt32(rd)
 				if err != nil {
@@ -104,7 +107,7 @@ func (db *baseDB) startup(cn *pool.Conn, user, password, database, appName strin
 					return err
 				}
 			case authenticationOKMsg:
-				err := db.auth(cn, rd, user, password)
+				err := db.auth(c, cn, rd, user, password)
 				if err != nil {
 					return err
 				}
@@ -118,16 +121,14 @@ func (db *baseDB) startup(cn *pool.Conn, user, password, database, appName strin
 				}
 				return e
 			default:
-				return fmt.Errorf("pg: unknown startup message response: %q", c)
+				return fmt.Errorf("pg: unknown startup message response: %q", typ)
 			}
 		}
 	})
 }
 
-var errSSLNotSupported = errors.New("pg: SSL is not enabled on the server")
-
-func (db *baseDB) enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
-	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+func (db *baseDB) enableSSL(c context.Context, cn *pool.Conn, tlsConf *tls.Config) error {
+	err := cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writeSSLMsg(wb)
 		return nil
 	})
@@ -135,13 +136,13 @@ func (db *baseDB) enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
 		return err
 	}
 
-	err = cn.WithReader(db.opt.ReadTimeout, func(rd *internal.BufReader) error {
+	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		c, err := rd.ReadByte()
 		if err != nil {
 			return err
 		}
 		if c != 'S' {
-			return errSSLNotSupported
+			return errors.New("pg: SSL is not enabled on the server")
 		}
 		return nil
 	})
@@ -153,7 +154,9 @@ func (db *baseDB) enableSSL(cn *pool.Conn, tlsConf *tls.Config) error {
 	return nil
 }
 
-func (db *baseDB) auth(cn *pool.Conn, rd *internal.BufReader, user, password string) error {
+func (db *baseDB) auth(
+	c context.Context, cn *pool.Conn, rd *internal.BufReader, user, password string,
+) error {
 	num, err := readInt32(rd)
 	if err != nil {
 		return err
@@ -163,18 +166,20 @@ func (db *baseDB) auth(cn *pool.Conn, rd *internal.BufReader, user, password str
 	case authenticationOK:
 		return nil
 	case authenticationCleartextPassword:
-		return db.authCleartext(cn, rd, password)
+		return db.authCleartext(c, cn, rd, password)
 	case authenticationMD5Password:
-		return db.authMD5(cn, rd, user, password)
+		return db.authMD5(c, cn, rd, user, password)
 	case authenticationSASL:
-		return db.authSASL(cn, rd, user, password)
+		return db.authSASL(c, cn, rd, user, password)
 	default:
 		return fmt.Errorf("pg: unknown authentication message response: %q", num)
 	}
 }
 
-func (db *baseDB) authCleartext(cn *pool.Conn, rd *internal.BufReader, password string) error {
-	err := cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+func (db *baseDB) authCleartext(
+	c context.Context, cn *pool.Conn, rd *internal.BufReader, password string,
+) error {
+	err := cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writePasswordMsg(wb, password)
 		return nil
 	})
@@ -184,14 +189,16 @@ func (db *baseDB) authCleartext(cn *pool.Conn, rd *internal.BufReader, password 
 	return readAuthOK(rd)
 }
 
-func (db *baseDB) authMD5(cn *pool.Conn, rd *internal.BufReader, user, password string) error {
+func (db *baseDB) authMD5(
+	c context.Context, cn *pool.Conn, rd *internal.BufReader, user, password string,
+) error {
 	b, err := rd.ReadN(4)
 	if err != nil {
 		return err
 	}
 
 	secret := "md5" + md5s(md5s(password+user)+string(b))
-	err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+	err = cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writePasswordMsg(wb, secret)
 		return nil
 	})
@@ -229,7 +236,9 @@ func readAuthOK(rd *internal.BufReader) error {
 	}
 }
 
-func (db *baseDB) authSASL(cn *pool.Conn, rd *internal.BufReader, user, password string) error {
+func (db *baseDB) authSASL(
+	c context.Context, cn *pool.Conn, rd *internal.BufReader, user, password string,
+) error {
 	s, err := readString(rd)
 	if err != nil {
 		return err
@@ -256,7 +265,7 @@ func (db *baseDB) authSASL(cn *pool.Conn, rd *internal.BufReader, user, password
 		return err
 	}
 
-	err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+	err = cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		wb.StartMessage(saslInitialResponseMsg)
 		wb.WriteString("SCRAM-SHA-256")
 		wb.WriteInt32(int32(len(resp)))
@@ -271,19 +280,19 @@ func (db *baseDB) authSASL(cn *pool.Conn, rd *internal.BufReader, user, password
 		return err
 	}
 
-	c, n, err := readMessageType(rd)
+	typ, n, err := readMessageType(rd)
 	if err != nil {
 		return err
 	}
 
-	switch c {
+	switch typ {
 	case authenticationSASLContinueMsg:
 		c11, err := readInt32(rd)
 		if err != nil {
 			return err
 		}
 		if c11 != 11 {
-			return fmt.Errorf("pg: SASL: got %q, wanted %q", c, 11)
+			return fmt.Errorf("pg: SASL: got %q, wanted %q", typ, 11)
 		}
 
 		b, err := rd.ReadN(n - 4)
@@ -296,7 +305,7 @@ func (db *baseDB) authSASL(cn *pool.Conn, rd *internal.BufReader, user, password
 			return err
 		}
 
-		err = cn.WithWriter(db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		err = cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 			wb.StartMessage(saslResponseMsg)
 			_, err := wb.Write(resp)
 			if err != nil {
@@ -318,7 +327,7 @@ func (db *baseDB) authSASL(cn *pool.Conn, rd *internal.BufReader, user, password
 		return e
 	default:
 		return fmt.Errorf(
-			"pg: SASL: got %q, wanted %q", c, authenticationSASLContinueMsg)
+			"pg: SASL: got %q, wanted %q", typ, authenticationSASLContinueMsg)
 	}
 }
 

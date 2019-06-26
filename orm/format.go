@@ -38,13 +38,15 @@ func (q *queryParamsAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byt
 	return fmter.FormatQuery(b, q.query, q.params...), nil
 }
 
-func (q *queryParamsAppender) AppendValue(b []byte, quote int) []byte {
-	b, _ = q.AppendQuery(defaultFmter, b)
-	return b
+func (q *queryParamsAppender) AppendValue(b []byte, quote int) ([]byte, error) {
+	return q.AppendQuery(defaultFmter, b)
 }
 
 func (q *queryParamsAppender) Value() types.Q {
-	b := q.AppendValue(nil, 1)
+	b, err := q.AppendValue(nil, 1)
+	if err != nil {
+		return types.Q(err.Error())
+	}
 	return types.Q(internal.BytesToString(b))
 }
 
@@ -97,6 +99,19 @@ func (q *condAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, erro
 	b = fmter.FormatQuery(b, q.cond, q.params...)
 	b = append(b, ')')
 	return b, nil
+}
+
+//------------------------------------------------------------------------------
+
+type columnAppender struct {
+	sqlName string
+	column  types.Q
+}
+
+var _ QueryAppender = (*columnAppender)(nil)
+
+func (a columnAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
+	return append(b, a.column...), nil
 }
 
 //------------------------------------------------------------------------------

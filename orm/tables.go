@@ -12,29 +12,21 @@ type tableInProgress struct {
 	table *Table
 
 	init1Once sync.Once
-	init1WG   sync.WaitGroup
-
 	init2Once sync.Once
-	init2WG   sync.WaitGroup
 }
 
 func newTableInProgress(table *Table) *tableInProgress {
-	inp := &tableInProgress{
+	return &tableInProgress{
 		table: table,
 	}
-	inp.init1WG.Add(1)
-	inp.init2WG.Add(1)
-	return inp
 }
 
 func (inp *tableInProgress) init1() bool {
 	var inited bool
 	inp.init1Once.Do(func() {
 		inp.table.init1()
-		inp.init1WG.Done()
 		inited = true
 	})
-	inp.init1WG.Wait()
 	return inited
 }
 
@@ -42,10 +34,8 @@ func (inp *tableInProgress) init2() bool {
 	var inited bool
 	inp.init2Once.Do(func() {
 		inp.table.init2()
-		inp.init2WG.Done()
 		inited = true
 	})
-	inp.init2WG.Wait()
 	return inited
 }
 
@@ -62,15 +52,15 @@ func RegisterTable(strct interface{}) {
 }
 
 type tables struct {
+	tables sync.Map
+
 	mu         sync.RWMutex
 	inProgress map[reflect.Type]*tableInProgress
-	tables     map[reflect.Type]*Table
 }
 
 func newTables() *tables {
 	return &tables{
 		inProgress: make(map[reflect.Type]*tableInProgress),
-		tables:     make(map[reflect.Type]*Table),
 	}
 }
 
@@ -87,20 +77,18 @@ func (t *tables) get(typ reflect.Type, allowInProgress bool) *Table {
 		panic(fmt.Errorf("got %s, wanted %s", typ.Kind(), reflect.Struct))
 	}
 
-	t.mu.RLock()
-	table, ok := t.tables[typ]
-	t.mu.RUnlock()
-	if ok {
-		return table
+	if v, ok := t.tables.Load(typ); ok {
+		return v.(*Table)
 	}
 
 	t.mu.Lock()
 
-	table, ok = t.tables[typ]
-	if ok {
+	if v, ok := t.tables.Load(typ); ok {
 		t.mu.Unlock()
-		return table
+		return v.(*Table)
 	}
+
+	var table *Table
 
 	inProgress := t.inProgress[typ]
 	if inProgress == nil {
@@ -121,7 +109,7 @@ func (t *tables) get(typ reflect.Type, allowInProgress bool) *Table {
 	if inProgress.init2() {
 		t.mu.Lock()
 		delete(t.inProgress, typ)
-		t.tables[typ] = table
+		t.tables.Store(typ, table)
 		t.mu.Unlock()
 	}
 
@@ -133,14 +121,14 @@ func (t *tables) Get(typ reflect.Type) *Table {
 }
 
 func (t *tables) getByName(name string) *Table {
-	t.mu.RLock()
-	defer t.mu.RUnlock()
-
-	for _, t := range t.tables {
+	var found *Table
+	t.tables.Range(func(key, value interface{}) bool {
+		t := value.(*Table)
 		if string(t.FullName) == name || t.ModelName == name {
-			return t
+			found = t
+			return false
 		}
-	}
-
-	return nil
+		return true
+	})
+	return found
 }

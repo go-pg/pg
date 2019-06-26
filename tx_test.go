@@ -22,7 +22,7 @@ var _ = Describe("Tx", func() {
 	})
 
 	It("reconnects on bad connection", func() {
-		cn, err := db.Pool().Get()
+		cn, err := db.Pool().Get(nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		cn.SetNetConn(&badConn{})

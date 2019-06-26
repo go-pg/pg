@@ -26,7 +26,7 @@ func newDropTableQuery(q *Query, opt *DropTableOptions) *dropTableQuery { //noli
 
 func (q *dropTableQuery) Clone() queryCommand {
 	return &dropTableQuery{
-		q:   q.q.Copy(),
+		q:   q.q.Clone(),
 		opt: q.opt,
 	}
 }

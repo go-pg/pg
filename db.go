@@ -16,7 +16,7 @@ import (
 func Connect(opt *Options) *DB {
 	opt.init()
 	return newDB(
-		context.TODO(),
+		context.Background(),
 		&baseDB{
 			opt:  opt,
 			pool: newConnPool(opt),

@@ -9,10 +9,10 @@ import (
 	"time"
 )
 
-func Append(b []byte, v interface{}, quote int) []byte {
+func Append(b []byte, v interface{}, flags int) []byte {
 	switch v := v.(type) {
 	case nil:
-		return AppendNull(b, quote)
+		return AppendNull(b, flags)
 	case bool:
 		return appendBool(b, v)
 	case int8:
@@ -36,21 +36,21 @@ func Append(b []byte, v interface{}, quote int) []byte {
 	case uint:
 		return strconv.AppendUint(b, uint64(v), 10)
 	case float32:
-		return appendFloat(b, float64(v), quote)
+		return appendFloat(b, float64(v), flags)
 	case float64:
-		return appendFloat(b, v, quote)
+		return appendFloat(b, v, flags)
 	case string:
-		return AppendString(b, v, quote)
+		return AppendString(b, v, flags)
 	case time.Time:
-		return AppendTime(b, v, quote)
+		return AppendTime(b, v, flags)
 	case []byte:
-		return AppendBytes(b, v, quote)
+		return AppendBytes(b, v, flags)
 	case ValueAppender:
-		return appendAppender(b, v, quote)
+		return appendAppender(b, v, flags)
 	case driver.Valuer:
-		return appendDriverValuer(b, v, quote)
+		return appendDriverValuer(b, v, flags)
 	default:
-		return appendValue(b, reflect.ValueOf(v), quote)
+		return appendValue(b, reflect.ValueOf(v), flags)
 	}
 }
 
@@ -61,8 +61,8 @@ func AppendError(b []byte, err error) []byte {
 	return b
 }
 
-func AppendNull(b []byte, quote int) []byte {
-	if quote == 1 {
+func AppendNull(b []byte, flags int) []byte {
+	if hasFlag(flags, quoteFlag) {
 		return append(b, "NULL"...)
 	}
 	return nil
@@ -75,20 +75,24 @@ func appendBool(dst []byte, v bool) []byte {
 	return append(dst, "FALSE"...)
 }
 
-func appendFloat(dst []byte, v float64, quote int) []byte {
+func appendFloat(dst []byte, v float64, flags int) []byte {
+	if hasFlag(flags, arrayFlag) {
+		return appendFloat2(dst, v, flags)
+	}
+
 	switch {
 	case math.IsNaN(v):
-		if quote == 1 {
+		if hasFlag(flags, quoteFlag) {
 			return append(dst, "'NaN'"...)
 		}
 		return append(dst, "NaN"...)
 	case math.IsInf(v, 1):
-		if quote == 1 {
+		if hasFlag(flags, quoteFlag) {
 			return append(dst, "'Infinity'"...)
 		}
 		return append(dst, "Infinity"...)
 	case math.IsInf(v, -1):
-		if quote == 1 {
+		if hasFlag(flags, quoteFlag) {
 			return append(dst, "'-Infinity'"...)
 		}
 		return append(dst, "-Infinity"...)
@@ -97,14 +101,54 @@ func appendFloat(dst []byte, v float64, quote int) []byte {
 	}
 }
 
-func AppendString(b []byte, s string, quote int) []byte {
-	switch quote {
-	case 1:
-		b = append(b, '\'')
-	case 2:
-		b = append(b, '"')
+func appendFloat2(dst []byte, v float64, _ int) []byte {
+	switch {
+	case math.IsNaN(v):
+		return append(dst, "NaN"...)
+	case math.IsInf(v, 1):
+		return append(dst, "Infinity"...)
+	case math.IsInf(v, -1):
+		return append(dst, "-Infinity"...)
+	default:
+		return strconv.AppendFloat(dst, v, 'f', -1, 64)
+	}
+}
+
+func AppendString(b []byte, s string, flags int) []byte {
+	if hasFlag(flags, arrayFlag) {
+		return appendString2(b, s, flags)
 	}
 
+	if hasFlag(flags, quoteFlag) {
+		b = append(b, '\'')
+		for i := 0; i < len(s); i++ {
+			c := s[i]
+
+			if c == '\000' {
+				continue
+			}
+
+			if c == '\'' {
+				b = append(b, '\'', '\'')
+			} else {
+				b = append(b, c)
+			}
+		}
+		b = append(b, '\'')
+		return b
+	}
+
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c != '\000' {
+			b = append(b, c)
+		}
+	}
+	return b
+}
+
+func appendString2(b []byte, s string, flags int) []byte {
+	b = append(b, '"')
 	for i := 0; i < len(s); i++ {
 		c := s[i]
 
@@ -112,102 +156,65 @@ func AppendString(b []byte, s string, quote int) []byte {
 			continue
 		}
 
-		if quote >= 1 {
-			if c == '\'' {
-				b = append(b, '\'', '\'')
-				continue
+		switch c {
+		case '\'':
+			if hasFlag(flags, quoteFlag) {
+				b = append(b, '\'')
 			}
+			b = append(b, '\'')
+		case '"':
+			b = append(b, '\\', '"')
+		case '\\':
+			b = append(b, '\\', '\\')
+		default:
+			b = append(b, c)
 		}
-
-		if quote == 2 {
-			switch c {
-			case '"':
-				b = append(b, '\\', '"')
-			case '\\':
-				b = append(b, '\\', '\\')
-			default:
-				b = append(b, c)
-			}
-			continue
-		}
-
-		b = append(b, c)
 	}
-
-	switch quote {
-	case 1:
-		b = append(b, '\'')
-	case 2:
-		b = append(b, '"')
-	}
-
+	b = append(b, '"')
 	return b
 }
 
-func AppendBytes(b []byte, bytes []byte, quote int) []byte {
+func AppendBytes(b []byte, bytes []byte, flags int) []byte {
 	if bytes == nil {
-		return AppendNull(b, quote)
+		return AppendNull(b, flags)
 	}
 
-	switch quote {
-	case 1:
-		b = append(b, '\'')
-	case 2:
+	if hasFlag(flags, arrayFlag) {
 		b = append(b, '"')
+	} else if hasFlag(flags, quoteFlag) {
+		b = append(b, '\'')
 	}
 
 	tmp := make([]byte, hex.EncodedLen(len(bytes)))
 	hex.Encode(tmp, bytes)
-	if quote == 2 {
+
+	if hasFlag(flags, arrayFlag) {
 		b = append(b, '\\')
 	}
 	b = append(b, "\\x"...)
 	b = append(b, tmp...)
 
-	switch quote {
-	case 1:
-		b = append(b, '\'')
-	case 2:
+	if hasFlag(flags, arrayFlag) {
 		b = append(b, '"')
-	}
-
-	return b
-}
-
-func AppendStringStringMap(b []byte, m map[string]string, quote int) []byte {
-	if m == nil {
-		return AppendNull(b, quote)
-	}
-
-	if quote == 1 {
-		b = append(b, '\'')
-	}
-
-	for key, value := range m {
-		b = AppendString(b, key, 2)
-		b = append(b, '=', '>')
-		b = AppendString(b, value, 2)
-		b = append(b, ',')
-	}
-	if len(m) > 0 {
-		b = b[:len(b)-1] // Strip trailing comma.
-	}
-
-	if quote == 1 {
+	} else if hasFlag(flags, quoteFlag) {
 		b = append(b, '\'')
 	}
 
 	return b
 }
 
-func appendDriverValuer(b []byte, v driver.Valuer, quote int) []byte {
+func appendDriverValuer(b []byte, v driver.Valuer, flags int) []byte {
 	value, err := v.Value()
 	if err != nil {
 		return AppendError(b, err)
 	}
-	return Append(b, value, quote)
+	return Append(b, value, flags)
 }
 
-func appendAppender(b []byte, v ValueAppender, quote int) []byte {
-	return v.AppendValue(b, quote)
+func appendAppender(b []byte, v ValueAppender, flags int) []byte {
+	bb, err := v.AppendValue(b, flags)
+	if err != nil {
+		return AppendError(b, err)
+	}
+	return bb
 }
