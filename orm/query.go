@@ -153,10 +153,6 @@ func (q *Query) Model(model ...interface{}) *Query {
 	}
 	if err != nil {
 		q = q.err(err)
-	} else if q.model != nil && q.model.Table().HasFlag(BeforeQueryHookFlag) {
-		if err = q.model.BeforeQuery(q.ctx, q.db); err != nil {
-			q = q.err(err)
-		}
 	}
 	q.implicitModel = false
 	return q

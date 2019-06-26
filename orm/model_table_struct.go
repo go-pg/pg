@@ -159,10 +159,10 @@ func (m *structTableModel) AddModel(_ ColumnScanner) error {
 }
 
 func (m *structTableModel) BeforeQuery(ctx context.Context, db DB) error {
-	if !m.table.HasFlag(BeforeQueryHookFlag) {
-		return nil
+	if m.table.HasFlag(BeforeQueryHookFlag) && !m.IsNil() {
+		return callBeforeQueryHook(ctx, m.strct.Addr(), db)
 	}
-	return callBeforeQueryHook(ctx, m.strct.Addr(), db)
+	return nil
 }
 
 func (m *structTableModel) AfterQuery(ctx context.Context, db DB) error {

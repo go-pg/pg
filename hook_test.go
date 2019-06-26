@@ -15,6 +15,7 @@ type HookTest struct {
 	Id    int
 	Value string
 
+	beforeQuery int
 	afterQuery  int
 	afterSelect int
 
@@ -26,6 +27,11 @@ type HookTest struct {
 
 	beforeDelete int
 	afterDelete  int
+}
+
+func (t *HookTest) BeforeQuery(c context.Context, db orm.DB) error {
+	t.beforeQuery++
+	return nil
 }
 
 func (t *HookTest) AfterQuery(c context.Context, db orm.DB) error {
@@ -113,6 +119,7 @@ var _ = Describe("HookTest", func() {
 		var hook HookTest
 		err := db.Model(&hook).Select()
 		Expect(err).NotTo(HaveOccurred())
+		Expect(hook.beforeQuery).To(Equal(1))
 		Expect(hook.afterQuery).To(Equal(1))
 		Expect(hook.afterSelect).To(Equal(1))
 	})
@@ -142,6 +149,7 @@ var _ = Describe("HookTest", func() {
 		}
 		err := db.Insert(&hook)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(hook.beforeQuery).To(Equal(1))
 		Expect(hook.afterQuery).To(Equal(0))
 		Expect(hook.beforeInsert).To(Equal(1))
 		Expect(hook.afterInsert).To(Equal(1))
@@ -153,6 +161,7 @@ var _ = Describe("HookTest", func() {
 		}
 		err := db.Update(&hook)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(hook.beforeQuery).To(Equal(1))
 		Expect(hook.afterQuery).To(Equal(0))
 		Expect(hook.beforeUpdate).To(Equal(1))
 		Expect(hook.afterUpdate).To(Equal(1))
@@ -172,6 +181,7 @@ var _ = Describe("HookTest", func() {
 		}
 		err := db.Delete(&hook)
 		Expect(err).NotTo(HaveOccurred())
+		Expect(hook.beforeQuery).To(Equal(1))
 		Expect(hook.afterQuery).To(Equal(0))
 		Expect(hook.beforeDelete).To(Equal(1))
 		Expect(hook.afterDelete).To(Equal(1))
