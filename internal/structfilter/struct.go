@@ -3,8 +3,9 @@ package structfilter
 import (
 	"reflect"
 
+	"github.com/vmihailenco/tagparser"
+
 	"github.com/go-pg/pg/internal"
-	"github.com/go-pg/pg/internal/tag"
 	"github.com/go-pg/pg/types"
 )
 
@@ -56,8 +57,8 @@ func addFields(s *Struct, typ reflect.Type, baseIndex []int) {
 		}
 
 		if sf.Name == "tableName" {
-			sqlTag := tag.Parse(sf.Tag.Get("sql"))
-			name, _ := tag.Unquote(sqlTag.Name)
+			sqlTag := tagparser.Parse(sf.Tag.Get("sql"))
+			name, _ := tagparser.Unquote(sqlTag.Name)
 			s.TableName = types.Q(internal.QuoteTableName(name))
 			continue
 		}

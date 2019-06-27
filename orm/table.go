@@ -12,8 +12,8 @@ import (
 
 	"github.com/go-pg/pg/internal"
 	"github.com/go-pg/pg/internal/iszero"
-	"github.com/go-pg/pg/internal/tag"
 	"github.com/go-pg/pg/types"
+	"github.com/vmihailenco/tagparser"
 )
 
 const (
@@ -257,7 +257,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 			}
 			t.addFields(fieldType, append(index, f.Index...))
 
-			pgTag := tag.Parse(f.Tag.Get("pg"))
+			pgTag := tagparser.Parse(f.Tag.Get("pg"))
 			_, inherit := pgTag.Options["inherit"]
 			_, override := pgTag.Options["override"]
 			if inherit || override {
@@ -281,7 +281,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 
 //nolint
 func (t *Table) newField(f reflect.StructField, index []int) *Field {
-	sqlTag := tag.Parse(f.Tag.Get("sql"))
+	sqlTag := tagparser.Parse(f.Tag.Get("sql"))
 
 	switch f.Name {
 	case "tableName", "TableName":
@@ -291,28 +291,28 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		tableSpace, ok := sqlTag.Options["tablespace"]
 		if ok {
-			s, _ := tag.Unquote(tableSpace)
+			s, _ := tagparser.Unquote(tableSpace)
 			t.Tablespace = quoteID(s)
 		}
 
 		if sqlTag.Name == "_" {
 			t.setName("")
 		} else if sqlTag.Name != "" {
-			s, _ := tag.Unquote(sqlTag.Name)
+			s, _ := tagparser.Unquote(sqlTag.Name)
 			t.setName(types.Q(internal.QuoteTableName(s)))
 		}
 
 		if s, ok := sqlTag.Options["select"]; ok {
-			s, _ = tag.Unquote(s)
+			s, _ = tagparser.Unquote(s)
 			t.FullNameForSelects = types.Q(internal.QuoteTableName(s))
 		}
 
 		if v, ok := sqlTag.Options["alias"]; ok {
-			v, _ = tag.Unquote(v)
+			v, _ = tagparser.Unquote(v)
 			t.Alias = quoteID(v)
 		}
 
-		pgTag := tag.Parse(f.Tag.Get("pg"))
+		pgTag := tagparser.Parse(f.Tag.Get("pg"))
 		if _, ok := pgTag.Options["discard_unknown_columns"]; ok {
 			t.SetFlag(discardUnknownColumnsFlag)
 		}
@@ -362,7 +362,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 	}
 	if v, ok := sqlTag.Options["default"]; ok {
-		v, ok = tag.Unquote(v)
+		v, ok = tagparser.Unquote(v)
 		if ok {
 			field.Default = types.Q(types.AppendString(nil, v, 1))
 		} else {
@@ -385,7 +385,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 	}
 
-	pgTag := tag.Parse(f.Tag.Get("pg"))
+	pgTag := tagparser.Parse(f.Tag.Get("pg"))
 
 	if _, ok := sqlTag.Options["array"]; ok {
 		field.SetFlag(ArrayFlag)
@@ -428,7 +428,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	field.isZero = iszero.Checker(f.Type)
 
 	if v, ok := sqlTag.Options["alias"]; ok {
-		v, _ = tag.Unquote(v)
+		v, _ = tagparser.Unquote(v)
 		t.FieldsMap[v] = field
 	}
 
@@ -518,7 +518,7 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 		return false
 	}
 
-	pgTag := tag.Parse(field.Field.Tag.Get("pg"))
+	pgTag := tagparser.Parse(field.Field.Tag.Get("pg"))
 	joinTable := _tables.get(elemType, true)
 
 	fk, fkOK := pgTag.Options["fk"]
@@ -654,7 +654,7 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 }
 
 func (t *Table) tryRelationStruct(field *Field) bool {
-	pgTag := tag.Parse(field.Field.Tag.Get("pg"))
+	pgTag := tagparser.Parse(field.Field.Tag.Get("pg"))
 	joinTable := _tables.get(field.Type, true)
 	if len(joinTable.allFields) == 0 {
 		return false
@@ -713,16 +713,16 @@ func isScanner(typ reflect.Type) bool {
 	return typ.Implements(scannerType) || reflect.PtrTo(typ).Implements(scannerType)
 }
 
-func fieldSQLType(field *Field, pgTag, sqlTag *tag.Tag) string {
+func fieldSQLType(field *Field, pgTag, sqlTag *tagparser.Tag) string {
 	if typ, ok := sqlTag.Options["type"]; ok {
 		field.SetFlag(customTypeFlag)
-		typ, _ = tag.Unquote(typ)
+		typ, _ = tagparser.Unquote(typ)
 		return typ
 	}
 
 	if typ, ok := sqlTag.Options["composite"]; ok {
 		field.SetFlag(customTypeFlag)
-		typ, _ = tag.Unquote(typ)
+		typ, _ = tagparser.Unquote(typ)
 		return typ
 	}
 
@@ -823,7 +823,7 @@ func sqlTypeEqual(a, b string) bool {
 	return pkSQLType(a) == pkSQLType(b)
 }
 
-func (t *Table) tryHasOne(joinTable *Table, field *Field, pgTag *tag.Tag) bool {
+func (t *Table) tryHasOne(joinTable *Table, field *Field, pgTag *tagparser.Tag) bool {
 	fk, fkOK := pgTag.Options["fk"]
 	if fkOK {
 		if fk == "-" {
@@ -847,7 +847,7 @@ func (t *Table) tryHasOne(joinTable *Table, field *Field, pgTag *tag.Tag) bool {
 	return false
 }
 
-func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, pgTag *tag.Tag) bool {
+func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, pgTag *tagparser.Tag) bool {
 	fk, fkOK := pgTag.Options["fk"]
 	if fkOK {
 		if fk == "-" {
