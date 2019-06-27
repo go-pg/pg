@@ -61,6 +61,28 @@ type CreateTableWithTablespace struct {
 	String string
 }
 
+type CreateTableWithRangePartition struct {
+	tableName string `sql:"partitionBy:RANGE (time)"`
+
+	Time   time.Time
+	String string
+}
+
+type CreateTableWithListPartition struct {
+	tableName string `sql:"partitionBy:LIST (country)"`
+
+	Country string
+	String  string
+}
+
+type CreateTableWithHashPartition struct {
+	tableName string `sql:"partitionBy:HASH (account_id)"`
+
+	ID        int
+	AccountID int
+	String    string
+}
+
 var _ = Describe("CreateTable", func() {
 	It("creates new table", func() {
 		q := NewQuery(nil, &CreateTableModel{})
@@ -95,6 +117,27 @@ var _ = Describe("CreateTable", func() {
 
 		s := createTableQueryString(q, &CreateTableOptions{})
 		Expect(s).To(Equal(`CREATE TABLE "create_table_with_tablespaces" ("string" text) TABLESPACE "ssd"`))
+	})
+
+	It("creates new table with range partition", func() {
+		q := NewQuery(nil, &CreateTableWithRangePartition{})
+
+		s := createTableQueryString(q, &CreateTableOptions{})
+		Expect(s).To(Equal(`CREATE TABLE "create_table_with_range_partitions" ("time" timestamptz, "string" text) PARTITION BY RANGE (time)`))
+	})
+
+	It("creates new table with list partition", func() {
+		q := NewQuery(nil, &CreateTableWithListPartition{})
+
+		s := createTableQueryString(q, &CreateTableOptions{})
+		Expect(s).To(Equal(`CREATE TABLE "create_table_with_list_partitions" ("country" text, "string" text) PARTITION BY LIST (country)`))
+	})
+
+	It("creates new table with hash partition", func() {
+		q := NewQuery(nil, &CreateTableWithHashPartition{})
+
+		s := createTableQueryString(q, &CreateTableOptions{})
+		Expect(s).To(Equal(`CREATE TABLE "create_table_with_hash_partitions" ("id" bigserial, "account_id" bigint, "string" text, PRIMARY KEY ("id")) PARTITION BY HASH (account_id)`))
 	})
 })
 
