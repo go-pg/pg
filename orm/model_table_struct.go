@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 	"strings"
@@ -158,76 +157,69 @@ func (m *structTableModel) AddModel(_ ColumnScanner) error {
 	return nil
 }
 
-func (m *structTableModel) AfterQuery(ctx context.Context, db DB) error {
-	if !m.table.HasFlag(AfterQueryHookFlag) {
-		return nil
-	}
-	return callAfterQueryHook(ctx, m.strct.Addr(), db)
-}
-
-func (m *structTableModel) BeforeSelectQuery(ctx context.Context, db DB, q *Query) (*Query, error) {
-	if m.table.HasFlag(BeforeSelectQueryHookFlag) {
-		return callBeforeSelectQueryHook(ctx, m.table.zeroStruct.Addr(), db, q)
+func (m *structTableModel) BeforeSelect(q *Query) (*Query, error) {
+	if m.table.HasFlag(BeforeSelectHookFlag) {
+		return callBeforeSelectHook(m.table.zeroStruct.Addr(), q)
 	}
 	return q, nil
 }
 
-func (m *structTableModel) AfterSelect(ctx context.Context, db DB) error {
+func (m *structTableModel) AfterSelect(q *Query) (*Query, error) {
 	if m.table.HasFlag(AfterSelectHookFlag) {
 		if m.IsNil() {
-			return errModelNil
+			return q, errModelNil
 		}
-		return callAfterSelectHook(ctx, m.strct.Addr(), db)
+		return callAfterSelectHook(m.strct.Addr(), q)
 	}
-	return nil
+	return q, nil
 }
 
-func (m *structTableModel) BeforeInsert(ctx context.Context, db DB) error {
+func (m *structTableModel) BeforeInsert(q *Query) (*Query, error) {
 	if m.table.HasFlag(BeforeInsertHookFlag) {
 		if m.IsNil() {
-			return errModelNil
+			return q, errModelNil
 		}
-		return callBeforeInsertHook(ctx, m.strct.Addr(), db)
+		return callBeforeInsertHook(m.strct.Addr(), q)
 	}
-	return nil
+	return q, nil
 }
 
-func (m *structTableModel) AfterInsert(ctx context.Context, db DB) error {
+func (m *structTableModel) AfterInsert(q *Query) (*Query, error) {
 	if m.table.HasFlag(AfterInsertHookFlag) {
 		if m.IsNil() {
-			return errModelNil
+			return q, errModelNil
 		}
-		return callAfterInsertHook(ctx, m.strct.Addr(), db)
+		return callAfterInsertHook(m.strct.Addr(), q)
 	}
-	return nil
+	return q, nil
 }
 
-func (m *structTableModel) BeforeUpdate(ctx context.Context, db DB) error {
+func (m *structTableModel) BeforeUpdate(q *Query) (*Query, error) {
 	if m.table.HasFlag(BeforeUpdateHookFlag) && !m.IsNil() {
-		return callBeforeUpdateHook(ctx, m.strct.Addr(), db)
+		return callBeforeUpdateHook(m.strct.Addr(), q)
 	}
-	return nil
+	return q, nil
 }
 
-func (m *structTableModel) AfterUpdate(ctx context.Context, db DB) error {
+func (m *structTableModel) AfterUpdate(q *Query) (*Query, error) {
 	if m.table.HasFlag(AfterUpdateHookFlag) && !m.IsNil() {
-		return callAfterUpdateHook(ctx, m.strct.Addr(), db)
+		return callAfterUpdateHook(m.strct.Addr(), q)
 	}
-	return nil
+	return q, nil
 }
 
-func (m *structTableModel) BeforeDelete(ctx context.Context, db DB) error {
+func (m *structTableModel) BeforeDelete(q *Query) (*Query, error) {
 	if m.table.HasFlag(BeforeDeleteHookFlag) && !m.IsNil() {
-		return callBeforeDeleteHook(ctx, m.strct.Addr(), db)
+		return callBeforeDeleteHook(m.strct.Addr(), q)
 	}
-	return nil
+	return q, nil
 }
 
-func (m *structTableModel) AfterDelete(ctx context.Context, db DB) error {
+func (m *structTableModel) AfterDelete(q *Query) (*Query, error) {
 	if m.table.HasFlag(AfterDeleteHookFlag) && !m.IsNil() {
-		return callAfterDeleteHook(ctx, m.strct.Addr(), db)
+		return callAfterDeleteHook(m.strct.Addr(), q)
 	}
-	return nil
+	return q, nil
 }
 
 func (m *structTableModel) ScanColumn(

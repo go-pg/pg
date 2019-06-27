@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 
@@ -82,49 +81,32 @@ func modelIDMap(b []byte, m map[string]string, columns []string) []byte {
 	return b
 }
 
-func (m *m2mModel) AfterQuery(ctx context.Context, db DB) error {
-	if m.rel.JoinTable.HasFlag(AfterQueryHookFlag) {
-		var firstErr error
-		for _, slices := range m.dstValues {
-			for _, slice := range slices {
-				err := callAfterQueryHookSlice(ctx, slice, m.sliceOfPtr, db)
-				if err != nil && firstErr == nil {
-					firstErr = err
-				}
-			}
-		}
-		return firstErr
-	}
-
-	return nil
+func (m *m2mModel) AfterSelect(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *m2mModel) AfterSelect(c context.Context, db DB) error {
-	return nil
+func (m *m2mModel) BeforeInsert(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *m2mModel) BeforeInsert(c context.Context, db DB) error {
-	return nil
+func (m *m2mModel) AfterInsert(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *m2mModel) AfterInsert(c context.Context, db DB) error {
-	return nil
+func (m *m2mModel) BeforeUpdate(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *m2mModel) BeforeUpdate(c context.Context, db DB) error {
-	return nil
+func (m *m2mModel) AfterUpdate(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *m2mModel) AfterUpdate(c context.Context, db DB) error {
-	return nil
+func (m *m2mModel) BeforeDelete(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *m2mModel) BeforeDelete(c context.Context, db DB) error {
-	return nil
-}
-
-func (m *m2mModel) AfterDelete(c context.Context, db DB) error {
-	return nil
+func (m *m2mModel) AfterDelete(q *Query) (*Query, error) {
+	return q, nil
 }
 
 func (m *m2mModel) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {

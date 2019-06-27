@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"context"
 	"fmt"
 	"reflect"
 )
@@ -68,47 +67,30 @@ func (m *manyModel) AddModel(model ColumnScanner) error {
 	return nil
 }
 
-func (m *manyModel) AfterQuery(ctx context.Context, db DB) error {
-	if m.rel.JoinTable.HasFlag(AfterQueryHookFlag) {
-		var firstErrr error
-		for _, slices := range m.dstValues {
-			for _, slice := range slices {
-				err := callAfterQueryHookSlice(ctx, slice, m.sliceOfPtr, db)
-				if err != nil && firstErrr == nil {
-					firstErrr = err
-				}
-			}
-		}
-		return firstErrr
-	}
-
-	return nil
+func (m *manyModel) AfterSelect(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *manyModel) AfterSelect(c context.Context, db DB) error {
-	return nil
+func (m *manyModel) BeforeInsert(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *manyModel) BeforeInsert(c context.Context, db DB) error {
-	return nil
+func (m *manyModel) AfterInsert(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *manyModel) AfterInsert(c context.Context, db DB) error {
-	return nil
+func (m *manyModel) BeforeUpdate(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *manyModel) BeforeUpdate(c context.Context, db DB) error {
-	return nil
+func (m *manyModel) AfterUpdate(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *manyModel) AfterUpdate(c context.Context, db DB) error {
-	return nil
+func (m *manyModel) BeforeDelete(q *Query) (*Query, error) {
+	return q, nil
 }
 
-func (m *manyModel) BeforeDelete(c context.Context, db DB) error {
-	return nil
-}
-
-func (m *manyModel) AfterDelete(c context.Context, db DB) error {
-	return nil
+func (m *manyModel) AfterDelete(q *Query) (*Query, error) {
+	return q, nil
 }

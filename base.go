@@ -204,7 +204,7 @@ func (db *baseDB) exec(c context.Context, query interface{}, params ...interface
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
 
-		c, evt, err := db.beforeQuery(c, db.db, query, params, attempt)
+		c, evt, err := db.beforeQuery(c, db.db, nil, query, params, attempt)
 		if err != nil {
 			return nil, err
 		}
@@ -264,7 +264,7 @@ func (db *baseDB) query(c context.Context, model, query interface{}, params ...i
 			time.Sleep(db.retryBackoff(attempt - 1))
 		}
 
-		c, evt, err := db.beforeQuery(c, db.db, query, params, attempt)
+		c, evt, err := db.beforeQuery(c, db.db, model, query, params, attempt)
 		if err != nil {
 			return nil, err
 		}
@@ -280,17 +280,7 @@ func (db *baseDB) query(c context.Context, model, query interface{}, params ...i
 			break
 		}
 	}
-	if lastErr != nil {
-		return nil, lastErr
-	}
-
-	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
-		if err := mod.AfterQuery(c, db.db); err != nil {
-			return res, err
-		}
-	}
-
-	return res, nil
+	return res, lastErr
 }
 
 // QueryOne acts like Query, but query must return only one row. It
