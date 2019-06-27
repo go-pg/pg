@@ -131,7 +131,7 @@ func (tx *Tx) ExecContext(c context.Context, query interface{}, params ...interf
 }
 
 func (tx *Tx) exec(c context.Context, query interface{}, params ...interface{}) (Result, error) {
-	c, evt, err := tx.db.beforeQuery(c, tx, query, params, 0)
+	c, evt, err := tx.db.beforeQuery(c, tx, nil, query, params, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +190,7 @@ func (tx *Tx) query(
 	query interface{},
 	params ...interface{},
 ) (Result, error) {
-	c, evt, err := tx.db.beforeQuery(c, tx, query, params, 0)
+	c, evt, err := tx.db.beforeQuery(c, tx, model, query, params, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -203,16 +203,6 @@ func (tx *Tx) query(
 		}
 		return err
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	if mod := res.Model(); mod != nil && res.RowsReturned() > 0 {
-		if err := mod.AfterQuery(c, tx); err != nil {
-			return res, err
-		}
-	}
-
 	return res, err
 }
 

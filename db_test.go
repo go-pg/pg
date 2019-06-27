@@ -961,15 +961,17 @@ type Book struct {
 	Comments     []Comment     `pg:"polymorphic:trackable_"` // has many polymorphic relation
 }
 
+var _ orm.BeforeInsertHook = (*Book)(nil)
+
 func (b Book) String() string {
 	return fmt.Sprintf("Book<Id=%d Title=%q>", b.Id, b.Title)
 }
 
-func (b *Book) BeforeInsert(c context.Context, db orm.DB) error {
+func (b *Book) BeforeInsert(q *orm.Query) (*orm.Query, error) {
 	if b.CreatedAt.IsZero() {
 		b.CreatedAt = time.Now()
 	}
-	return nil
+	return q, nil
 }
 
 // BookWithCommentCount is like Book model, but has additional CommentCount

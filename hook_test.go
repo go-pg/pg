@@ -15,8 +15,8 @@ type HookTest struct {
 	Id    int
 	Value string
 
-	afterQuery  int
-	afterSelect int
+	beforeSelect int
+	afterSelect  int
 
 	beforeInsert int
 	afterInsert  int
@@ -28,44 +28,53 @@ type HookTest struct {
 	afterDelete  int
 }
 
-func (t *HookTest) AfterQuery(c context.Context, db orm.DB) error {
-	t.afterQuery++
-	return nil
+var _ orm.BeforeSelectHook = (*HookTest)(nil)
+var _ orm.AfterSelectHook = (*HookTest)(nil)
+var _ orm.BeforeInsertHook = (*HookTest)(nil)
+var _ orm.AfterInsertHook = (*HookTest)(nil)
+var _ orm.BeforeUpdateHook = (*HookTest)(nil)
+var _ orm.AfterUpdateHook = (*HookTest)(nil)
+var _ orm.BeforeDeleteHook = (*HookTest)(nil)
+var _ orm.AfterDeleteHook = (*HookTest)(nil)
+
+func (t *HookTest) BeforeSelect(q *orm.Query) (*orm.Query, error) {
+	t.beforeSelect++
+	return q, nil
 }
 
-func (t *HookTest) AfterSelect(c context.Context, db orm.DB) error {
+func (t *HookTest) AfterSelect(q *orm.Query) (*orm.Query, error) {
 	t.afterSelect++
-	return nil
+	return q, nil
 }
 
-func (t *HookTest) BeforeInsert(c context.Context, db orm.DB) error {
+func (t *HookTest) BeforeInsert(q *orm.Query) (*orm.Query, error) {
 	t.beforeInsert++
-	return nil
+	return q, nil
 }
 
-func (t *HookTest) AfterInsert(c context.Context, db orm.DB) error {
+func (t *HookTest) AfterInsert(q *orm.Query) (*orm.Query, error) {
 	t.afterInsert++
-	return nil
+	return q, nil
 }
 
-func (t *HookTest) BeforeUpdate(c context.Context, db orm.DB) error {
+func (t *HookTest) BeforeUpdate(q *orm.Query) (*orm.Query, error) {
 	t.beforeUpdate++
-	return nil
+	return q, nil
 }
 
-func (t *HookTest) AfterUpdate(c context.Context, db orm.DB) error {
+func (t *HookTest) AfterUpdate(q *orm.Query) (*orm.Query, error) {
 	t.afterUpdate++
-	return nil
+	return q, nil
 }
 
-func (t *HookTest) BeforeDelete(c context.Context, db orm.DB) error {
+func (t *HookTest) BeforeDelete(q *orm.Query) (*orm.Query, error) {
 	t.beforeDelete++
-	return nil
+	return q, nil
 }
 
-func (t *HookTest) AfterDelete(c context.Context, db orm.DB) error {
+func (t *HookTest) AfterDelete(q *orm.Query) (*orm.Query, error) {
 	t.afterDelete++
-	return nil
+	return q, nil
 }
 
 type queryHookTest struct {
@@ -101,37 +110,18 @@ var _ = Describe("HookTest", func() {
 		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
-	It("calls AfterQuery for a struct", func() {
-		var hook HookTest
-		_, err := db.QueryOne(&hook, "SELECT 1 AS id")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.afterQuery).To(Equal(1))
-		Expect(hook.afterSelect).To(Equal(0))
-	})
-
-	It("calls AfterQuery and AfterSelect for a struct model", func() {
+	It("calls AfterSelect for a struct model", func() {
 		var hook HookTest
 		err := db.Model(&hook).Select()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.afterQuery).To(Equal(1))
 		Expect(hook.afterSelect).To(Equal(1))
 	})
 
-	It("calls AfterQuery for a slice", func() {
-		var hooks []HookTest
-		_, err := db.Query(&hooks, "SELECT 1 AS id")
-		Expect(err).NotTo(HaveOccurred())
-		Expect(hooks).To(HaveLen(1))
-		Expect(hooks[0].afterQuery).To(Equal(1))
-		Expect(hooks[0].afterSelect).To(Equal(0))
-	})
-
-	It("calls AfterQuery and AfterSelect for a slice model", func() {
+	It("calls AfterSelect for a slice model", func() {
 		var hooks []HookTest
 		err := db.Model(&hooks).Select()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(hooks).To(HaveLen(1))
-		Expect(hooks[0].afterQuery).To(Equal(1))
 		Expect(hooks[0].afterSelect).To(Equal(1))
 	})
 
@@ -142,7 +132,6 @@ var _ = Describe("HookTest", func() {
 		}
 		err := db.Insert(&hook)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.afterQuery).To(Equal(0))
 		Expect(hook.beforeInsert).To(Equal(1))
 		Expect(hook.afterInsert).To(Equal(1))
 	})
@@ -153,7 +142,6 @@ var _ = Describe("HookTest", func() {
 		}
 		err := db.Update(&hook)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.afterQuery).To(Equal(0))
 		Expect(hook.beforeUpdate).To(Equal(1))
 		Expect(hook.afterUpdate).To(Equal(1))
 	})
@@ -172,7 +160,6 @@ var _ = Describe("HookTest", func() {
 		}
 		err := db.Delete(&hook)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.afterQuery).To(Equal(0))
 		Expect(hook.beforeDelete).To(Equal(1))
 		Expect(hook.afterDelete).To(Equal(1))
 	})
@@ -329,9 +316,9 @@ type BeforeSelectQueryModel struct {
 	DeletedAt time.Time
 }
 
-func (BeforeSelectQueryModel) BeforeSelectQuery(
-	c context.Context, db orm.DB, q *orm.Query,
-) (*orm.Query, error) {
+var _ orm.BeforeSelectHook = (*BeforeSelectQueryModel)(nil)
+
+func (BeforeSelectQueryModel) BeforeSelect(q *orm.Query) (*orm.Query, error) {
 	q = q.Where("?TableAlias.deleted_at IS NULL")
 	return q, nil
 }
