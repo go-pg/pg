@@ -17,7 +17,7 @@
 - [Prepared statements](http://godoc.org/github.com/go-pg/pg#example-DB-Prepare).
 - [Notifications](http://godoc.org/github.com/go-pg/pg#example-Listener) using `LISTEN` and `NOTIFY`.
 - [Copying data](http://godoc.org/github.com/go-pg/pg#example-DB-CopyFrom) using `COPY FROM` and `COPY TO`.
-- [Timeouts](http://godoc.org/github.com/go-pg/pg#Options).
+- [Timeouts](http://godoc.org/github.com/go-pg/pg#Options) and canceling queries using context.Context.
 - Automatic connection pooling with [circuit breaker](https://en.wikipedia.org/wiki/Circuit_breaker_design_pattern) support.
 - Queries retries on network errors.
 - Working with models using [ORM](https://godoc.org/github.com/go-pg/pg#example-DB-Model) and [SQL](https://godoc.org/github.com/go-pg/pg#example-DB-Query).
