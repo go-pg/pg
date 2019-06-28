@@ -36,18 +36,17 @@ func newManyModel(j *join) *manyModel {
 	return &m
 }
 
-func (m *manyModel) NewModel() ColumnScanner {
+func (m *manyModel) NextColumnScanner() ColumnScanner {
 	if m.sliceOfPtr {
 		m.strct = reflect.New(m.table.Type).Elem()
 	} else {
 		m.strct.Set(m.table.zeroStruct)
 	}
 	m.structInited = false
-	m.structTableModel.NewModel()
 	return m
 }
 
-func (m *manyModel) AddModel(model ColumnScanner) error {
+func (m *manyModel) AddColumnScanner(model ColumnScanner) error {
 	m.buf = modelID(m.buf[:0], m.strct, m.rel.FKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
@@ -65,32 +64,4 @@ func (m *manyModel) AddModel(model ColumnScanner) error {
 	}
 
 	return nil
-}
-
-func (m *manyModel) AfterSelect(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *manyModel) BeforeInsert(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *manyModel) AfterInsert(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *manyModel) BeforeUpdate(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *manyModel) AfterUpdate(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *manyModel) BeforeDelete(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *manyModel) AfterDelete(q *Query) (*Query, error) {
-	return q, nil
 }

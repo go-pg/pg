@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"context"
 	"reflect"
 	"time"
 
@@ -76,59 +77,70 @@ func (m *sliceTableModel) Init() error {
 	return nil
 }
 
-func (m *sliceTableModel) NewModel() ColumnScanner {
+func (m *sliceTableModel) NextColumnScanner() ColumnScanner {
 	m.strct = m.nextElem()
 	m.structInited = false
 	return m
 }
 
-func (m *sliceTableModel) AfterSelect(q *Query) (*Query, error) {
+func (m *sliceTableModel) AddColumnScanner(_ ColumnScanner) error {
+	return nil
+}
+
+func (m *sliceTableModel) AfterScan(c context.Context) (context.Context, error) {
+	if m.table.HasFlag(AfterScanHookFlag) {
+		return callAfterScanHookSlice(c, m.slice, m.sliceOfPtr)
+	}
+	return c, nil
+}
+
+func (m *sliceTableModel) AfterSelect(c context.Context) (context.Context, error) {
 	if m.table.HasFlag(AfterSelectHookFlag) {
-		return callAfterSelectHookSlice(m.slice, m.sliceOfPtr, q)
+		return callAfterSelectHookSlice(c, m.slice, m.sliceOfPtr)
 	}
-	return q, nil
+	return c, nil
 }
 
-func (m *sliceTableModel) BeforeInsert(q *Query) (*Query, error) {
+func (m *sliceTableModel) BeforeInsert(c context.Context) (context.Context, error) {
 	if m.table.HasFlag(BeforeInsertHookFlag) {
-		return callBeforeInsertHookSlice(m.slice, m.sliceOfPtr, q)
+		return callBeforeInsertHookSlice(c, m.slice, m.sliceOfPtr)
 	}
-	return q, nil
+	return c, nil
 }
 
-func (m *sliceTableModel) AfterInsert(q *Query) (*Query, error) {
+func (m *sliceTableModel) AfterInsert(c context.Context) (context.Context, error) {
 	if m.table.HasFlag(AfterInsertHookFlag) {
-		return callAfterInsertHookSlice(m.slice, m.sliceOfPtr, q)
+		return callAfterInsertHookSlice(c, m.slice, m.sliceOfPtr)
 	}
-	return q, nil
+	return c, nil
 }
 
-func (m *sliceTableModel) BeforeUpdate(q *Query) (*Query, error) {
-	if m.table.HasFlag(BeforeUpdateHookFlag) {
-		return callBeforeUpdateHookSlice(m.slice, m.sliceOfPtr, q)
+func (m *sliceTableModel) BeforeUpdate(c context.Context) (context.Context, error) {
+	if m.table.HasFlag(BeforeUpdateHookFlag) && !m.IsNil() {
+		return callBeforeUpdateHookSlice(c, m.slice, m.sliceOfPtr)
 	}
-	return q, nil
+	return c, nil
 }
 
-func (m *sliceTableModel) AfterUpdate(q *Query) (*Query, error) {
+func (m *sliceTableModel) AfterUpdate(c context.Context) (context.Context, error) {
 	if m.table.HasFlag(AfterUpdateHookFlag) {
-		return callAfterUpdateHookSlice(m.slice, m.sliceOfPtr, q)
+		return callAfterUpdateHookSlice(c, m.slice, m.sliceOfPtr)
 	}
-	return q, nil
+	return c, nil
 }
 
-func (m *sliceTableModel) BeforeDelete(q *Query) (*Query, error) {
-	if m.table.HasFlag(BeforeDeleteHookFlag) {
-		return callBeforeDeleteHookSlice(m.slice, m.sliceOfPtr, q)
+func (m *sliceTableModel) BeforeDelete(c context.Context) (context.Context, error) {
+	if m.table.HasFlag(BeforeDeleteHookFlag) && !m.IsNil() {
+		return callBeforeDeleteHookSlice(c, m.slice, m.sliceOfPtr)
 	}
-	return q, nil
+	return c, nil
 }
 
-func (m *sliceTableModel) AfterDelete(q *Query) (*Query, error) {
-	if m.table.HasFlag(AfterDeleteHookFlag) {
-		return callAfterDeleteHookSlice(m.slice, m.sliceOfPtr, q)
+func (m *sliceTableModel) AfterDelete(c context.Context) (context.Context, error) {
+	if m.table.HasFlag(AfterDeleteHookFlag) && !m.IsNil() {
+		return callAfterDeleteHookSlice(c, m.slice, m.sliceOfPtr)
 	}
-	return q, nil
+	return c, nil
 }
 
 func (m *sliceTableModel) nextElem() reflect.Value {

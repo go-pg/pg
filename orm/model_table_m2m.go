@@ -40,18 +40,17 @@ func newM2MModel(j *join) *m2mModel {
 	return m
 }
 
-func (m *m2mModel) NewModel() ColumnScanner {
+func (m *m2mModel) NextColumnScanner() ColumnScanner {
 	if m.sliceOfPtr {
 		m.strct = reflect.New(m.table.Type).Elem()
 	} else {
 		m.strct.Set(m.table.zeroStruct)
 	}
 	m.structInited = false
-	m.structTableModel.NewModel()
 	return m
 }
 
-func (m *m2mModel) AddModel(model ColumnScanner) error {
+func (m *m2mModel) AddColumnScanner(_ ColumnScanner) error {
 	m.buf = modelIDMap(m.buf[:0], m.columns, m.rel.BaseFKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
@@ -79,34 +78,6 @@ func modelIDMap(b []byte, m map[string]string, columns []string) []byte {
 		b = append(b, m[col]...)
 	}
 	return b
-}
-
-func (m *m2mModel) AfterSelect(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *m2mModel) BeforeInsert(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *m2mModel) AfterInsert(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *m2mModel) BeforeUpdate(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *m2mModel) AfterUpdate(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *m2mModel) BeforeDelete(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (m *m2mModel) AfterDelete(q *Query) (*Query, error) {
-	return q, nil
 }
 
 func (m *m2mModel) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {

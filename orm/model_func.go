@@ -79,7 +79,7 @@ func initFuncModelScan(m *funcModel, fnt reflect.Type) {
 	m.Model = scanReflectValues(m.fnIn)
 }
 
-func (m *funcModel) AddModel(_ ColumnScanner) error {
+func (m *funcModel) AddColumnScanner(_ ColumnScanner) error {
 	out := m.fnv.Call(m.fnIn)
 	errv := out[0]
 	if !errv.IsNil() {

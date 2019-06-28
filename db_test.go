@@ -967,11 +967,11 @@ func (b Book) String() string {
 	return fmt.Sprintf("Book<Id=%d Title=%q>", b.Id, b.Title)
 }
 
-func (b *Book) BeforeInsert(q *orm.Query) (*orm.Query, error) {
+func (b *Book) BeforeInsert(c context.Context) (context.Context, error) {
 	if b.CreatedAt.IsZero() {
 		b.CreatedAt = time.Now()
 	}
-	return q, nil
+	return c, nil
 }
 
 // BookWithCommentCount is like Book model, but has additional CommentCount
