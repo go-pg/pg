@@ -83,6 +83,9 @@ func newTable(typ reflect.Type) *Table {
 	t.Alias = quoteID(t.ModelName)
 
 	typ = reflect.PtrTo(t.Type)
+	if typ.Implements(afterScanHookType) {
+		t.SetFlag(AfterScanHookFlag)
+	}
 	if typ.Implements(afterSelectHookType) {
 		t.SetFlag(AfterSelectHookFlag)
 	}

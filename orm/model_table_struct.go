@@ -158,6 +158,8 @@ func (m *structTableModel) AddColumnScanner(_ ColumnScanner) error {
 	return nil
 }
 
+var _ AfterScanHook = (*structTableModel)(nil)
+
 func (m *structTableModel) AfterScan(c context.Context) (context.Context, error) {
 	if m.table.HasFlag(AfterScanHookFlag) {
 		return callAfterScanHook(c, m.strct.Addr())

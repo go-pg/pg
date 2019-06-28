@@ -87,6 +87,8 @@ func (m *sliceTableModel) AddColumnScanner(_ ColumnScanner) error {
 	return nil
 }
 
+var _ AfterScanHook = (*sliceTableModel)(nil)
+
 func (m *sliceTableModel) AfterScan(c context.Context) (context.Context, error) {
 	if m.table.HasFlag(AfterScanHookFlag) {
 		return callAfterScanHookSlice(c, m.slice, m.sliceOfPtr)

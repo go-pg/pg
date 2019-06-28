@@ -71,6 +71,8 @@ type AfterScanHook interface {
 	AfterScan(context.Context) (context.Context, error)
 }
 
+var afterScanHookType = reflect.TypeOf((*AfterScanHook)(nil)).Elem()
+
 func callAfterScanHook(c context.Context, v reflect.Value) (context.Context, error) {
 	return v.Interface().(AfterScanHook).AfterScan(c)
 }
