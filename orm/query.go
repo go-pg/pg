@@ -310,9 +310,7 @@ func (q *Query) getDataFields() ([]*Field, error) {
 
 func (q *Query) _getFields(omitPKs bool) ([]*Field, error) {
 	table := q.model.Table()
-
-	//nolint
-	var columns []*Field
+	columns := make([]*Field, 0, len(q.columns))
 	for _, col := range q.columns {
 		f, ok := col.(fieldAppender)
 		if !ok {
@@ -745,12 +743,9 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
-	q, err = model.BeforeSelect(q)
-	if err != nil {
-		return err
-	}
+	c := q.ctx
 
-	res, err := q.query(model, newSelectQuery(q))
+	res, err := q.query(c, model, newSelectQuery(q))
 	if err != nil {
 		return err
 	}
@@ -761,10 +756,11 @@ func (q *Query) Select(values ...interface{}) error {
 				return err
 			}
 		}
-		_, err = model.AfterSelect(q)
-		if err != nil {
-			return err
-		}
+	}
+
+	_, err = model.AfterSelect(c)
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -777,11 +773,11 @@ func (q *Query) newModel(values ...interface{}) (Model, error) {
 	return q.model, nil
 }
 
-func (q *Query) query(model Model, query interface{}) (Result, error) {
+func (q *Query) query(c context.Context, model Model, query interface{}) (Result, error) {
 	if _, ok := model.(useQueryOne); ok {
-		return q.db.QueryOneContext(q.ctx, model, query, q.model)
+		return q.db.QueryOneContext(c, model, query, q.model)
 	}
-	return q.db.QueryContext(q.ctx, model, query, q.model)
+	return q.db.QueryContext(c, model, query, q.model)
 }
 
 // SelectAndCount runs Select and Count in two goroutines,
@@ -934,21 +930,23 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 		return nil, err
 	}
 
+	c := q.ctx
+
 	if q.model != nil && q.model.Table().HasFlag(BeforeInsertHookFlag) {
-		q, err = q.model.BeforeInsert(q)
+		c, err = q.model.BeforeInsert(c)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	query := newInsertQuery(q)
-	res, err := q.returningQuery(model, query)
+	res, err := q.returningQuery(c, model, query)
 	if err != nil {
 		return nil, err
 	}
 
 	if q.model != nil {
-		_, err = q.model.AfterInsert(q)
+		_, err = q.model.AfterInsert(c)
 		if err != nil {
 			return nil, err
 		}
@@ -1035,21 +1033,23 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 		return nil, err
 	}
 
+	c := q.ctx
+
 	if q.model != nil {
-		q, err = q.model.BeforeUpdate(q)
+		c, err = q.model.BeforeUpdate(c)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	query := newUpdateQuery(q, omitZero)
-	res, err := q.returningQuery(model, query)
+	res, err := q.returningQuery(c, model, query)
 	if err != nil {
 		return nil, err
 	}
 
 	if q.model != nil {
-		_, err = q.model.AfterUpdate(q)
+		_, err = q.model.AfterUpdate(c)
 		if err != nil {
 			return nil, err
 		}
@@ -1058,14 +1058,14 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 	return res, nil
 }
 
-func (q *Query) returningQuery(model Model, query interface{}) (Result, error) {
+func (q *Query) returningQuery(c context.Context, model Model, query interface{}) (Result, error) {
 	if len(q.returning) == 0 {
-		return q.db.QueryContext(q.ctx, model, query, q.model)
+		return q.db.QueryContext(c, model, query, q.model)
 	}
 	if _, ok := model.(useQueryOne); ok {
-		return q.db.QueryOneContext(q.ctx, model, query, q.model)
+		return q.db.QueryOneContext(c, model, query, q.model)
 	}
-	return q.db.QueryContext(q.ctx, model, query, q.model)
+	return q.db.QueryContext(c, model, query, q.model)
 }
 
 // Delete deletes the model. When model has deleted_at column the row
@@ -1105,20 +1105,22 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 		return nil, err
 	}
 
+	c := q.ctx
+
 	if q.model != nil {
-		q, err = q.model.BeforeDelete(q)
+		c, err = q.model.BeforeDelete(c)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	res, err := q.returningQuery(model, newDeleteQuery(q))
+	res, err := q.returningQuery(c, model, newDeleteQuery(q))
 	if err != nil {
 		return nil, err
 	}
 
 	if q.model != nil {
-		_, err = q.model.AfterDelete(q)
+		_, err = q.model.AfterDelete(c)
 		if err != nil {
 			return nil, err
 		}

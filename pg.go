@@ -111,13 +111,13 @@ func (strings *Strings) Init() error {
 	return nil
 }
 
-// NewModel returns `Strings` as orm.ColumnScanner
-func (strings *Strings) NewModel() orm.ColumnScanner {
+// NextColumnScanner ...
+func (strings *Strings) NextColumnScanner() orm.ColumnScanner {
 	return strings
 }
 
-// AddModel ...
-func (Strings) AddModel(_ orm.ColumnScanner) error {
+// AddColumnScanner ...
+func (Strings) AddColumnScanner(_ orm.ColumnScanner) error {
 	return nil
 }
 
@@ -163,13 +163,13 @@ func (ints *Ints) Init() error {
 	return nil
 }
 
-// NewModel returns `Ints` as orm.ColumnScanner
-func (ints *Ints) NewModel() orm.ColumnScanner {
+// NewColumnScanner ...
+func (ints *Ints) NextColumnScanner() orm.ColumnScanner {
 	return ints
 }
 
-// AddModel ...
-func (Ints) AddModel(_ orm.ColumnScanner) error {
+// AddColumnScanner ...
+func (Ints) AddColumnScanner(_ orm.ColumnScanner) error {
 	return nil
 }
 
@@ -213,13 +213,13 @@ func (set *IntSet) Init() error {
 	return nil
 }
 
-// NewModel returns `Ints` as orm.ColumnScanner
-func (set *IntSet) NewModel() orm.ColumnScanner {
+// NextColumnScanner ...
+func (set *IntSet) NextColumnScanner() orm.ColumnScanner {
 	return set
 }
 
-// AddModel ...
-func (IntSet) AddModel(_ orm.ColumnScanner) error {
+// AddColumnScanner ...
+func (IntSet) AddColumnScanner(_ orm.ColumnScanner) error {
 	return nil
 }
 

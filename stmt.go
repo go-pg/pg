@@ -254,13 +254,22 @@ func (stmt *Stmt) extQueryData(
 		return nil, err
 	}
 
-	var res Result
+	var res *result
 	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readExtQueryData(rd, model, columns)
 		return err
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if res.model != nil && res.returned > 0 {
+		if m, ok := res.model.(orm.AfterScanHook); ok {
+			_, err = m.AfterScan(c)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return res, nil

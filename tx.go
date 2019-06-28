@@ -195,7 +195,7 @@ func (tx *Tx) query(
 		return nil, err
 	}
 
-	var res Result
+	var res *result
 	err = tx.withConn(c, func(c context.Context, cn *pool.Conn) error {
 		res, err = tx.db.simpleQueryData(c, cn, model, query, params...)
 		if err := tx.db.afterQuery(c, evt, res, err); err != nil {
@@ -203,7 +203,20 @@ func (tx *Tx) query(
 		}
 		return err
 	})
-	return res, err
+	if err != nil {
+		return nil, err
+	}
+
+	if res.model != nil && res.returned > 0 {
+		if m, ok := res.model.(orm.AfterScanHook); ok {
+			_, err = m.AfterScan(c)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return res, nil
 }
 
 // QueryOne is an alias for DB.QueryOne.

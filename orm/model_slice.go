@@ -30,7 +30,7 @@ func (m *sliceModel) Init() error {
 	return nil
 }
 
-func (m *sliceModel) NewModel() ColumnScanner {
+func (m *sliceModel) NextColumnScanner() ColumnScanner {
 	return m
 }
 

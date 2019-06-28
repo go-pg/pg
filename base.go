@@ -479,7 +479,7 @@ func (db *baseDB) cancelRequest(processID, secretKey int32) error {
 
 func (db *baseDB) simpleQuery(
 	c context.Context, cn *pool.Conn, query interface{}, params ...interface{},
-) (Result, error) {
+) (*result, error) {
 	err := cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeQueryMsg(wb, db.fmter, query, params...)
 	})
@@ -487,7 +487,7 @@ func (db *baseDB) simpleQuery(
 		return nil, err
 	}
 
-	var res Result
+	var res *result
 	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readSimpleQuery(rd)
 		return err
@@ -501,7 +501,7 @@ func (db *baseDB) simpleQuery(
 
 func (db *baseDB) simpleQueryData(
 	c context.Context, cn *pool.Conn, model, query interface{}, params ...interface{},
-) (Result, error) {
+) (*result, error) {
 	err := cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeQueryMsg(wb, db.fmter, query, params...)
 	})
@@ -509,13 +509,22 @@ func (db *baseDB) simpleQueryData(
 		return nil, err
 	}
 
-	var res Result
+	var res *result
 	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readSimpleQueryData(rd, model)
 		return err
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	if res.model != nil && res.returned > 0 {
+		if m, ok := res.model.(orm.AfterScanHook); ok {
+			_, err = m.AfterScan(c)
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return res, nil

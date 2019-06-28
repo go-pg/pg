@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	BeforeSelectHookFlag = uint16(1) << iota
+	AfterScanHookFlag = uint16(1) << iota
 	AfterSelectHookFlag
 	BeforeInsertHookFlag
 	AfterInsertHookFlag
@@ -83,9 +83,6 @@ func newTable(typ reflect.Type) *Table {
 	t.Alias = quoteID(t.ModelName)
 
 	typ = reflect.PtrTo(t.Type)
-	if typ.Implements(beforeSelectHookType) {
-		t.SetFlag(BeforeSelectHookFlag)
-	}
 	if typ.Implements(afterSelectHookType) {
 		t.SetFlag(AfterSelectHookFlag)
 	}

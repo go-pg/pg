@@ -7,7 +7,6 @@ import (
 
 type hookStubs struct{}
 
-var _ BeforeSelectHook = (*hookStubs)(nil)
 var _ AfterSelectHook = (*hookStubs)(nil)
 var _ BeforeInsertHook = (*hookStubs)(nil)
 var _ AfterInsertHook = (*hookStubs)(nil)
@@ -16,44 +15,40 @@ var _ AfterUpdateHook = (*hookStubs)(nil)
 var _ BeforeDeleteHook = (*hookStubs)(nil)
 var _ AfterDeleteHook = (*hookStubs)(nil)
 
-func (hookStubs) BeforeSelect(q *Query) (*Query, error) {
-	return q, nil
+func (hookStubs) AfterSelect(c context.Context) (context.Context, error) {
+	return c, nil
 }
 
-func (hookStubs) AfterSelect(q *Query) (*Query, error) {
-	return q, nil
+func (hookStubs) BeforeInsert(c context.Context) (context.Context, error) {
+	return c, nil
 }
 
-func (hookStubs) BeforeInsert(q *Query) (*Query, error) {
-	return q, nil
+func (hookStubs) AfterInsert(c context.Context) (context.Context, error) {
+	return c, nil
 }
 
-func (hookStubs) AfterInsert(q *Query) (*Query, error) {
-	return q, nil
+func (hookStubs) BeforeUpdate(c context.Context) (context.Context, error) {
+	return c, nil
 }
 
-func (hookStubs) BeforeUpdate(q *Query) (*Query, error) {
-	return q, nil
+func (hookStubs) AfterUpdate(c context.Context) (context.Context, error) {
+	return c, nil
 }
 
-func (hookStubs) AfterUpdate(q *Query) (*Query, error) {
-	return q, nil
+func (hookStubs) BeforeDelete(c context.Context) (context.Context, error) {
+	return c, nil
 }
 
-func (hookStubs) BeforeDelete(q *Query) (*Query, error) {
-	return q, nil
-}
-
-func (hookStubs) AfterDelete(q *Query) (*Query, error) {
-	return q, nil
+func (hookStubs) AfterDelete(c context.Context) (context.Context, error) {
+	return c, nil
 }
 
 func callHookSlice(
+	c context.Context,
 	slice reflect.Value,
 	ptr bool,
-	q *Query,
-	hook func(reflect.Value, *Query) (*Query, error),
-) (*Query, error) {
+	hook func(context.Context, reflect.Value) (context.Context, error),
+) (context.Context, error) {
 	var firstErr error
 	for i := 0; i < slice.Len(); i++ {
 		v := slice.Index(i)
@@ -62,136 +57,152 @@ func callHookSlice(
 		}
 
 		var err error
-		q, err = hook(v, q)
+		c, err = hook(c, v)
 		if err != nil && firstErr == nil {
 			firstErr = err
 		}
 	}
-	return q, firstErr
+	return c, firstErr
 }
 
 //------------------------------------------------------------------------------
 
-type BeforeSelectHook interface {
-	BeforeSelect(*Query) (*Query, error)
+type AfterScanHook interface {
+	AfterScan(context.Context) (context.Context, error)
 }
 
-var beforeSelectHookType = reflect.TypeOf((*BeforeSelectHook)(nil)).Elem()
+func callAfterScanHook(c context.Context, v reflect.Value) (context.Context, error) {
+	return v.Interface().(AfterScanHook).AfterScan(c)
+}
 
-func callBeforeSelectHook(v reflect.Value, q *Query) (*Query, error) {
-	return v.Interface().(BeforeSelectHook).BeforeSelect(q)
+func callAfterScanHookSlice(c context.Context, slice reflect.Value, ptr bool) (context.Context, error) {
+	return callHookSlice(c, slice, ptr, callAfterScanHook)
 }
 
 //------------------------------------------------------------------------------
 
 type AfterSelectHook interface {
-	AfterSelect(*Query) (*Query, error)
+	AfterSelect(context.Context) (context.Context, error)
 }
 
 var afterSelectHookType = reflect.TypeOf((*AfterSelectHook)(nil)).Elem()
 
-func callAfterSelectHook(v reflect.Value, q *Query) (*Query, error) {
-	return v.Interface().(AfterSelectHook).AfterSelect(q)
+func callAfterSelectHook(c context.Context, v reflect.Value) (context.Context, error) {
+	return v.Interface().(AfterSelectHook).AfterSelect(c)
 }
 
-func callAfterSelectHookSlice(slice reflect.Value, ptr bool, q *Query) (*Query, error) {
-	return callHookSlice(slice, ptr, q, callAfterSelectHook)
+func callAfterSelectHookSlice(
+	c context.Context, slice reflect.Value, ptr bool,
+) (context.Context, error) {
+	return callHookSlice(c, slice, ptr, callAfterSelectHook)
 }
 
 //------------------------------------------------------------------------------
 
 type BeforeInsertHook interface {
-	BeforeInsert(*Query) (*Query, error)
+	BeforeInsert(context.Context) (context.Context, error)
 }
 
 var beforeInsertHookType = reflect.TypeOf((*BeforeInsertHook)(nil)).Elem()
 
-func callBeforeInsertHook(v reflect.Value, q *Query) (*Query, error) {
-	return v.Interface().(BeforeInsertHook).BeforeInsert(q)
+func callBeforeInsertHook(c context.Context, v reflect.Value) (context.Context, error) {
+	return v.Interface().(BeforeInsertHook).BeforeInsert(c)
 }
 
-func callBeforeInsertHookSlice(slice reflect.Value, ptr bool, q *Query) (*Query, error) {
-	return callHookSlice(slice, ptr, q, callBeforeInsertHook)
+func callBeforeInsertHookSlice(
+	c context.Context, slice reflect.Value, ptr bool,
+) (context.Context, error) {
+	return callHookSlice(c, slice, ptr, callBeforeInsertHook)
 }
 
 //------------------------------------------------------------------------------
 
 type AfterInsertHook interface {
-	AfterInsert(*Query) (*Query, error)
+	AfterInsert(context.Context) (context.Context, error)
 }
 
 var afterInsertHookType = reflect.TypeOf((*AfterInsertHook)(nil)).Elem()
 
-func callAfterInsertHook(v reflect.Value, q *Query) (*Query, error) {
-	return v.Interface().(AfterInsertHook).AfterInsert(q)
+func callAfterInsertHook(c context.Context, v reflect.Value) (context.Context, error) {
+	return v.Interface().(AfterInsertHook).AfterInsert(c)
 }
 
-func callAfterInsertHookSlice(slice reflect.Value, ptr bool, q *Query) (*Query, error) {
-	return callHookSlice(slice, ptr, q, callAfterInsertHook)
+func callAfterInsertHookSlice(
+	c context.Context, slice reflect.Value, ptr bool,
+) (context.Context, error) {
+	return callHookSlice(c, slice, ptr, callAfterInsertHook)
 }
 
 //------------------------------------------------------------------------------
 
 type BeforeUpdateHook interface {
-	BeforeUpdate(*Query) (*Query, error)
+	BeforeUpdate(context.Context) (context.Context, error)
 }
 
 var beforeUpdateHookType = reflect.TypeOf((*BeforeUpdateHook)(nil)).Elem()
 
-func callBeforeUpdateHook(v reflect.Value, q *Query) (*Query, error) {
-	return v.Interface().(BeforeUpdateHook).BeforeUpdate(q)
+func callBeforeUpdateHook(c context.Context, v reflect.Value) (context.Context, error) {
+	return v.Interface().(BeforeUpdateHook).BeforeUpdate(c)
 }
 
-func callBeforeUpdateHookSlice(slice reflect.Value, ptr bool, q *Query) (*Query, error) {
-	return callHookSlice(slice, ptr, q, callBeforeUpdateHook)
+func callBeforeUpdateHookSlice(
+	c context.Context, slice reflect.Value, ptr bool,
+) (context.Context, error) {
+	return callHookSlice(c, slice, ptr, callBeforeUpdateHook)
 }
 
 //------------------------------------------------------------------------------
 
 type AfterUpdateHook interface {
-	AfterUpdate(*Query) (*Query, error)
+	AfterUpdate(context.Context) (context.Context, error)
 }
 
 var afterUpdateHookType = reflect.TypeOf((*AfterUpdateHook)(nil)).Elem()
 
-func callAfterUpdateHook(v reflect.Value, q *Query) (*Query, error) {
-	return v.Interface().(AfterUpdateHook).AfterUpdate(q)
+func callAfterUpdateHook(c context.Context, v reflect.Value) (context.Context, error) {
+	return v.Interface().(AfterUpdateHook).AfterUpdate(c)
 }
 
-func callAfterUpdateHookSlice(slice reflect.Value, ptr bool, q *Query) (*Query, error) {
-	return callHookSlice(slice, ptr, q, callAfterUpdateHook)
+func callAfterUpdateHookSlice(
+	c context.Context, slice reflect.Value, ptr bool,
+) (context.Context, error) {
+	return callHookSlice(c, slice, ptr, callAfterUpdateHook)
 }
 
 //------------------------------------------------------------------------------
 
 type BeforeDeleteHook interface {
-	BeforeDelete(*Query) (*Query, error)
+	BeforeDelete(context.Context) (context.Context, error)
 }
 
 var beforeDeleteHookType = reflect.TypeOf((*BeforeDeleteHook)(nil)).Elem()
 
-func callBeforeDeleteHook(v reflect.Value, q *Query) (*Query, error) {
-	return v.Interface().(BeforeDeleteHook).BeforeDelete(q)
+func callBeforeDeleteHook(c context.Context, v reflect.Value) (context.Context, error) {
+	return v.Interface().(BeforeDeleteHook).BeforeDelete(c)
 }
 
-func callBeforeDeleteHookSlice(slice reflect.Value, ptr bool, q *Query) (*Query, error) {
-	return callHookSlice(slice, ptr, q, callBeforeDeleteHook)
+func callBeforeDeleteHookSlice(
+	c context.Context, slice reflect.Value, ptr bool,
+) (context.Context, error) {
+	return callHookSlice(c, slice, ptr, callBeforeDeleteHook)
 }
 
 //------------------------------------------------------------------------------
 
 type AfterDeleteHook interface {
-	AfterDelete(*Query) (*Query, error)
+	AfterDelete(context.Context) (context.Context, error)
 }
 
 var afterDeleteHookType = reflect.TypeOf((*AfterDeleteHook)(nil)).Elem()
 
-func callAfterDeleteHook(v reflect.Value, q *Query) (*Query, error) {
-	return v.Interface().(AfterDeleteHook).AfterDelete(q)
+func callAfterDeleteHook(c context.Context, v reflect.Value) (context.Context, error) {
+	return v.Interface().(AfterDeleteHook).AfterDelete(c)
 }
 
-func callAfterDeleteHookSlice(slice reflect.Value, ptr bool, q *Query) (*Query, error) {
-	return callHookSlice(slice, ptr, q, callAfterDeleteHook)
+func callAfterDeleteHookSlice(
+	c context.Context, slice reflect.Value, ptr bool,
+) (context.Context, error) {
+	return callHookSlice(c, slice, ptr, callAfterDeleteHook)
 }
 
 //------------------------------------------------------------------------------

@@ -17,22 +17,20 @@ type useQueryOne interface {
 
 type HooklessModel interface {
 	// Init is responsible to initialize/reset model state.
-	// It is called only once no matter how many rows
-	// were returned by database.
+	// It is called only once no matter how many rows were returned.
 	Init() error
 
-	// NewModel returns ColumnScanner that is used to scan columns
+	// NextColumnScanner returns a ColumnScanner that is used to scan columns
 	// from the current row. It is called once for every row.
-	NewModel() ColumnScanner
+	NextColumnScanner() ColumnScanner
 
-	// AddModel adds ColumnScanner created by NewModel to the Collection.
-	AddModel(ColumnScanner) error
+	// AddColumnScanner adds the ColumnScanner to the model.
+	AddColumnScanner(ColumnScanner) error
 }
 
 type Model interface {
 	HooklessModel
 
-	BeforeSelectHook
 	AfterSelectHook
 
 	BeforeInsertHook
