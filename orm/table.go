@@ -54,6 +54,8 @@ type Table struct {
 
 	Tablespace types.Q
 
+	PartitionBy string
+
 	allFields     []*Field // read only
 	skippedFields []*Field
 
@@ -293,6 +295,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		if ok {
 			s, _ := tagparser.Unquote(tableSpace)
 			t.Tablespace = quoteID(s)
+		}
+
+		partitionType, ok := sqlTag.Options["partitionBy"]
+		if ok {
+			s, _ := tagparser.Unquote(partitionType)
+			t.PartitionBy = s
 		}
 
 		if sqlTag.Name == "_" {

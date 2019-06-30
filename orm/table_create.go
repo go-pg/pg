@@ -116,6 +116,11 @@ func (q *createTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte
 
 	b = append(b, ")"...)
 
+	if table.PartitionBy != "" {
+		b = append(b, " PARTITION BY "...)
+		b = append(b, table.PartitionBy...)
+	}
+
 	if table.Tablespace != "" {
 		b = q.appendTablespace(b, table.Tablespace)
 	}
