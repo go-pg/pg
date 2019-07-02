@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-pg/pg/internal/iszero"
-	"github.com/go-pg/pg/types"
+	"github.com/go-pg/pg/v9/internal/iszero"
+	"github.com/go-pg/pg/v9/types"
 )
 
 const (

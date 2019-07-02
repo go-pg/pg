@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/v9/internal"
 )
 
 var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()

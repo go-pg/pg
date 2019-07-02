@@ -3,7 +3,7 @@ package pg_test
 import (
 	"time"
 
-	"github.com/go-pg/pg"
+	"github.com/go-pg/pg/v9"
 
 	. "gopkg.in/check.v1"
 )

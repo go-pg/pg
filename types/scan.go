@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/go-pg/pg/internal"
+	"github.com/go-pg/pg/v9/internal"
 )
 
 func Scan(v interface{}, rd Reader, n int) error {
