@@ -51,11 +51,10 @@ func (p *SingleConnPool) Clone() *SingleConnPool {
 }
 
 func (p *SingleConnPool) SetConn(cn *Conn) {
-	if atomic.CompareAndSwapUint32(&p.state, stateDefault, stateInited) {
+	p.setup().once.Do(func() {
+		atomic.StoreUint32(&p.state, stateInited)
 		p.ch <- cn
-		return
-	}
-	panic("not reached")
+	})
 }
 
 func (p *SingleConnPool) NewConn(c context.Context) (*Conn, error) {
