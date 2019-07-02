@@ -6,3 +6,4 @@ all:
 	go vet ./...
 	go get github.com/gordonklaus/ineffassign
 	ineffassign .
+	golangci-lint run
