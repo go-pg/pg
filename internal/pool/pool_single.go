@@ -13,11 +13,16 @@ const (
 	stateClosed  = 2
 )
 
+type setup struct {
+	once sync.Once
+	err  error
+}
+
 type SingleConnPool struct {
-	pool      Pooler
-	settingUp sync.Once
-	closing   sync.Once
-	setupErr  error
+	pool Pooler
+	// *setup
+	setupValue atomic.Value
+	closing    sync.Once
 
 	state uint32 // atomic
 	ch    chan *Conn
@@ -35,6 +40,7 @@ func NewSingleConnPool(pool Pooler) *SingleConnPool {
 			pool: pool,
 			ch:   make(chan *Conn, 1),
 		}
+		p.setupValue.Store(&setup{})
 	}
 	atomic.AddInt32(&p.level, 1)
 	return p
@@ -60,18 +66,23 @@ func (p *SingleConnPool) CloseConn(cn *Conn) error {
 	return p.pool.CloseConn(cn)
 }
 
+func (p *SingleConnPool) setup() *setup {
+	return p.setupValue.Load().(*setup)
+}
+
 func (p *SingleConnPool) Get(c context.Context) (*Conn, error) {
-	p.settingUp.Do(func() {
+	setup := p.setup()
+	setup.once.Do(func() {
 		atomic.StoreUint32(&p.state, stateInited)
 		cn, err := p.pool.Get(c)
 		if err != nil {
-			p.setupErr = err
+			setup.err = err
 			return
 		}
 		p.ch <- cn
 	})
-	if p.setupErr != nil {
-		return nil, p.setupErr
+	if setup.err != nil {
+		return nil, setup.err
 	}
 
 	cn, ok := <-p.ch
@@ -129,7 +140,7 @@ func (p *SingleConnPool) Close() error {
 
 	p.closing.Do(func() {
 		// Make sure conn pool cannot be set up after close
-		p.settingUp.Do(func() {})
+		p.setup().once.Do(func() {})
 
 		atomic.StoreUint32(&p.state, stateClosed)
 		close(p.ch)
@@ -157,10 +168,8 @@ func (p *SingleConnPool) Reset() error {
 	}
 	p.pool.Remove(cn)
 
-	if !atomic.CompareAndSwapUint32(&p.state, stateInited, stateDefault) {
-		state := atomic.LoadUint32(&p.state)
-		return fmt.Errorf("pg: invalid SingleConnPool state: %d", state)
-	}
+	atomic.StoreUint32(&p.state, stateDefault)
+	p.setupValue.Store(&setup{})
 
 	return nil
 }
