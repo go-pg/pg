@@ -1,6 +1,6 @@
 package pg
 
-import "github.com/go-pg/pg/internal/pool"
+import "github.com/go-pg/pg/v9/internal/pool"
 
 func (db *DB) Pool() pool.Pooler {
 	return db.pool

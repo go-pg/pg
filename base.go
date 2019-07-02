@@ -5,9 +5,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/go-pg/pg/internal"
-	"github.com/go-pg/pg/internal/pool"
-	"github.com/go-pg/pg/orm"
+	"github.com/go-pg/pg/v9/internal"
+	"github.com/go-pg/pg/v9/internal/pool"
+	"github.com/go-pg/pg/v9/orm"
 )
 
 type baseDB struct {
