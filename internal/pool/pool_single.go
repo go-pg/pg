@@ -3,6 +3,7 @@ package pool
 import (
 	"context"
 	"fmt"
+	"sync"
 	"sync/atomic"
 )
 
@@ -13,7 +14,10 @@ const (
 )
 
 type SingleConnPool struct {
-	pool Pooler
+	pool      Pooler
+	settingUp sync.Once
+	closing   sync.Once
+	setupErr  error
 
 	state uint32 // atomic
 	ch    chan *Conn
@@ -57,25 +61,24 @@ func (p *SingleConnPool) CloseConn(cn *Conn) error {
 }
 
 func (p *SingleConnPool) Get(c context.Context) (*Conn, error) {
-	for i := 0; i < 1e6; i++ {
-		switch atomic.LoadUint32(&p.state) {
-		case stateDefault:
-			if atomic.CompareAndSwapUint32(&p.state, stateDefault, stateInited) {
-				return p.pool.Get(c)
-			}
-		case stateInited:
-			cn, ok := <-p.ch
-			if !ok {
-				return nil, ErrClosed
-			}
-			return cn, nil
-		case stateClosed:
-			return nil, ErrClosed
-		default:
-			panic("not reached")
+	p.settingUp.Do(func() {
+		atomic.StoreUint32(&p.state, stateInited)
+		cn, err := p.pool.Get(c)
+		if err != nil {
+			p.setupErr = err
+			return
 		}
+		p.ch <- cn
+	})
+	if p.setupErr != nil {
+		return nil, p.setupErr
 	}
-	return nil, fmt.Errorf("pg: SingleConnPool.Get: infinite loop")
+
+	cn, ok := <-p.ch
+	if !ok {
+		return nil, ErrClosed
+	}
+	return cn, nil
 }
 
 func (p *SingleConnPool) Put(cn *Conn) {
@@ -124,26 +127,23 @@ func (p *SingleConnPool) Close() error {
 		return nil
 	}
 
-	for i := 0; i < 1e6; i++ {
-		state := atomic.LoadUint32(&p.state)
-		if state == stateClosed {
-			return nil
-		}
-		if atomic.CompareAndSwapUint32(&p.state, state, stateClosed) {
-			close(p.ch)
-			cn, ok := <-p.ch
-			if ok {
-				if atomic.LoadUint32(&p.hasBadConn) == 1 {
-					p.pool.Remove(cn)
-				} else {
-					p.pool.Put(cn)
-				}
-			}
-			return nil
-		}
-	}
+	p.closing.Do(func() {
+		// Make sure conn pool cannot be set up after close
+		p.settingUp.Do(func() {})
 
-	return fmt.Errorf("pg: SingleConnPool.Close: infinite loop")
+		atomic.StoreUint32(&p.state, stateClosed)
+		close(p.ch)
+		cn, ok := <-p.ch
+		if ok {
+			if atomic.LoadUint32(&p.hasBadConn) == 1 {
+				p.pool.Remove(cn)
+			} else {
+				p.pool.Put(cn)
+			}
+		}
+	})
+
+	return nil
 }
 
 func (p *SingleConnPool) Reset() error {
