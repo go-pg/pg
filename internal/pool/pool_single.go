@@ -163,7 +163,7 @@ func (p *SingleConnPool) Reset() error {
 
 	cn, ok := <-p.ch
 	if !ok {
-		return fmt.Errorf("pg: SingleConnPool does not have a Conn")
+		return fmt.Errorf("pg: SingleConnPool is closed")
 	}
 	p.pool.Remove(cn)
 
