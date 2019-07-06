@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -429,6 +430,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	} else if _, ok := pgTag.Options["hstore"]; ok {
 		field.append = types.HstoreAppender(f.Type)
 		field.scan = types.HstoreScanner(f.Type)
+	} else if field.SQLType == pgTypeBigint && field.Type.Kind() == reflect.Uint64 {
+		field.append = appendUintAsInt
+		field.scan = types.Scanner(f.Type)
 	} else {
 		field.append = types.Appender(f.Type)
 		field.scan = types.Scanner(f.Type)
@@ -723,8 +727,9 @@ func isScanner(typ reflect.Type) bool {
 
 func fieldSQLType(field *Field, pgTag, sqlTag *tagparser.Tag) string {
 	if typ, ok := sqlTag.Options["type"]; ok {
-		field.SetFlag(customTypeFlag)
 		typ, _ = tagparser.Unquote(typ)
+		typ = normalizeSQLType(typ)
+		field.SetFlag(customTypeFlag)
 		return typ
 	}
 
@@ -790,7 +795,7 @@ func sqlType(typ reflect.Type) string {
 	case reflect.Uint32, reflect.Int64, reflect.Int:
 		return pgTypeBigint
 	case reflect.Uint, reflect.Uint64:
-		// The lesser of two evils.
+		// Unsigned bigint is not supported - use bigint.
 		return pgTypeBigint
 	case reflect.Float32:
 		return pgTypeReal
@@ -820,6 +825,22 @@ func pkSQLType(s string) string {
 		return pgTypeSerial
 	case pgTypeBigint:
 		return pgTypeBigserial
+	}
+	return s
+}
+
+func normalizeSQLType(s string) string {
+	switch s {
+	case "int2":
+		return pgTypeSmallint
+	case "int4", "int":
+		return pgTypeInteger
+	case "int8":
+		return pgTypeBigint
+	case "float4":
+		return pgTypeReal
+	case "float8":
+		return pgTypeDoublePrecision
 	}
 	return s
 }
@@ -964,6 +985,10 @@ func scanJSONValue(v reflect.Value, rd types.Reader, n int) error {
 	dec := json.NewDecoder(rd)
 	dec.UseNumber()
 	return dec.Decode(v.Addr().Interface())
+}
+
+func appendUintAsInt(b []byte, v reflect.Value, _ int) []byte {
+	return strconv.AppendInt(b, int64(v.Uint()), 10)
 }
 
 func tryUnderscorePrefix(s string) string {
