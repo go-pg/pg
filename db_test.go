@@ -135,6 +135,23 @@ func TestAnynomousStructField(t *testing.T) {
 	}
 }
 
+func TestContextCanceled(t *testing.T) {
+	db := testDB()
+
+	c := context.Background()
+	c, cancel := context.WithCancel(c)
+	cancel()
+
+	_, err := db.ExecContext(c, "SELECT 1")
+	if err == nil {
+		t.Fatalf("got nil, expected an error")
+	}
+	wanted := "context canceled"
+	if err.Error() != wanted {
+		t.Fatalf("got %q, wanted %q", err, wanted)
+	}
+}
+
 var _ = Describe("DB", func() {
 	var db *pg.DB
 	var tx *pg.Tx

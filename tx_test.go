@@ -1,6 +1,7 @@
 package pg_test
 
 import (
+	"context"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -22,7 +23,7 @@ var _ = Describe("Tx", func() {
 	})
 
 	It("reconnects on bad connection", func() {
-		cn, err := db.Pool().Get(nil)
+		cn, err := db.Pool().Get(context.Background())
 		Expect(err).NotTo(HaveOccurred())
 
 		cn.SetNetConn(&badConn{})

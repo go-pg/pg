@@ -1,6 +1,7 @@
 package pool_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -8,6 +9,7 @@ import (
 )
 
 func benchmarkPoolGetPut(b *testing.B, poolSize int) {
+	c := context.Background()
 	connPool := pool.NewConnPool(&pool.Options{
 		Dialer:             dummyDialer,
 		PoolSize:           poolSize,
@@ -20,7 +22,7 @@ func benchmarkPoolGetPut(b *testing.B, poolSize int) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			cn, err := connPool.Get(nil)
+			cn, err := connPool.Get(c)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -42,6 +44,7 @@ func BenchmarkPoolGetPut1000Conns(b *testing.B) {
 }
 
 func benchmarkPoolGetRemove(b *testing.B, poolSize int) {
+	c := context.Background()
 	connPool := pool.NewConnPool(&pool.Options{
 		Dialer:             dummyDialer,
 		PoolSize:           poolSize,
@@ -54,7 +57,7 @@ func benchmarkPoolGetRemove(b *testing.B, poolSize int) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			cn, err := connPool.Get(nil)
+			cn, err := connPool.Get(c)
 			if err != nil {
 				b.Fatal(err)
 			}
