@@ -54,10 +54,7 @@ func (db *DB) Options() *Options {
 
 // Context returns DB context.
 func (db *DB) Context() context.Context {
-	if db.ctx != nil {
-		return db.ctx
-	}
-	return context.Background()
+	return db.ctx
 }
 
 // WithContext returns a copy of the DB that uses the ctx.
