@@ -2,21 +2,15 @@ package pool
 
 import (
 	"context"
-	"fmt"
+	"sync"
 	"sync/atomic"
-)
-
-const (
-	stateDefault = 0
-	stateInited  = 1
-	stateClosed  = 2
 )
 
 type SingleConnPool struct {
 	pool Pooler
 
-	state uint32 // atomic
-	ch    chan *Conn
+	mu sync.Mutex
+	cn *Conn
 
 	level      int32  // atomic
 	hasBadConn uint32 // atomic
@@ -29,7 +23,6 @@ func NewSingleConnPool(pool Pooler) *SingleConnPool {
 	if !ok {
 		p = &SingleConnPool{
 			pool: pool,
-			ch:   make(chan *Conn, 1),
 		}
 	}
 	atomic.AddInt32(&p.level, 1)
@@ -41,11 +34,12 @@ func (p *SingleConnPool) Clone() *SingleConnPool {
 }
 
 func (p *SingleConnPool) SetConn(cn *Conn) {
-	if atomic.CompareAndSwapUint32(&p.state, stateDefault, stateInited) {
-		p.ch <- cn
-		return
+	p.mu.Lock()
+	if p.cn != nil {
+		panic("p.cn != nil")
 	}
-	panic("not reached")
+	p.cn = cn
+	p.mu.Unlock()
 }
 
 func (p *SingleConnPool) NewConn(c context.Context) (*Conn, error) {
@@ -57,61 +51,46 @@ func (p *SingleConnPool) CloseConn(cn *Conn) error {
 }
 
 func (p *SingleConnPool) Get(c context.Context) (*Conn, error) {
-	for i := 0; i < 1e6; i++ {
-		switch atomic.LoadUint32(&p.state) {
-		case stateDefault:
-			if atomic.CompareAndSwapUint32(&p.state, stateDefault, stateInited) {
-				return p.pool.Get(c)
-			}
-		case stateInited:
-			cn, ok := <-p.ch
-			if !ok {
-				return nil, ErrClosed
-			}
-			return cn, nil
-		case stateClosed:
-			return nil, ErrClosed
-		default:
-			panic("not reached")
-		}
-	}
-	return nil, fmt.Errorf("pg: SingleConnPool.Get: infinite loop")
+	p.mu.Lock()
+	cn, err := p.get(c)
+	p.mu.Unlock()
+	return cn, err
 }
 
-func (p *SingleConnPool) Put(cn *Conn) {
-	defer func() {
-		if recover() != nil {
-			p.pool.Put(cn)
-		}
-	}()
-	p.ch <- cn
+func (p *SingleConnPool) get(c context.Context) (*Conn, error) {
+	if atomic.LoadInt32(&p.level) == 0 {
+		return nil, ErrClosed
+	}
+	if p.cn != nil {
+		return p.cn, nil
+	}
+
+	cn, err := p.pool.Get(c)
+	if err != nil {
+		return nil, err
+	}
+
+	p.cn = cn
+	return cn, nil
 }
+
+func (p *SingleConnPool) Put(cn *Conn) {}
 
 func (p *SingleConnPool) Remove(cn *Conn) {
-	defer func() {
-		if recover() != nil {
-			p.pool.Remove(cn)
-		}
-	}()
 	atomic.StoreUint32(&p.hasBadConn, 1)
-	p.ch <- cn
 }
 
 func (p *SingleConnPool) Len() int {
-	switch atomic.LoadUint32(&p.state) {
-	case stateDefault:
-		return 0
-	case stateInited:
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	if p.cn != nil {
 		return 1
-	case stateClosed:
-		return 0
-	default:
-		panic("not reached")
 	}
+	return 0
 }
 
 func (p *SingleConnPool) IdleLen() int {
-	return len(p.ch)
+	return 0
 }
 
 func (p *SingleConnPool) Stats() *Stats {
@@ -124,26 +103,19 @@ func (p *SingleConnPool) Close() error {
 		return nil
 	}
 
-	for i := 0; i < 1e6; i++ {
-		state := atomic.LoadUint32(&p.state)
-		if state == stateClosed {
-			return nil
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.cn != nil {
+		if atomic.LoadUint32(&p.hasBadConn) == 1 {
+			p.pool.Remove(p.cn)
+		} else {
+			p.pool.Put(p.cn)
 		}
-		if atomic.CompareAndSwapUint32(&p.state, state, stateClosed) {
-			close(p.ch)
-			cn, ok := <-p.ch
-			if ok {
-				if atomic.LoadUint32(&p.hasBadConn) == 1 {
-					p.pool.Remove(cn)
-				} else {
-					p.pool.Put(cn)
-				}
-			}
-			return nil
-		}
+		p.cn = nil
 	}
 
-	return fmt.Errorf("pg: SingleConnPool.Close: infinite loop")
+	return nil
 }
 
 func (p *SingleConnPool) Reset() error {
@@ -151,16 +123,12 @@ func (p *SingleConnPool) Reset() error {
 		return nil
 	}
 
-	cn, ok := <-p.ch
-	if !ok {
-		return fmt.Errorf("pg: SingleConnPool does not have a Conn")
+	p.mu.Lock()
+	if p.cn != nil {
+		p.pool.Remove(p.cn)
+		p.cn = nil
 	}
-	p.pool.Remove(cn)
-
-	if !atomic.CompareAndSwapUint32(&p.state, stateInited, stateDefault) {
-		state := atomic.LoadUint32(&p.state)
-		return fmt.Errorf("pg: invalid SingleConnPool state: %d", state)
-	}
+	p.mu.Unlock()
 
 	return nil
 }
