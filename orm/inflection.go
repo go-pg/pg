@@ -4,12 +4,7 @@ import (
 	"github.com/jinzhu/inflection"
 )
 
-var tableNameInflector func(string) string
-
-//nolint
-func init() {
-	SetTableNameInflector(inflection.Plural)
-}
+var tableNameInflector = inflection.Plural
 
 // SetTableNameInflector overrides the default func that pluralizes
 // model name to get table name, e.g. my_article becomes my_articles.

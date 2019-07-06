@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"math"
 	"net"
 	"testing"
 	"time"
@@ -166,6 +167,30 @@ var _ = Describe("DB", func() {
 
 	AfterEach(func() {
 		Expect(db.Close()).NotTo(HaveOccurred())
+	})
+
+	Describe("uint64 in struct field", func() {
+		It("is appended and scanned as int64", func() {
+			type My struct {
+				ID uint64 `sql:"type:bigint"`
+			}
+
+			err := db.CreateTable((*My)(nil), &orm.CreateTableOptions{
+				Temp: true,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			my := &My{
+				ID: math.MaxUint64,
+			}
+			err = db.Insert(my)
+			Expect(err).NotTo(HaveOccurred())
+
+			my = &My{}
+			err = db.Model(my).Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(my.ID).To(Equal(uint64(math.MaxUint64)))
+		})
 	})
 
 	Describe("Query", func() {

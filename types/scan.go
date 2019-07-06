@@ -139,6 +139,16 @@ func ScanUint64(rd Reader, n int) (uint64, error) {
 		return 0, err
 	}
 
+	// PostgreSQL does not natively support uint64 - only int64.
+	// Be nice and accept negative int64.
+	if len(tmp) > 0 && tmp[0] == '-' {
+		num, err := internal.ParseInt(tmp, 10, 64)
+		if err != nil {
+			return 0, err
+		}
+		return uint64(num), nil
+	}
+
 	num, err := internal.ParseUint(tmp, 10, 64)
 	if err != nil {
 		return 0, err
