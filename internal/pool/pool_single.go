@@ -43,9 +43,9 @@ func (p *SingleConnPool) Clone() *SingleConnPool {
 func (p *SingleConnPool) SetConn(cn *Conn) {
 	if atomic.CompareAndSwapUint32(&p.state, stateDefault, stateInited) {
 		p.ch <- cn
-		return
+	} else {
+		panic("not reached")
 	}
-	panic("not reached")
 }
 
 func (p *SingleConnPool) NewConn(c context.Context) (*Conn, error) {
@@ -57,12 +57,18 @@ func (p *SingleConnPool) CloseConn(cn *Conn) error {
 }
 
 func (p *SingleConnPool) Get(c context.Context) (*Conn, error) {
-	for i := 0; i < 1e6; i++ {
+	// In worst case this races with Close which is not a very common operation.
+	for i := 0; i < 1000; i++ {
 		switch atomic.LoadUint32(&p.state) {
 		case stateDefault:
-			if atomic.CompareAndSwapUint32(&p.state, stateDefault, stateInited) {
-				return p.pool.Get(c)
+			cn, err := p.pool.Get(c)
+			if err != nil {
+				return nil, err
 			}
+			if atomic.CompareAndSwapUint32(&p.state, stateDefault, stateInited) {
+				return cn, nil
+			}
+			p.pool.Remove(cn)
 		case stateInited:
 			cn, ok := <-p.ch
 			if !ok {
@@ -81,10 +87,18 @@ func (p *SingleConnPool) Get(c context.Context) (*Conn, error) {
 func (p *SingleConnPool) Put(cn *Conn) {
 	defer func() {
 		if recover() != nil {
-			p.pool.Put(cn)
+			p.freeConn(cn)
 		}
 	}()
 	p.ch <- cn
+}
+
+func (p *SingleConnPool) freeConn(cn *Conn) {
+	if atomic.LoadUint32(&p.hasBadConn) == 1 {
+		p.pool.Remove(cn)
+	} else {
+		p.pool.Put(cn)
+	}
 }
 
 func (p *SingleConnPool) Remove(cn *Conn) {
@@ -124,20 +138,16 @@ func (p *SingleConnPool) Close() error {
 		return nil
 	}
 
-	for i := 0; i < 1e6; i++ {
+	for i := 0; i < 1000; i++ {
 		state := atomic.LoadUint32(&p.state)
 		if state == stateClosed {
-			return nil
+			return ErrClosed
 		}
 		if atomic.CompareAndSwapUint32(&p.state, state, stateClosed) {
 			close(p.ch)
 			cn, ok := <-p.ch
 			if ok {
-				if atomic.LoadUint32(&p.hasBadConn) == 1 {
-					p.pool.Remove(cn)
-				} else {
-					p.pool.Put(cn)
-				}
+				p.freeConn(cn)
 			}
 			return nil
 		}
@@ -151,11 +161,15 @@ func (p *SingleConnPool) Reset() error {
 		return nil
 	}
 
-	cn, ok := <-p.ch
-	if !ok {
+	select {
+	case cn, ok := <-p.ch:
+		if !ok {
+			return ErrClosed
+		}
+		p.pool.Remove(cn)
+	default:
 		return fmt.Errorf("pg: SingleConnPool does not have a Conn")
 	}
-	p.pool.Remove(cn)
 
 	if !atomic.CompareAndSwapUint32(&p.state, stateInited, stateDefault) {
 		state := atomic.LoadUint32(&p.state)
