@@ -33,14 +33,21 @@ type columnValue struct {
 	value  *queryParamsAppender
 }
 
+type queryFlag uint8
+
+const (
+	implicitModelFlag queryFlag = 1 << iota
+	deletedFlag
+	allWithDeletedFlag
+)
+
 type Query struct {
 	ctx       context.Context
 	db        DB
 	stickyErr error
 
-	model         TableModel
-	implicitModel bool
-	deleted       bool
+	model TableModel
+	flags queryFlag
 
 	with         []withQuery
 	tables       []QueryAppender
@@ -75,13 +82,12 @@ func NewQueryContext(c context.Context, db DB, model ...interface{}) *Query {
 // New returns new zero Query binded to the current db.
 func (q *Query) New() *Query {
 	cp := &Query{
-		ctx:           q.ctx,
-		db:            q.db,
-		model:         q.model,
-		implicitModel: true,
-		deleted:       q.deleted,
+		ctx:   q.ctx,
+		db:    q.db,
+		model: q.model,
+		flags: q.flags,
 	}
-	return cp
+	return cp.withFlag(implicitModelFlag)
 }
 
 // Clone clones the Query.
@@ -99,9 +105,8 @@ func (q *Query) Clone() *Query {
 		db:        q.db,
 		stickyErr: q.stickyErr,
 
-		model:         q.model,
-		implicitModel: q.implicitModel,
-		deleted:       q.deleted,
+		model: q.model,
+		flags: q.flags,
 
 		with:        q.with[:len(q.with):len(q.with)],
 		tables:      q.tables[:len(q.tables):len(q.tables)],
@@ -132,6 +137,20 @@ func (q *Query) err(err error) *Query {
 	return q
 }
 
+func (q *Query) hasFlag(flag queryFlag) bool {
+	return q.flags&flag != 0
+}
+
+func (q *Query) withFlag(flag queryFlag) *Query {
+	q.flags |= flag
+	return q
+}
+
+func (q *Query) withoutFlag(flag queryFlag) *Query {
+	q.flags &= ^flag
+	return q
+}
+
 func (q *Query) Context(c context.Context) *Query {
 	q.ctx = c
 	return q
@@ -155,8 +174,7 @@ func (q *Query) Model(model ...interface{}) *Query {
 	if err != nil {
 		q = q.err(err)
 	}
-	q.implicitModel = false
-	return q
+	return q.withoutFlag(implicitModelFlag)
 }
 
 func (q *Query) GetModel() TableModel {
@@ -177,8 +195,17 @@ func (q *Query) Deleted() *Query {
 			return q.err(err)
 		}
 	}
-	q.deleted = true
-	return q
+	return q.withFlag(deletedFlag).withoutFlag(allWithDeletedFlag)
+}
+
+// AllWithDeleted changes query to return all rows including soft deleted ones.
+func (q *Query) AllWithDeleted() *Query {
+	if q.model != nil {
+		if err := q.model.Table().mustSoftDelete(); err != nil {
+			return q.err(err)
+		}
+	}
+	return q.withFlag(allWithDeletedFlag).withoutFlag(deletedFlag)
 }
 
 // With adds subq as common table expression with the given name.
@@ -1099,7 +1126,7 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 	if q.model == nil {
 		return nil, errModelNil
 	}
-	q.deleted = true
+	q = q.withFlag(deletedFlag)
 
 	model, err := q.newModel(values...)
 	if err != nil {
@@ -1200,7 +1227,7 @@ func (q *Query) hasModel() bool {
 }
 
 func (q *Query) hasExplicitModel() bool {
-	return q.model != nil && !q.implicitModel
+	return q.model != nil && !q.hasFlag(implicitModelFlag)
 }
 
 func (q *Query) modelHasTableName() bool {
@@ -1331,9 +1358,9 @@ func (q *Query) appendWhere(fmter QueryFormatter, b []byte) (_ []byte, err error
 func (q *Query) appendSoftDelete(b []byte) []byte {
 	b = append(b, '.')
 	b = append(b, q.model.Table().SoftDeleteField.Column...)
-	if q.deleted {
+	if q.hasFlag(deletedFlag) {
 		b = append(b, " IS NOT NULL"...)
-	} else {
+	} else if !q.hasFlag(allWithDeletedFlag) {
 		b = append(b, " IS NULL"...)
 	}
 	return b
