@@ -160,18 +160,18 @@ func (m *structTableModel) AddColumnScanner(_ ColumnScanner) error {
 
 var _ AfterScanHook = (*structTableModel)(nil)
 
-func (m *structTableModel) AfterScan(c context.Context) (context.Context, error) {
+func (m *structTableModel) AfterScan(c context.Context) error {
 	if m.table.HasFlag(AfterScanHookFlag) {
 		return callAfterScanHook(c, m.strct.Addr())
 	}
-	return c, nil
+	return nil
 }
 
-func (m *structTableModel) AfterSelect(c context.Context) (context.Context, error) {
+func (m *structTableModel) AfterSelect(c context.Context) error {
 	if m.table.HasFlag(AfterSelectHookFlag) {
 		return callAfterSelectHook(c, m.strct.Addr())
 	}
-	return c, nil
+	return nil
 }
 
 func (m *structTableModel) BeforeInsert(c context.Context) (context.Context, error) {
@@ -181,11 +181,11 @@ func (m *structTableModel) BeforeInsert(c context.Context) (context.Context, err
 	return c, nil
 }
 
-func (m *structTableModel) AfterInsert(c context.Context) (context.Context, error) {
+func (m *structTableModel) AfterInsert(c context.Context) error {
 	if m.table.HasFlag(AfterInsertHookFlag) {
 		return callAfterInsertHook(c, m.strct.Addr())
 	}
-	return c, nil
+	return nil
 }
 
 func (m *structTableModel) BeforeUpdate(c context.Context) (context.Context, error) {
@@ -195,11 +195,11 @@ func (m *structTableModel) BeforeUpdate(c context.Context) (context.Context, err
 	return c, nil
 }
 
-func (m *structTableModel) AfterUpdate(c context.Context) (context.Context, error) {
+func (m *structTableModel) AfterUpdate(c context.Context) error {
 	if m.table.HasFlag(AfterUpdateHookFlag) && !m.IsNil() {
 		return callAfterUpdateHook(c, m.strct.Addr())
 	}
-	return c, nil
+	return nil
 }
 
 func (m *structTableModel) BeforeDelete(c context.Context) (context.Context, error) {
@@ -209,11 +209,11 @@ func (m *structTableModel) BeforeDelete(c context.Context) (context.Context, err
 	return c, nil
 }
 
-func (m *structTableModel) AfterDelete(c context.Context) (context.Context, error) {
+func (m *structTableModel) AfterDelete(c context.Context) error {
 	if m.table.HasFlag(AfterDeleteHookFlag) && !m.IsNil() {
 		return callAfterDeleteHook(c, m.strct.Addr())
 	}
-	return c, nil
+	return nil
 }
 
 func (m *structTableModel) ScanColumn(

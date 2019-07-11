@@ -786,7 +786,7 @@ func (q *Query) Select(values ...interface{}) error {
 		}
 	}
 
-	_, err = model.AfterSelect(c)
+	err = model.AfterSelect(c)
 	if err != nil {
 		return err
 	}
@@ -974,7 +974,7 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 	}
 
 	if q.model != nil {
-		_, err = q.model.AfterInsert(c)
+		err = q.model.AfterInsert(c)
 		if err != nil {
 			return nil, err
 		}
@@ -1077,7 +1077,7 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 	}
 
 	if q.model != nil {
-		_, err = q.model.AfterUpdate(c)
+		err = q.model.AfterUpdate(c)
 		if err != nil {
 			return nil, err
 		}
@@ -1148,7 +1148,7 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 	}
 
 	if q.model != nil {
-		_, err = q.model.AfterDelete(c)
+		err = q.model.AfterDelete(c)
 		if err != nil {
 			return nil, err
 		}

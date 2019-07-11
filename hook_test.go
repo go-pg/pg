@@ -35,14 +35,14 @@ var _ orm.AfterUpdateHook = (*HookTest)(nil)
 var _ orm.BeforeDeleteHook = (*HookTest)(nil)
 var _ orm.AfterDeleteHook = (*HookTest)(nil)
 
-func (t *HookTest) AfterScan(c context.Context) (context.Context, error) {
+func (t *HookTest) AfterScan(c context.Context) error {
 	t.afterScan++
-	return c, nil
+	return nil
 }
 
-func (t *HookTest) AfterSelect(c context.Context) (context.Context, error) {
+func (t *HookTest) AfterSelect(c context.Context) error {
 	t.afterSelect++
-	return c, nil
+	return nil
 }
 
 func (t *HookTest) BeforeInsert(c context.Context) (context.Context, error) {
@@ -50,9 +50,9 @@ func (t *HookTest) BeforeInsert(c context.Context) (context.Context, error) {
 	return c, nil
 }
 
-func (t *HookTest) AfterInsert(c context.Context) (context.Context, error) {
+func (t *HookTest) AfterInsert(c context.Context) error {
 	t.afterInsert++
-	return c, nil
+	return nil
 }
 
 func (t *HookTest) BeforeUpdate(c context.Context) (context.Context, error) {
@@ -60,9 +60,9 @@ func (t *HookTest) BeforeUpdate(c context.Context) (context.Context, error) {
 	return c, nil
 }
 
-func (t *HookTest) AfterUpdate(c context.Context) (context.Context, error) {
+func (t *HookTest) AfterUpdate(c context.Context) error {
 	t.afterUpdate++
-	return c, nil
+	return nil
 }
 
 func (t *HookTest) BeforeDelete(c context.Context) (context.Context, error) {
@@ -70,9 +70,9 @@ func (t *HookTest) BeforeDelete(c context.Context) (context.Context, error) {
 	return c, nil
 }
 
-func (t *HookTest) AfterDelete(c context.Context) (context.Context, error) {
+func (t *HookTest) AfterDelete(c context.Context) error {
 	t.afterDelete++
-	return c, nil
+	return nil
 }
 
 type queryHookTest struct {

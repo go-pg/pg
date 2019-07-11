@@ -520,7 +520,7 @@ func (db *baseDB) simpleQueryData(
 
 	if res.model != nil && res.returned > 0 {
 		if m, ok := res.model.(orm.AfterScanHook); ok {
-			_, err = m.AfterScan(c)
+			err = m.AfterScan(c)
 			if err != nil {
 				return nil, err
 			}
