@@ -2,6 +2,7 @@ package urlvalues_test
 
 import (
 	"database/sql"
+	"encoding"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -9,6 +10,17 @@ import (
 
 	"github.com/go-pg/pg/v9/urlvalues"
 )
+
+type CustomField struct {
+	s string
+}
+
+var _ encoding.TextUnmarshaler = (*CustomField)(nil)
+
+func (f *CustomField) UnmarshalText(text []byte) error {
+	f.s = string(text)
+	return nil
+}
 
 type Filter struct {
 	Field    string
@@ -27,6 +39,8 @@ type Filter struct {
 	NullInt64   sql.NullInt64
 	NullFloat64 sql.NullFloat64
 	NullString  sql.NullString
+
+	Custom CustomField
 
 	Omit []byte `pg:"-"`
 }
@@ -55,6 +69,8 @@ var _ = Describe("Decode", func() {
 			"null_int64":   {"1234"},
 			"null_float64": {"1.234"},
 			"null_string":  {"string"},
+
+			"custom": {"custom"},
 		})
 		Expect(err).NotTo(HaveOccurred())
 
@@ -81,6 +97,8 @@ var _ = Describe("Decode", func() {
 
 		Expect(f.NullString.Valid).To(BeTrue())
 		Expect(f.NullString.String).To(Equal("string"))
+
+		Expect(f.Custom.s).To(Equal("custom"))
 	})
 
 	It("supports names with suffix `[]`", func() {
