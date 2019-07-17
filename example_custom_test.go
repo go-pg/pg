@@ -27,6 +27,8 @@ func (tm Time) AppendValue(b []byte, flags int) ([]byte, error) {
 	return b, nil
 }
 
+var _ types.ValueScanner = (*Time)(nil)
+
 func (tm *Time) ScanValue(rd types.Reader, n int) error {
 	if n <= 0 {
 		tm.Time = time.Time{}

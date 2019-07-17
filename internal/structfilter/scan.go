@@ -2,6 +2,8 @@ package structfilter
 
 import (
 	"database/sql"
+	"encoding"
+	"fmt"
 	"reflect"
 	"strconv"
 	"time"
@@ -9,6 +11,7 @@ import (
 	"github.com/go-pg/pg/v9/types"
 )
 
+var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
 var durationType = reflect.TypeOf((*time.Duration)(nil)).Elem()
 var nullBoolType = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
@@ -19,9 +22,18 @@ var nullStringType = reflect.TypeOf((*sql.NullString)(nil)).Elem()
 type ScanFunc func(v reflect.Value, values []string) error
 
 func scanner(typ reflect.Type) ScanFunc {
-	switch typ {
-	case timeType:
+	if typ == timeType {
 		return scanTime
+	}
+
+	if typ.Implements(textUnmarshalerType) {
+		return scanTextUnmarshaler
+	}
+	if reflect.PtrTo(typ).Implements(textUnmarshalerType) {
+		return scanTextUnmarshalerAddr
+	}
+
+	switch typ {
 	case durationType:
 		return scanDuration
 	case nullBoolType:
@@ -63,6 +75,23 @@ func arrayScanner(typ reflect.Type) ScanFunc {
 		return scanStringSlice
 	}
 	return nil
+}
+
+func scanTextUnmarshaler(v reflect.Value, values []string) error {
+	if v.IsNil() {
+		v.Set(reflect.New(v.Type().Elem()))
+	}
+
+	u := v.Interface().(encoding.TextUnmarshaler)
+	return u.UnmarshalText([]byte(values[0]))
+}
+
+func scanTextUnmarshalerAddr(v reflect.Value, values []string) error {
+	if !v.CanAddr() {
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
+	u := v.Addr().Interface().(encoding.TextUnmarshaler)
+	return u.UnmarshalText([]byte(values[0]))
 }
 
 func scanBool(v reflect.Value, values []string) error {
