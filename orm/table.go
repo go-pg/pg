@@ -113,8 +113,8 @@ func newTable(typ reflect.Type) *Table {
 
 	for _, hook := range oldHooks {
 		if typ.Implements(hook) {
-			panic(fmt.Sprintf("model hooks on %s must be updated - "+
-				"see https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName))
+			internal.Logger.Printf("model hooks on %s must be updated - "+
+				"see https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName)
 		}
 	}
 
