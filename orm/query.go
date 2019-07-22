@@ -898,8 +898,9 @@ func (q *Query) SelectAndCountEstimate(threshold int, values ...interface{}) (co
 
 // ForEach calls the function for each row returned by the query
 // without loading all rows into the memory.
-// Function accepts a struct, pointer to a struct, orm.Model,
-// or values for columns in a row. Function must return an error.
+//
+// Function can accept a struct, a pointer to a struct, an orm.Model,
+// or values for the columns in a row. Function must return an error.
 func (q *Query) ForEach(fn interface{}) error {
 	m := newFuncModel(fn)
 	return q.Select(m)
