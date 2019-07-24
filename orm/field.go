@@ -20,12 +20,12 @@ const (
 type Field struct {
 	Field reflect.StructField
 	Type  reflect.Type
+	Index []int
 
 	GoName   string  // struct field name, e.g. Id
 	SQLName  string  // SQL name, .e.g. id
 	Column   types.Q // escaped SQL name, e.g. "id"
 	SQLType  string
-	Index    []int
 	Default  types.Q
 	OnDelete string
 	OnUpdate string
@@ -68,8 +68,21 @@ func (f *Field) Value(strct reflect.Value) reflect.Value {
 	return fieldByIndex(strct, f.Index)
 }
 
-func (f *Field) IsZeroValue(strct reflect.Value) bool {
-	return f.isZero(f.Value(strct))
+func (f *Field) HasZeroValue(strct reflect.Value) bool {
+	return f.hasZeroField(strct, f.Index)
+}
+
+func (f *Field) hasZeroField(v reflect.Value, index []int) bool {
+	for _, idx := range index {
+		if v.Kind() == reflect.Ptr {
+			if v.IsNil() {
+				return true
+			}
+			v = v.Elem()
+		}
+		v = v.Field(idx)
+	}
+	return f.isZero(v)
 }
 
 func (f *Field) OmitZero() bool {

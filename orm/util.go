@@ -46,11 +46,11 @@ func typeByIndex(t reflect.Type, index []int) reflect.Type {
 }
 
 func fieldByIndex(v reflect.Value, index []int) reflect.Value {
-	for i, x := range index {
+	for i, idx := range index {
 		if i > 0 {
 			v = indirectNew(v)
 		}
-		v = v.Field(x)
+		v = v.Field(idx)
 	}
 	return v
 }
