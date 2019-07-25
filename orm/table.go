@@ -396,6 +396,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	pgTag := tagparser.Parse(f.Tag.Get("pg"))
 
+	if _, ok := pgTag.Options["usezero"]; ok {
+		field.SetFlag(UseZeroFlag)
+	}
 	if _, ok := sqlTag.Options["array"]; ok {
 		field.SetFlag(ArrayFlag)
 	} else if _, ok := pgTag.Options["array"]; ok {

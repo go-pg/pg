@@ -12,7 +12,7 @@
 - PostgreSQL multidimensional Arrays using [array tag](https://godoc.org/github.com/go-pg/pg#example-DB-Model-PostgresArrayStructTag) and [Array wrapper](https://godoc.org/github.com/go-pg/pg#example-Array).
 - Hstore using [hstore tag](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HstoreStructTag) and [Hstore wrapper](https://godoc.org/github.com/go-pg/pg#example-Hstore).
 - [Composite types](https://godoc.org/github.com/go-pg/pg#example-DB-Model-CompositeType).
-- All struct fields are nullable by default and zero values (empty string, 0, zero time, empty map or slice) are marshalled as SQL `NULL`. `sql:",notnull"` tag is used to reverse this behaviour.
+- All struct fields are nullable by default and zero values (empty string, 0, zero time, empty map or slice, nil ptr) are marshalled as SQL `NULL`. `pg:",usezero"` field tag is used to disable this behaviour.
 - [Transactions](http://godoc.org/github.com/go-pg/pg#example-DB-Begin).
 - [Prepared statements](http://godoc.org/github.com/go-pg/pg#example-DB-Prepare).
 - [Notifications](http://godoc.org/github.com/go-pg/pg#example-Listener) using `LISTEN` and `NOTIFY`.

@@ -32,9 +32,9 @@ type InheritInsertTest struct {
 
 type InsertNullTest struct {
 	F1 int
-	F2 int `sql:",notnull"`
+	F2 int `pg:",usezero"`
 	F3 int `sql:",pk"`
-	F4 int `sql:",pk,notnull"`
+	F4 int `sql:",pk" pg:",usezero"`
 }
 
 type InsertDefaultTest struct {

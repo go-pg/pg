@@ -21,7 +21,7 @@ type StructFormatter struct {
 	tableName struct{} `sql:"my_name,alias:my_alias"`
 
 	String  string
-	NotNull string `sql:",notnull"`
+	UseZero string `pg:",usezero"`
 	Iface   interface{}
 }
 
@@ -86,7 +86,7 @@ var formatTests = []formatTest{
 	{q: "?", params: params{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
 	{q: "?", params: params{orm.Q("query")}, wanted: "query"},
 	{q: "?", params: params{types.F("field")}, wanted: `"field"`},
-	{q: "?", params: params{structv}, wanted: `'{"String":"string_value","NotNull":"","Iface":"iface_value"}'`},
+	{q: "?", params: params{structv}, wanted: `'{"String":"string_value","UseZero":"","Iface":"iface_value"}'`},
 
 	{q: `\? ?`, params: params{1}, wanted: "? 1"},
 	{q: `?`, params: params{types.Q(`\?`)}, wanted: `\?`},
@@ -96,6 +96,7 @@ var formatTests = []formatTest{
 	{q: "?string", params: params{structv}, wanted: `'string_value'`},
 	{q: "?iface", params: params{structv}, wanted: `'iface_value'`},
 	{q: "?string", params: params{&StructFormatter{}}, wanted: `NULL`},
+	{q: "?use_zero", params: params{&StructFormatter{}}, wanted: `''`},
 	{
 		q:      "? ?string ?",
 		params: params{"one", "two", structv},

@@ -96,7 +96,7 @@ var _ = Describe("Update", func() {
 	It("supports notnull and default", func() {
 		type Model struct {
 			Id   int
-			Bool bool `sql:",notnull,default:_"`
+			Bool bool `sql:",default:_" pg:",usezero"`
 		}
 
 		q := NewQuery(nil, &Model{}).WherePK()
