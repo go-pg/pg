@@ -39,8 +39,10 @@
 
 ## Get Started
 
+go-pg requires Go version with [Modules](https://github.com/golang/go/wiki/Modules) support and uses import versioning:
+
 ```shell
-go get -u github.com/go-pg/pg
+go get github.com/go-pg/pg/v9
 ```
 
 - [Wiki](https://github.com/go-pg/pg/wiki)
@@ -55,8 +57,8 @@ package pg_test
 import (
     "fmt"
 
-    "github.com/go-pg/pg"
-    "github.com/go-pg/pg/orm"
+    "github.com/go-pg/pg/v9"
+    "github.com/go-pg/pg/v9/orm"
 )
 
 type User struct {
