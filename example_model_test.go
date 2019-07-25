@@ -773,14 +773,14 @@ func ExampleDB_Update() {
 	// Output: Book<Id=1 Title="updated book 1">
 }
 
-func ExampleDB_Update_notNull() {
+func ExampleDB_Update_notZero() {
 	db := modelDB()
 
 	book := &Book{
 		Id:    1,
 		Title: "updated book 1",
 	}
-	_, err := db.Model(book).WherePK().UpdateNotNull()
+	_, err := db.Model(book).WherePK().UpdateNotZero()
 	if err != nil {
 		panic(err)
 	}

@@ -1047,8 +1047,15 @@ func (q *Query) Update(scan ...interface{}) (Result, error) {
 	return q.update(scan, false)
 }
 
-// Update updates the model omitting null columns.
-func (q *Query) UpdateNotNull(scan ...interface{}) (Result, error) {
+// Update updates the model omitting fields with zero values such as:
+//   - empty string,
+//   - 0,
+//   - zero time,
+//   - empty map or slice,
+//   - byte array with all zeroes,
+//   - nil ptr,
+//   - types with method `IsZero() == true`.
+func (q *Query) UpdateNotZero(scan ...interface{}) (Result, error) {
 	return q.update(scan, true)
 }
 
