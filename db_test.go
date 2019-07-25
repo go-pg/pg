@@ -951,7 +951,7 @@ type Genre struct {
 
 	Books []Book `pg:"many2many:book_genres"` // many to many relation
 
-	ParentId  int
+	ParentId  int     `sql:",nullable"`
 	Subgenres []Genre `pg:"fk:parent_id"`
 }
 
@@ -969,7 +969,7 @@ type Author struct {
 	Name  string  `sql:",unique"`
 	Books []*Book // has many relation
 
-	AvatarId int
+	AvatarId int `sql:",nullable"`
 	Avatar   Image
 }
 
@@ -985,18 +985,18 @@ type BookGenre struct {
 	GenreId int `sql:",pk"`
 	Genre   *Genre
 
-	Genre_Rating int // belongs to and is copied to Genre model
+	Genre_Rating int `sql:",nullable"` // belongs to and is copied to Genre model
 }
 
 type Book struct {
 	Id        int
 	Title     string
-	AuthorID  int
-	Author    Author // has one relation
-	EditorID  int
+	AuthorID  int       `sql:",nullable"`
+	Author    Author    // has one relation
+	EditorID  int       `sql:",nullable"`
 	Editor    *Author   // has one relation
 	CreatedAt time.Time `sql:"default:now()"`
-	UpdatedAt time.Time
+	UpdatedAt time.Time `sql:",nullable"`
 
 	Genres       []Genre       `pg:"many2many:book_genres"` // many to many relation
 	Translations []Translation // has many relation
@@ -1029,9 +1029,9 @@ type Translation struct {
 	tableName struct{} `sql:",alias:tr"` // custom table alias
 
 	Id     int
-	BookId int    `sql:"unique:book_id_lang"`
+	BookId int    `sql:",nullable,unique:book_id_lang"`
 	Book   *Book  // has one relation
-	Lang   string `sql:"unique:book_id_lang"`
+	Lang   string `sql:",nullable,unique:book_id_lang"`
 
 	Comments []Comment `pg:",polymorphic:trackable_"` // has many polymorphic relation
 }
@@ -1996,7 +1996,7 @@ var _ = Describe("ORM", func() {
 	})
 
 	It("does not create zero model for null relation", func() {
-		newBook := new(Book)
+		newBook := &Book{Title: "new"}
 		err := db.Insert(newBook)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -2122,7 +2122,7 @@ var _ = Describe("ORM", func() {
 
 type SoftDeleteModel struct {
 	Id        int
-	DeletedAt time.Time `pg:",soft_delete"`
+	DeletedAt time.Time `sql:",nullable" pg:",soft_delete"`
 }
 
 var _ = Describe("soft delete", func() {

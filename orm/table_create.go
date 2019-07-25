@@ -91,7 +91,7 @@ func (q *createTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte
 		} else {
 			b = append(b, field.SQLType...)
 		}
-		if field.HasFlag(NotNullFlag) {
+		if !field.HasFlag(NullableFlag) && !field.HasFlag(PrimaryKeyFlag) {
 			b = append(b, " NOT NULL"...)
 		}
 		if field.HasFlag(UniqueFlag) {

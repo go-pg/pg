@@ -28,7 +28,7 @@ type CreateTableModel struct {
 	Varchar        string    `sql:",type:varchar(500)"`
 	Time           time.Time `sql:"default:now()"`
 	Duration       time.Duration
-	NotNull        int `sql:",notnull"`
+	Nullable       int `sql:",nullable"`
 	NullBool       sql.NullBool
 	NullFloat64    sql.NullFloat64
 	NullInt64      sql.NullInt64
@@ -88,56 +88,56 @@ var _ = Describe("CreateTable", func() {
 		q := NewQuery(nil, &CreateTableModel{})
 
 		s := createTableQueryString(q, nil)
-		Expect(s).To(Equal(`CREATE TABLE "create_table_models" ("id" bigserial, "int8" smallint, "uint8" smallint, "int16" smallint, "uint16" integer, "int32" integer, "uint32" bigint, "int64" bigint, "uint64" bigint, "float32" real, "float64" double precision, "decimal" decimal(10,10), "byte_slice" bytea, "byte_array" bytea, "string" text DEFAULT 'D''Angelo', "varchar" varchar(500), "time" timestamptz DEFAULT now(), "duration" bigint, "not_null" bigint NOT NULL, "null_bool" boolean, "null_float64" double precision, "null_int64" bigint, "null_string" text, "slice" jsonb, "slice_array" bigint[], "map" jsonb, "map_hstore" hstore, "struct" jsonb, "struct_ptr" jsonb, "unique" bigint UNIQUE, "unique_field1" bigint, "unique_field2" bigint, "json_raw_message" jsonb, PRIMARY KEY ("id"), UNIQUE ("unique_field1", "unique_field2"))`))
+		Expect(s).To(Equal(`CREATE TABLE "create_table_models" ("id" bigserial, "int8" smallint NOT NULL, "uint8" smallint NOT NULL, "int16" smallint NOT NULL, "uint16" integer NOT NULL, "int32" integer NOT NULL, "uint32" bigint NOT NULL, "int64" bigint NOT NULL, "uint64" bigint NOT NULL, "float32" real NOT NULL, "float64" double precision NOT NULL, "decimal" decimal(10,10) NOT NULL, "byte_slice" bytea NOT NULL, "byte_array" bytea NOT NULL, "string" text NOT NULL DEFAULT 'D''Angelo', "varchar" varchar(500) NOT NULL, "time" timestamptz NOT NULL DEFAULT now(), "duration" bigint NOT NULL, "nullable" bigint, "null_bool" boolean NOT NULL, "null_float64" double precision NOT NULL, "null_int64" bigint NOT NULL, "null_string" text NOT NULL, "slice" jsonb NOT NULL, "slice_array" bigint[] NOT NULL, "map" jsonb NOT NULL, "map_hstore" hstore NOT NULL, "struct" jsonb NOT NULL, "struct_ptr" jsonb NOT NULL, "unique" bigint NOT NULL UNIQUE, "unique_field1" bigint NOT NULL, "unique_field2" bigint NOT NULL, "json_raw_message" jsonb NOT NULL, PRIMARY KEY ("id"), UNIQUE ("unique_field1", "unique_field2"))`))
 	})
 
 	It("creates new table without primary key", func() {
 		q := NewQuery(nil, &CreateTableWithoutPKModel{})
 
 		s := createTableQueryString(q, nil)
-		Expect(s).To(Equal(`CREATE TABLE "create_table_without_pk_models" ("string" text)`))
+		Expect(s).To(Equal(`CREATE TABLE "create_table_without_pk_models" ("string" text NOT NULL)`))
 	})
 
 	It("creates new table with Varchar=255", func() {
 		q := NewQuery(nil, &CreateTableWithoutPKModel{})
 
 		s := createTableQueryString(q, &CreateTableOptions{Varchar: 255})
-		Expect(s).To(Equal(`CREATE TABLE "create_table_without_pk_models" ("string" varchar(255))`))
+		Expect(s).To(Equal(`CREATE TABLE "create_table_without_pk_models" ("string" varchar(255) NOT NULL)`))
 	})
 
 	It("creates new table with on_delete and on_update options", func() {
 		q := NewQuery(nil, &CreateTableOnDeleteOnUpdateModel{})
 
 		s := createTableQueryString(q, &CreateTableOptions{FKConstraints: true})
-		Expect(s).To(Equal(`CREATE TABLE "create_table_on_delete_on_update_models" ("id" bigserial, "create_table_model_id" bigint, PRIMARY KEY ("id"), FOREIGN KEY ("create_table_model_id") REFERENCES "create_table_models" ("id") ON DELETE RESTRICT ON UPDATE CASCADE)`))
+		Expect(s).To(Equal(`CREATE TABLE "create_table_on_delete_on_update_models" ("id" bigserial, "create_table_model_id" bigint NOT NULL, PRIMARY KEY ("id"), FOREIGN KEY ("create_table_model_id") REFERENCES "create_table_models" ("id") ON DELETE RESTRICT ON UPDATE CASCADE)`))
 	})
 
 	It("creates new table with tablespace options", func() {
 		q := NewQuery(nil, &CreateTableWithTablespace{})
 
 		s := createTableQueryString(q, &CreateTableOptions{})
-		Expect(s).To(Equal(`CREATE TABLE "create_table_with_tablespaces" ("string" text) TABLESPACE "ssd"`))
+		Expect(s).To(Equal(`CREATE TABLE "create_table_with_tablespaces" ("string" text NOT NULL) TABLESPACE "ssd"`))
 	})
 
 	It("creates new table with range partition", func() {
 		q := NewQuery(nil, &CreateTableWithRangePartition{})
 
 		s := createTableQueryString(q, &CreateTableOptions{})
-		Expect(s).To(Equal(`CREATE TABLE "create_table_with_range_partitions" ("time" timestamptz, "string" text) PARTITION BY RANGE (time)`))
+		Expect(s).To(Equal(`CREATE TABLE "create_table_with_range_partitions" ("time" timestamptz NOT NULL, "string" text NOT NULL) PARTITION BY RANGE (time)`))
 	})
 
 	It("creates new table with list partition", func() {
 		q := NewQuery(nil, &CreateTableWithListPartition{})
 
 		s := createTableQueryString(q, &CreateTableOptions{})
-		Expect(s).To(Equal(`CREATE TABLE "create_table_with_list_partitions" ("country" text, "string" text) PARTITION BY LIST (country)`))
+		Expect(s).To(Equal(`CREATE TABLE "create_table_with_list_partitions" ("country" text NOT NULL, "string" text NOT NULL) PARTITION BY LIST (country)`))
 	})
 
 	It("creates new table with hash partition", func() {
 		q := NewQuery(nil, &CreateTableWithHashPartition{})
 
 		s := createTableQueryString(q, &CreateTableOptions{})
-		Expect(s).To(Equal(`CREATE TABLE "create_table_with_hash_partitions" ("id" bigserial, "account_id" bigint, "string" text, PRIMARY KEY ("id")) PARTITION BY HASH (account_id)`))
+		Expect(s).To(Equal(`CREATE TABLE "create_table_with_hash_partitions" ("id" bigserial, "account_id" bigint NOT NULL, "string" text NOT NULL, PRIMARY KEY ("id")) PARTITION BY HASH (account_id)`))
 	})
 })
 

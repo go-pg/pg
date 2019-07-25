@@ -93,10 +93,10 @@ var _ = Describe("Update", func() {
 		Expect(s).To(Equal(`WITH "wrapper" AS (SELECT "update_test"."id", "update_test"."value" FROM "update_tests" AS "update_test") UPDATE "update_tests" AS "update_test" SET "value" = NULL FROM "wrapper" WHERE (update_test.id = wrapper.id)`))
 	})
 
-	It("supports notnull and default", func() {
+	It("supports zeroable and default", func() {
 		type Model struct {
 			Id   int
-			Bool bool `sql:",default:_" pg:",usezero"`
+			Bool bool `sql:",default:_" pg:",zeroable"`
 		}
 
 		q := NewQuery(nil, &Model{}).WherePK()

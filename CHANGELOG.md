@@ -2,9 +2,9 @@
 
 ## v9 WIP
 
-- `sql:",notnull"` is reworked. Now it means SQL `NOT NULL` constraint and nothing more.
-- Added `pg:",usezero"` to prevent go-pg from converting Go zero values to SQL `NULL`.
-- UpdateNotNull is renamed to UpdateNotZero. As previously it omits zero Go values, but now it ignores `sql:",notnull"` tag.
+- `sql:",notnull"` is removed and columns have `NOT NULL` constraint by default. `sql:",nullable"` can be used to allow null values.
+- Added `pg:",zeroable"` to prevent go-pg from converting Go zero values to SQL `NULL`.
+- UpdateNotNull is renamed to UpdateNotZero. As previously it omits zero Go values, but it does not take in account if field is nullable or not.
 - ORM supports DistinctOn.
 - Hooks accept and return context.
 - Client respects Context.Deadline when setting net.Conn deadline.
