@@ -7,8 +7,8 @@ import (
 
 type Flight struct {
 	Id        int
-	Name      string
-	DeletedAt time.Time `pg:",soft_delete"`
+	Name      string    `sql:",nullable"`
+	DeletedAt time.Time `sql:",nullable" pg:",soft_delete"`
 }
 
 func ExampleDB_Model_softDelete() {
