@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"strings"
 	"testing"
 	"time"
 
@@ -150,6 +151,41 @@ func TestContextCanceled(t *testing.T) {
 	wanted := "context canceled"
 	if err.Error() != wanted {
 		t.Fatalf("got %q, wanted %q", err, wanted)
+	}
+}
+
+func TestBigColumn(t *testing.T) {
+	const colLen = 100000
+
+	type Test struct {
+		ID   int
+		Text string
+	}
+
+	db := pg.Connect(pgOptions())
+	defer db.Close()
+
+	err := db.CreateTable((*Test)(nil), &orm.CreateTableOptions{
+		Temp: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = db.Insert(&Test{
+		Text: strings.Repeat("*", colLen),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	test := new(Test)
+	err = db.Model(test).Select()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(test.Text) != colLen {
+		t.Fatalf("got %d, wanted %d", len(test.Text), colLen)
 	}
 }
 
