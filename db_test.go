@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"net"
 	"strings"
@@ -186,6 +187,11 @@ func TestBigColumn(t *testing.T) {
 	}
 	if len(test.Text) != colLen {
 		t.Fatalf("got %d, wanted %d", len(test.Text), colLen)
+	}
+
+	_, err = db.CopyTo(ioutil.Discard, "COPY (SELECT * FROM tests) TO STDOUT WITH CSV")
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
