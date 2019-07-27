@@ -32,9 +32,9 @@ type InheritInsertTest struct {
 
 type InsertNullTest struct {
 	F1 int
-	F2 int `pg:",zeroable"`
+	F2 int `pg:",usezero"`
 	F3 int `sql:",pk"`
-	F4 int `sql:",pk" pg:",zeroable"`
+	F4 int `sql:",pk" pg:",usezero"`
 }
 
 type InsertDefaultTest struct {
@@ -161,7 +161,7 @@ var _ = Describe("Insert", func() {
 		Expect(s).To(Equal(`INSERT INTO "insert_default_tests" ("id", "value") VALUES (1, DEFAULT)`))
 	})
 
-	It("supports zeroable", func() {
+	It("supports usezero tag", func() {
 		q := NewQuery(nil, &InsertNullTest{})
 
 		s := insertQueryString(q)
