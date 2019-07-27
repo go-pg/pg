@@ -357,8 +357,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		Index: index,
 	}
 
-	if _, ok := sqlTag.Options["nullable"]; ok {
-		field.SetFlag(NullableFlag)
+	if _, ok := sqlTag.Options["notnull"]; ok {
+		field.SetFlag(NotNullFlag)
 	}
 	if v, ok := sqlTag.Options["unique"]; ok {
 		if v == "" {
@@ -396,8 +396,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	pgTag := tagparser.Parse(f.Tag.Get("pg"))
 
-	if _, ok := pgTag.Options["zeroable"]; ok {
-		field.SetFlag(ZeroableFlag)
+	if _, ok := pgTag.Options["usezero"]; ok {
+		field.SetFlag(UseZeroFlag)
 	}
 	if _, ok := sqlTag.Options["array"]; ok {
 		field.SetFlag(ArrayFlag)

@@ -11,8 +11,8 @@ import (
 const (
 	PrimaryKeyFlag = uint8(1) << iota
 	ForeignKeyFlag
-	NullableFlag
-	ZeroableFlag
+	NotNullFlag
+	UseZeroFlag
 	UniqueFlag
 	ArrayFlag
 	customTypeFlag
@@ -87,7 +87,7 @@ func (f *Field) hasZeroField(v reflect.Value, index []int) bool {
 }
 
 func (f *Field) NullZero() bool {
-	return !f.HasFlag(ZeroableFlag)
+	return !f.HasFlag(UseZeroFlag)
 }
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
