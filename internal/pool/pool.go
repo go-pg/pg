@@ -93,9 +93,7 @@ func NewConnPool(opt *Options) *ConnPool {
 		idleConns: make([]*Conn, 0, opt.PoolSize),
 	}
 
-	for i := 0; i < opt.MinIdleConns; i++ {
-		p.checkMinIdleConns()
-	}
+	p.checkMinIdleConns()
 
 	if opt.IdleTimeout > 0 && opt.IdleCheckFrequency > 0 {
 		go p.reaper(opt.IdleCheckFrequency)
@@ -108,23 +106,32 @@ func (p *ConnPool) checkMinIdleConns() {
 	if p.opt.MinIdleConns == 0 {
 		return
 	}
-	if p.poolSize < p.opt.PoolSize && p.idleConnsLen < p.opt.MinIdleConns {
+	for p.poolSize < p.opt.PoolSize && p.idleConnsLen < p.opt.MinIdleConns {
 		p.poolSize++
 		p.idleConnsLen++
-		go p.addIdleConn()
+		go func() {
+			err := p.addIdleConn()
+			if err != nil {
+				p.connsMu.Lock()
+				p.poolSize--
+				p.idleConnsLen--
+				p.connsMu.Unlock()
+			}
+		}()
 	}
 }
 
-func (p *ConnPool) addIdleConn() {
+func (p *ConnPool) addIdleConn() error {
 	cn, err := p.newConn(context.TODO(), true)
 	if err != nil {
-		return
+		return err
 	}
 
 	p.connsMu.Lock()
 	p.conns = append(p.conns, cn)
 	p.idleConns = append(p.idleConns, cn)
 	p.connsMu.Unlock()
+	return nil
 }
 
 func (p *ConnPool) NewConn(c context.Context) (*Conn, error) {
