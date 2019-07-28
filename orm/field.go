@@ -81,9 +81,6 @@ func (f *Field) hasZeroField(v reflect.Value, index []int) bool {
 			}
 			v = v.Elem()
 		}
-		if !v.IsValid() {
-			return true
-		}
 		v = v.Field(idx)
 	}
 	return f.isZero(v)

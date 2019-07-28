@@ -81,6 +81,10 @@ func (q *insertQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 			return nil, err
 		}
 	} else {
+		if !q.q.hasModel() {
+			return nil, errModelNil
+		}
+
 		fields, err := q.q.getFields()
 		if err != nil {
 			return nil, err
