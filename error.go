@@ -20,6 +20,8 @@ var ErrMultiRows = internal.ErrMultiRows
 //
 // https://www.postgresql.org/docs/10/static/protocol-message-formats.html
 type Error interface {
+	error
+
 	// Field returns a string value associated with an error code.
 	//
 	// https://www.postgresql.org/docs/10/static/protocol-error-fields.html
