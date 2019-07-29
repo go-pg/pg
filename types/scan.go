@@ -25,6 +25,12 @@ func Scan(v interface{}, rd Reader, n int) error {
 	case *int64:
 		*v, err = ScanInt64(rd, n)
 		return err
+	case *float32:
+		*v, err = ScanFloat32(rd, n)
+		return err
+	case *float64:
+		*v, err = ScanFloat64(rd, n)
+		return err
 	case *time.Time:
 		*v, err = ScanTime(rd, n)
 		return err
@@ -155,6 +161,24 @@ func ScanUint64(rd Reader, n int) (uint64, error) {
 	}
 
 	return num, nil
+}
+
+func ScanFloat32(rd Reader, n int) (float32, error) {
+	if n <= 0 {
+		return 0, nil
+	}
+
+	tmp, err := rd.ReadFullTemp()
+	if err != nil {
+		return 0, err
+	}
+
+	num, err := internal.ParseFloat(tmp, 32)
+	if err != nil {
+		return 0, err
+	}
+
+	return float32(num), nil
 }
 
 func ScanFloat64(rd Reader, n int) (float64, error) {

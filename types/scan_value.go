@@ -38,8 +38,8 @@ func init() {
 		reflect.Uint32:        scanUint64Value,
 		reflect.Uint64:        scanUint64Value,
 		reflect.Uintptr:       nil,
-		reflect.Float32:       scanFloatValue,
-		reflect.Float64:       scanFloatValue,
+		reflect.Float32:       scanFloat32Value,
+		reflect.Float64:       scanFloat64Value,
 		reflect.Complex64:     nil,
 		reflect.Complex128:    nil,
 		reflect.Array:         scanJSONValue,
@@ -203,7 +203,21 @@ func scanUint64Value(v reflect.Value, rd Reader, n int) error {
 	return nil
 }
 
-func scanFloatValue(v reflect.Value, rd Reader, n int) error {
+func scanFloat32Value(v reflect.Value, rd Reader, n int) error {
+	if !v.CanSet() {
+		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+	}
+
+	num, err := ScanFloat32(rd, n)
+	if err != nil {
+		return err
+	}
+
+	v.SetFloat(float64(num))
+	return nil
+}
+
+func scanFloat64Value(v reflect.Value, rd Reader, n int) error {
 	if !v.CanSet() {
 		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
 	}
