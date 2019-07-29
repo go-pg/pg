@@ -27,9 +27,6 @@ type Options struct {
 	// Network and Addr options.
 	Dialer func(ctx context.Context, network, addr string) (net.Conn, error)
 
-	// Hook that is called when new connection is established.
-	OnConnect func(*Conn) error
-
 	User     string
 	Password string
 	Database string
@@ -40,6 +37,10 @@ type Options struct {
 
 	// TLS config for secure connections.
 	TLSConfig *tls.Config
+
+	// Hook that is called after new connection is established
+	// and user is authenticated.
+	OnConnect func(*Conn) error
 
 	// Maximum number of retries before giving up.
 	// Default is to not retry failed queries.
@@ -227,16 +228,16 @@ func ParseURL(sURL string) (*Options, error) {
 
 func (opt *Options) getDialer() func(context.Context) (net.Conn, error) {
 	if opt.Dialer != nil {
-		return func(c context.Context) (net.Conn, error) {
-			return opt.Dialer(c, opt.Network, opt.Addr)
+		return func(ctx context.Context) (net.Conn, error) {
+			return opt.Dialer(ctx, opt.Network, opt.Addr)
 		}
 	}
-	return func(c context.Context) (net.Conn, error) {
+	return func(ctx context.Context) (net.Conn, error) {
 		netDialer := &net.Dialer{
 			Timeout:   opt.DialTimeout,
 			KeepAlive: 5 * time.Minute,
 		}
-		return netDialer.Dial(opt.Network, opt.Addr)
+		return netDialer.DialContext(ctx, opt.Network, opt.Addr)
 	}
 }
 
