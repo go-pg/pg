@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"bufio"
 	"crypto/md5"
 	"crypto/tls"
 	"encoding/binary"
@@ -1042,14 +1043,18 @@ func readCopyData(rd *internal.BufReader, w io.Writer) (*result, error) {
 
 		switch c {
 		case copyDataMsg:
-			b, err := rd.ReadN(msgLen)
-			if err != nil {
-				return nil, err
-			}
+			for msgLen > 0 {
+				b, err := rd.ReadN(msgLen)
+				if err != nil && err != bufio.ErrBufferFull {
+					return nil, err
+				}
 
-			_, err = w.Write(b)
-			if err != nil {
-				return nil, err
+				_, err = w.Write(b)
+				if err != nil {
+					return nil, err
+				}
+
+				msgLen -= len(b)
 			}
 		case copyDoneMsg:
 			_, err := rd.ReadN(msgLen)
