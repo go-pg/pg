@@ -302,9 +302,8 @@ func (p *ConnPool) popIdle() *Conn {
 		return nil
 	}
 
-	idx := len(p.idleConns) - 1
-	cn := p.idleConns[idx]
-	p.idleConns = p.idleConns[:idx]
+	cn := p.idleConns[0]
+	p.idleConns = p.idleConns[1:]
 	p.idleConnsLen--
 	p.checkMinIdleConns()
 	return cn
