@@ -36,9 +36,9 @@ func Append(b []byte, v interface{}, flags int) []byte {
 	case uint:
 		return strconv.AppendUint(b, uint64(v), 10)
 	case float32:
-		return appendFloat(b, float64(v), flags)
+		return appendFloat(b, float64(v), flags, 32)
 	case float64:
-		return appendFloat(b, v, flags)
+		return appendFloat(b, v, flags, 64)
 	case string:
 		return AppendString(b, v, flags)
 	case time.Time:
@@ -75,7 +75,7 @@ func appendBool(dst []byte, v bool) []byte {
 	return append(dst, "FALSE"...)
 }
 
-func appendFloat(dst []byte, v float64, flags int) []byte {
+func appendFloat(dst []byte, v float64, flags int, bitSize int) []byte {
 	if hasFlag(flags, arrayFlag) {
 		return appendFloat2(dst, v, flags)
 	}
@@ -97,7 +97,7 @@ func appendFloat(dst []byte, v float64, flags int) []byte {
 		}
 		return append(dst, "-Infinity"...)
 	default:
-		return strconv.AppendFloat(dst, v, 'f', -1, 64)
+		return strconv.AppendFloat(dst, v, 'f', -1, bitSize)
 	}
 }
 

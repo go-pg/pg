@@ -33,8 +33,8 @@ func init() {
 		reflect.Uint32:        appendUintValue,
 		reflect.Uint64:        appendUintValue,
 		reflect.Uintptr:       nil,
-		reflect.Float32:       appendFloatValue,
-		reflect.Float64:       appendFloatValue,
+		reflect.Float32:       appendFloat32Value,
+		reflect.Float64:       appendFloat64Value,
 		reflect.Complex64:     nil,
 		reflect.Complex128:    nil,
 		reflect.Array:         appendJSONValue,
@@ -127,8 +127,12 @@ func appendUintValue(b []byte, v reflect.Value, _ int) []byte {
 	return strconv.AppendUint(b, v.Uint(), 10)
 }
 
-func appendFloatValue(b []byte, v reflect.Value, flags int) []byte {
-	return appendFloat(b, v.Float(), flags)
+func appendFloat32Value(b []byte, v reflect.Value, flags int) []byte {
+	return appendFloat(b, v.Float(), flags, 32)
+}
+
+func appendFloat64Value(b []byte, v reflect.Value, flags int) []byte {
+	return appendFloat(b, v.Float(), flags, 64)
 }
 
 func appendBytesValue(b []byte, v reflect.Value, flags int) []byte {
