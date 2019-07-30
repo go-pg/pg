@@ -436,7 +436,7 @@ func (db *baseDB) ForceDelete(model interface{}) error {
 }
 
 // CreateTable creates table for the model. It recognizes following field tags:
-//   - nullable - omits NOT NULL constraint.
+//   - notnull - sets NOT NULL constraint.
 //   - unique - sets UNIQUE constraint.
 //   - default:value - sets default value.
 func (db *baseDB) CreateTable(model interface{}, opt *orm.CreateTableOptions) error {

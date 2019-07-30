@@ -993,7 +993,7 @@ type Genre struct {
 
 	Books []Book `pg:"many2many:book_genres"` // many to many relation
 
-	ParentId  int     `sql:",nullable"`
+	ParentId  int
 	Subgenres []Genre `pg:"fk:parent_id"`
 }
 
@@ -1011,7 +1011,7 @@ type Author struct {
 	Name  string  `sql:",unique"`
 	Books []*Book // has many relation
 
-	AvatarId int `sql:",nullable"`
+	AvatarId int
 	Avatar   Image
 }
 
@@ -1027,18 +1027,18 @@ type BookGenre struct {
 	GenreId int `sql:",pk"`
 	Genre   *Genre
 
-	Genre_Rating int `sql:",nullable"` // belongs to and is copied to Genre model
+	Genre_Rating int // belongs to and is copied to Genre model
 }
 
 type Book struct {
 	Id        int
 	Title     string
-	AuthorID  int       `sql:",nullable"`
-	Author    Author    // has one relation
-	EditorID  int       `sql:",nullable"`
+	AuthorID  int
+	Author    Author // has one relation
+	EditorID  int
 	Editor    *Author   // has one relation
 	CreatedAt time.Time `sql:"default:now()"`
-	UpdatedAt time.Time `sql:",nullable"`
+	UpdatedAt time.Time
 
 	Genres       []Genre       `pg:"many2many:book_genres"` // many to many relation
 	Translations []Translation // has many relation
@@ -1071,9 +1071,9 @@ type Translation struct {
 	tableName struct{} `sql:",alias:tr"` // custom table alias
 
 	Id     int
-	BookId int    `sql:",nullable,unique:book_id_lang"`
+	BookId int    `sql:"unique:book_id_lang"`
 	Book   *Book  // has one relation
-	Lang   string `sql:",nullable,unique:book_id_lang"`
+	Lang   string `sql:"unique:book_id_lang"`
 
 	Comments []Comment `pg:",polymorphic:trackable_"` // has many polymorphic relation
 }
@@ -2164,7 +2164,7 @@ var _ = Describe("ORM", func() {
 
 type SoftDeleteModel struct {
 	Id        int
-	DeletedAt time.Time `sql:",nullable" pg:",soft_delete"`
+	DeletedAt time.Time `pg:",soft_delete"`
 }
 
 var _ = Describe("soft delete", func() {
