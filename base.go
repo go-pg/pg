@@ -160,7 +160,8 @@ func (db *baseDB) withConn(
 }
 
 func (db *baseDB) shouldRetry(err error) bool {
-	if err == nil {
+	switch err {
+	case nil, context.Canceled, context.DeadlineExceeded:
 		return false
 	}
 	if pgerr, ok := err.(Error); ok {
@@ -201,7 +202,9 @@ func (db *baseDB) exec(c context.Context, query interface{}, params ...interface
 	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		if attempt > 0 {
-			time.Sleep(db.retryBackoff(attempt - 1))
+			if err := internal.Sleep(c, db.retryBackoff(attempt-1)); err != nil {
+				return nil, err
+			}
 		}
 
 		c, evt, err := db.beforeQuery(c, db.db, nil, query, params, attempt)
@@ -261,7 +264,9 @@ func (db *baseDB) query(c context.Context, model, query interface{}, params ...i
 	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		if attempt > 0 {
-			time.Sleep(db.retryBackoff(attempt - 1))
+			if err := internal.Sleep(c, db.retryBackoff(attempt-1)); err != nil {
+				return nil, err
+			}
 		}
 
 		c, evt, err := db.beforeQuery(c, db.db, model, query, params, attempt)
