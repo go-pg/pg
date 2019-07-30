@@ -21,7 +21,7 @@ type StructFormatter struct {
 	tableName struct{} `sql:"my_name,alias:my_alias"`
 
 	String  string
-	UseZero string `pg:",usezero"`
+	UseZero string `pg:",use_zero"`
 	Iface   interface{}
 }
 
