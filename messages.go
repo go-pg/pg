@@ -450,7 +450,7 @@ func appendQuery(fmter orm.QueryFormatter, dst []byte, query interface{}, params
 			model, ok := params[len(params)-1].(orm.TableModel)
 			if ok {
 				if v, ok := fmter.(orm.Formatter); ok {
-					fmter = v.WithModel(model)
+					fmter = v.WithTableModel(model)
 					params = params[:len(params)-1]
 				}
 			}

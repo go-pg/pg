@@ -461,8 +461,8 @@ func (db *baseDB) DropComposite(model interface{}, opt *orm.DropCompositeOptions
 	return orm.DropComposite(db.db, model, opt)
 }
 
-func (db *baseDB) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
-	return db.fmter.FormatQuery(dst, query, params...)
+func (db *baseDB) Formatter() orm.QueryFormatter {
+	return db.fmter
 }
 
 func (db *baseDB) cancelRequest(processID, secretKey int32) error {

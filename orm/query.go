@@ -939,7 +939,7 @@ func (q *Query) selectJoins(joins []join) error {
 		if j.Rel.Type == HasOneRelation || j.Rel.Type == BelongsToRelation {
 			err = q.selectJoins(j.JoinModel.GetJoins())
 		} else {
-			err = j.Select(q.db, q.New())
+			err = j.Select(q.db.Formatter(), q.New())
 		}
 		if err != nil {
 			return err
