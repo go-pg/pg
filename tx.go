@@ -333,8 +333,7 @@ func (tx *Tx) begin(ctx context.Context) error {
 
 			err := tx.db.pool.(*pool.SingleConnPool).Reset()
 			if err != nil {
-				internal.Logger.Printf(err.Error())
-				continue
+				return err
 			}
 		}
 

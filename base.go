@@ -113,10 +113,10 @@ func (db *baseDB) initConn(c context.Context, cn *pool.Conn) error {
 }
 
 func (db *baseDB) freeConn(cn *pool.Conn, err error) {
-	if !isBadConn(err, false) {
-		db.pool.Put(cn)
-	} else {
+	if isBadConn(err, false) {
 		db.pool.Remove(cn)
+	} else {
+		db.pool.Put(cn)
 	}
 }
 
@@ -161,7 +161,7 @@ func (db *baseDB) withConn(
 
 func (db *baseDB) shouldRetry(err error) bool {
 	switch err {
-	case nil, context.Canceled, context.DeadlineExceeded:
+	case nil, context.Canceled, context.DeadlineExceeded, pool.ErrBadConn:
 		return false
 	}
 	if pgerr, ok := err.(Error); ok {
