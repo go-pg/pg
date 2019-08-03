@@ -1369,7 +1369,7 @@ var _ = Describe("ORM", func() {
 			var author Author
 			err := db.Model(&author).
 				Column("author.*").
-				Column("Books.id", "Books.author_id", "Books.editor_id").
+				Relation("Books.id").Relation("Books.author_id").Relation("Books.editor_id").
 				Relation("Books.Author").
 				Relation("Books.Editor").
 				Relation("Books.Translations").

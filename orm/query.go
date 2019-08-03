@@ -280,13 +280,6 @@ func (q *Query) Column(columns ...string) *Query {
 			}
 			continue
 		}
-
-		if q.model != nil {
-			if j := q.model.Join(column, nil); j != nil {
-				continue
-			}
-		}
-
 		q.columns = append(q.columns, fieldAppender{column})
 	}
 	return q

@@ -120,7 +120,7 @@ func BenchmarkModelHasOneGopg(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var books []Book
-			err := db.Model(&books).Column("book.*", "Author").Limit(100).Select()
+			err := db.Model(&books).Column("book.*").Relation("Author").Limit(100).Select()
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -142,7 +142,7 @@ func BenchmarkModelHasManyGopg(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var books []Book
-			err := db.Model(&books).Column("book.*", "Translations").Limit(100).Select()
+			err := db.Model(&books).Column("book.*").Relation("Translations").Limit(100).Select()
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -170,7 +170,7 @@ func BenchmarkModelHasMany2ManyGopg(b *testing.B) {
 		for pb.Next() {
 			var books []Book
 			err := db.Model(&books).
-				Column("book.*", "Genres").
+				Column("book.*").Relation("Genres").
 				Limit(100).
 				Select()
 
