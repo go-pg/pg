@@ -31,7 +31,7 @@ type QueryEvent struct {
 // QueryHook ...
 type QueryHook interface {
 	BeforeQuery(context.Context, *QueryEvent) (context.Context, error)
-	AfterQuery(context.Context, *QueryEvent) (context.Context, error)
+	AfterQuery(context.Context, *QueryEvent) error
 }
 
 // UnformattedQuery returns the unformatted query of a query event
@@ -110,7 +110,7 @@ func (db *baseDB) afterQuery(
 	event.Error = err
 	event.Result = res
 	for _, hook := range db.queryHooks {
-		_, err := hook.AfterQuery(c, event)
+		err := hook.AfterQuery(c, event)
 		if err != nil {
 			return err
 		}

@@ -164,14 +164,14 @@ var _ = Describe("HookTest", func() {
 
 type queryHookTest struct {
 	beforeQueryMethod func(context.Context, *pg.QueryEvent) (context.Context, error)
-	afterQueryMethod  func(context.Context, *pg.QueryEvent) (context.Context, error)
+	afterQueryMethod  func(context.Context, *pg.QueryEvent) error
 }
 
 func (e queryHookTest) BeforeQuery(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
 	return e.beforeQueryMethod(c, evt)
 }
 
-func (e queryHookTest) AfterQuery(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+func (e queryHookTest) AfterQuery(c context.Context, evt *pg.QueryEvent) error {
 	return e.afterQueryMethod(c, evt)
 }
 
@@ -211,7 +211,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			return c, nil
 		}
 
-		afterQuery := func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+		afterQuery := func(c context.Context, evt *pg.QueryEvent) error {
 			Expect(evt.DB).To(Equal(db))
 			Expect(evt.Query).To(Equal("SELECT ?"))
 			Expect(evt.Params).To(Equal([]interface{}{1}))
@@ -230,7 +230,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 
 			count++
 
-			return c, nil
+			return nil
 		}
 
 		BeforeEach(func() {
@@ -276,7 +276,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			return c, nil
 		}
 
-		afterQuery := func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+		afterQuery := func(c context.Context, evt *pg.QueryEvent) error {
 			Expect(evt.DB).To(Equal(db))
 			Expect(evt.Query).NotTo(BeNil())
 			Expect(evt.Params).To(HaveLen(1))
@@ -295,7 +295,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 
 			count++
 
-			return c, nil
+			return nil
 		}
 
 		BeforeEach(func() {
@@ -319,9 +319,9 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			hookImpl.beforeQueryMethod = func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
 				return c, nil
 			}
-			hookImpl.afterQueryMethod = func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+			hookImpl.afterQueryMethod = func(c context.Context, evt *pg.QueryEvent) error {
 				Expect(evt.FormattedQuery()).To(Equal(`CREATE INDEX stories_author_id_idx ON "hook_tests" (author_id)`))
-				return c, nil
+				return nil
 			}
 			db.AddQueryHook(hookImpl)
 		})
