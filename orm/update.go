@@ -229,8 +229,16 @@ func (q *updateQuery) appendSetSlice(b []byte) ([]byte, error) {
 
 		b = append(b, f.Column...)
 		b = append(b, " = "...)
+		if q.omitZero {
+			b = append(b, "COALESCE("...)
+		}
 		b = append(b, "_data."...)
 		b = append(b, f.Column...)
+		if q.omitZero {
+			b = append(b, ", "...)
+			b = append(b, f.Column...)
+			b = append(b, ")"...)
+		}
 	}
 
 	return b, nil
