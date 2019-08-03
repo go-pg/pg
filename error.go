@@ -5,6 +5,7 @@ import (
 	"net"
 
 	"github.com/go-pg/pg/v9/internal"
+	"github.com/go-pg/pg/v9/internal/pool"
 )
 
 // ErrNoRows is returned by QueryOne and ExecOne when query returned zero rows
@@ -37,8 +38,11 @@ type Error interface {
 var _ Error = (*internal.PGError)(nil)
 
 func isBadConn(err error, allowTimeout bool) bool {
-	if err == nil {
+	switch err {
+	case nil:
 		return false
+	case pool.ErrBadConn:
+		return true
 	}
 	if _, ok := err.(internal.Error); ok {
 		return false
