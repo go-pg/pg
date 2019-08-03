@@ -58,5 +58,5 @@ type DB interface {
 	CopyTo(w io.Writer, query interface{}, params ...interface{}) (Result, error)
 
 	Context() context.Context
-	QueryFormatter
+	Formatter() QueryFormatter
 }

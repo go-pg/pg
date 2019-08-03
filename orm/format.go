@@ -184,19 +184,23 @@ func (f Formatter) clone() Formatter {
 	return cp
 }
 
-func (f Formatter) WithModel(model interface{}) Formatter {
+func (f Formatter) WithTableModel(model TableModel) Formatter {
 	cp := f.clone()
+	cp.model = model
+	return cp
+}
+
+func (f Formatter) WithModel(model interface{}) Formatter {
 	switch model := model.(type) {
 	case TableModel:
-		cp.model = model
+		return f.WithTableModel(model)
 	case *Query:
-		cp.model = model.model
+		return f.WithTableModel(model.model)
 	case queryCommand:
-		cp.model = model.Query().model
+		return f.WithTableModel(model.Query().model)
 	default:
 		panic(fmt.Errorf("pg: unsupported model %T", model))
 	}
-	return cp
 }
 
 func (f *Formatter) setParam(param string, value interface{}) {

@@ -43,15 +43,6 @@ func (ev *QueryEvent) UnformattedQuery() (string, error) {
 	return string(b), nil
 }
 
-// FormattedQuery returns the formatted query of a query event
-func (ev *QueryEvent) FormattedQuery() (string, error) {
-	b, err := appendQuery(ev.DB, nil, ev.Query, ev.Params...)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
-}
-
 func queryString(query interface{}) ([]byte, error) {
 	switch query := query.(type) {
 	case orm.TemplateAppender:
@@ -61,6 +52,15 @@ func queryString(query interface{}) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("pg: can't append %T", query)
 	}
+}
+
+// FormattedQuery returns the formatted query of a query event
+func (ev *QueryEvent) FormattedQuery() (string, error) {
+	b, err := appendQuery(ev.DB.Formatter(), nil, ev.Query, ev.Params...)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 // AddQueryHook adds a hook into query processing.

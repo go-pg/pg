@@ -75,19 +75,6 @@ func (t *HookTest) AfterDelete(c context.Context) error {
 	return nil
 }
 
-type queryHookTest struct {
-	beforeQueryMethod func(context.Context, *pg.QueryEvent) (context.Context, error)
-	afterQueryMethod  func(context.Context, *pg.QueryEvent) (context.Context, error)
-}
-
-func (e queryHookTest) BeforeQuery(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
-	return e.beforeQueryMethod(c, evt)
-}
-
-func (e queryHookTest) AfterQuery(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
-	return e.afterQueryMethod(c, evt)
-}
-
 var _ = Describe("HookTest", func() {
 	var db *pg.DB
 
@@ -175,7 +162,20 @@ var _ = Describe("HookTest", func() {
 	})
 })
 
-var _ = Describe("OnQueryEvent", func() {
+type queryHookTest struct {
+	beforeQueryMethod func(context.Context, *pg.QueryEvent) (context.Context, error)
+	afterQueryMethod  func(context.Context, *pg.QueryEvent) (context.Context, error)
+}
+
+func (e queryHookTest) BeforeQuery(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+	return e.beforeQueryMethod(c, evt)
+}
+
+func (e queryHookTest) AfterQuery(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+	return e.afterQueryMethod(c, evt)
+}
+
+var _ = Describe("BeforeQuery and AfterQuery", func() {
 	var db *pg.DB
 	var count int
 
@@ -235,8 +235,8 @@ var _ = Describe("OnQueryEvent", func() {
 
 		BeforeEach(func() {
 			hookImpl := struct{ queryHookTest }{}
-			hookImpl.afterQueryMethod = afterQuery
 			hookImpl.beforeQueryMethod = beforeQuery
+			hookImpl.afterQueryMethod = afterQuery
 			db.AddQueryHook(hookImpl)
 		})
 
@@ -300,8 +300,8 @@ var _ = Describe("OnQueryEvent", func() {
 
 		BeforeEach(func() {
 			hookImpl := struct{ queryHookTest }{}
-			hookImpl.afterQueryMethod = afterQuery
 			hookImpl.beforeQueryMethod = beforeQuery
+			hookImpl.afterQueryMethod = afterQuery
 			db.AddQueryHook(hookImpl)
 		})
 
@@ -310,6 +310,25 @@ var _ = Describe("OnQueryEvent", func() {
 			err := db.Model().ColumnExpr("?", 1).Select(&n)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(count).To(Equal(1))
+		})
+	})
+
+	Describe("model params", func() {
+		BeforeEach(func() {
+			hookImpl := struct{ queryHookTest }{}
+			hookImpl.beforeQueryMethod = func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+				return c, nil
+			}
+			hookImpl.afterQueryMethod = func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+				Expect(evt.FormattedQuery()).To(Equal(`CREATE INDEX stories_author_id_idx ON "hook_tests" (author_id)`))
+				return c, nil
+			}
+			db.AddQueryHook(hookImpl)
+		})
+
+		It("is called for Model", func() {
+			_, err := db.Model((*HookTest)(nil)).Exec("CREATE INDEX stories_author_id_idx ON ?TableName (author_id)")
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

@@ -318,9 +318,9 @@ func (tx *Tx) CopyTo(w io.Writer, query interface{}, params ...interface{}) (res
 	return res, err
 }
 
-// FormatQuery is an alias for DB.FormatQuery
-func (tx *Tx) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
-	return tx.db.FormatQuery(dst, query, params...)
+// Formatter is an alias for DB.Formatter
+func (tx *Tx) Formatter() orm.QueryFormatter {
+	return tx.db.Formatter()
 }
 
 func (tx *Tx) begin(ctx context.Context) error {
