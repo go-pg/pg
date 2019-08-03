@@ -74,6 +74,19 @@ var _ = Describe("Update", func() {
 		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (123, 'hello'::mytype), (123, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
 	})
 
+	It("bulk updates with zero values", func() {
+		slice := []*UpdateTest{{
+			Id:    1,
+			Value: "hello",
+		}, {
+			Id: 2,
+		}}
+		q := NewQuery(nil, &slice)
+
+		s := updateQueryStringWithBlanks(q)
+		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = COALESCE(_data."value", "value") FROM (VALUES (1, 'hello'::mytype), (2, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
+	})
+
 	It("returns an error for empty bulk update", func() {
 		slice := make([]UpdateTest, 0)
 		q := NewQuery(nil, &slice)
@@ -121,6 +134,12 @@ var _ = Describe("Update", func() {
 
 func updateQueryString(q *Query) string {
 	upd := newUpdateQuery(q, false)
+	s := queryString(upd)
+	return s
+}
+
+func updateQueryStringWithBlanks(q *Query) string {
+	upd := newUpdateQuery(q, true)
 	s := queryString(upd)
 	return s
 }
