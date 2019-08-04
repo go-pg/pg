@@ -83,14 +83,7 @@ func (q *createTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte
 
 		b = append(b, field.Column...)
 		b = append(b, " "...)
-		if q.opt != nil && q.opt.Varchar > 0 &&
-			field.SQLType == "text" && !field.HasFlag(customTypeFlag) {
-			b = append(b, "varchar("...)
-			b = strconv.AppendInt(b, int64(q.opt.Varchar), 10)
-			b = append(b, ")"...)
-		} else {
-			b = append(b, field.SQLType...)
-		}
+		b = q.appendSQLType(b, field)
 		if field.HasFlag(NotNullFlag) {
 			b = append(b, " NOT NULL"...)
 		}
@@ -126,6 +119,32 @@ func (q *createTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte
 	}
 
 	return b, q.q.stickyErr
+}
+
+func (q *createTableQuery) appendSQLType(b []byte, field *Field) []byte {
+	if q.opt != nil && q.opt.Varchar > 0 &&
+		field.SQLType == "text" && !field.HasFlag(customTypeFlag) {
+		b = append(b, "varchar("...)
+		b = strconv.AppendInt(b, int64(q.opt.Varchar), 10)
+		b = append(b, ")"...)
+		return b
+	}
+	if field.HasFlag(PrimaryKeyFlag) {
+		return append(b, pkSQLType(field.SQLType)...)
+	}
+	return append(b, field.SQLType...)
+}
+
+func pkSQLType(s string) string {
+	switch s {
+	case pgTypeSmallint:
+		return pgTypeSmallserial
+	case pgTypeInteger:
+		return pgTypeSerial
+	case pgTypeBigint:
+		return pgTypeBigserial
+	}
+	return s
 }
 
 func appendPKConstraint(b []byte, pks []*Field) []byte {
