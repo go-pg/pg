@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/mellium/sasl"
+	"github.com/whenspeakteam/sasl"
 
 	"github.com/whenspeakteam/pg/v9/internal"
 	"github.com/whenspeakteam/pg/v9/internal/pool"
