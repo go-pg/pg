@@ -122,7 +122,7 @@ func (p *ConnPool) checkMinIdleConns() {
 }
 
 func (p *ConnPool) addIdleConn() error {
-	cn, err := p.newConn(context.TODO(), true)
+	cn, err := p.dialConn(context.TODO(), true)
 	if err != nil {
 		return err
 	}
@@ -135,11 +135,11 @@ func (p *ConnPool) addIdleConn() error {
 }
 
 func (p *ConnPool) NewConn(c context.Context) (*Conn, error) {
-	return p._NewConn(c, false)
+	return p.newConn(c, false)
 }
 
-func (p *ConnPool) _NewConn(c context.Context, pooled bool) (*Conn, error) {
-	cn, err := p.newConn(c, pooled)
+func (p *ConnPool) newConn(c context.Context, pooled bool) (*Conn, error) {
+	cn, err := p.dialConn(c, pooled)
 	if err != nil {
 		return nil, err
 	}
@@ -158,7 +158,7 @@ func (p *ConnPool) _NewConn(c context.Context, pooled bool) (*Conn, error) {
 	return cn, nil
 }
 
-func (p *ConnPool) newConn(c context.Context, pooled bool) (*Conn, error) {
+func (p *ConnPool) dialConn(c context.Context, pooled bool) (*Conn, error) {
 	if p.closed() {
 		return nil, ErrClosed
 	}
@@ -244,7 +244,7 @@ func (p *ConnPool) Get(c context.Context) (*Conn, error) {
 
 	atomic.AddUint32(&p.stats.Misses, 1)
 
-	newcn, err := p._NewConn(c, true)
+	newcn, err := p.newConn(c, true)
 	if err != nil {
 		p.freeTurn()
 		return nil, err
