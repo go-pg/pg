@@ -3,7 +3,7 @@ package pg_test
 import (
 	"fmt"
 
-	"github.com/go-pg/pg/v9"
+	"github.com/whenspeakteam/pg/v9"
 )
 
 func CreateUser(db *pg.DB, user *User) error {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-pg/pg/v9"
-	"github.com/go-pg/pg/v9/orm"
+	"github.com/whenspeakteam/pg/v9"
+	"github.com/whenspeakteam/pg/v9/orm"
 )
 
 func modelDB() *pg.DB {

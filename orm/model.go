@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-pg/pg/v9/types"
+	"github.com/whenspeakteam/pg/v9/types"
 )
 
 var errModelNil = errors.New("pg: Model(nil)")

@@ -1,6 +1,6 @@
 package types
 
-import "github.com/go-pg/pg/v9/internal"
+import "github.com/whenspeakteam/pg/v9/internal"
 
 type ValueScanner interface {
 	ScanValue(rd Reader, n int) error

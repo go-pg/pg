@@ -17,7 +17,7 @@ matrix:
 env:
   - GO111MODULE=on
 
-go_import_path: github.com/go-pg/pg
+go_import_path: github.com/whenspeakteam/pg
 
 before_install:
   - psql -U postgres -c "CREATE EXTENSION hstore"

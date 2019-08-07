@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/go-pg/pg"
-	"github.com/go-pg/pg/orm"
+	"github.com/whenspeakteam/pg"
+	"github.com/whenspeakteam/pg/orm"
 )
 
 type MyType struct {

@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-pg/pg/v9/internal"
-	"github.com/go-pg/pg/v9/internal/iszero"
-	"github.com/go-pg/pg/v9/types"
 	"github.com/vmihailenco/tagparser"
+	"github.com/whenspeakteam/pg/v9/internal"
+	"github.com/whenspeakteam/pg/v9/internal/iszero"
+	"github.com/whenspeakteam/pg/v9/types"
 )
 
 const (
@@ -114,7 +114,7 @@ func newTable(typ reflect.Type) *Table {
 	for _, hook := range oldHooks {
 		if typ.Implements(hook) {
 			internal.Logger.Printf("model hooks on %s must be updated - "+
-				"see https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName)
+				"see https://github.com/whenspeakteam/pg/wiki/Model-Hooks", t.TypeName)
 		}
 	}
 

@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-pg/pg/v9/internal/pool"
+	"github.com/whenspeakteam/pg/v9/internal/pool"
 )
 
 // Options contains database connection options.

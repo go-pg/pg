@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/go-pg/pg/v9/urlvalues"
+	"github.com/whenspeakteam/pg/v9/urlvalues"
 )
 
 type CustomField struct {
