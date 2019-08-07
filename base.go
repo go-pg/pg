@@ -70,7 +70,7 @@ func (db *baseDB) retryBackoff(retry int) time.Duration {
 	return internal.RetryBackoff(retry, db.opt.MinRetryBackoff, db.opt.MaxRetryBackoff)
 }
 
-func (db *baseDB) conn(c context.Context) (*pool.Conn, error) {
+func (db *baseDB) getConn(c context.Context) (*pool.Conn, error) {
 	cn, err := db.pool.Get(c)
 	if err != nil {
 		return nil, err
@@ -112,7 +112,7 @@ func (db *baseDB) initConn(c context.Context, cn *pool.Conn) error {
 	return nil
 }
 
-func (db *baseDB) freeConn(cn *pool.Conn, err error) {
+func (db *baseDB) releaseConn(cn *pool.Conn, err error) {
 	if isBadConn(err, false) {
 		db.pool.Remove(cn)
 	} else {
@@ -123,7 +123,7 @@ func (db *baseDB) freeConn(cn *pool.Conn, err error) {
 func (db *baseDB) withConn(
 	c context.Context, fn func(context.Context, *pool.Conn) error,
 ) error {
-	cn, err := db.conn(c)
+	cn, err := db.getConn(c)
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func (db *baseDB) withConn(
 			case fnDone <- struct{}{}: // signal fn finish, skip cancel goroutine
 			}
 		}
-		db.freeConn(cn, err)
+		db.releaseConn(cn, err)
 	}()
 
 	err = fn(c, cn)
