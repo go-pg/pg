@@ -78,7 +78,10 @@ func (db *baseDB) getConn(c context.Context) (*pool.Conn, error) {
 
 	err = db.initConn(c, cn)
 	if err != nil {
-		db.pool.Remove(cn)
+		db.pool.Remove(cn, err)
+		if err := internal.Unwrap(err); err != nil {
+			return nil, err
+		}
 		return nil, err
 	}
 
@@ -114,7 +117,7 @@ func (db *baseDB) initConn(c context.Context, cn *pool.Conn) error {
 
 func (db *baseDB) releaseConn(cn *pool.Conn, err error) {
 	if isBadConn(err, false) {
-		db.pool.Remove(cn)
+		db.pool.Remove(cn, err)
 	} else {
 		db.pool.Put(cn)
 	}
@@ -161,7 +164,7 @@ func (db *baseDB) withConn(
 
 func (db *baseDB) shouldRetry(err error) bool {
 	switch err {
-	case nil, context.Canceled, context.DeadlineExceeded, pool.ErrBadConn:
+	case nil, context.Canceled, context.DeadlineExceeded:
 		return false
 	}
 	if pgerr, ok := err.(Error); ok {
