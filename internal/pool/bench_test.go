@@ -61,7 +61,7 @@ func benchmarkPoolGetRemove(b *testing.B, poolSize int) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			connPool.Remove(cn)
+			connPool.Remove(cn, nil)
 		}
 	})
 }
