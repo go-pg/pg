@@ -20,11 +20,11 @@ type Pager struct {
 
 func NewPager(values url.Values) *Pager {
 	p := new(Pager)
-	p.stickyErr = p.SetValues(values)
+	p.stickyErr = p.Decode(values)
 	return p
 }
 
-func (p *Pager) SetValues(values url.Values) error {
+func (p *Pager) Decode(values url.Values) error {
 	vs := Values(values)
 
 	limit, err := vs.Int("limit")
