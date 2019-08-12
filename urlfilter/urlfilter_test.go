@@ -75,7 +75,7 @@ var _ = Describe("Urlfilter", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			q := orm.NewQuery(nil, &FilterModel{})
-			q = q.Apply(urlfilter.Filters(url.Values(values)))
+			q = q.Apply(urlfilter.Filters(urlfilter.Values(values)))
 
 			s := queryString(q)
 			Expect(s).To(Equal(test.query), "#%d", i)
@@ -87,7 +87,7 @@ var _ = Describe("Urlfilter", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		q := orm.NewQuery(nil, &FilterModel{})
-		q = q.Apply(urlfilter.Filters(url.Values(values)))
+		q = q.Apply(urlfilter.Filters(urlfilter.Values(values)))
 
 		s := queryString(q)
 		Expect(s).To(ContainSubstring(`"name" > '1'`))
@@ -115,7 +115,7 @@ var _ = Describe("Pager", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			q := orm.NewQuery(nil, &FilterModel{})
-			q = q.Apply(urlfilter.Pagination(url.Values(values)))
+			q = q.Apply(urlfilter.Pagination(urlfilter.Values(values)))
 
 			s := queryString(q)
 			Expect(s).To(Equal(test.query))

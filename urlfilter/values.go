@@ -8,7 +8,7 @@ import (
 	"github.com/go-pg/pg/v9/internal/structfilter"
 )
 
-type Values map[string][]string
+type Values url.Values
 
 func (v Values) Has(name string) bool {
 	_, ok := v[name]
@@ -115,5 +115,5 @@ func (v Values) MaybeDuration(name string) time.Duration {
 }
 
 func (v Values) Pager() *Pager {
-	return NewPager(url.Values(v))
+	return NewPager(v)
 }

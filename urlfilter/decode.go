@@ -1,7 +1,6 @@
 package urlfilter
 
 import (
-	"net/url"
 	"reflect"
 	"strings"
 
@@ -9,7 +8,7 @@ import (
 )
 
 // Decode decodes url values into the struct.
-func Decode(strct interface{}, values url.Values) error {
+func Decode(strct interface{}, values Values) error {
 	v := reflect.Indirect(reflect.ValueOf(strct))
 	meta := structfilter.GetStruct(v.Type())
 

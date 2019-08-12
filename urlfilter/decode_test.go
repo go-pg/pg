@@ -3,7 +3,6 @@ package urlfilter_test
 import (
 	"database/sql"
 	"encoding"
-	"net/url"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -49,7 +48,7 @@ type Filter struct {
 var _ = Describe("Decode", func() {
 	It("decodes struct from Values", func() {
 		f := &Filter{}
-		err := urlfilter.Decode(f, url.Values{
+		err := urlfilter.Decode(f, urlfilter.Values{
 			"field":      {"one"},
 			"field__neq": {"two"},
 			"field__lt":  {"1"},
@@ -100,7 +99,7 @@ var _ = Describe("Decode", func() {
 
 	It("supports names with suffix `[]`", func() {
 		f := &Filter{}
-		err := urlfilter.Decode(f, url.Values{
+		err := urlfilter.Decode(f, urlfilter.Values{
 			"field[]": {"one"},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -109,7 +108,7 @@ var _ = Describe("Decode", func() {
 
 	It("supports names with prefix `:`", func() {
 		f := &Filter{}
-		err := urlfilter.Decode(f, url.Values{
+		err := urlfilter.Decode(f, urlfilter.Values{
 			":field": {"one"},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -118,7 +117,7 @@ var _ = Describe("Decode", func() {
 
 	It("decodes sql.Null*", func() {
 		f := &Filter{}
-		err := urlfilter.Decode(f, url.Values{
+		err := urlfilter.Decode(f, urlfilter.Values{
 			"null_bool":    {""},
 			"null_int64":   {""},
 			"null_float64": {""},

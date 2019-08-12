@@ -1,7 +1,6 @@
 package urlfilter
 
 import (
-	"net/url"
 	"strings"
 
 	"github.com/go-pg/pg/v9"
@@ -26,9 +25,9 @@ type Filter struct {
 	allowed map[string]struct{}
 }
 
-func NewFilter(values url.Values) *Filter {
+func NewFilter(values Values) *Filter {
 	return &Filter{
-		values: Values(values),
+		values: values,
 	}
 }
 
@@ -88,7 +87,7 @@ func (f *Filter) Filters(q *orm.Query) (*orm.Query, error) {
 }
 
 // Filters is a shortcut for NewFilter(values).Filters.
-func Filters(values url.Values) func(*orm.Query) (*orm.Query, error) {
+func Filters(values Values) func(*orm.Query) (*orm.Query, error) {
 	return NewFilter(values).Filters
 }
 
