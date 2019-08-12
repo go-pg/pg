@@ -1,4 +1,4 @@
-package urlvalues_test
+package urlfilter_test
 
 import (
 	"net/url"
@@ -8,27 +8,27 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/go-pg/pg/v9/orm"
-	"github.com/go-pg/pg/v9/urlvalues"
+	urlfilter "github.com/go-pg/pg/v9/urlfilter"
 )
 
 func TestGinkgo(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "urlvalues")
+	RunSpecs(t, "urlfilter")
 }
 
-type URLValuesModel struct {
+type FilterModel struct {
 	Id   int
 	Name string
 }
 
-type urlValuesTest struct {
+type urlfilterTest struct {
 	urlQuery string
 	query    string
 }
 
-var _ = Describe("URLValues", func() {
-	query := `SELECT "url_values_model"."id", "url_values_model"."name" FROM "url_values_models" AS "url_values_model"`
-	urlValuesTests := []urlValuesTest{{
+var _ = Describe("Urlfilter", func() {
+	query := `SELECT "filter_model"."id", "filter_model"."name" FROM "filter_models" AS "filter_model"`
+	urlfilterTests := []urlfilterTest{{
 		urlQuery: "id__gt=1",
 		query:    query + ` WHERE ("id" > '1')`,
 	}, {
@@ -70,12 +70,12 @@ var _ = Describe("URLValues", func() {
 	}}
 
 	It("adds single condition to the query", func() {
-		for i, test := range urlValuesTests {
+		for i, test := range urlfilterTests {
 			values, err := url.ParseQuery(test.urlQuery)
 			Expect(err).NotTo(HaveOccurred())
 
-			q := orm.NewQuery(nil, &URLValuesModel{})
-			q = q.Apply(urlvalues.Filters(urlvalues.Values(values)))
+			q := orm.NewQuery(nil, &FilterModel{})
+			q = q.Apply(urlfilter.Filters(url.Values(values)))
 
 			s := queryString(q)
 			Expect(s).To(Equal(test.query), "#%d", i)
@@ -86,8 +86,8 @@ var _ = Describe("URLValues", func() {
 		values, err := url.ParseQuery("name__gt=1&name__lt=2")
 		Expect(err).NotTo(HaveOccurred())
 
-		q := orm.NewQuery(nil, &URLValuesModel{})
-		q = q.Apply(urlvalues.Filters(urlvalues.Values(values)))
+		q := orm.NewQuery(nil, &FilterModel{})
+		q = q.Apply(urlfilter.Filters(url.Values(values)))
 
 		s := queryString(q)
 		Expect(s).To(ContainSubstring(`"name" > '1'`))
@@ -97,8 +97,8 @@ var _ = Describe("URLValues", func() {
 })
 
 var _ = Describe("Pager", func() {
-	query := `SELECT "url_values_model"."id", "url_values_model"."name" FROM "url_values_models" AS "url_values_model"`
-	urlValuesTests := []urlValuesTest{{
+	query := `SELECT "filter_model"."id", "filter_model"."name" FROM "filter_models" AS "filter_model"`
+	urlfilterTests := []urlfilterTest{{
 		urlQuery: "limit=10",
 		query:    query + " LIMIT 10",
 	}, {
@@ -110,12 +110,12 @@ var _ = Describe("Pager", func() {
 	}}
 
 	It("adds limit and offset to the query", func() {
-		for _, test := range urlValuesTests {
+		for _, test := range urlfilterTests {
 			values, err := url.ParseQuery(test.urlQuery)
 			Expect(err).NotTo(HaveOccurred())
 
-			q := orm.NewQuery(nil, &URLValuesModel{})
-			q = q.Apply(urlvalues.Pagination(urlvalues.Values(values)))
+			q := orm.NewQuery(nil, &FilterModel{})
+			q = q.Apply(urlfilter.Pagination(url.Values(values)))
 
 			s := queryString(q)
 			Expect(s).To(Equal(test.query))
