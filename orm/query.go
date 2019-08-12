@@ -562,7 +562,7 @@ func (q *Query) WherePK() *Query {
 //    - FooLT int - Where("foo < ?", strct.Foo)
 //    - FooLTE int - Where("foo <= ?", strct.Foo)
 //
-// urlvalues.Decode can be used to decode url.Values into the struct.
+// urlfilter.Decode can be used to decode url.Values into the struct.
 //
 // Following field tags are recognized:
 //    - pg:"-" - field is ignored.

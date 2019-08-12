@@ -1,6 +1,7 @@
-package urlvalues
+package urlfilter
 
 import (
+	"net/url"
 	"strings"
 
 	"github.com/go-pg/pg/v9"
@@ -9,7 +10,7 @@ import (
 	"github.com/go-pg/pg/v9/types"
 )
 
-// URLFilter is used with Query.Apply to add WHERE clauses from the URL values:
+// Filter is used with Query.Apply to add WHERE clauses from the URL values:
 //   - ?foo=bar - Where(`"foo" = 'bar'`)
 //   - ?foo=hello&foo=world - Where(`"foo" IN ('hello','world')`)
 //   - ?foo__neq=bar - Where(`"foo" != 'bar'`)
@@ -25,13 +26,12 @@ type Filter struct {
 	allowed map[string]struct{}
 }
 
-func NewFilter(values Values) *Filter {
+func NewFilter(values url.Values) *Filter {
 	return &Filter{
-		values: values,
+		values: Values(values),
 	}
 }
 
-// Values returns URL values.
 func (f *Filter) Values() Values {
 	return f.values
 }
@@ -87,8 +87,8 @@ func (f *Filter) Filters(q *orm.Query) (*orm.Query, error) {
 	return q, nil
 }
 
-// Filters is a shortcut for NewFilter(urlValues).Filters.
-func Filters(values Values) func(*orm.Query) (*orm.Query, error) {
+// Filters is a shortcut for NewFilter(values).Filters.
+func Filters(values url.Values) func(*orm.Query) (*orm.Query, error) {
 	return NewFilter(values).Filters
 }
 

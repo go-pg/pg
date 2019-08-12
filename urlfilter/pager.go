@@ -1,6 +1,8 @@
-package urlvalues
+package urlfilter
 
 import (
+	"net/url"
+
 	"github.com/go-pg/pg/v9/orm"
 )
 
@@ -16,24 +18,22 @@ type Pager struct {
 	stickyErr error
 }
 
-func NewPager(values Values) *Pager {
+func NewPager(values url.Values) *Pager {
 	p := new(Pager)
-	p.stickyErr = p.FromValues(values)
+	p.stickyErr = p.SetValues(values)
 	return p
 }
 
-func (p *Pager) FromURLValues(values Values) error {
-	return p.FromValues(values)
-}
+func (p *Pager) SetValues(values url.Values) error {
+	vs := Values(values)
 
-func (p *Pager) FromValues(values Values) error {
-	limit, err := values.Int("limit")
+	limit, err := vs.Int("limit")
 	if err != nil {
 		return err
 	}
 	p.Limit = limit
 
-	page, err := values.Int("page")
+	page, err := vs.Int("page")
 	if err != nil {
 		return err
 	}
@@ -110,6 +110,6 @@ func (p *Pager) Pagination(q *orm.Query) (*orm.Query, error) {
 // Pagination is used with Query.Apply to set LIMIT and OFFSET from the URL values:
 //   - ?limit=10 - sets q.Limit(10), max limit is 1000.
 //   - ?page=5 - sets q.Offset((page - 1) * limit), max offset is 1000000.
-func Pagination(values Values) func(*orm.Query) (*orm.Query, error) {
+func Pagination(values url.Values) func(*orm.Query) (*orm.Query, error) {
 	return NewPager(values).Pagination
 }

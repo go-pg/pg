@@ -1,14 +1,15 @@
-package urlvalues_test
+package urlfilter_test
 
 import (
 	"database/sql"
 	"encoding"
+	"net/url"
 	"time"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/go-pg/pg/v9/urlvalues"
+	"github.com/go-pg/pg/v9/urlfilter"
 )
 
 type CustomField struct {
@@ -45,14 +46,10 @@ type Filter struct {
 	Omit []byte `pg:"-"`
 }
 
-func (f *Filter) AfterDecodeURLValues(values urlvalues.Values) error {
-	return nil
-}
-
 var _ = Describe("Decode", func() {
 	It("decodes struct from Values", func() {
 		f := &Filter{}
-		err := urlvalues.Decode(f, urlvalues.Values{
+		err := urlfilter.Decode(f, url.Values{
 			"field":      {"one"},
 			"field__neq": {"two"},
 			"field__lt":  {"1"},
@@ -103,7 +100,7 @@ var _ = Describe("Decode", func() {
 
 	It("supports names with suffix `[]`", func() {
 		f := &Filter{}
-		err := urlvalues.Decode(f, urlvalues.Values{
+		err := urlfilter.Decode(f, url.Values{
 			"field[]": {"one"},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -112,7 +109,7 @@ var _ = Describe("Decode", func() {
 
 	It("supports names with prefix `:`", func() {
 		f := &Filter{}
-		err := urlvalues.Decode(f, urlvalues.Values{
+		err := urlfilter.Decode(f, url.Values{
 			":field": {"one"},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -121,7 +118,7 @@ var _ = Describe("Decode", func() {
 
 	It("decodes sql.Null*", func() {
 		f := &Filter{}
-		err := urlvalues.Decode(f, urlvalues.Values{
+		err := urlfilter.Decode(f, url.Values{
 			"null_bool":    {""},
 			"null_int64":   {""},
 			"null_float64": {""},
