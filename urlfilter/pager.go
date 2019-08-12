@@ -23,15 +23,13 @@ func NewPager(values Values) *Pager {
 }
 
 func (p *Pager) Decode(values Values) error {
-	vs := Values(values)
-
-	limit, err := vs.Int("limit")
+	limit, err := values.Int("limit")
 	if err != nil {
 		return err
 	}
 	p.Limit = limit
 
-	page, err := vs.Int("page")
+	page, err := values.Int("page")
 	if err != nil {
 		return err
 	}
