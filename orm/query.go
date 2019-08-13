@@ -183,7 +183,7 @@ func (q *Query) GetModel() TableModel {
 
 func (q *Query) isSoftDelete() bool {
 	if q.model != nil {
-		return q.model.Table().SoftDeleteField != nil
+		return q.model.Table().SoftDeleteField != nil && !q.hasFlag(allWithDeletedFlag)
 	}
 	return false
 }
