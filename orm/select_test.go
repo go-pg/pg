@@ -343,11 +343,25 @@ type SoftDeleteModel struct {
 }
 
 var _ = Describe("SoftDeleteModel", func() {
-	It("works with User model", func() {
+	It("filters out deleted rows by default", func() {
 		q := NewQuery(nil, &SoftDeleteModel{})
 
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT "soft_delete_model"."id", "soft_delete_model"."deleted_at" FROM "soft_delete_models" AS "soft_delete_model" WHERE "soft_delete_model"."deleted_at" IS NULL`))
+	})
+
+	It("supports Deleted", func() {
+		q := NewQuery(nil, &SoftDeleteModel{}).Deleted()
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "soft_delete_model"."id", "soft_delete_model"."deleted_at" FROM "soft_delete_models" AS "soft_delete_model" WHERE "soft_delete_model"."deleted_at" IS NOT NULL`))
+	})
+
+	It("supports AllWithDeleted", func() {
+		q := NewQuery(nil, &SoftDeleteModel{}).AllWithDeleted()
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "soft_delete_model"."id", "soft_delete_model"."deleted_at" FROM "soft_delete_models" AS "soft_delete_model"`))
 	})
 })
 
