@@ -25,12 +25,6 @@ func (buf *WriteBuffer) ResetBuffer(b []byte) {
 	buf.Bytes = b[:0]
 }
 
-func (buf *WriteBuffer) Flush() []byte {
-	b := buf.Bytes
-	buf.Reset()
-	return b
-}
-
 func (buf *WriteBuffer) StartMessage(c byte) {
 	if c == 0 {
 		buf.msgStart = len(buf.Bytes)
