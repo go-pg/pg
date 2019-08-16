@@ -68,25 +68,31 @@ func (cn *Conn) NextID() string {
 }
 
 func (cn *Conn) WithReader(
-	c context.Context, timeout time.Duration, fn func(rd *internal.BufReader) error,
+	ctx context.Context, timeout time.Duration, fn func(rd *internal.BufReader) error,
 ) error {
-	_ = cn.netConn.SetReadDeadline(cn.deadline(c, timeout))
+	err := cn.netConn.SetReadDeadline(cn.deadline(ctx, timeout))
+	if err != nil {
+		return err
+	}
 	return fn(cn.rd)
 }
 
 func (cn *Conn) WithWriter(
-	c context.Context, timeout time.Duration, fn func(wb *WriteBuffer) error,
+	ctx context.Context, timeout time.Duration, fn func(wb *WriteBuffer) error,
 ) error {
-	_ = cn.netConn.SetWriteDeadline(cn.deadline(c, timeout))
-	firstErr := fn(cn.wb)
-
-	buf := cn.wb.Flush()
-	_, err := cn.netConn.Write(buf)
-	if err != nil && firstErr == nil {
-		firstErr = err
+	err := cn.netConn.SetWriteDeadline(cn.deadline(ctx, timeout))
+	if err != nil {
+		return err
 	}
 
-	return firstErr
+	cn.wb.Reset()
+	err = fn(cn.wb)
+	if err != nil {
+		return err
+	}
+
+	_, err = cn.netConn.Write(cn.wb.Bytes)
+	return err
 }
 
 func (cn *Conn) Close() error {
