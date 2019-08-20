@@ -5,13 +5,13 @@ import (
 )
 
 type Pager struct {
-	Limit  int
-	Offset int
+	Limit  int `pg:",nowhere"`
+	Offset int `pg:",nowhere"`
 
 	// Default max limit is 1000.
-	MaxLimit int
+	MaxLimit int `pg:"-"`
 	// Default max offset is 1000000.
-	MaxOffset int
+	MaxOffset int `pg:"-"`
 
 	stickyErr error
 }
