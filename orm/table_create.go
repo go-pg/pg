@@ -1,9 +1,8 @@
 package orm
 
 import (
-	"strconv"
-
 	"github.com/go-pg/pg/types"
+	"strconv"
 )
 
 type CreateTableOptions struct {
