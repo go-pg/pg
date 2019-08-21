@@ -255,10 +255,8 @@ func (q *updateQuery) appendValues(b []byte, fields []*Field, strct reflect.Valu
 		} else {
 			b = f.AppendValue(b, indirect(strct), 1)
 		}
-		if f.HasFlag(customTypeFlag) {
-			b = append(b, "::"...)
-			b = append(b, f.SQLType...)
-		}
+		b = append(b, "::"...)
+		b = append(b, f.SQLType...)
 	}
 	return b
 }

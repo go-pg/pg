@@ -10,6 +10,11 @@ type UpdateTest struct {
 	Value string `sql:"type:mytype"`
 }
 
+type SerialUpdateTest struct {
+	Id    uint64 `sql:"type:bigint,pk"`
+	Value string
+}
+
 var _ = Describe("Update", func() {
 	It("updates model", func() {
 		q := NewQuery(nil, &UpdateTest{}).WherePK()
@@ -63,7 +68,7 @@ var _ = Describe("Update", func() {
 
 		b, err := (&updateQuery{q: q}).AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (1, 'hello'::mytype), (2, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
+		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (1::bigint, 'hello'::mytype), (2::bigint, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
 	})
 
 	It("bulk updates overriding column value", func() {
@@ -78,6 +83,18 @@ var _ = Describe("Update", func() {
 		b, err := (&updateQuery{q: q}).AppendQuery(nil)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(string(b)).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (123, 'hello'::mytype), (123, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
+	})
+
+	It("bulk updates with serial id", func() {
+		slice := []*SerialUpdateTest{{
+			Id:    1,
+			Value: "hello",
+		}}
+		q := NewQuery(nil, &slice)
+
+		b, err := (&updateQuery{q: q}).AppendQuery(nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(b)).To(Equal(`UPDATE "serial_update_tests" AS "serial_update_test" SET "value" = _data."value" FROM (VALUES (1::bigint, 'hello'::text)) AS _data("id", "value") WHERE "serial_update_test"."id" = _data."id"`))
 	})
 
 	It("returns an error for empty bulk update", func() {
