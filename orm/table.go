@@ -762,9 +762,6 @@ func fieldSQLType(field *Field, pgTag, sqlTag *tag.Tag) string {
 	}
 
 	sqlType := sqlType(field.Type)
-	if field.HasFlag(PrimaryKeyFlag) {
-		return pkSQLType(sqlType)
-	}
 
 	switch sqlType {
 	case "timestamptz":
@@ -824,23 +821,8 @@ func sqlType(typ reflect.Type) string {
 	}
 }
 
-func pkSQLType(s string) string {
-	switch s {
-	case "smallint":
-		return "smallserial"
-	case "integer":
-		return "serial"
-	case "bigint":
-		return "bigserial"
-	}
-	return s
-}
-
 func sqlTypeEqual(a, b string) bool {
-	if a == b {
-		return true
-	}
-	return pkSQLType(a) == pkSQLType(b)
+	return a == b
 }
 
 func (t *Table) tryHasOne(joinTable *Table, field *Field, pgTag *tag.Tag) bool {
