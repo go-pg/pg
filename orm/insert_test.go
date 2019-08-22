@@ -92,6 +92,14 @@ var _ = Describe("Insert", func() {
 		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value", "unknown") VALUES (1, 'hello', upper('hello'))`))
 	})
 
+	It("supports ExcludeColumn", func() {
+		model := &InsertTest{}
+		q := NewQuery(nil, model).ExcludeColumn("value")
+
+		s := insertQueryString(q)
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id") VALUES (DEFAULT) RETURNING "id"`))
+	})
+
 	It("multi inserts", func() {
 		q := NewQuery(nil, &InsertTest{
 			Id:    1,
