@@ -67,7 +67,7 @@ var _ = Describe("Insert", func() {
 		q := NewQuery(nil, model).Value("value", "upper(?)", model.Value)
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello'))`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello')) RETURNING "value"`))
 	})
 
 	It("supports Value 2", func() {
@@ -78,7 +78,7 @@ var _ = Describe("Insert", func() {
 		q := NewQuery(nil, model).Value("value", "upper(?value)")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello'))`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello')) RETURNING "value"`))
 	})
 
 	It("supports extra Value", func() {
@@ -209,7 +209,7 @@ var _ = Describe("Insert", func() {
 			Value("id", "123")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (123, DEFAULT), (123, DEFAULT) RETURNING "value"`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (123, DEFAULT), (123, DEFAULT) RETURNING "id", "value"`))
 	})
 
 	It("returns an error for empty bulk insert", func() {

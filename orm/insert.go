@@ -178,6 +178,7 @@ func (q *insertQuery) appendValues(
 			if err != nil {
 				return nil, err
 			}
+			q.addReturningField(f)
 			continue
 		}
 
@@ -239,6 +240,9 @@ func (q *insertQuery) appendSliceValues(
 }
 
 func (q *insertQuery) addReturningField(field *Field) {
+	if len(q.q.returning) > 0 {
+		return
+	}
 	for _, f := range q.returningFields {
 		if f == field {
 			return
