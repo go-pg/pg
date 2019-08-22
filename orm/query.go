@@ -305,10 +305,7 @@ func (q *Query) ColumnExpr(expr string, params ...interface{}) *Query {
 func (q *Query) ExcludeColumn(columns ...string) *Query {
 	if q.columns == nil {
 		for _, f := range q.model.Table().Fields {
-			q.columns = append(q.columns, columnAppender{
-				sqlName: f.SQLName,
-				column:  f.Column,
-			})
+			q.columns = append(q.columns, fieldAppender{f.SQLName})
 		}
 	}
 
@@ -322,8 +319,8 @@ func (q *Query) ExcludeColumn(columns ...string) *Query {
 
 func (q *Query) excludeColumn(column string) bool {
 	for i := 0; i < len(q.columns); i++ {
-		app, ok := q.columns[i].(columnAppender)
-		if ok && app.sqlName == column {
+		app, ok := q.columns[i].(fieldAppender)
+		if ok && app.field == column {
 			q.columns = append(q.columns[:i], q.columns[i+1:]...)
 			return true
 		}
