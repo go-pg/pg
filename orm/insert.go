@@ -178,6 +178,7 @@ func (q *insertQuery) appendValues(
 			if err != nil {
 				return nil, err
 			}
+			q.addReturningField(f)
 			continue
 		}
 
