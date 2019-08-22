@@ -240,6 +240,9 @@ func (q *insertQuery) appendSliceValues(
 }
 
 func (q *insertQuery) addReturningField(field *Field) {
+	if len(q.q.returning) > 0 {
+		return
+	}
 	for _, f := range q.returningFields {
 		if f == field {
 			return
