@@ -11,6 +11,7 @@
 - Client listens on Context.Done while waiting for a connection from the pool and returns an error when context context is cancelled.
 - `Query.Column` does not accept relation name any more. Use `Query.Relation` instead which returns an error if relation does not exist.
 - urlvalues package is renamed to urlfilter.
+- `NewModel` and `AddModel` methods of `HooklessModel` interface were renamed to `NextColumnScanner` and `AddColumnScanner` respectively.
 
 ## v8
 
