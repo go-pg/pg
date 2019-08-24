@@ -199,11 +199,13 @@ func (tx *Tx) query(
 	var res *result
 	err = tx.withConn(c, func(c context.Context, cn *pool.Conn) error {
 		res, err = tx.db.simpleQueryData(c, cn, model, query, params...)
-		if err := tx.db.afterQuery(c, evt, res, err); err != nil {
-			return err
-		}
 		return err
 	})
+
+	if err := tx.db.afterQuery(c, evt, res, err); err != nil {
+		return nil, err
+	}
+
 	if err != nil {
 		return nil, err
 	}

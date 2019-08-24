@@ -224,7 +224,7 @@ func (db *baseDB) exec(c context.Context, query interface{}, params ...interface
 		}
 	}
 
-	if err := db.afterQuery(c, evt, res, err); err != nil {
+	if err := db.afterQuery(c, evt, res, lastErr); err != nil {
 		return nil, err
 	}
 
@@ -288,7 +288,7 @@ func (db *baseDB) query(c context.Context, model, query interface{}, params ...i
 		}
 	}
 
-	if err := db.afterQuery(c, evt, res, err); err != nil {
+	if err := db.afterQuery(c, evt, res, lastErr); err != nil {
 		return nil, err
 	}
 

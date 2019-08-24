@@ -108,7 +108,7 @@ func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error)
 		}
 	}
 
-	if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
+	if err := stmt.db.afterQuery(c, evt, res, lastErr); err != nil {
 		return nil, err
 	}
 
@@ -173,7 +173,7 @@ func (stmt *Stmt) query(c context.Context, model interface{}, params ...interfac
 		}
 	}
 
-	if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
+	if err := stmt.db.afterQuery(c, evt, res, lastErr); err != nil {
 		return nil, err
 	}
 
