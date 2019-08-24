@@ -201,6 +201,11 @@ func (db *baseDB) ExecContext(c context.Context, query interface{}, params ...in
 }
 
 func (db *baseDB) exec(c context.Context, query interface{}, params ...interface{}) (Result, error) {
+	c, evt, err := db.beforeQuery(c, db.db, nil, query, params)
+	if err != nil {
+		return nil, err
+	}
+
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
@@ -210,22 +215,19 @@ func (db *baseDB) exec(c context.Context, query interface{}, params ...interface
 			}
 		}
 
-		c, evt, err := db.beforeQuery(c, db.db, nil, query, params, attempt)
-		if err != nil {
-			return nil, err
-		}
-
 		lastErr = db.withConn(c, func(c context.Context, cn *pool.Conn) error {
 			res, err = db.simpleQuery(c, cn, query, params...)
-			if err := db.afterQuery(c, evt, res, err); err != nil {
-				return err
-			}
 			return err
 		})
 		if !db.shouldRetry(lastErr) {
 			break
 		}
 	}
+
+	if err := db.afterQuery(c, evt, res, err); err != nil {
+		return nil, err
+	}
+
 	return res, lastErr
 }
 
@@ -263,6 +265,11 @@ func (db *baseDB) QueryContext(c context.Context, model, query interface{}, para
 }
 
 func (db *baseDB) query(c context.Context, model, query interface{}, params ...interface{}) (Result, error) {
+	c, evt, err := db.beforeQuery(c, db.db, model, query, params)
+	if err != nil {
+		return nil, err
+	}
+
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
@@ -272,22 +279,19 @@ func (db *baseDB) query(c context.Context, model, query interface{}, params ...i
 			}
 		}
 
-		c, evt, err := db.beforeQuery(c, db.db, model, query, params, attempt)
-		if err != nil {
-			return nil, err
-		}
-
 		lastErr = db.withConn(c, func(c context.Context, cn *pool.Conn) error {
 			res, err = db.simpleQueryData(c, cn, model, query, params...)
-			if err := db.afterQuery(c, evt, res, err); err != nil {
-				return err
-			}
 			return err
 		})
 		if !db.shouldRetry(lastErr) {
 			break
 		}
 	}
+
+	if err := db.afterQuery(c, evt, res, err); err != nil {
+		return nil, err
+	}
+
 	return res, lastErr
 }
 

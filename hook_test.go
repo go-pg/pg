@@ -194,7 +194,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			Expect(evt.Query).To(Equal("SELECT ?"))
 			Expect(evt.Params).To(Equal([]interface{}{1}))
 			Expect(evt.Result).To(BeNil())
-			Expect(evt.Error).To(BeNil())
+			Expect(evt.Err).To(BeNil())
 
 			q, err := evt.UnformattedQuery()
 			Expect(err).NotTo(HaveOccurred())
@@ -216,7 +216,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			Expect(evt.Query).To(Equal("SELECT ?"))
 			Expect(evt.Params).To(Equal([]interface{}{1}))
 			Expect(evt.Result).NotTo(BeNil())
-			Expect(evt.Error).NotTo(HaveOccurred())
+			Expect(evt.Err).NotTo(HaveOccurred())
 
 			q, err := evt.UnformattedQuery()
 			Expect(err).NotTo(HaveOccurred())
@@ -259,7 +259,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			Expect(evt.Query).NotTo(BeNil())
 			Expect(evt.Params).To(HaveLen(1))
 			Expect(evt.Result).To(BeNil())
-			Expect(evt.Error).To(BeNil())
+			Expect(evt.Err).To(BeNil())
 
 			q, err := evt.UnformattedQuery()
 			Expect(err).NotTo(HaveOccurred())
@@ -281,7 +281,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			Expect(evt.Query).NotTo(BeNil())
 			Expect(evt.Params).To(HaveLen(1))
 			Expect(evt.Result).NotTo(BeNil())
-			Expect(evt.Error).NotTo(HaveOccurred())
+			Expect(evt.Err).NotTo(HaveOccurred())
 
 			q, err := evt.UnformattedQuery()
 			Expect(err).NotTo(HaveOccurred())

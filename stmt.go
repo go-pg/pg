@@ -85,6 +85,11 @@ func (stmt *Stmt) ExecContext(c context.Context, params ...interface{}) (Result,
 }
 
 func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error) {
+	c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, nil, stmt.q, params)
+	if err != nil {
+		return nil, err
+	}
+
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
@@ -94,22 +99,19 @@ func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error)
 			}
 		}
 
-		c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, nil, stmt.q, params, attempt)
-		if err != nil {
-			return nil, err
-		}
-
 		lastErr = stmt.withConn(c, func(c context.Context, cn *pool.Conn) error {
 			res, err = stmt.extQuery(c, cn, stmt.name, params...)
-			if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
-				return err
-			}
 			return err
 		})
 		if !stmt.db.shouldRetry(lastErr) {
 			break
 		}
 	}
+
+	if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
+		return nil, err
+	}
+
 	return res, lastErr
 }
 
@@ -148,6 +150,11 @@ func (stmt *Stmt) QueryContext(c context.Context, model interface{}, params ...i
 }
 
 func (stmt *Stmt) query(c context.Context, model interface{}, params ...interface{}) (Result, error) {
+	c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, model, stmt.q, params)
+	if err != nil {
+		return nil, err
+	}
+
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
@@ -157,22 +164,19 @@ func (stmt *Stmt) query(c context.Context, model interface{}, params ...interfac
 			}
 		}
 
-		c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, model, stmt.q, params, attempt)
-		if err != nil {
-			return nil, err
-		}
-
 		lastErr = stmt.withConn(c, func(c context.Context, cn *pool.Conn) error {
 			res, err = stmt.extQueryData(c, cn, stmt.name, model, stmt.columns, params...)
-			if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
-				return err
-			}
 			return err
 		})
 		if !stmt.db.shouldRetry(lastErr) {
 			break
 		}
 	}
+
+	if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
+		return nil, err
+	}
+
 	return res, lastErr
 }
 
