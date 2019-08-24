@@ -973,7 +973,12 @@ func scanJSONValue(v reflect.Value, rd types.Reader, n int) error {
 }
 
 func appendUintAsInt(b []byte, v reflect.Value, _ int) []byte {
-	return strconv.AppendInt(b, int64(v.Uint()), 10)
+	switch v.Kind() {
+	case reflect.Ptr:
+		return strconv.AppendInt(b, int64(v.Elem().Uint()), 10)
+	default:
+		return strconv.AppendInt(b, int64(v.Uint()), 10)
+	}
 }
 
 func tryUnderscorePrefix(s string) string {
