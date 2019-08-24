@@ -130,7 +130,7 @@ func (tx *Tx) ExecContext(c context.Context, query interface{}, params ...interf
 }
 
 func (tx *Tx) exec(c context.Context, query interface{}, params ...interface{}) (Result, error) {
-	c, evt, err := tx.db.beforeQuery(c, tx, nil, query, params, 0)
+	c, evt, err := tx.db.beforeQuery(c, tx, nil, query, params)
 	if err != nil {
 		return nil, err
 	}
@@ -138,11 +138,13 @@ func (tx *Tx) exec(c context.Context, query interface{}, params ...interface{}) 
 	var res Result
 	err = tx.withConn(c, func(c context.Context, cn *pool.Conn) error {
 		res, err = tx.db.simpleQuery(c, cn, query, params...)
-		if err := tx.db.afterQuery(c, evt, res, err); err != nil {
-			return err
-		}
 		return err
 	})
+
+	if err := tx.db.afterQuery(c, evt, res, err); err != nil {
+		return nil, err
+	}
+
 	return res, err
 }
 
@@ -189,7 +191,7 @@ func (tx *Tx) query(
 	query interface{},
 	params ...interface{},
 ) (Result, error) {
-	c, evt, err := tx.db.beforeQuery(c, tx, model, query, params, 0)
+	c, evt, err := tx.db.beforeQuery(c, tx, model, query, params)
 	if err != nil {
 		return nil, err
 	}
