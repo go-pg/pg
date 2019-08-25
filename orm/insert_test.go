@@ -243,6 +243,27 @@ var _ = Describe("Insert", func() {
 		s := insertQueryString(q)
 		Expect(s).To(Equal(`INSERT INTO "dynamic_name" ("id") VALUES (DEFAULT) RETURNING "id"`))
 	})
+
+	It("support models with pointer uint", func() {
+		type UintModel struct {
+			Id      int
+			OtherId *uint64
+		}
+		v := uint64(2)
+		q := NewQuery(nil, &[]UintModel{
+			{
+				Id:      1,
+				OtherId: &v,
+			},
+			{
+				Id:      2,
+				OtherId: nil,
+			},
+		})
+
+		s := insertQueryString(q)
+		Expect(s).To(Equal(`INSERT INTO "uint_models" ("id", "other_id") VALUES (1, 2), (2, DEFAULT) RETURNING "other_id"`))
+	})
 })
 
 func insertQueryString(q *Query) string {
