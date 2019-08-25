@@ -228,7 +228,7 @@ func (j *join) appendHasOneColumns(b []byte) []byte {
 }
 
 func (j *join) appendHasOneJoin(fmter QueryFormatter, b []byte, q *Query) (_ []byte, err error) {
-	isSoftDelete := q.isSoftDelete()
+	isSoftDelete := j.JoinModel.Table().SoftDeleteField != nil && !q.hasFlag(allWithDeletedFlag)
 
 	b = append(b, "LEFT JOIN "...)
 	b = fmter.FormatQuery(b, string(j.JoinModel.Table().FullNameForSelects))
