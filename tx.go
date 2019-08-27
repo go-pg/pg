@@ -136,16 +136,15 @@ func (tx *Tx) exec(c context.Context, query interface{}, params ...interface{}) 
 	}
 
 	var res Result
-	err = tx.withConn(c, func(c context.Context, cn *pool.Conn) error {
+	lastErr := tx.withConn(c, func(c context.Context, cn *pool.Conn) error {
 		res, err = tx.db.simpleQuery(c, cn, query, params...)
 		return err
 	})
 
-	if err := tx.db.afterQuery(c, evt, res, err); err != nil {
+	if err := tx.db.afterQuery(c, evt, res, lastErr); err != nil {
 		return nil, err
 	}
-
-	return res, err
+	return res, lastErr
 }
 
 // ExecOne is an alias for DB.ExecOne.
@@ -197,29 +196,15 @@ func (tx *Tx) query(
 	}
 
 	var res *result
-	err = tx.withConn(c, func(c context.Context, cn *pool.Conn) error {
+	lastErr := tx.withConn(c, func(c context.Context, cn *pool.Conn) error {
 		res, err = tx.db.simpleQueryData(c, cn, model, query, params...)
 		return err
 	})
 
-	if err := tx.db.afterQuery(c, evt, res, err); err != nil {
+	if err := tx.db.afterQuery(c, evt, res, lastErr); err != nil {
 		return nil, err
 	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	if res.model != nil && res.returned > 0 {
-		if m, ok := res.model.(orm.AfterScanHook); ok {
-			err = m.AfterScan(c)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return res, nil
+	return res, lastErr
 }
 
 // QueryOne is an alias for DB.QueryOne.

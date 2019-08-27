@@ -210,8 +210,9 @@ func (db *baseDB) exec(c context.Context, query interface{}, params ...interface
 	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		if attempt > 0 {
-			if err := internal.Sleep(c, db.retryBackoff(attempt-1)); err != nil {
-				return nil, err
+			lastErr = internal.Sleep(c, db.retryBackoff(attempt-1))
+			if lastErr != nil {
+				break
 			}
 		}
 
@@ -227,7 +228,6 @@ func (db *baseDB) exec(c context.Context, query interface{}, params ...interface
 	if err := db.afterQuery(c, evt, res, lastErr); err != nil {
 		return nil, err
 	}
-
 	return res, lastErr
 }
 
@@ -274,8 +274,9 @@ func (db *baseDB) query(c context.Context, model, query interface{}, params ...i
 	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		if attempt > 0 {
-			if err := internal.Sleep(c, db.retryBackoff(attempt-1)); err != nil {
-				return nil, err
+			lastErr = internal.Sleep(c, db.retryBackoff(attempt-1))
+			if lastErr != nil {
+				break
 			}
 		}
 
@@ -291,7 +292,6 @@ func (db *baseDB) query(c context.Context, model, query interface{}, params ...i
 	if err := db.afterQuery(c, evt, res, lastErr); err != nil {
 		return nil, err
 	}
-
 	return res, lastErr
 }
 
