@@ -94,8 +94,9 @@ func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error)
 	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		if attempt > 0 {
-			if err := internal.Sleep(c, stmt.db.retryBackoff(attempt-1)); err != nil {
-				return nil, err
+			lastErr = internal.Sleep(c, stmt.db.retryBackoff(attempt-1))
+			if lastErr != nil {
+				break
 			}
 		}
 
@@ -111,7 +112,6 @@ func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error)
 	if err := stmt.db.afterQuery(c, evt, res, lastErr); err != nil {
 		return nil, err
 	}
-
 	return res, lastErr
 }
 
@@ -159,8 +159,9 @@ func (stmt *Stmt) query(c context.Context, model interface{}, params ...interfac
 	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		if attempt > 0 {
-			if err := internal.Sleep(c, stmt.db.retryBackoff(attempt-1)); err != nil {
-				return nil, err
+			lastErr = internal.Sleep(c, stmt.db.retryBackoff(attempt-1))
+			if lastErr != nil {
+				break
 			}
 		}
 
@@ -176,7 +177,6 @@ func (stmt *Stmt) query(c context.Context, model interface{}, params ...interfac
 	if err := stmt.db.afterQuery(c, evt, res, lastErr); err != nil {
 		return nil, err
 	}
-
 	return res, lastErr
 }
 
