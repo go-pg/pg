@@ -133,7 +133,12 @@ func forAllValues(q *Query, field string, values []string, queryTemplate, queryA
 	if len(values) > 1 {
 		q = q.Where(queryArrayTemplate, types.F(field), types.InSlice(values))
 	} else {
-		q = q.Where(queryTemplate, types.F(field), values[0])
+		if values[0] == "null" {
+			queryTemplate := strings.Replace(queryTemplate, "= ?", "is null", -1)
+			q = q.Where(queryTemplate, types.F(field))
+		} else {
+			q = q.Where(queryTemplate, types.F(field), values[0])
+		}
 	}
 	return q
 }
