@@ -75,7 +75,7 @@ func newField(sf reflect.StructField) *Field {
 	_, f.noDecode = pgTag.Options["nodecode"]
 	_, f.noWhere = pgTag.Options["nowhere"]
 	if f.required && f.noWhere {
-		err := fmt.Errorf("required and nowhere tags can't be set together")
+		err := fmt.Errorf("pg: required and nowhere tags can't be set together")
 		panic(err)
 	}
 

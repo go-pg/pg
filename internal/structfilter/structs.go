@@ -6,21 +6,18 @@ import (
 	"sync"
 )
 
-var _structs = newStructs()
+var globalStructs = newStructs()
 
 func GetStruct(typ reflect.Type) *Struct {
-	return _structs.Get(typ)
+	return globalStructs.Get(typ)
 }
 
 type structs struct {
-	mu      sync.RWMutex
-	structs map[reflect.Type]*Struct
+	structs sync.Map
 }
 
 func newStructs() *structs {
-	return &structs{
-		structs: make(map[reflect.Type]*Struct),
-	}
+	return &structs{}
 }
 
 func (s *structs) Get(typ reflect.Type) *Struct {
@@ -28,24 +25,13 @@ func (s *structs) Get(typ reflect.Type) *Struct {
 		panic(fmt.Errorf("got %s, wanted %s", typ.Kind(), reflect.Struct))
 	}
 
-	s.mu.RLock()
-	strct, ok := s.structs[typ]
-	s.mu.RUnlock()
-	if ok {
-		return strct
+	if v, ok := s.structs.Load(typ); ok {
+		return v.(*Struct)
 	}
 
-	s.mu.Lock()
-
-	strct, ok = s.structs[typ]
-	if ok {
-		s.mu.Unlock()
-		return strct
+	strct := NewStruct(typ)
+	if v, loaded := s.structs.LoadOrStore(typ, strct); loaded {
+		return v.(*Struct)
 	}
-
-	strct = NewStruct(typ)
-	s.structs[typ] = strct
-
-	s.mu.Unlock()
 	return strct
 }
