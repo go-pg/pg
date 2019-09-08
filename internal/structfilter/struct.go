@@ -23,7 +23,7 @@ func NewStruct(typ reflect.Type) *Struct {
 }
 
 func (s *Struct) Field(name string) *Field {
-	col, opCode, _ := splitColumnOperator(name, "__")
+	col, opCode, _ := splitColumnOperator(name)
 	for _, f := range s.Fields {
 		if f.Column == col && f.opCode == opCode {
 			return f
