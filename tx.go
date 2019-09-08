@@ -121,7 +121,7 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 
 // Exec is an alias for DB.Exec.
 func (tx *Tx) Exec(query interface{}, params ...interface{}) (Result, error) {
-	return tx.exec(context.Background(), query, params...)
+	return tx.exec(tx.ctx, query, params...)
 }
 
 // ExecContext acts like Exec but additionally receives a context
@@ -149,7 +149,7 @@ func (tx *Tx) exec(c context.Context, query interface{}, params ...interface{}) 
 
 // ExecOne is an alias for DB.ExecOne.
 func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (Result, error) {
-	return tx.execOne(context.Background(), query, params...)
+	return tx.execOne(tx.ctx, query, params...)
 }
 
 // ExecOneContext acts like ExecOne but additionally receives a context
@@ -171,7 +171,7 @@ func (tx *Tx) execOne(c context.Context, query interface{}, params ...interface{
 
 // Query is an alias for DB.Query.
 func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{}) (Result, error) {
-	return tx.query(context.Background(), model, query, params...)
+	return tx.query(tx.ctx, model, query, params...)
 }
 
 // QueryContext acts like Query but additionally receives a context
@@ -209,7 +209,7 @@ func (tx *Tx) query(
 
 // QueryOne is an alias for DB.QueryOne.
 func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface{}) (Result, error) {
-	return tx.queryOne(context.Background(), model, query, params...)
+	return tx.queryOne(tx.ctx, model, query, params...)
 }
 
 // QueryOneContext acts like QueryOne but additionally receives a context
