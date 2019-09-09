@@ -80,12 +80,14 @@ func newField(sf reflect.StructField) *Field {
 	}
 
 	filterName := filterName(f.name)
+	const sep = "_"
+
 	if f.IsSlice {
-		f.Column, f.opCode, f.OpValue = splitSliceColumnOperator(filterName)
+		f.Column, f.opCode, f.OpValue = splitSliceColumnOperator(filterName, sep)
 		f.Scan = arrayScanner(sf.Type)
 		f.Append = types.ArrayAppender(sf.Type)
 	} else {
-		f.Column, f.opCode, f.OpValue = splitColumnOperator(filterName)
+		f.Column, f.opCode, f.OpValue = splitColumnOperator(filterName, sep)
 		f.Scan = scanner(sf.Type)
 		f.Append = types.Appender(sf.Type)
 	}
@@ -110,9 +112,7 @@ func (f *Field) Omit(value reflect.Value) bool {
 	return !f.required && f.noWhere || f.isZero(value)
 }
 
-func splitColumnOperator(s string) (string, opCode, string) {
-	const sep = "__"
-
+func splitColumnOperator(s, sep string) (string, opCode, string) {
 	ind := strings.Index(s, sep)
 	if ind == -1 {
 		return s, opCodeEq, opEq
@@ -143,9 +143,7 @@ func splitColumnOperator(s string) (string, opCode, string) {
 	}
 }
 
-func splitSliceColumnOperator(s string) (string, opCode, string) {
-	const sep = "__"
-
+func splitSliceColumnOperator(s, sep string) (string, opCode, string) {
 	ind := strings.Index(s, sep)
 	if ind == -1 {
 		return s, opCodeEq, opAny
@@ -166,6 +164,5 @@ func splitSliceColumnOperator(s string) (string, opCode, string) {
 
 func filterName(s string) string {
 	s = internal.Underscore(s)
-	s = strings.ReplaceAll(s, "_", "__")
 	return s
 }
