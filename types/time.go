@@ -3,7 +3,7 @@ package types
 import (
 	"time"
 
-	"github.com/go-pg/pg/internal"
+	"github.com/toptutor/pg/internal"
 )
 
 const (

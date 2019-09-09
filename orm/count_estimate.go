@@ -3,7 +3,7 @@ package orm
 import (
 	"fmt"
 
-	"github.com/go-pg/pg/internal"
+	"github.com/toptutor/pg/internal"
 )
 
 // Placeholder that is replaced with count(*).

@@ -3,7 +3,7 @@ package types_test
 import (
 	"testing"
 
-	"github.com/go-pg/pg/types"
+	"github.com/toptutor/pg/types"
 )
 
 func TestInOp(t *testing.T) {

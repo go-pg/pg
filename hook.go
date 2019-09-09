@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-pg/pg/orm"
+	"github.com/toptutor/pg/orm"
 )
 
 type dummyDB struct {
@@ -102,7 +102,7 @@ func (db *DB) queryProcessed(
 	}
 }
 
-const packageName = "github.com/go-pg/pg"
+const packageName = "github.com/toptutor/pg"
 
 func fileLine(depth int) (string, string, int) {
 	for i := depth; ; i++ {

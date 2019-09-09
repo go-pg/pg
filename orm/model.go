@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-pg/pg/types"
+	"github.com/toptutor/pg/types"
 )
 
 type useQueryOne interface {

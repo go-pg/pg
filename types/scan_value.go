@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/go-pg/pg/internal"
+	"github.com/toptutor/pg/internal"
 )
 
 var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()

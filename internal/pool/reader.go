@@ -3,7 +3,7 @@ package pool
 import (
 	"encoding/binary"
 
-	"github.com/go-pg/pg/internal"
+	"github.com/toptutor/pg/internal"
 )
 
 type Reader struct {

@@ -1,6 +1,6 @@
 package types
 
-import "github.com/go-pg/pg/internal/parser"
+import "github.com/toptutor/pg/internal/parser"
 
 func AppendField(b []byte, field string, quote int) []byte {
 	return appendField(b, parser.NewString(field), quote)

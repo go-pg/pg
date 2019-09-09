@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-pg/pg/internal"
-	"github.com/go-pg/pg/internal/parser"
+	"github.com/toptutor/pg/internal"
+	"github.com/toptutor/pg/internal/parser"
 )
 
 func ArrayScanner(typ reflect.Type) ScannerFunc {

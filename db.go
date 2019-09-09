@@ -6,9 +6,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/go-pg/pg/internal"
-	"github.com/go-pg/pg/internal/pool"
-	"github.com/go-pg/pg/orm"
+	"github.com/toptutor/pg/internal"
+	"github.com/toptutor/pg/internal/pool"
+	"github.com/toptutor/pg/orm"
 )
 
 // Connect connects to a database using provided options.

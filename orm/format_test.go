@@ -7,8 +7,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/go-pg/pg/orm"
-	"github.com/go-pg/pg/types"
+	"github.com/toptutor/pg/orm"
+	"github.com/toptutor/pg/types"
 )
 
 type ValuerError string
