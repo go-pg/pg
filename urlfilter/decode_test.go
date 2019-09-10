@@ -40,6 +40,7 @@ type Filter struct {
 	NullFloat64 sql.NullFloat64
 	NullString  sql.NullString
 
+	Map    map[string]string
 	Custom CustomField
 
 	Omit []byte `pg:"-"`
@@ -65,6 +66,11 @@ var _ = Describe("Decode", func() {
 			"null_int64":   {"1234"},
 			"null_float64": {"1.234"},
 			"null_string":  {"string"},
+
+			"map[foo]":   {`bar`},
+			"map[hello]": {`world`},
+			"map[]":      {"invalid"},
+			"map][":      {"invalid"},
 
 			"custom": {"custom"},
 		})
@@ -94,6 +100,7 @@ var _ = Describe("Decode", func() {
 		Expect(f.NullString.Valid).To(BeTrue())
 		Expect(f.NullString.String).To(Equal("string"))
 
+		Expect(f.Map).To(Equal(map[string]string{"foo": "bar", "hello": "world"}))
 		Expect(f.Custom.s).To(Equal("custom"))
 	})
 
