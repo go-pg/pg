@@ -14,6 +14,14 @@ import (
 	"github.com/go-pg/pg/v9/types"
 )
 
+type queryFlag uint8
+
+const (
+	implicitModelFlag queryFlag = 1 << iota
+	deletedFlag
+	allWithDeletedFlag
+)
+
 type withQuery struct {
 	name  string
 	query QueryAppender
@@ -33,13 +41,10 @@ type columnValue struct {
 	value  *queryParamsAppender
 }
 
-type queryFlag uint8
-
-const (
-	implicitModelFlag queryFlag = 1 << iota
-	deletedFlag
-	allWithDeletedFlag
-)
+type union struct {
+	expr  string
+	query *Query
+}
 
 type Query struct {
 	ctx       context.Context
@@ -58,16 +63,18 @@ type Query struct {
 	extraValues  []*columnValue
 	where        []queryWithSepAppender
 	updWhere     []queryWithSepAppender
-	joins        []*joinQuery
-	joinAppendOn func(app *condAppender)
 	group        []QueryAppender
 	having       []*queryParamsAppender
+	union        []*union
+	joins        []*joinQuery
+	joinAppendOn func(app *condAppender)
 	order        []QueryAppender
-	onConflict   *queryParamsAppender
-	returning    []*queryParamsAppender
 	limit        int
 	offset       int
 	selFor       *queryParamsAppender
+
+	onConflict *queryParamsAppender
+	returning  []*queryParamsAppender
 }
 
 func NewQuery(db DB, model ...interface{}) *Query {
@@ -119,12 +126,14 @@ func (q *Query) Clone() *Query {
 		joins:       q.joins[:len(q.joins):len(q.joins)],
 		group:       q.group[:len(q.group):len(q.group)],
 		having:      q.having[:len(q.having):len(q.having)],
+		union:       q.union[:len(q.union):len(q.union)],
 		order:       q.order[:len(q.order):len(q.order)],
-		onConflict:  q.onConflict,
-		returning:   q.returning[:len(q.returning):len(q.returning)],
 		limit:       q.limit,
 		offset:      q.offset,
 		selFor:      q.selFor,
+
+		onConflict: q.onConflict,
+		returning:  q.returning[:len(q.returning):len(q.returning)],
 	}
 
 	return copy
@@ -631,6 +640,38 @@ func (q *Query) GroupExpr(group string, params ...interface{}) *Query {
 
 func (q *Query) Having(having string, params ...interface{}) *Query {
 	q.having = append(q.having, &queryParamsAppender{having, params})
+	return q
+}
+
+func (q *Query) Union(other *Query) *Query {
+	return q.addUnion(" UNION ", other)
+}
+
+func (q *Query) UnionAll(other *Query) *Query {
+	return q.addUnion(" UNION ALL ", other)
+}
+
+func (q *Query) Intersect(other *Query) *Query {
+	return q.addUnion(" INTERSECT ", other)
+}
+
+func (q *Query) IntersectAll(other *Query) *Query {
+	return q.addUnion(" INTERSECT ALL ", other)
+}
+
+func (q *Query) Except(other *Query) *Query {
+	return q.addUnion(" EXCEPT ", other)
+}
+
+func (q *Query) ExceptAll(other *Query) *Query {
+	return q.addUnion(" EXCEPT ALL ", other)
+}
+
+func (q *Query) addUnion(expr string, other *Query) *Query {
+	q.union = append(q.union, &union{
+		expr:  expr,
+		query: other,
+	})
 	return q
 }
 
