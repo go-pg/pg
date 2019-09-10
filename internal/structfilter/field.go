@@ -51,9 +51,9 @@ type Field struct {
 	required bool
 	noWhere  bool
 
-	Scan   ScanFunc
-	Append types.AppenderFunc
-	isZero iszero.Func
+	ScanValue   ScanFunc
+	AppendValue types.AppenderFunc
+	isZeroValue iszero.Func
 }
 
 func newField(sf reflect.StructField) *Field {
@@ -79,21 +79,21 @@ func newField(sf reflect.StructField) *Field {
 		panic(err)
 	}
 
-	filterName := filterName(f.name)
+	name := internal.Underscore(f.name)
 	const sep = "_"
 
 	if f.IsSlice {
-		f.Column, f.opCode, f.OpValue = splitSliceColumnOperator(filterName, sep)
-		f.Scan = arrayScanner(sf.Type)
-		f.Append = types.ArrayAppender(sf.Type)
+		f.Column, f.opCode, f.OpValue = splitSliceColumnOperator(name, sep)
+		f.ScanValue = arrayScanner(sf.Type)
+		f.AppendValue = types.ArrayAppender(sf.Type)
 	} else {
-		f.Column, f.opCode, f.OpValue = splitColumnOperator(filterName, sep)
-		f.Scan = scanner(sf.Type)
-		f.Append = types.Appender(sf.Type)
+		f.Column, f.opCode, f.OpValue = splitColumnOperator(name, sep)
+		f.ScanValue = scanner(sf.Type)
+		f.AppendValue = types.Appender(sf.Type)
 	}
-	f.isZero = iszero.Checker(sf.Type)
+	f.isZeroValue = iszero.Checker(sf.Type)
 
-	if f.Scan == nil || f.Append == nil {
+	if f.ScanValue == nil || f.AppendValue == nil {
 		return nil
 	}
 
@@ -109,7 +109,7 @@ func (f *Field) Value(strct reflect.Value) reflect.Value {
 }
 
 func (f *Field) Omit(value reflect.Value) bool {
-	return !f.required && f.noWhere || f.isZero(value)
+	return !f.required && f.noWhere || f.isZeroValue(value)
 }
 
 func splitColumnOperator(s, sep string) (string, opCode, string) {
@@ -160,9 +160,4 @@ func splitSliceColumnOperator(s, sep string) (string, opCode, string) {
 	default:
 		return s, opCodeEq, opAny
 	}
-}
-
-func filterName(s string) string {
-	s = internal.Underscore(s)
-	return s
 }

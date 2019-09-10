@@ -2,6 +2,7 @@ package structfilter
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/vmihailenco/tagparser"
 
@@ -20,6 +21,17 @@ func NewStruct(typ reflect.Type) *Struct {
 	}
 	addFields(s, typ, nil)
 	return s
+}
+
+func (s *Struct) Decode(strct reflect.Value, name string, values []string) error {
+	name = strings.TrimPrefix(name, ":")
+	name = strings.TrimSuffix(name, "[]")
+
+	field := s.Field(name)
+	if field == nil || field.NoDecode() {
+		return nil
+	}
+	return field.ScanValue(field.Value(strct), values)
 }
 
 func (s *Struct) Field(name string) *Field {
