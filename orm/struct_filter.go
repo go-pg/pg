@@ -59,7 +59,7 @@ func (sf *structFilter) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, err
 		if isPlaceholder {
 			b = append(b, '?')
 		} else {
-			b = f.Append(b, fv, 1)
+			b = f.AppendValue(b, fv, 1)
 		}
 		if f.IsSlice {
 			b = append(b, ')')

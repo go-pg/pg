@@ -11,13 +11,16 @@ import (
 	"github.com/go-pg/pg/v9/types"
 )
 
-var textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
-var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
-var durationType = reflect.TypeOf((*time.Duration)(nil)).Elem()
-var nullBoolType = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
-var nullInt64Type = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
-var nullFloat64Type = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
-var nullStringType = reflect.TypeOf((*sql.NullString)(nil)).Elem()
+var (
+	textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
+	timeType            = reflect.TypeOf((*time.Time)(nil)).Elem()
+	durationType        = reflect.TypeOf((*time.Duration)(nil)).Elem()
+	nullBoolType        = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
+	nullInt64Type       = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
+	nullFloat64Type     = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
+	nullStringType      = reflect.TypeOf((*sql.NullString)(nil)).Elem()
+	mapStringStringType = reflect.TypeOf((*map[string]string)(nil)).Elem()
+)
 
 type ScanFunc func(v reflect.Value, values []string) error
 
@@ -44,6 +47,8 @@ func scanner(typ reflect.Type) ScanFunc {
 		return scanNullFloat64
 	case nullStringType:
 		return scanNullString
+	case mapStringStringType:
+		return scanMapStringString
 	}
 
 	switch typ.Kind() {
@@ -249,6 +254,19 @@ func scanNullString(v reflect.Value, values []string) error {
 	value.String = s
 	v.Set(reflect.ValueOf(value))
 
+	return nil
+}
+
+func scanMapStringString(v reflect.Value, values []string) error {
+	if len(values)%2 != 0 {
+		return nil
+	}
+
+	m := make(map[string]string)
+	for i := 0; i < len(values); i += 2 {
+		m[values[i]] = values[i+1]
+	}
+	v.Set(reflect.ValueOf(m))
 	return nil
 }
 
