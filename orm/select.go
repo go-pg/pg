@@ -154,6 +154,14 @@ func (q *selectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		}
 	}
 
+	for _, u := range q.q.union {
+		b = append(b, u.expr...)
+		b, err = u.query.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	if q.count == "" {
 		if len(q.q.order) > 0 {
 			b = append(b, " ORDER BY "...)

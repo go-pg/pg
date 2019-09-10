@@ -310,6 +310,16 @@ var _ = Describe("With", func() {
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`WITH "wrapper" AS (DELETE FROM "select_models" AS "select_model" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
 	})
+
+	It("supports Union", func() {
+		q1 := NewQuery(nil, &SelectModel{}).Where("1 = 1")
+		q := NewQuery(nil, &SelectModel{}).
+			Where("2 = 2").
+			Union(q1)
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" WHERE (2 = 2) UNION SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" WHERE (1 = 1)`))
+	})
 })
 
 type orderTest struct {
