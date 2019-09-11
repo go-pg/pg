@@ -113,7 +113,7 @@ func (f *Field) Omit(value reflect.Value) bool {
 }
 
 func splitColumnOperator(s, sep string) (string, opCode, string) {
-	ind := strings.Index(s, sep)
+	ind := strings.LastIndex(s, sep)
 	if ind == -1 {
 		return s, opCodeEq, opEq
 	}
@@ -144,7 +144,7 @@ func splitColumnOperator(s, sep string) (string, opCode, string) {
 }
 
 func splitSliceColumnOperator(s, sep string) (string, opCode, string) {
-	ind := strings.Index(s, sep)
+	ind := strings.LastIndex(s, sep)
 	if ind == -1 {
 		return s, opCodeEq, opAny
 	}

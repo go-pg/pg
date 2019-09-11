@@ -33,7 +33,8 @@ type Filter struct {
 	Multi    []string
 	MultiNEQ []int
 
-	Time time.Time
+	Time         time.Time
+	StartTimeGTE time.Time
 
 	NullBool    sql.NullBool
 	NullInt64   sql.NullInt64
@@ -60,7 +61,8 @@ var _ = Describe("Decode", func() {
 			"multi":      {"one", "two"},
 			"multi__neq": {"3", "4"},
 
-			"time": {"1970-01-01 00:00:00+00:00:00"},
+			"time":            {"1970-01-01 00:00:00+00:00:00"},
+			"start_time__gte": {"1970-01-01 00:00:00+00:00:00"},
 
 			"null_bool":    {"t"},
 			"null_int64":   {"1234"},
@@ -87,6 +89,7 @@ var _ = Describe("Decode", func() {
 		Expect(f.MultiNEQ).To(Equal([]int{3, 4}))
 
 		Expect(f.Time).To(BeTemporally("==", time.Unix(0, 0)))
+		Expect(f.StartTimeGTE).To(BeTemporally("==", time.Unix(0, 0)))
 
 		Expect(f.NullBool.Valid).To(BeTrue())
 		Expect(f.NullBool.Bool).To(BeTrue())
