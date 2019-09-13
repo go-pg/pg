@@ -19,7 +19,11 @@ type BadConnError struct {
 var _ error = (*BadConnError)(nil)
 
 func (e BadConnError) Error() string {
-	return "pg: Conn is in a bad state"
+	s := "pg: Conn is in a bad state"
+	if e.wrapped != nil {
+		s += ": " + e.wrapped.Error()
+	}
+	return s
 }
 
 func (e BadConnError) Unwrap() error {
