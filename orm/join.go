@@ -132,7 +132,7 @@ func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 		}
 		join = append(join, j.Rel.M2MTableAlias...)
 		join = append(join, '.')
-		join = append(join, col...)
+		join = types.AppendField(join, col, 1)
 	}
 	join = append(join, ") IN ("...)
 	join = appendChildValues(join, j.BaseModel.Root(), index, baseTable.PKs)
