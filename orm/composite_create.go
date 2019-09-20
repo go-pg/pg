@@ -61,8 +61,8 @@ func (q *createCompositeQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]by
 
 		b = append(b, field.Column...)
 		b = append(b, " "...)
-		if q.opt != nil && q.opt.Varchar > 0 &&
-			field.SQLType == "text" && !field.HasFlag(customTypeFlag) {
+		if field.UserSQLType == "" && q.opt != nil && q.opt.Varchar > 0 &&
+			field.SQLType == "text" {
 			b = append(b, "varchar("...)
 			b = strconv.AppendInt(b, int64(q.opt.Varchar), 10)
 			b = append(b, ")"...)

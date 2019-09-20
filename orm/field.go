@@ -15,7 +15,6 @@ const (
 	UseZeroFlag
 	UniqueFlag
 	ArrayFlag
-	customTypeFlag
 )
 
 type Field struct {
@@ -23,13 +22,14 @@ type Field struct {
 	Type  reflect.Type
 	Index []int
 
-	GoName   string  // struct field name, e.g. Id
-	SQLName  string  // SQL name, .e.g. id
-	Column   types.Q // escaped SQL name, e.g. "id"
-	SQLType  string
-	Default  types.Q
-	OnDelete string
-	OnUpdate string
+	GoName      string  // struct field name, e.g. Id
+	SQLName     string  // SQL name, .e.g. id
+	Column      types.Q // escaped SQL name, e.g. "id"
+	SQLType     string
+	UserSQLType string
+	Default     types.Q
+	OnDelete    string
+	OnUpdate    string
 
 	flags uint8
 
