@@ -38,6 +38,17 @@ type Options struct {
 	// TLS config for secure connections.
 	TLSConfig *tls.Config
 
+	// Dial timeout for establishing new connections.
+	// Default is 5 seconds.
+	DialTimeout time.Duration
+
+	// Timeout for socket reads. If reached, commands will fail
+	// with a timeout instead of blocking.
+	ReadTimeout time.Duration
+	// Timeout for socket writes. If reached, commands will fail
+	// with a timeout instead of blocking.
+	WriteTimeout time.Duration
+
 	// Hook that is called after new connection is established
 	// and user is authenticated.
 	OnConnect func(*Conn) error
@@ -53,17 +64,6 @@ type Options struct {
 	// Maximum backoff between each retry.
 	// Default is 4 seconds; -1 disables backoff.
 	MaxRetryBackoff time.Duration
-
-	// Dial timeout for establishing new connections.
-	// Default is 5 seconds.
-	DialTimeout time.Duration
-
-	// Timeout for socket reads. If reached, commands will fail
-	// with a timeout instead of blocking.
-	ReadTimeout time.Duration
-	// Timeout for socket writes. If reached, commands will fail
-	// with a timeout instead of blocking.
-	WriteTimeout time.Duration
 
 	// Maximum number of socket connections.
 	// Default is 10 connections per every CPU as reported by runtime.NumCPU.
