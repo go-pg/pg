@@ -517,7 +517,7 @@ func (t *Table) initRelations() {
 }
 
 func (t *Table) tryRelation(field *Field) bool {
-	if field.HasFlag(customTypeFlag) || isScanner(field.Type) {
+	if field.UserSQLType != "" || isScanner(field.Type) {
 		return false
 	}
 
@@ -735,22 +735,19 @@ func isScanner(typ reflect.Type) bool {
 func fieldSQLType(field *Field, pgTag, sqlTag *tagparser.Tag) string {
 	if typ, ok := sqlTag.Options["type"]; ok {
 		typ, _ = tagparser.Unquote(typ)
+		field.UserSQLType = typ
 		typ = normalizeSQLType(typ)
-		field.SetFlag(customTypeFlag)
 		return typ
 	}
 
 	if typ, ok := sqlTag.Options["composite"]; ok {
-		field.SetFlag(customTypeFlag)
 		typ, _ = tagparser.Unquote(typ)
 		return typ
 	}
 
 	if _, ok := sqlTag.Options["hstore"]; ok {
-		field.SetFlag(customTypeFlag)
 		return "hstore"
 	} else if _, ok := pgTag.Options["hstore"]; ok {
-		field.SetFlag(customTypeFlag)
 		return "hstore"
 	}
 
@@ -763,11 +760,6 @@ func fieldSQLType(field *Field, pgTag, sqlTag *tagparser.Tag) string {
 	}
 
 	sqlType := sqlType(field.Type)
-
-	if sqlType == "timestamptz" {
-		field.SetFlag(customTypeFlag)
-	}
-
 	return sqlType
 }
 
@@ -827,7 +819,7 @@ func normalizeSQLType(s string) string {
 		return pgTypeSmallint
 	case "int4", "int", "serial":
 		return pgTypeInteger
-	case "int8", "bigserial":
+	case "int8", pgTypeBigserial:
 		return pgTypeBigint
 	case "float4":
 		return pgTypeReal
