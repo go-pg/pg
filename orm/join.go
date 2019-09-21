@@ -132,7 +132,7 @@ func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 		}
 		join = append(join, j.Rel.M2MTableAlias...)
 		join = append(join, '.')
-		join = types.AppendField(join, col, 1)
+		join = types.AppendIdent(join, col, 1)
 	}
 	join = append(join, ") IN ("...)
 	join = appendChildValues(join, j.BaseModel.Root(), index, baseTable.PKs)
@@ -219,7 +219,7 @@ func (j *join) appendHasOneColumns(b []byte) []byte {
 		}
 		b = j.appendAlias(b)
 		b = append(b, '.')
-		b = types.AppendField(b, column, 1)
+		b = types.AppendIdent(b, column, 1)
 		b = append(b, " AS "...)
 		b = j.appendAliasColumn(b, column)
 	}
@@ -319,7 +319,7 @@ func (q *hasManyColumnsAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]
 			}
 			b = append(b, joinTable.Alias...)
 			b = append(b, '.')
-			b = types.AppendField(b, column, 1)
+			b = types.AppendIdent(b, column, 1)
 		}
 		return b, nil
 	}

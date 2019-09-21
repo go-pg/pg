@@ -110,7 +110,7 @@ type fieldAppender struct {
 var _ QueryAppender = (*fieldAppender)(nil)
 
 func (a fieldAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
-	return types.AppendField(b, a.field, 1), nil
+	return types.AppendIdent(b, a.field, 1), nil
 }
 
 //------------------------------------------------------------------------------

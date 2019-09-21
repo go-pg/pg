@@ -2,15 +2,15 @@ package types
 
 import "github.com/go-pg/pg/v9/internal"
 
-func AppendField(b []byte, field string, flags int) []byte {
-	return appendField(b, internal.StringToBytes(field), flags)
+func AppendIdent(b []byte, field string, flags int) []byte {
+	return appendIdent(b, internal.StringToBytes(field), flags)
 }
 
-func AppendFieldBytes(b []byte, field []byte, flags int) []byte {
-	return appendField(b, field, flags)
+func AppendIdentBytes(b []byte, field []byte, flags int) []byte {
+	return appendIdent(b, field, flags)
 }
 
-func appendField(b, src []byte, flags int) []byte {
+func appendIdent(b, src []byte, flags int) []byte {
 	var quoted bool
 loop:
 	for _, c := range src {

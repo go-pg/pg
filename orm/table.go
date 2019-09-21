@@ -1006,5 +1006,5 @@ func tryUnderscorePrefix(s string) string {
 }
 
 func quoteIdent(s string) types.Safe {
-	return types.Safe(types.AppendField(nil, s, 1))
+	return types.Safe(types.AppendIdent(nil, s, 1))
 }

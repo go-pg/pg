@@ -48,7 +48,7 @@ type Ident string
 var _ ValueAppender = (*Ident)(nil)
 
 func (f Ident) AppendValue(b []byte, flags int) ([]byte, error) {
-	return AppendField(b, string(f), flags), nil
+	return AppendIdent(b, string(f), flags), nil
 }
 
 //------------------------------------------------------------------------------
@@ -63,7 +63,7 @@ func (f F) AppendValue(b []byte, flags int) ([]byte, error) {
 	fWarn.Do(func() {
 		internal.Logger.Printf("DEPRECATED: types.F is replaced with types.Ident")
 	})
-	return AppendField(b, string(f), flags), nil
+	return AppendIdent(b, string(f), flags), nil
 }
 
 //------------------------------------------------------------------------------
