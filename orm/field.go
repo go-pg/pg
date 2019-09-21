@@ -22,12 +22,12 @@ type Field struct {
 	Type  reflect.Type
 	Index []int
 
-	GoName      string  // struct field name, e.g. Id
-	SQLName     string  // SQL name, .e.g. id
-	Column      types.Q // escaped SQL name, e.g. "id"
+	GoName      string     // struct field name, e.g. Id
+	SQLName     string     // SQL name, .e.g. id
+	Column      types.Safe // escaped SQL name, e.g. "id"
 	SQLType     string
 	UserSQLType string
-	Default     types.Q
+	Default     types.Safe
 	OnDelete    string
 	OnUpdate    string
 

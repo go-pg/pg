@@ -11,7 +11,7 @@ import (
 )
 
 type Struct struct {
-	TableName types.Q
+	TableName types.Safe
 	Fields    []*Field
 }
 
@@ -71,7 +71,7 @@ func addFields(s *Struct, typ reflect.Type, baseIndex []int) {
 		if sf.Name == "tableName" {
 			sqlTag := tagparser.Parse(sf.Tag.Get("sql"))
 			name, _ := tagparser.Unquote(sqlTag.Name)
-			s.TableName = types.Q(internal.QuoteTableName(name))
+			s.TableName = types.Safe(internal.QuoteTableName(name))
 			continue
 		}
 

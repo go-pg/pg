@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"strconv"
+	"sync"
 
 	"github.com/go-pg/pg/v9/internal"
 	"github.com/go-pg/pg/v9/orm"
@@ -34,15 +35,35 @@ func Scan(values ...interface{}) orm.ColumnScanner {
 	return orm.Scan(values...)
 }
 
-// Q replaces any placeholders found in the query.
-func Q(query string, params ...interface{}) types.ValueAppender {
-	return orm.Q(query, params...)
+// Safe replaces any placeholders found in the query.
+func Safe(query string, params ...interface{}) types.ValueAppender {
+	return orm.Safe(query, params...)
 }
 
-// F quotes a SQL identifier such as a table or column name replacing any
+var qWarn sync.Once
+
+// DEPRECATED. Use Safe instead.
+func Q(query string, params ...interface{}) types.ValueAppender {
+	qWarn.Do(func() {
+		internal.Logger.Printf("DEPRECATED: pg.Q is replaced with pg.Safe")
+	})
+	return Safe(query, params...)
+}
+
+// Ident quotes a SQL identifier such as a table or column name replacing any
 // placeholders found in the field.
+func Ident(field string) types.ValueAppender {
+	return types.Ident(field)
+}
+
+var fWarn sync.Once
+
+// DEPRECATED. Use Ident instead.
 func F(field string) types.ValueAppender {
-	return types.F(field)
+	fWarn.Do(func() {
+		internal.Logger.Printf("DEPRECATED: pg.F is replaced with pg.Ident")
+	})
+	return Ident(field)
 }
 
 // In accepts a slice and returns a wrapper that can be used with PostgreSQL

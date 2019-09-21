@@ -147,7 +147,7 @@ func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 		pk := joinTable.PKs[i]
 		q = q.Where("?.? = ?.?",
 			joinTable.Alias, pk.Column,
-			j.Rel.M2MTableAlias, types.F(col))
+			j.Rel.M2MTableAlias, types.Ident(col))
 	}
 
 	return q, nil
