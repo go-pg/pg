@@ -117,7 +117,7 @@ func forEachValue(
 	b []byte, field string, values []string, opValue string,
 ) []byte {
 	for _, value := range values {
-		b = types.AppendField(b, field, 1)
+		b = types.AppendIdent(b, field, 1)
 		b = append(b, opValue...)
 		b = types.AppendString(b, value, 1)
 	}
@@ -131,7 +131,7 @@ func forAllValues(
 		return forEachValue(b, field, values, singleOpValue)
 	}
 
-	b = types.AppendField(b, field, 1)
+	b = types.AppendIdent(b, field, 1)
 	b = append(b, multiOpValue...)
 	b = append(b, '(')
 

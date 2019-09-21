@@ -1487,7 +1487,7 @@ func (q *Query) appendWith(fmter QueryFormatter, b []byte) (_ []byte, err error)
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		b = types.AppendField(b, with.name, 1)
+		b = types.AppendIdent(b, with.name, 1)
 		b = append(b, " AS ("...)
 
 		b, err = with.query.AppendQuery(fmter, b)

@@ -270,7 +270,7 @@ func (q *insertQuery) appendColumns(b []byte, fields []*Field) []byte {
 		if i > 0 || len(fields) > 0 {
 			b = append(b, ", "...)
 		}
-		b = types.AppendField(b, v.column, 1)
+		b = types.AppendIdent(b, v.column, 1)
 	}
 	return b
 }
