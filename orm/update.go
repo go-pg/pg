@@ -325,7 +325,7 @@ func (q *updateQuery) appendValues(
 	return b, nil
 }
 
-func appendWhereColumnAndColumn(b []byte, alias types.Q, fields []*Field) []byte {
+func appendWhereColumnAndColumn(b []byte, alias types.Safe, fields []*Field) []byte {
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, " AND "...)

@@ -12,6 +12,8 @@
 - `Query.Column` does not accept relation name any more. Use `Query.Relation` instead which returns an error if relation does not exist.
 - urlvalues package is renamed to urlfilter.
 - `NewModel` and `AddModel` methods of `HooklessModel` interface were renamed to `NextColumnScanner` and `AddColumnScanner` respectively.
+- `types.F` is deprecated in favor of `types.Ident`.
+- `types.Q` is deprecated in favor of `types.Safe`.
 
 ## v8
 

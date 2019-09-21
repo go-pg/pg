@@ -46,14 +46,14 @@ type Table struct {
 	zeroStruct reflect.Value
 
 	TypeName  string
-	Alias     types.Q
+	Alias     types.Safe
 	ModelName string
 
 	Name               string
-	FullName           types.Q
-	FullNameForSelects types.Q
+	FullName           types.Safe
+	FullNameForSelects types.Safe
 
-	Tablespace types.Q
+	Tablespace types.Safe
 
 	PartitionBy string
 
@@ -132,7 +132,7 @@ func (t *Table) init2() {
 	t.skippedFields = nil
 }
 
-func (t *Table) setName(name types.Q) {
+func (t *Table) setName(name types.Safe) {
 	t.FullName = name
 	t.FullNameForSelects = name
 	if t.Alias == "" {
@@ -308,12 +308,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			t.setName("")
 		} else if sqlTag.Name != "" {
 			s, _ := tagparser.Unquote(sqlTag.Name)
-			t.setName(types.Q(internal.QuoteTableName(s)))
+			t.setName(types.Safe(internal.QuoteTableName(s)))
 		}
 
 		if s, ok := sqlTag.Options["select"]; ok {
 			s, _ = tagparser.Unquote(s)
-			t.FullNameForSelects = types.Q(internal.QuoteTableName(s))
+			t.FullNameForSelects = types.Safe(internal.QuoteTableName(s))
 		}
 
 		if v, ok := sqlTag.Options["alias"]; ok {
@@ -373,9 +373,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	if v, ok := sqlTag.Options["default"]; ok {
 		v, ok = tagparser.Unquote(v)
 		if ok {
-			field.Default = types.Q(types.AppendString(nil, v, 1))
+			field.Default = types.Safe(types.AppendString(nil, v, 1))
 		} else {
-			field.Default = types.Q(v)
+			field.Default = types.Safe(v)
 		}
 	}
 
@@ -551,7 +551,7 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 	if m2mTableName := pgTag.Options["many2many"]; m2mTableName != "" {
 		m2mTable := _tables.getByName(m2mTableName)
 
-		var m2mTableAlias types.Q
+		var m2mTableAlias types.Safe
 		if m2mTable != nil {
 			m2mTableAlias = m2mTable.Alias
 		} else if ind := strings.IndexByte(m2mTableName, '.'); ind >= 0 {
@@ -986,6 +986,6 @@ func tryUnderscorePrefix(s string) string {
 	return s
 }
 
-func quoteID(s string) types.Q {
-	return types.Q(types.AppendField(nil, s, 1))
+func quoteID(s string) types.Safe {
+	return types.Safe(types.AppendField(nil, s, 1))
 }

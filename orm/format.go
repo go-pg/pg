@@ -30,7 +30,7 @@ var _ QueryAppender = (*queryParamsAppender)(nil)
 var _ types.ValueAppender = (*queryParamsAppender)(nil)
 
 //nolint
-func Q(query string, params ...interface{}) *queryParamsAppender {
+func Safe(query string, params ...interface{}) *queryParamsAppender {
 	return &queryParamsAppender{query, params}
 }
 
@@ -42,12 +42,12 @@ func (q *queryParamsAppender) AppendValue(b []byte, quote int) ([]byte, error) {
 	return q.AppendQuery(defaultFmter, b)
 }
 
-func (q *queryParamsAppender) Value() types.Q {
+func (q *queryParamsAppender) Value() types.Safe {
 	b, err := q.AppendValue(nil, 1)
 	if err != nil {
-		return types.Q(err.Error())
+		return types.Safe(err.Error())
 	}
-	return types.Q(internal.BytesToString(b))
+	return types.Safe(internal.BytesToString(b))
 }
 
 //------------------------------------------------------------------------------

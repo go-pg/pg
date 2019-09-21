@@ -196,7 +196,7 @@ func (q createTableQuery) appendFKConstraint(fmter QueryFormatter, b []byte, rel
 	return b
 }
 
-func (q createTableQuery) appendTablespace(b []byte, tableSpace types.Q) []byte {
+func (q createTableQuery) appendTablespace(b []byte, tableSpace types.Safe) []byte {
 	b = append(b, " TABLESPACE "...)
 	b = append(b, tableSpace...)
 	return b

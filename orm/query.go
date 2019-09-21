@@ -690,7 +690,7 @@ loop:
 			switch internal.UpperString(sort) {
 			case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
 				"ASC NULLS LAST", "DESC NULLS LAST":
-				q = q.OrderExpr("? ?", types.F(field), types.Q(sort))
+				q = q.OrderExpr("? ?", types.Ident(field), types.Safe(sort))
 				continue loop
 			}
 		}
@@ -1264,7 +1264,7 @@ func (q *Query) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 // Exists returns true or false depending if there are any rows matching the query.
 func (q *Query) Exists() (bool, error) {
 	cp := q.Clone() // copy to not change original query
-	cp.columns = []QueryAppender{Q("1")}
+	cp.columns = []QueryAppender{Safe("1")}
 	cp.order = nil
 	cp.limit = 1
 	res, err := q.db.ExecContext(q.ctx, newSelectQuery(cp))
@@ -1531,7 +1531,7 @@ func (q wherePKQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error
 }
 
 func appendColumnAndValue(
-	fmter QueryFormatter, b []byte, v reflect.Value, alias types.Q, fields []*Field,
+	fmter QueryFormatter, b []byte, v reflect.Value, alias types.Safe, fields []*Field,
 ) []byte {
 	isPlaceholder := isPlaceholderFormatter(fmter)
 	for i, f := range fields {
@@ -1552,7 +1552,7 @@ func appendColumnAndValue(
 }
 
 func appendColumnAndSliceValue(
-	fmter QueryFormatter, b []byte, slice reflect.Value, alias types.Q, fields []*Field,
+	fmter QueryFormatter, b []byte, slice reflect.Value, alias types.Safe, fields []*Field,
 ) []byte {
 	if len(fields) > 1 {
 		b = append(b, '(')
