@@ -51,7 +51,7 @@ func (m *manyModel) AddColumnScanner(model ColumnScanner) error {
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
 		return fmt.Errorf(
-			"1pg: relation=%q has no base model=%q with id=%q (check join conditions)",
+			"pg: relation=%q has no base model=%q with id=%q (check join conditions)",
 			m.rel.Field.GoName, m.baseTable.TypeName, m.buf)
 	}
 
