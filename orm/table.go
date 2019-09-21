@@ -11,10 +11,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/jinzhu/inflection"
+	"github.com/vmihailenco/tagparser"
+
 	"github.com/go-pg/pg/v9/internal"
 	"github.com/go-pg/pg/v9/internal/iszero"
 	"github.com/go-pg/pg/v9/types"
-	"github.com/vmihailenco/tagparser"
 )
 
 const (
@@ -29,16 +31,26 @@ const (
 	discardUnknownColumnsFlag
 )
 
-var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
-var nullTimeType = reflect.TypeOf((*types.NullTime)(nil)).Elem()
-var ipType = reflect.TypeOf((*net.IP)(nil)).Elem()
-var ipNetType = reflect.TypeOf((*net.IPNet)(nil)).Elem()
-var scannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
-var nullBoolType = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
-var nullFloatType = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
-var nullIntType = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
-var nullStringType = reflect.TypeOf((*sql.NullString)(nil)).Elem()
-var jsonRawMessageType = reflect.TypeOf((*json.RawMessage)(nil)).Elem()
+var (
+	timeType           = reflect.TypeOf((*time.Time)(nil)).Elem()
+	nullTimeType       = reflect.TypeOf((*types.NullTime)(nil)).Elem()
+	ipType             = reflect.TypeOf((*net.IP)(nil)).Elem()
+	ipNetType          = reflect.TypeOf((*net.IPNet)(nil)).Elem()
+	scannerType        = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
+	nullBoolType       = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
+	nullFloatType      = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
+	nullIntType        = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
+	nullStringType     = reflect.TypeOf((*sql.NullString)(nil)).Elem()
+	jsonRawMessageType = reflect.TypeOf((*json.RawMessage)(nil)).Elem()
+)
+
+var tableNameInflector = inflection.Plural
+
+// SetTableNameInflector overrides the default func that pluralizes
+// model name to get table name, e.g. my_article becomes my_articles.
+func SetTableNameInflector(fn func(string) string) {
+	tableNameInflector = fn
+}
 
 // Table represents a SQL table created from Go struct.
 type Table struct {
@@ -82,8 +94,8 @@ func newTable(typ reflect.Type) *Table {
 	t.TypeName = internal.ToExported(t.Type.Name())
 	t.ModelName = internal.Underscore(t.Type.Name())
 	t.Name = tableNameInflector(t.ModelName)
-	t.setName(quoteID(t.Name))
-	t.Alias = quoteID(t.ModelName)
+	t.setName(quoteIdent(t.Name))
+	t.Alias = quoteIdent(t.ModelName)
 
 	typ = reflect.PtrTo(t.Type)
 	if typ.Implements(afterScanHookType) {
@@ -113,7 +125,7 @@ func newTable(typ reflect.Type) *Table {
 
 	for _, hook := range oldHooks {
 		if typ.Implements(hook) {
-			internal.Logger.Printf("model hooks on %s must be updated - "+
+			internal.Logger.Printf("DEPRECATED: model hooks on %s must be updated - "+
 				"see https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName)
 		}
 	}
@@ -263,6 +275,10 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 			pgTag := tagparser.Parse(f.Tag.Get("pg"))
 			_, inherit := pgTag.Options["inherit"]
 			_, override := pgTag.Options["override"]
+			if override {
+				internal.Logger.Printf(
+					`DEPRECATED: %s: replace pg:",override" with pg:",inherit"`, t)
+			}
 			if inherit || override {
 				embeddedTable := _tables.get(fieldType, true)
 				t.TypeName = embeddedTable.TypeName
@@ -288,6 +304,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	switch f.Name {
 	case "tableName", "TableName":
+		if f.Name == "TableName" {
+			internal.Logger.Printf("DEPRECATED: %s: rename TableName to tableName", t)
+		}
 		if len(index) > 0 {
 			return nil
 		}
@@ -295,7 +314,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		tableSpace, ok := sqlTag.Options["tablespace"]
 		if ok {
 			s, _ := tagparser.Unquote(tableSpace)
-			t.Tablespace = quoteID(s)
+			t.Tablespace = quoteIdent(s)
 		}
 
 		partitionType, ok := sqlTag.Options["partitionBy"]
@@ -318,7 +337,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		if v, ok := sqlTag.Options["alias"]; ok {
 			v, _ = tagparser.Unquote(v)
-			t.Alias = quoteID(v)
+			t.Alias = quoteIdent(v)
 		}
 
 		pgTag := tagparser.Parse(f.Tag.Get("pg"))
@@ -352,7 +371,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		GoName:  f.Name,
 		SQLName: sqlTag.Name,
-		Column:  quoteID(sqlTag.Name),
+		Column:  quoteIdent(sqlTag.Name),
 
 		Index: index,
 	}
@@ -555,9 +574,9 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 		if m2mTable != nil {
 			m2mTableAlias = m2mTable.Alias
 		} else if ind := strings.IndexByte(m2mTableName, '.'); ind >= 0 {
-			m2mTableAlias = quoteID(m2mTableName[ind+1:])
+			m2mTableAlias = quoteIdent(m2mTableName[ind+1:])
 		} else {
-			m2mTableAlias = quoteID(m2mTableName)
+			m2mTableAlias = quoteIdent(m2mTableName)
 		}
 
 		var fks []string
@@ -611,7 +630,7 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 			Type:          Many2ManyRelation,
 			Field:         field,
 			JoinTable:     joinTable,
-			M2MTableName:  quoteID(m2mTableName),
+			M2MTableName:  quoteIdent(m2mTableName),
 			M2MTableAlias: m2mTableAlias,
 			BaseFKs:       fks,
 			JoinFKs:       joinFKs,
@@ -702,7 +721,7 @@ func (t *Table) inlineFields(strct *Field, path map[reflect.Type]struct{}) {
 		f = f.Clone()
 		f.GoName = strct.GoName + "_" + f.GoName
 		f.SQLName = strct.SQLName + "__" + f.SQLName
-		f.Column = quoteID(f.SQLName)
+		f.Column = quoteIdent(f.SQLName)
 		f.Index = appendNew(strct.Index, f.Index...)
 
 		t.fieldsMapMu.Lock()
@@ -986,6 +1005,6 @@ func tryUnderscorePrefix(s string) string {
 	return s
 }
 
-func quoteID(s string) types.Safe {
+func quoteIdent(s string) types.Safe {
 	return types.Safe(types.AppendField(nil, s, 1))
 }

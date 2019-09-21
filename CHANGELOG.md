@@ -14,6 +14,8 @@
 - `NewModel` and `AddModel` methods of `HooklessModel` interface were renamed to `NextColumnScanner` and `AddColumnScanner` respectively.
 - `types.F` is deprecated in favor of `types.Ident`.
 - `types.Q` is deprecated in favor of `types.Safe`.
+- `TableName` field is deprecated in favor of `tableName`.
+- `pg:",override"` is deprecated in favor of `pg:",inherit"`.
 
 ## v8
 
