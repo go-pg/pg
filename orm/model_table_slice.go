@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/go-pg/pg/v9/internal"
 	"github.com/go-pg/pg/v9/types"
 )
 
@@ -14,6 +15,7 @@ type sliceTableModel struct {
 	slice      reflect.Value
 	sliceLen   int
 	sliceOfPtr bool
+	nextElem   func() reflect.Value
 }
 
 var _ TableModel = (*sliceTableModel)(nil)
@@ -26,6 +28,7 @@ func newSliceTableModel(slice reflect.Value, elemType reflect.Type) *sliceTableM
 		},
 		slice:    slice,
 		sliceLen: slice.Len(),
+		nextElem: internal.MakeSliceNextElemFunc(slice),
 	}
 	m.init(slice.Type())
 	return m
@@ -143,29 +146,6 @@ func (m *sliceTableModel) AfterDelete(c context.Context) error {
 		return callAfterDeleteHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return nil
-}
-
-func (m *sliceTableModel) nextElem() reflect.Value {
-	if m.slice.Len() < m.slice.Cap() {
-		m.slice.Set(m.slice.Slice(0, m.slice.Len()+1))
-		elem := m.slice.Index(m.slice.Len() - 1)
-		if m.sliceOfPtr {
-			if elem.IsNil() {
-				elem.Set(reflect.New(elem.Type().Elem()))
-			}
-			return elem.Elem()
-		}
-		return elem
-	}
-
-	if m.sliceOfPtr {
-		elem := reflect.New(m.table.Type)
-		m.slice.Set(reflect.Append(m.slice, elem))
-		return elem.Elem()
-	}
-
-	m.slice.Set(reflect.Append(m.slice, m.table.zeroStruct))
-	return m.slice.Index(m.slice.Len() - 1)
 }
 
 func (m *sliceTableModel) setSoftDeleteField() {
