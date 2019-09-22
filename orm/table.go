@@ -382,11 +382,15 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	if v, ok := sqlTag.Options["unique"]; ok {
 		if v == "" {
 			field.SetFlag(UniqueFlag)
-		} else {
+		}
+		// Split the value by comma, this will allow multiple names to be specified.
+		// We can use this to create multiple named unique constraints where a single column
+		// might be included in multiple constraints.
+		for _, uniqueName := range strings.Split(strings.ReplaceAll(v, "'", ""), ",") {
 			if t.Unique == nil {
 				t.Unique = make(map[string][]*Field)
 			}
-			t.Unique[v] = append(t.Unique[v], field)
+			t.Unique[uniqueName] = append(t.Unique[uniqueName], field)
 		}
 	}
 	if v, ok := sqlTag.Options["default"]; ok {

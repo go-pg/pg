@@ -84,6 +84,13 @@ type CreateTableWithHashPartition struct {
 	String    string
 }
 
+type CreateTableWithMultipleNamedUniques struct {
+	ID               int    `sql:",pk"`
+	AccountID        int    `sql:",unique:'per_account,per_store'"`
+	OrderNumber      string `sql:",unique:per_account"`
+	StoreOrderNumber string `sql:",unique:per_store"`
+}
+
 var _ = Describe("CreateTable", func() {
 	It("creates new table", func() {
 		q := NewQuery(nil, &CreateTableModel{})
@@ -139,6 +146,13 @@ var _ = Describe("CreateTable", func() {
 
 		s := createTableQueryString(q, &CreateTableOptions{})
 		Expect(s).To(Equal(`CREATE TABLE "create_table_with_hash_partitions" ("id" int DEFAULT 0, "account_id" bigint, "string" text, PRIMARY KEY ("id")) PARTITION BY HASH (account_id)`))
+	})
+
+	It("creates new table with multiple named unique constraints", func() {
+		q := NewQuery(nil, &CreateTableWithMultipleNamedUniques{})
+
+		s := createTableQueryString(q, &CreateTableOptions{})
+		Expect(s).To(Equal(`CREATE TABLE "create_table_with_multiple_named_uniques" ("id" bigserial, "account_id" bigint, "order_number" text, "store_order_number" text, PRIMARY KEY ("id"), UNIQUE ("account_id", "order_number"), UNIQUE ("account_id", "store_order_number"))`))
 	})
 })
 
