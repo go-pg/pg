@@ -15,8 +15,8 @@ import (
 	"github.com/vmihailenco/tagparser"
 
 	"github.com/go-pg/pg/v9/internal"
-	"github.com/go-pg/pg/v9/internal/iszero"
 	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/zerochecker"
 )
 
 const (
@@ -463,7 +463,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		field.append = types.Appender(f.Type)
 		field.scan = types.Scanner(f.Type)
 	}
-	field.isZero = iszero.Checker(f.Type)
+	field.isZero = zerochecker.Checker(f.Type)
 
 	if v, ok := sqlTag.Options["alias"]; ok {
 		v, _ = tagparser.Unquote(v)

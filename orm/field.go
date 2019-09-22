@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-pg/pg/v9/internal/iszero"
 	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/zerochecker"
 )
 
 const (
@@ -36,7 +36,7 @@ type Field struct {
 	append types.AppenderFunc
 	scan   types.ScannerFunc
 
-	isZero iszero.Func
+	isZero zerochecker.Func
 }
 
 func indexEqual(ind1, ind2 []int) bool {

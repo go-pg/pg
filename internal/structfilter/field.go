@@ -8,8 +8,8 @@ import (
 	"github.com/vmihailenco/tagparser"
 
 	"github.com/go-pg/pg/v9/internal"
-	"github.com/go-pg/pg/v9/internal/iszero"
 	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/zerochecker"
 )
 
 type opCode int
@@ -53,7 +53,7 @@ type Field struct {
 
 	ScanValue   ScanFunc
 	AppendValue types.AppenderFunc
-	isZeroValue iszero.Func
+	isZeroValue zerochecker.Func
 }
 
 func newField(sf reflect.StructField) *Field {
@@ -91,7 +91,7 @@ func newField(sf reflect.StructField) *Field {
 		f.ScanValue = scanner(sf.Type)
 		f.AppendValue = types.Appender(sf.Type)
 	}
-	f.isZeroValue = iszero.Checker(sf.Type)
+	f.isZeroValue = zerochecker.Checker(sf.Type)
 
 	if f.ScanValue == nil || f.AppendValue == nil {
 		return nil

@@ -3,6 +3,7 @@ module github.com/go-pg/pg/v9
 go 1.11
 
 require (
+	github.com/go-pg/zerochecker v0.1.1
 	github.com/jinzhu/inflection v1.0.0
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/onsi/ginkgo v1.8.0

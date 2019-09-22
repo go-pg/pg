@@ -131,10 +131,16 @@ func isPlaceholderFormatter(fmter QueryFormatter) bool {
 
 //------------------------------------------------------------------------------
 
+type QueryFormatter interface {
+	FormatQuery(b []byte, query string, params ...interface{}) []byte
+}
+
 type Formatter struct {
 	namedParams map[string]interface{}
 	model       TableModel
 }
+
+var _ QueryFormatter = (*Formatter)(nil)
 
 func (f Formatter) String() string {
 	if len(f.namedParams) == 0 {
