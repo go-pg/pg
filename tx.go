@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"sync"
+	"sync/atomic"
 
 	"github.com/go-pg/pg/v9/internal"
 	"github.com/go-pg/pg/v9/internal/pool"
@@ -29,9 +30,16 @@ type Tx struct {
 
 	stmtsMu sync.Mutex
 	stmts   []*Stmt
+
+	_closed int32
 }
 
 var _ orm.DB = (*Tx)(nil)
+
+// Context returns the context.Context of the transaction
+func (tx *Tx) Context() context.Context {
+	return tx.ctx
+}
 
 // Begin starts a transaction. Most callers should use RunInTransaction instead.
 func (db *baseDB) Begin() (*Tx, error) {
@@ -291,7 +299,7 @@ func (tx *Tx) DropTable(model interface{}, opt *orm.DropTableOptions) error {
 
 // CopyFrom is an alias for DB.CopyFrom.
 func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
-	err = tx.withConn(context.TODO(), func(c context.Context, cn *pool.Conn) error {
+	err = tx.withConn(tx.ctx, func(c context.Context, cn *pool.Conn) error {
 		res, err = tx.db.copyFrom(c, cn, r, query, params...)
 		return err
 	})
@@ -300,7 +308,7 @@ func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (r
 
 // CopyTo is an alias for DB.CopyTo.
 func (tx *Tx) CopyTo(w io.Writer, query interface{}, params ...interface{}) (res Result, err error) {
-	err = tx.withConn(context.TODO(), func(c context.Context, cn *pool.Conn) error {
+	err = tx.withConn(tx.ctx, func(c context.Context, cn *pool.Conn) error {
 		res, err = tx.db.copyTo(c, cn, w, query, params...)
 		return err
 	})
@@ -348,7 +356,19 @@ func (tx *Tx) Rollback() error {
 	return err
 }
 
+// Close calls Rollback if the tx has not already beed committed or rolled back.
+func (tx *Tx) Close() error {
+	if tx.closed() {
+		return nil
+	}
+	return tx.Rollback()
+}
+
 func (tx *Tx) close() {
+	if !atomic.CompareAndSwapInt32(&tx._closed, 0, 1) {
+		return
+	}
+
 	tx.stmtsMu.Lock()
 	defer tx.stmtsMu.Unlock()
 
@@ -359,7 +379,6 @@ func (tx *Tx) close() {
 	_ = tx.db.Close()
 }
 
-// Context returns the context.Context of the transaction
-func (tx *Tx) Context() context.Context {
-	return tx.ctx
+func (tx *Tx) closed() bool {
+	return atomic.LoadInt32(&tx._closed) == 0
 }

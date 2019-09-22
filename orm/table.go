@@ -225,7 +225,7 @@ func (t *Table) HasField(name string) bool {
 func (t *Table) GetField(name string) (*Field, error) {
 	field, ok := t.FieldsMap[name]
 	if !ok {
-		return nil, fmt.Errorf("pg: can't find column=%s in %s", name, t)
+		return nil, fmt.Errorf("pg: %s does not have column=%s", t, name)
 	}
 	return field, nil
 }
