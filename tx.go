@@ -380,5 +380,5 @@ func (tx *Tx) close() {
 }
 
 func (tx *Tx) closed() bool {
-	return atomic.LoadInt32(&tx._closed) == 0
+	return atomic.LoadInt32(&tx._closed) == 1
 }
