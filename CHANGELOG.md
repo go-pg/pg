@@ -12,8 +12,9 @@
 - `Query.Column` does not accept relation name any more. Use `Query.Relation` instead which returns an error if relation does not exist.
 - urlvalues package is removed. You can use struct based filters via `Query.WhereStruct`.
 - `NewModel` and `AddModel` methods of `HooklessModel` interface were renamed to `NextColumnScanner` and `AddColumnScanner` respectively.
-- `types.F` is deprecated in favor of `types.Ident`.
-- `types.Q` is deprecated in favor of `types.Safe`.
+- `types.F` and `pg.F` are deprecated in favor of `pg.Ident`.
+- `types.Q` is deprecated in favor of `pg.Safe`.
+- `pg.Q` is deprecated in favor of `pg.SafeQuery`.
 - `TableName` field is deprecated in favor of `tableName`.
 - `pg:",override"` is deprecated in favor of `pg:",inherit"`.
 

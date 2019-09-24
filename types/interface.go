@@ -42,7 +42,7 @@ func (q Q) AppendValue(b []byte, flags int) ([]byte, error) {
 
 //------------------------------------------------------------------------------
 
-// Ident represents a SQL field, e.g. table or column name.
+// Ident represents a SQL identifier, e.g. table or column name.
 type Ident string
 
 var _ ValueAppender = (*Ident)(nil)
