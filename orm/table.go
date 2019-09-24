@@ -261,8 +261,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 		copy(index, baseIndex)
 
 		if f.Anonymous {
-			sqlTag := f.Tag.Get("sql")
-			if sqlTag == "-" {
+			if f.Tag.Get("sql") == "-" || f.Tag.Get("pg") == "-" {
 				continue
 			}
 
@@ -300,7 +299,22 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 
 //nolint
 func (t *Table) newField(f reflect.StructField, index []int) *Field {
-	sqlTag := tagparser.Parse(f.Tag.Get("sql"))
+	pgTag := tagparser.Parse(f.Tag.Get("pg"))
+	tmpTag := tagparser.Parse(f.Tag.Get("sql"))
+	if tmpTag.Name != "" {
+		logSQLTagDeprecated()
+		pgTag.Name = tmpTag.Name
+	}
+	for k, v := range tmpTag.Options {
+		logSQLTagDeprecated()
+		if _, ok := pgTag.Options[k]; !ok {
+			if pgTag.Options == nil {
+				pgTag.Options = tmpTag.Options
+				break
+			}
+			pgTag.Options[k] = v
+		}
+	}
 
 	switch f.Name {
 	case "tableName", "TableName":
@@ -311,31 +325,31 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			return nil
 		}
 
-		tableSpace, ok := sqlTag.Options["tablespace"]
+		tableSpace, ok := pgTag.Options["tablespace"]
 		if ok {
 			s, _ := tagparser.Unquote(tableSpace)
 			t.Tablespace = quoteIdent(s)
 		}
 
-		partitionType, ok := sqlTag.Options["partitionBy"]
+		partitionType, ok := pgTag.Options["partitionBy"]
 		if ok {
 			s, _ := tagparser.Unquote(partitionType)
 			t.PartitionBy = s
 		}
 
-		if sqlTag.Name == "_" {
+		if pgTag.Name == "_" {
 			t.setName("")
-		} else if sqlTag.Name != "" {
-			s, _ := tagparser.Unquote(sqlTag.Name)
+		} else if pgTag.Name != "" {
+			s, _ := tagparser.Unquote(pgTag.Name)
 			t.setName(types.Safe(internal.QuoteTableName(s)))
 		}
 
-		if s, ok := sqlTag.Options["select"]; ok {
+		if s, ok := pgTag.Options["select"]; ok {
 			s, _ = tagparser.Unquote(s)
 			t.FullNameForSelects = types.Safe(internal.QuoteTableName(s))
 		}
 
-		if v, ok := sqlTag.Options["alias"]; ok {
+		if v, ok := pgTag.Options["alias"]; ok {
 			v, _ = tagparser.Unquote(v)
 			t.Alias = quoteIdent(v)
 		}
@@ -352,13 +366,13 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		return nil
 	}
 
-	skip := sqlTag.Name == "-"
-	if skip || sqlTag.Name == "" {
-		sqlTag.Name = internal.Underscore(f.Name)
+	skip := pgTag.Name == "-"
+	if skip || pgTag.Name == "" {
+		pgTag.Name = internal.Underscore(f.Name)
 	}
 
 	index = append(index, f.Index...)
-	if field := t.getField(sqlTag.Name); field != nil {
+	if field := t.getField(pgTag.Name); field != nil {
 		if indexEqual(field.Index, index) {
 			return field
 		}
@@ -370,16 +384,16 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		Type:  indirectType(f.Type),
 
 		GoName:  f.Name,
-		SQLName: sqlTag.Name,
-		Column:  quoteIdent(sqlTag.Name),
+		SQLName: pgTag.Name,
+		Column:  quoteIdent(pgTag.Name),
 
 		Index: index,
 	}
 
-	if _, ok := sqlTag.Options["notnull"]; ok {
+	if _, ok := pgTag.Options["notnull"]; ok {
 		field.SetFlag(NotNullFlag)
 	}
-	if v, ok := sqlTag.Options["unique"]; ok {
+	if v, ok := pgTag.Options["unique"]; ok {
 		if v == "" {
 			field.SetFlag(UniqueFlag)
 		}
@@ -394,7 +408,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			t.Unique[uniqueName] = append(t.Unique[uniqueName], field)
 		}
 	}
-	if v, ok := sqlTag.Options["default"]; ok {
+	if v, ok := pgTag.Options["default"]; ok {
 		v, ok = tagparser.Unquote(v)
 		if ok {
 			field.Default = types.Safe(types.AppendString(nil, v, 1))
@@ -404,45 +418,41 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 
 	//nolint
-	if _, ok := sqlTag.Options["pk"]; ok {
+	if _, ok := pgTag.Options["pk"]; ok {
 		field.SetFlag(PrimaryKeyFlag)
 	} else if strings.HasSuffix(field.SQLName, "_id") ||
 		strings.HasSuffix(field.SQLName, "_uuid") {
 		field.SetFlag(ForeignKeyFlag)
 	} else if strings.HasPrefix(field.SQLName, "fk_") {
 		field.SetFlag(ForeignKeyFlag)
-	} else if len(t.PKs) == 0 && !sqlTag.HasOption("nopk") {
+	} else if len(t.PKs) == 0 && !pgTag.HasOption("nopk") {
 		switch field.SQLName {
 		case "id", "uuid", "pk_" + t.ModelName:
 			field.SetFlag(PrimaryKeyFlag)
 		}
 	}
 
-	pgTag := tagparser.Parse(f.Tag.Get("pg"))
-
 	if _, ok := pgTag.Options["use_zero"]; ok {
 		field.SetFlag(UseZeroFlag)
 	}
-	if _, ok := sqlTag.Options["array"]; ok {
-		field.SetFlag(ArrayFlag)
-	} else if _, ok := pgTag.Options["array"]; ok {
+	if _, ok := pgTag.Options["array"]; ok {
 		field.SetFlag(ArrayFlag)
 	}
 
-	field.SQLType = fieldSQLType(field, pgTag, sqlTag)
+	field.SQLType = fieldSQLType(field, pgTag)
 	if strings.HasSuffix(field.SQLType, "[]") {
 		field.SetFlag(ArrayFlag)
 	}
 
-	if v, ok := sqlTag.Options["on_delete"]; ok {
+	if v, ok := pgTag.Options["on_delete"]; ok {
 		field.OnDelete = v
 	}
 
-	if v, ok := sqlTag.Options["on_update"]; ok {
+	if v, ok := pgTag.Options["on_update"]; ok {
 		field.OnUpdate = v
 	}
 
-	if _, ok := sqlTag.Options["composite"]; ok {
+	if _, ok := pgTag.Options["composite"]; ok {
 		field.append = compositeAppender(f.Type)
 		field.scan = compositeScanner(f.Type)
 	} else if _, ok := pgTag.Options["json_use_number"]; ok {
@@ -451,7 +461,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	} else if field.HasFlag(ArrayFlag) {
 		field.append = types.ArrayAppender(f.Type)
 		field.scan = types.ArrayScanner(f.Type)
-	} else if _, ok := sqlTag.Options["hstore"]; ok {
+	} else if _, ok := pgTag.Options["hstore"]; ok {
 		field.append = types.HstoreAppender(f.Type)
 		field.scan = types.HstoreScanner(f.Type)
 	} else if _, ok := pgTag.Options["hstore"]; ok {
@@ -470,7 +480,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 	field.isZero = zerochecker.Checker(f.Type)
 
-	if v, ok := sqlTag.Options["alias"]; ok {
+	if v, ok := pgTag.Options["alias"]; ok {
 		v, _ = tagparser.Unquote(v)
 		t.FieldsMap[v] = field
 	}
@@ -756,20 +766,20 @@ func isScanner(typ reflect.Type) bool {
 	return typ.Implements(scannerType) || reflect.PtrTo(typ).Implements(scannerType)
 }
 
-func fieldSQLType(field *Field, pgTag, sqlTag *tagparser.Tag) string {
-	if typ, ok := sqlTag.Options["type"]; ok {
+func fieldSQLType(field *Field, pgTag *tagparser.Tag) string {
+	if typ, ok := pgTag.Options["type"]; ok {
 		typ, _ = tagparser.Unquote(typ)
 		field.UserSQLType = typ
 		typ = normalizeSQLType(typ)
 		return typ
 	}
 
-	if typ, ok := sqlTag.Options["composite"]; ok {
+	if typ, ok := pgTag.Options["composite"]; ok {
 		typ, _ = tagparser.Unquote(typ)
 		return typ
 	}
 
-	if _, ok := sqlTag.Options["hstore"]; ok {
+	if _, ok := pgTag.Options["hstore"]; ok {
 		return "hstore"
 	} else if _, ok := pgTag.Options["hstore"]; ok {
 		return "hstore"
@@ -1012,4 +1022,12 @@ func tryUnderscorePrefix(s string) string {
 
 func quoteIdent(s string) types.Safe {
 	return types.Safe(types.AppendIdent(nil, s, 1))
+}
+
+var sqlTagDeprecatedOnce sync.Once
+
+func logSQLTagDeprecated() {
+	sqlTagDeprecatedOnce.Do(func() {
+		internal.Logger.Printf(`DEPRECATED: use pg:"..." struct field tag instead of sql:"..." `)
+	})
 }
