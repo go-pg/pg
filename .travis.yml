@@ -12,7 +12,6 @@ go:
 
 matrix:
   allow_failures:
-    - go: 1.13.x
     - go: tip
 
 env:
@@ -22,4 +21,4 @@ go_import_path: github.com/go-pg/pg
 
 before_install:
   - psql -U postgres -c "CREATE EXTENSION hstore"
-  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.17.1
+  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.19.0

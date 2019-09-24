@@ -7,3 +7,5 @@ linters:
   disable:
     - gochecknoglobals
     - goconst
+    - funlen
+    - godox
