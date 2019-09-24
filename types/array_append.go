@@ -3,21 +3,35 @@ package types
 import (
 	"reflect"
 	"strconv"
+	"sync"
 )
 
-var stringType = reflect.TypeOf((*string)(nil)).Elem()
-var sliceStringType = reflect.TypeOf([]string(nil))
+var (
+	stringType      = reflect.TypeOf((*string)(nil)).Elem()
+	sliceStringType = reflect.TypeOf([]string(nil))
 
-var intType = reflect.TypeOf((*int)(nil)).Elem()
-var sliceIntType = reflect.TypeOf([]int(nil))
+	intType      = reflect.TypeOf((*int)(nil)).Elem()
+	sliceIntType = reflect.TypeOf([]int(nil))
 
-var int64Type = reflect.TypeOf((*int64)(nil)).Elem()
-var sliceInt64Type = reflect.TypeOf([]int64(nil))
+	int64Type      = reflect.TypeOf((*int64)(nil)).Elem()
+	sliceInt64Type = reflect.TypeOf([]int64(nil))
 
-var float64Type = reflect.TypeOf((*float64)(nil)).Elem()
-var sliceFloat64Type = reflect.TypeOf([]float64(nil))
+	float64Type      = reflect.TypeOf((*float64)(nil)).Elem()
+	sliceFloat64Type = reflect.TypeOf([]float64(nil))
+)
+
+var arrayAppendersMap sync.Map
 
 func ArrayAppender(typ reflect.Type) AppenderFunc {
+	if v, ok := arrayAppendersMap.Load(typ); ok {
+		return v.(AppenderFunc)
+	}
+	fn := arrayAppender(typ)
+	arrayAppendersMap.Store(typ, fn)
+	return fn
+}
+
+func arrayAppender(typ reflect.Type) AppenderFunc {
 	kind := typ.Kind()
 	if kind == reflect.Ptr {
 		typ = typ.Elem()
