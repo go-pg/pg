@@ -386,7 +386,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		// Split the value by comma, this will allow multiple names to be specified.
 		// We can use this to create multiple named unique constraints where a single column
 		// might be included in multiple constraints.
-		for _, uniqueName := range strings.Split(strings.ReplaceAll(v, "'", ""), ",") {
+		v, _ = tagparser.Unquote(v)
+		for _, uniqueName := range strings.Split(v, ",") {
 			if t.Unique == nil {
 				t.Unique = make(map[string][]*Field)
 			}
