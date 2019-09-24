@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"sort"
 	"strconv"
 
 	"github.com/go-pg/pg/v9/types"
@@ -97,9 +98,7 @@ func (q *createTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte
 	}
 
 	b = appendPKConstraint(b, table.PKs)
-	for _, fields := range table.Unique {
-		b = appendUnique(b, fields)
-	}
+	b = appendUniqueConstraints(b, table)
 
 	if q.opt != nil && q.opt.FKConstraints {
 		for _, rel := range table.Relations {
@@ -158,6 +157,20 @@ func appendPKConstraint(b []byte, pks []*Field) []byte {
 	b = append(b, ", PRIMARY KEY ("...)
 	b = appendColumns(b, "", pks)
 	b = append(b, ")"...)
+	return b
+}
+
+func appendUniqueConstraints(b []byte, table *Table) []byte {
+	keys := make([]string, 0, len(table.Unique))
+	for key := range table.Unique {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		b = appendUnique(b, table.Unique[key])
+	}
+
 	return b
 }
 
