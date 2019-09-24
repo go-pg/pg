@@ -7,8 +7,8 @@ import (
 )
 
 type Test struct {
-	ID   string `json:"id" sql:",pk"`
-	Data *Data  `sql:"type:jsonb"`
+	ID   string `json:"id" pg:",pk"`
+	Data *Data  `pg:"type:jsonb"`
 }
 
 type Data struct {

@@ -18,7 +18,7 @@ func (e ValuerError) Value() (driver.Value, error) {
 }
 
 type StructFormatter struct {
-	tableName struct{} `sql:"my_name,alias:my_alias"`
+	tableName struct{} `pg:"my_name,alias:my_alias"`
 
 	String  string
 	UseZero string `pg:",use_zero"`

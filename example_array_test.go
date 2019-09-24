@@ -10,8 +10,8 @@ import (
 func ExampleDB_Model_postgresArrayStructTag() {
 	type Item struct {
 		Id      int64
-		Emails  []string `sql:",array"` // marshalled as PostgreSQL array
-		Numbers [][]int  `sql:",array"` // marshalled as PostgreSQL array
+		Emails  []string `pg:",array"` // marshalled as PostgreSQL array
+		Numbers [][]int  `pg:",array"` // marshalled as PostgreSQL array
 	}
 
 	_, err := pgdb.Exec(`CREATE TEMP TABLE items (id serial, emails text[], numbers int[][])`)

@@ -14,8 +14,8 @@ type CreateTableOptions struct {
 
 	// FKConstraints causes CreateTable to create foreign key constraints
 	// for has one relations. ON DELETE hook can be added using tag
-	// `sql:"on_delete:RESTRICT"` on foreign key field. ON UPDATE hook can be added using tag
-	// `sql:"on_update:CASCADE"`
+	// `pg:"on_delete:RESTRICT"` on foreign key field. ON UPDATE hook can be added using tag
+	// `pg:"on_update:CASCADE"`
 	FKConstraints bool
 }
 

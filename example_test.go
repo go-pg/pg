@@ -231,7 +231,7 @@ func ExampleDB_CreateTable() {
 		Id   int
 		Name string
 
-		Model1Id int `sql:"on_delete:RESTRICT, on_update: CASCADE"`
+		Model1Id int `pg:"on_delete:RESTRICT, on_update: CASCADE"`
 		Model1   *Model1
 	}
 

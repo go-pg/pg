@@ -58,7 +58,7 @@ var _ = Describe("embedded Model", func() {
 })
 
 type C struct {
-	Name int `sql:",pk"`
+	Name int `pg:",pk"`
 	Id   int
 	UUID int
 }
@@ -169,11 +169,11 @@ var _ = Describe("model with circular reference", func() {
 })
 
 type J struct {
-	JId int64 `sql:",pk"`
+	JId int64 `pg:",pk"`
 }
 
 type K struct {
-	KId  int64 `sql:",pk"`
+	KId  int64 `pg:",pk"`
 	MyId int64
 	My   *J
 }
@@ -235,7 +235,7 @@ var _ = Describe("embedding", func() {
 var _ = Describe("anonymous struct", func() {
 	It("has an alias", func() {
 		var model struct {
-			tableName struct{} `sql:"some_name"`
+			tableName struct{} `pg:"some_name"`
 
 			ID   uint64
 			Data string
@@ -250,7 +250,7 @@ var _ = Describe("anonymous struct", func() {
 
 type O struct {
 	M
-	Id struct{} `sql:"-"`
+	Id struct{} `pg:"-"`
 }
 
 var _ = Describe("embedding with ignored field", func() {

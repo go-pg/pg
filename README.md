@@ -12,7 +12,7 @@
 - PostgreSQL multidimensional Arrays using [array tag](https://godoc.org/github.com/go-pg/pg#example-DB-Model-PostgresArrayStructTag) and [Array wrapper](https://godoc.org/github.com/go-pg/pg#example-Array).
 - Hstore using [hstore tag](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HstoreStructTag) and [Hstore wrapper](https://godoc.org/github.com/go-pg/pg#example-Hstore).
 - [Composite types](https://godoc.org/github.com/go-pg/pg#example-DB-Model-CompositeType).
-- All struct fields are nullable by default and zero values (empty string, 0, zero time, empty map or slice, nil ptr) are marshalled as SQL `NULL`. `sql:",notnull"` is used to add SQL `NOT NULL` constraint and `pg:",use_zero"` to allow Go zero values.
+- All struct fields are nullable by default and zero values (empty string, 0, zero time, empty map or slice, nil ptr) are marshalled as SQL `NULL`. `pg:",notnull"` is used to add SQL `NOT NULL` constraint and `pg:",use_zero"` to allow Go zero values.
 - [Transactions](http://godoc.org/github.com/go-pg/pg#example-DB-Begin).
 - [Prepared statements](http://godoc.org/github.com/go-pg/pg#example-DB-Prepare).
 - [Notifications](http://godoc.org/github.com/go-pg/pg#example-Listener) using `LISTEN` and `NOTIFY`.
@@ -30,7 +30,6 @@
 - ORM supports [has one](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasOne), [belongs to](https://godoc.org/github.com/go-pg/pg#example-DB-Model-BelongsTo), [has many](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasMany), and [many to many](https://godoc.org/github.com/go-pg/pg#example-DB-Model-ManyToMany) with composite/multi-column primary keys.
 - [Soft deletes](https://godoc.org/github.com/go-pg/pg#example-DB-Model-SoftDelete).
 - [Creating tables from structs](https://godoc.org/github.com/go-pg/pg#example-DB-CreateTable).
-- [Pagination](https://godoc.org/github.com/go-pg/pg/urlfilter#NewPager) and [URL filters](https://godoc.org/github.com/go-pg/pg/urlfilter#Filters) helpers.
 - [ForEach](https://godoc.org/github.com/go-pg/pg#example-DB-Model-ForEach) that calls a function for each row returned by the query without loading all rows into the memory.
 - Works with PgBouncer in transaction pooling mode.
 - [Migrations](https://github.com/go-pg/migrations).

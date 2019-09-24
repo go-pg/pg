@@ -8,11 +8,11 @@ import (
 )
 
 type User struct {
-	tableName struct{} `sql:"user"`
+	tableName struct{} `pg:"user"`
 }
 
 type User2 struct {
-	tableName struct{} `sql:"select:user,alias:user"`
+	tableName struct{} `pg:"select:user,alias:user"`
 }
 
 type SelectModel struct {
@@ -353,7 +353,7 @@ type SoftDeleteModel struct {
 }
 
 type SoftDeleteParent struct {
-	Id          uint64 `sql:"id,pk"`
+	Id          uint64 `pg:"id,pk"`
 	Name        string
 	DateDeleted *time.Time `pg:",soft_delete"`
 
@@ -361,17 +361,17 @@ type SoftDeleteParent struct {
 }
 
 type SoftDeleteChild struct {
-	Id                 uint64            `sql:"id,pk"`
-	SoftDeleteParentId uint64            `sql:"soft_delete_parent_id,on_delete:CASCADE"`
-	SoftDeleteParent   *SoftDeleteParent `sql:"-"`
+	Id                 uint64            `pg:"id,pk"`
+	SoftDeleteParentId uint64            `pg:"soft_delete_parent_id,on_delete:CASCADE"`
+	SoftDeleteParent   *SoftDeleteParent `pg:"-"`
 	Name               string
 	SubChildren        *SoftDeleteSubChild
 }
 
 type SoftDeleteSubChild struct {
-	Id                uint64           `sql:"id,pk"`
-	SoftDeleteChildId uint64           `sql:"soft_delete_child_id,on_delete:CASCADE"`
-	SoftDeleteChild   *SoftDeleteChild `sql:"-"`
+	Id                uint64           `pg:"id,pk"`
+	SoftDeleteChildId uint64           `pg:"soft_delete_child_id,on_delete:CASCADE"`
+	SoftDeleteChild   *SoftDeleteChild `pg:"-"`
 	Name              string
 }
 

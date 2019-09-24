@@ -224,7 +224,7 @@ func ExampleDB_Insert_selectOrInsert() {
 
 func ExampleDB_Insert_dynamicTableName() {
 	type NamelessModel struct {
-		tableName struct{} `sql:"_"` // "_" means no name
+		tableName struct{} `pg:"_"` // "_" means no name
 		Id        int
 	}
 

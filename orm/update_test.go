@@ -7,11 +7,11 @@ import (
 
 type UpdateTest struct {
 	Id    int
-	Value string `sql:"type:mytype"`
+	Value string `pg:"type:mytype"`
 }
 
 type SerialUpdateTest struct {
-	Id    uint64 `sql:"type:bigint,pk"`
+	Id    uint64 `pg:"type:bigint,pk"`
 	Value string
 }
 
@@ -125,7 +125,7 @@ var _ = Describe("Update", func() {
 	It("supports use_zero and default tags", func() {
 		type Model struct {
 			Id   int
-			Bool bool `sql:",default:_" pg:",use_zero"`
+			Bool bool `pg:",default:_,use_zero"`
 		}
 
 		q := NewQuery(nil, &Model{}).WherePK()
@@ -136,7 +136,7 @@ var _ = Describe("Update", func() {
 
 	It("allows disabling an alias", func() {
 		type Model struct {
-			tableName struct{} `sql:"alias:models"`
+			tableName struct{} `pg:"alias:models"`
 
 			Id int
 		}

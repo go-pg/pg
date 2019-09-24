@@ -95,7 +95,7 @@ func InMulti(values ...interface{}) types.ValueAppender {
 //
 // For struct fields you can use array tag:
 //
-//    Emails  []string `sql:",array"`
+//    Emails  []string `pg:",array"`
 func Array(v interface{}) *types.Array {
 	return types.NewArray(v)
 }
@@ -106,7 +106,7 @@ func Array(v interface{}) *types.Array {
 //
 // For struct fields you can use hstore tag:
 //
-//    Attrs map[string]string `sql:",hstore"`
+//    Attrs map[string]string `pg:",hstore"`
 func Hstore(v interface{}) *types.Hstore {
 	return types.NewHstore(v)
 }

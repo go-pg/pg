@@ -6,7 +6,7 @@ import (
 )
 
 type MyType struct {
-	MyInfo [3]bool `sql:",array"`
+	MyInfo [3]bool `pg:",array"`
 }
 
 func createSchema(db *pg.DB) error {
