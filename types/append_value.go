@@ -6,6 +6,7 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/go-pg/pg/v9/internal"
@@ -16,11 +17,14 @@ var appenderType = reflect.TypeOf((*ValueAppender)(nil)).Elem()
 
 type AppenderFunc func([]byte, reflect.Value, int) []byte
 
-var valueAppenders []AppenderFunc
+var (
+	appenders    []AppenderFunc
+	appendersMap sync.Map
+)
 
 //nolint
 func init() {
-	valueAppenders = []AppenderFunc{
+	appenders = []AppenderFunc{
 		reflect.Bool:          appendBoolValue,
 		reflect.Int:           appendIntValue,
 		reflect.Int8:          appendIntValue,
@@ -51,7 +55,12 @@ func init() {
 }
 
 func Appender(typ reflect.Type) AppenderFunc {
-	return appender(typ, false)
+	if v, ok := appendersMap.Load(typ); ok {
+		return v.(AppenderFunc)
+	}
+	fn := appender(typ, false)
+	appendersMap.Store(typ, fn)
+	return fn
 }
 
 func appender(typ reflect.Type, pgArray bool) AppenderFunc {
@@ -89,7 +98,7 @@ func appender(typ reflect.Type, pgArray bool) AppenderFunc {
 			return appendArrayBytesValue
 		}
 	}
-	return valueAppenders[kind]
+	return appenders[kind]
 }
 
 func ptrAppenderFunc(typ reflect.Type) AppenderFunc {
