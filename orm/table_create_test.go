@@ -84,12 +84,19 @@ type CreateTableWithHashPartition struct {
 	String    string
 }
 
+type CreateTableWithMultipleNamedUniques struct {
+	ID               int    `sql:",pk"`
+	AccountID        int    `sql:",unique:'per_account,per_store'"`
+	OrderNumber      string `sql:",unique:per_account"`
+	StoreOrderNumber string `sql:",unique:per_store"`
+}
+
 var _ = Describe("CreateTable", func() {
 	It("creates new table", func() {
 		q := NewQuery(nil, &CreateTableModel{})
 
 		s := createTableQueryString(q, nil)
-		Expect(s).To(Equal(`CREATE TABLE "create_table_models" ("id" bigserial, "serial" bigint, "int8" smallint, "uint8" smallint, "int16" smallint, "uint16" integer, "int32" integer, "uint32" bigint, "int64" bigint, "uint64" bigint, "float32" real, "float64" double precision, "decimal" decimal(10,10), "byte_slice" bytea, "byte_array" bytea, "string" text DEFAULT 'D''Angelo', "varchar" varchar(500), "time" timestamptz DEFAULT now(), "duration" bigint, "not_null" bigint NOT NULL, "null_bool" boolean, "null_float64" double precision, "null_int64" bigint, "null_string" text, "slice" jsonb, "slice_array" bigint[], "map" jsonb, "map_hstore" hstore, "struct" jsonb, "struct_ptr" jsonb, "unique" bigint UNIQUE, "unique_field1" bigint, "unique_field2" bigint, "json_raw_message" jsonb, PRIMARY KEY ("id"), UNIQUE ("unique_field1", "unique_field2"))`))
+		Expect(s).To(Equal(`CREATE TABLE "create_table_models" ("id" bigserial, "serial" bigint, "int8" smallint, "uint8" smallint, "int16" smallint, "uint16" integer, "int32" integer, "uint32" bigint, "int64" bigint, "uint64" bigint, "float32" real, "float64" double precision, "decimal" decimal(10,10), "byte_slice" bytea, "byte_array" bytea, "string" text DEFAULT 'D''Angelo', "varchar" varchar(500), "time" timestamptz DEFAULT now(), "duration" bigint, "not_null" bigint NOT NULL, "null_bool" boolean, "null_float64" double precision, "null_int64" bigint, "null_string" text, "slice" jsonb, "slice_array" bigint[], "map" jsonb, "map_hstore" hstore, "struct" jsonb, "struct_ptr" jsonb, "unique" bigint UNIQUE, "unique_field1" bigint, "unique_field2" bigint, "json_raw_message" jsonb, PRIMARY KEY ("id"), UNIQUE ("unique"), UNIQUE ("unique_field1", "unique_field2"))`))
 	})
 
 	It("creates new table without primary key", func() {
@@ -139,6 +146,13 @@ var _ = Describe("CreateTable", func() {
 
 		s := createTableQueryString(q, &CreateTableOptions{})
 		Expect(s).To(Equal(`CREATE TABLE "create_table_with_hash_partitions" ("id" int DEFAULT 0, "account_id" bigint, "string" text, PRIMARY KEY ("id")) PARTITION BY HASH (account_id)`))
+	})
+
+	It("creates new table with multiple named unique constraints", func() {
+		q := NewQuery(nil, &CreateTableWithMultipleNamedUniques{})
+
+		s := createTableQueryString(q, &CreateTableOptions{})
+		Expect(s).To(Equal(`CREATE TABLE "create_table_with_multiple_named_uniques" ("id" bigserial, "account_id" bigint, "order_number" text, "store_order_number" text, PRIMARY KEY ("id"), UNIQUE ("account_id", "order_number"), UNIQUE ("account_id", "store_order_number"))`))
 	})
 })
 
