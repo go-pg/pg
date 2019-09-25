@@ -50,7 +50,7 @@ func (tm *Time) ScanValue(rd types.Reader, n int) error {
 
 type Event struct {
 	Id   int
-	Time Time `sql:"type:time"`
+	Time Time `pg:"type:time"`
 }
 
 func ExampleDB_Model_customType() {

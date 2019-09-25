@@ -2,7 +2,7 @@
 
 ## v9 WIP
 
-- `sql:",notnull"` is reworked. Now it means SQL `NOT NULL` constraint and nothing more.
+- `pg:",notnull"` is reworked. Now it means SQL `NOT NULL` constraint and nothing more.
 - Added `pg:",use_zero"` to prevent go-pg from converting Go zero values to SQL `NULL`.
 - UpdateNotNull is renamed to UpdateNotZero. As previously it omits zero Go values, but it does not take in account if field is nullable or not.
 - ORM supports DistinctOn.
@@ -16,6 +16,7 @@
 - `types.Q` is deprecated in favor of `pg.Safe`.
 - `pg.Q` is deprecated in favor of `pg.SafeQuery`.
 - `TableName` field is deprecated in favor of `tableName`.
+- Always use `pg:"..."` struct field tag instead of `sql:"..."`.
 - `pg:",override"` is deprecated in favor of `pg:",inherit"`.
 
 ## v8

@@ -214,7 +214,7 @@ var _ = Describe("DB", func() {
 	Describe("uint64 in struct field", func() {
 		It("is appended and scanned as int64", func() {
 			type My struct {
-				ID uint64 `sql:"type:bigint"`
+				ID uint64 `pg:"type:bigint"`
 			}
 
 			err := db.CreateTable((*My)(nil), &orm.CreateTableOptions{
@@ -451,7 +451,7 @@ var _ = Describe("Time", func() {
 
 var _ = Describe("array model", func() {
 	type value struct {
-		Values []int16 `sql:",array"`
+		Values []int16 `pg:",array"`
 	}
 
 	var db *pg.DB
@@ -985,11 +985,11 @@ var _ = Describe("errors", func() {
 type Genre struct {
 	// tableName is an optional field that specifies custom table name and alias.
 	// By default go-pg generates table name and alias from struct name.
-	tableName struct{} `sql:"genres,alias:genre"` // default values are the same
+	tableName struct{} `pg:"genres,alias:genre"` // default values are the same
 
 	Id     int // Id is automatically detected as primary key
 	Name   string
-	Rating int `sql:"-"` // - is used to ignore field
+	Rating int `pg:"-"` // - is used to ignore field
 
 	Books []Book `pg:"many2many:book_genres"` // many to many relation
 
@@ -1008,7 +1008,7 @@ type Image struct {
 
 type Author struct {
 	ID    int     // both "Id" and "ID" are detected as primary key
-	Name  string  `sql:",unique"`
+	Name  string  `pg:",unique"`
 	Books []*Book // has many relation
 
 	AvatarId int
@@ -1020,11 +1020,11 @@ func (a Author) String() string {
 }
 
 type BookGenre struct {
-	tableName struct{} `sql:"alias:bg"` // custom table alias
+	tableName struct{} `pg:"alias:bg"` // custom table alias
 
-	BookId  int `sql:",pk"` // pk tag is used to mark field as primary key
+	BookId  int `pg:",pk"` // pk tag is used to mark field as primary key
 	Book    *Book
-	GenreId int `sql:",pk"`
+	GenreId int `pg:",pk"`
 	Genre   *Genre
 
 	Genre_Rating int // belongs to and is copied to Genre model
@@ -1037,7 +1037,7 @@ type Book struct {
 	Author    Author // has one relation
 	EditorID  int
 	Editor    *Author   // has one relation
-	CreatedAt time.Time `sql:"default:now()"`
+	CreatedAt time.Time `pg:"default:now()"`
 	UpdatedAt time.Time
 
 	Genres       []Genre       `pg:"many2many:book_genres"` // many to many relation
@@ -1068,12 +1068,12 @@ type BookWithCommentCount struct {
 }
 
 type Translation struct {
-	tableName struct{} `sql:",alias:tr"` // custom table alias
+	tableName struct{} `pg:",alias:tr"` // custom table alias
 
 	Id     int
-	BookId int    `sql:"unique:book_id_lang"`
+	BookId int    `pg:"unique:book_id_lang"`
 	Book   *Book  // has one relation
-	Lang   string `sql:"unique:book_id_lang"`
+	Lang   string `pg:"unique:book_id_lang"`
 
 	Comments []Comment `pg:",polymorphic:trackable_"` // has many polymorphic relation
 }

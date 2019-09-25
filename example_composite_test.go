@@ -13,9 +13,9 @@ type InventoryItem struct {
 }
 
 type OnHand struct {
-	tableName struct{} `sql:"on_hand"`
+	tableName struct{} `pg:"on_hand"`
 
-	Item  InventoryItem `sql:"composite:inventory_item"`
+	Item  InventoryItem `pg:"composite:inventory_item"`
 	Count int
 }
 

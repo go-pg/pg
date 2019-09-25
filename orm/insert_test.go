@@ -13,14 +13,14 @@ type InsertTest struct {
 }
 
 type EmbeddingTest struct {
-	tableName struct{} `sql:"name"`
+	tableName struct{} `pg:"name"`
 
 	Id    int
 	Field int
 }
 
 type EmbeddedInsertTest struct {
-	tableName struct{} `sql:"my_name"`
+	tableName struct{} `pg:"my_name"`
 	EmbeddingTest
 	Field2 int
 }
@@ -33,13 +33,13 @@ type InheritInsertTest struct {
 type InsertNullTest struct {
 	F1 int
 	F2 int `pg:",use_zero"`
-	F3 int `sql:",pk"`
-	F4 int `sql:",pk" pg:",use_zero"`
+	F3 int `pg:",pk"`
+	F4 int `pg:",pk,use_zero"`
 }
 
 type InsertDefaultTest struct {
 	Id    int
-	Value string `sql:"default:hello"`
+	Value string `pg:"default:hello"`
 }
 
 type InsertQTest struct {
@@ -223,7 +223,7 @@ var _ = Describe("Insert", func() {
 	It("supports notnull and default", func() {
 		type Model struct {
 			Id   int
-			Bool bool `sql:",default:_"`
+			Bool bool `pg:",default:_"`
 		}
 
 		q := NewQuery(nil, &Model{})
@@ -234,7 +234,7 @@ var _ = Describe("Insert", func() {
 
 	It("support models without a name", func() {
 		type Model struct {
-			tableName struct{} `sql:"_"`
+			tableName struct{} `pg:"_"`
 			Id        int
 		}
 
