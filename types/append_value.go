@@ -3,6 +3,7 @@ package types
 import (
 	"database/sql/driver"
 	"encoding/json"
+	"fmt"
 	"net"
 	"reflect"
 	"strconv"
@@ -17,10 +18,7 @@ var appenderType = reflect.TypeOf((*ValueAppender)(nil)).Elem()
 
 type AppenderFunc func([]byte, reflect.Value, int) []byte
 
-var (
-	appenders    []AppenderFunc
-	appendersMap sync.Map
-)
+var appenders []AppenderFunc
 
 //nolint
 func init() {
@@ -54,12 +52,30 @@ func init() {
 	}
 }
 
+var appendersMap sync.Map
+
+// RegisterAppender registers an appender func for the type.
+// Expecting to be used only during initialization, it panics
+// if there is already a registered appender for the given type.
+func RegisterAppender(value interface{}, fn AppenderFunc) {
+	registerAppender(reflect.TypeOf(value), fn)
+}
+
+func registerAppender(typ reflect.Type, fn AppenderFunc) {
+	_, loaded := appendersMap.LoadOrStore(typ, fn)
+	if loaded {
+		err := fmt.Errorf("pg: appender for the type=%s is already registered",
+			typ.String())
+		panic(err)
+	}
+}
+
 func Appender(typ reflect.Type) AppenderFunc {
 	if v, ok := appendersMap.Load(typ); ok {
 		return v.(AppenderFunc)
 	}
 	fn := appender(typ, false)
-	appendersMap.Store(typ, fn)
+	registerAppender(typ, fn)
 	return fn
 }
 

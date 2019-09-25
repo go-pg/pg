@@ -15,26 +15,12 @@ func Append(b []byte, v interface{}, flags int) []byte {
 		return AppendNull(b, flags)
 	case bool:
 		return appendBool(b, v)
-	case int8:
-		return strconv.AppendInt(b, int64(v), 10)
-	case int16:
-		return strconv.AppendInt(b, int64(v), 10)
 	case int32:
 		return strconv.AppendInt(b, int64(v), 10)
 	case int64:
 		return strconv.AppendInt(b, v, 10)
 	case int:
 		return strconv.AppendInt(b, int64(v), 10)
-	case uint8:
-		return strconv.AppendUint(b, uint64(v), 10)
-	case uint16:
-		return strconv.AppendUint(b, uint64(v), 10)
-	case uint32:
-		return strconv.AppendUint(b, uint64(v), 10)
-	case uint64:
-		return strconv.AppendUint(b, v, 10)
-	case uint:
-		return strconv.AppendUint(b, uint64(v), 10)
 	case float32:
 		return appendFloat(b, float64(v), flags, 32)
 	case float64:
