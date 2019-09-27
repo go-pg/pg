@@ -18,8 +18,9 @@ func Connect(opt *Options) *DB {
 	return newDB(
 		context.Background(),
 		&baseDB{
-			opt:  opt,
-			pool: newConnPool(opt),
+			opt:   opt,
+			pool:  newConnPool(opt),
+			fmter: orm.NewFormatter(),
 		},
 	)
 }

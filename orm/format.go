@@ -12,7 +12,7 @@ import (
 	"github.com/go-pg/pg/v9/types"
 )
 
-var defaultFmter Formatter
+var defaultFmter = NewFormatter()
 
 type queryWithSepAppender interface {
 	QueryAppender
@@ -142,7 +142,11 @@ type Formatter struct {
 
 var _ QueryFormatter = (*Formatter)(nil)
 
-func (f Formatter) String() string {
+func NewFormatter() *Formatter {
+	return new(Formatter)
+}
+
+func (f *Formatter) String() string {
 	if len(f.namedParams) == 0 {
 		return ""
 	}
@@ -163,8 +167,8 @@ func (f Formatter) String() string {
 	return " " + strings.Join(ss, " ")
 }
 
-func (f Formatter) clone() Formatter {
-	var cp Formatter
+func (f *Formatter) clone() *Formatter {
+	cp := NewFormatter()
 
 	cp.model = f.model
 	if len(f.namedParams) > 0 {
@@ -177,13 +181,13 @@ func (f Formatter) clone() Formatter {
 	return cp
 }
 
-func (f Formatter) WithTableModel(model TableModel) Formatter {
+func (f *Formatter) WithTableModel(model TableModel) *Formatter {
 	cp := f.clone()
 	cp.model = model
 	return cp
 }
 
-func (f Formatter) WithModel(model interface{}) Formatter {
+func (f *Formatter) WithModel(model interface{}) *Formatter {
 	switch model := model.(type) {
 	case TableModel:
 		return f.WithTableModel(model)
@@ -203,35 +207,35 @@ func (f *Formatter) setParam(param string, value interface{}) {
 	f.namedParams[param] = value
 }
 
-func (f Formatter) WithParam(param string, value interface{}) Formatter {
+func (f *Formatter) WithParam(param string, value interface{}) *Formatter {
 	cp := f.clone()
 	cp.setParam(param, value)
 	return cp
 }
 
-func (f Formatter) Param(param string) interface{} {
+func (f *Formatter) Param(param string) interface{} {
 	return f.namedParams[param]
 }
 
-func (f Formatter) hasParams() bool {
+func (f *Formatter) hasParams() bool {
 	return len(f.namedParams) > 0 || f.model != nil
 }
 
-func (f Formatter) FormatQueryBytes(dst, query []byte, params ...interface{}) []byte {
+func (f *Formatter) FormatQueryBytes(dst, query []byte, params ...interface{}) []byte {
 	if (params == nil && !f.hasParams()) || bytes.IndexByte(query, '?') == -1 {
 		return append(dst, query...)
 	}
 	return f.append(dst, parser.New(query), params)
 }
 
-func (f Formatter) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
+func (f *Formatter) FormatQuery(dst []byte, query string, params ...interface{}) []byte {
 	if (params == nil && !f.hasParams()) || strings.IndexByte(query, '?') == -1 {
 		return append(dst, query...)
 	}
 	return f.append(dst, parser.NewString(query), params)
 }
 
-func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []byte {
+func (f *Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []byte {
 	var paramsIndex int
 	var namedParamsOnce bool
 	var tableParams *tableParams
@@ -312,7 +316,7 @@ func (f Formatter) append(dst []byte, p *parser.Parser, params []interface{}) []
 	return dst
 }
 
-func (f Formatter) appendParam(b []byte, param interface{}) []byte {
+func (f *Formatter) appendParam(b []byte, param interface{}) []byte {
 	switch param := param.(type) {
 	case QueryAppender:
 		bb, err := param.AppendQuery(f, b)

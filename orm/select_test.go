@@ -412,7 +412,7 @@ func selectQueryString(q *Query) string {
 }
 
 func queryString(f QueryAppender) string {
-	fmter := Formatter{}.WithModel(f)
+	fmter := NewFormatter().WithModel(f)
 	b, err := f.AppendQuery(fmter, nil)
 	Expect(err).NotTo(HaveOccurred())
 	return string(b)
