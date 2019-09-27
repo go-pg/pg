@@ -422,7 +422,7 @@ func writeCancelRequestMsg(buf *pool.WriteBuffer, processID, secretKey int32) {
 	buf.FinishMessage()
 }
 
-func writeQueryMsg(buf *pool.WriteBuffer, fmter orm.Formatter, query interface{}, params ...interface{}) error {
+func writeQueryMsg(buf *pool.WriteBuffer, fmter orm.QueryFormatter, query interface{}, params ...interface{}) error {
 	buf.StartMessage(queryMsg)
 	bytes, err := appendQuery(fmter, buf.Bytes, query, params...)
 	if err != nil {
@@ -441,7 +441,7 @@ func writeQueryMsg(buf *pool.WriteBuffer, fmter orm.Formatter, query interface{}
 func appendQuery(fmter orm.QueryFormatter, dst []byte, query interface{}, params ...interface{}) ([]byte, error) {
 	switch query := query.(type) {
 	case orm.QueryAppender:
-		if v, ok := fmter.(orm.Formatter); ok {
+		if v, ok := fmter.(*orm.Formatter); ok {
 			fmter = v.WithModel(query)
 		}
 		return query.AppendQuery(fmter, dst)
@@ -449,7 +449,7 @@ func appendQuery(fmter orm.QueryFormatter, dst []byte, query interface{}, params
 		if len(params) > 0 {
 			model, ok := params[len(params)-1].(orm.TableModel)
 			if ok {
-				if v, ok := fmter.(orm.Formatter); ok {
+				if v, ok := fmter.(*orm.Formatter); ok {
 					fmter = v.WithTableModel(model)
 					params = params[:len(params)-1]
 				}

@@ -15,7 +15,7 @@ type baseDB struct {
 	opt  *Options
 	pool pool.Pooler
 
-	fmter      orm.Formatter
+	fmter      *orm.Formatter
 	queryHooks []QueryHook
 }
 

@@ -147,7 +147,7 @@ var formatTests = []formatTest{
 
 func TestFormatQuery(t *testing.T) {
 	for i, test := range formatTests {
-		var f orm.Formatter
+		f := orm.NewFormatter()
 		for k, v := range test.paramsMap {
 			f = f.WithParam(k, v)
 		}
