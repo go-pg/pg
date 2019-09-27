@@ -7,7 +7,7 @@ import (
 
 type DropTableModel struct{}
 
-var _ = Describe("CreateTable", func() {
+var _ = Describe("DropTable", func() {
 	It("drops table", func() {
 		q := NewQuery(nil, &DropTableModel{})
 

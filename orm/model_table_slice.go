@@ -93,56 +93,56 @@ func (m *sliceTableModel) AddColumnScanner(_ ColumnScanner) error {
 var _ AfterScanHook = (*sliceTableModel)(nil)
 
 func (m *sliceTableModel) AfterScan(c context.Context) error {
-	if m.table.HasFlag(AfterScanHookFlag) {
+	if m.table.hasFlag(AfterScanHookFlag) {
 		return callAfterScanHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return nil
 }
 
 func (m *sliceTableModel) AfterSelect(c context.Context) error {
-	if m.table.HasFlag(AfterSelectHookFlag) {
+	if m.table.hasFlag(AfterSelectHookFlag) {
 		return callAfterSelectHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return nil
 }
 
 func (m *sliceTableModel) BeforeInsert(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeInsertHookFlag) {
+	if m.table.hasFlag(BeforeInsertHookFlag) {
 		return callBeforeInsertHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return c, nil
 }
 
 func (m *sliceTableModel) AfterInsert(c context.Context) error {
-	if m.table.HasFlag(AfterInsertHookFlag) {
+	if m.table.hasFlag(AfterInsertHookFlag) {
 		return callAfterInsertHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return nil
 }
 
 func (m *sliceTableModel) BeforeUpdate(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeUpdateHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(BeforeUpdateHookFlag) && !m.IsNil() {
 		return callBeforeUpdateHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return c, nil
 }
 
 func (m *sliceTableModel) AfterUpdate(c context.Context) error {
-	if m.table.HasFlag(AfterUpdateHookFlag) {
+	if m.table.hasFlag(AfterUpdateHookFlag) {
 		return callAfterUpdateHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return nil
 }
 
 func (m *sliceTableModel) BeforeDelete(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeDeleteHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(BeforeDeleteHookFlag) && !m.IsNil() {
 		return callBeforeDeleteHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return c, nil
 }
 
 func (m *sliceTableModel) AfterDelete(c context.Context) error {
-	if m.table.HasFlag(AfterDeleteHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(AfterDeleteHookFlag) && !m.IsNil() {
 		return callAfterDeleteHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return nil

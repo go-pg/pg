@@ -161,56 +161,56 @@ func (m *structTableModel) AddColumnScanner(_ ColumnScanner) error {
 var _ AfterScanHook = (*structTableModel)(nil)
 
 func (m *structTableModel) AfterScan(c context.Context) error {
-	if m.table.HasFlag(AfterScanHookFlag) {
+	if m.table.hasFlag(AfterScanHookFlag) {
 		return callAfterScanHook(c, m.strct.Addr())
 	}
 	return nil
 }
 
 func (m *structTableModel) AfterSelect(c context.Context) error {
-	if m.table.HasFlag(AfterSelectHookFlag) {
+	if m.table.hasFlag(AfterSelectHookFlag) {
 		return callAfterSelectHook(c, m.strct.Addr())
 	}
 	return nil
 }
 
 func (m *structTableModel) BeforeInsert(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeInsertHookFlag) {
+	if m.table.hasFlag(BeforeInsertHookFlag) {
 		return callBeforeInsertHook(c, m.strct.Addr())
 	}
 	return c, nil
 }
 
 func (m *structTableModel) AfterInsert(c context.Context) error {
-	if m.table.HasFlag(AfterInsertHookFlag) {
+	if m.table.hasFlag(AfterInsertHookFlag) {
 		return callAfterInsertHook(c, m.strct.Addr())
 	}
 	return nil
 }
 
 func (m *structTableModel) BeforeUpdate(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeUpdateHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(BeforeUpdateHookFlag) && !m.IsNil() {
 		return callBeforeUpdateHook(c, m.strct.Addr())
 	}
 	return c, nil
 }
 
 func (m *structTableModel) AfterUpdate(c context.Context) error {
-	if m.table.HasFlag(AfterUpdateHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(AfterUpdateHookFlag) && !m.IsNil() {
 		return callAfterUpdateHook(c, m.strct.Addr())
 	}
 	return nil
 }
 
 func (m *structTableModel) BeforeDelete(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeDeleteHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(BeforeDeleteHookFlag) && !m.IsNil() {
 		return callBeforeDeleteHook(c, m.strct.Addr())
 	}
 	return c, nil
 }
 
 func (m *structTableModel) AfterDelete(c context.Context) error {
-	if m.table.HasFlag(AfterDeleteHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(AfterDeleteHookFlag) && !m.IsNil() {
 		return callAfterDeleteHook(c, m.strct.Addr())
 	}
 	return nil
@@ -223,7 +223,7 @@ func (m *structTableModel) ScanColumn(
 	if ok {
 		return err
 	}
-	if m.table.HasFlag(discardUnknownColumnsFlag) {
+	if m.table.hasFlag(discardUnknownColumnsFlag) {
 		return nil
 	}
 	return fmt.Errorf("pg: can't find column=%s in %s (try discard_unknown_columns)",

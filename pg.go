@@ -42,8 +42,8 @@ type Safe = types.Safe
 type Ident = types.Ident
 
 // SafeQuery replaces any placeholders found in the query.
-func SafeQuery(query string, params ...interface{}) types.ValueAppender {
-	return orm.Safe(query, params...)
+func SafeQuery(query string, params ...interface{}) *orm.SafeQueryAppender {
+	return orm.SafeQuery(query, params...)
 }
 
 var qWarn sync.Once

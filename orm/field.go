@@ -57,11 +57,11 @@ func (f *Field) Clone() *Field {
 	return &cp
 }
 
-func (f *Field) SetFlag(flag uint8) {
+func (f *Field) setFlag(flag uint8) {
 	f.flags |= flag
 }
 
-func (f *Field) HasFlag(flag uint8) bool {
+func (f *Field) hasFlag(flag uint8) bool {
 	return f.flags&flag != 0
 }
 
@@ -87,7 +87,7 @@ func (f *Field) hasZeroField(v reflect.Value, index []int) bool {
 }
 
 func (f *Field) NullZero() bool {
-	return !f.HasFlag(UseZeroFlag)
+	return !f.hasFlag(UseZeroFlag)
 }
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {

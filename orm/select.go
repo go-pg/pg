@@ -243,7 +243,7 @@ func (q *selectQuery) isDistinct() bool {
 		return true
 	}
 	for _, column := range q.q.columns {
-		column, ok := column.(*queryParamsAppender)
+		column, ok := column.(*SafeQueryAppender)
 		if ok {
 			if strings.Contains(column.query, "DISTINCT") ||
 				strings.Contains(column.query, "distinct") {

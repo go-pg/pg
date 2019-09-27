@@ -40,7 +40,6 @@ var _ = Describe("embedded Model", func() {
 		Expect(id.GoName).To(Equal("Id"))
 		Expect(id.SQLName).To(Equal("id"))
 		Expect(string(id.Column)).To(Equal(`"id"`))
-		Expect(id.HasFlag(orm.PrimaryKeyFlag)).To(BeTrue())
 		Expect(string(id.AppendValue(nil, strct, 1))).To(Equal("1"))
 
 		Expect(table.PKs).To(HaveLen(1))
