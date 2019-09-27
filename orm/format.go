@@ -21,28 +21,28 @@ type queryWithSepAppender interface {
 
 //------------------------------------------------------------------------------
 
-type queryParamsAppender struct {
+type SafeQueryAppender struct {
 	query  string
 	params []interface{}
 }
 
-var _ QueryAppender = (*queryParamsAppender)(nil)
-var _ types.ValueAppender = (*queryParamsAppender)(nil)
+var _ QueryAppender = (*SafeQueryAppender)(nil)
+var _ types.ValueAppender = (*SafeQueryAppender)(nil)
 
 //nolint
-func Safe(query string, params ...interface{}) *queryParamsAppender {
-	return &queryParamsAppender{query, params}
+func SafeQuery(query string, params ...interface{}) *SafeQueryAppender {
+	return &SafeQueryAppender{query, params}
 }
 
-func (q *queryParamsAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
+func (q *SafeQueryAppender) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	return fmter.FormatQuery(b, q.query, q.params...), nil
 }
 
-func (q *queryParamsAppender) AppendValue(b []byte, quote int) ([]byte, error) {
+func (q *SafeQueryAppender) AppendValue(b []byte, quote int) ([]byte, error) {
 	return q.AppendQuery(defaultFmter, b)
 }
 
-func (q *queryParamsAppender) Value() types.Safe {
+func (q *SafeQueryAppender) Value() types.Safe {
 	b, err := q.AppendValue(nil, 1)
 	if err != nil {
 		return types.Safe(err.Error())

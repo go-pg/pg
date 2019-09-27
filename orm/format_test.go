@@ -133,7 +133,7 @@ var formatTests = []formatTest{
 	},
 	{
 		q:         "?",
-		params:    params{orm.Safe("?string")},
+		params:    params{orm.SafeQuery("?string")},
 		paramsMap: paramsMap{"string": "my_value"},
 		wanted:    "'my_value'",
 	},

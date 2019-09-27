@@ -85,10 +85,10 @@ func (q *createTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte
 		b = append(b, field.Column...)
 		b = append(b, " "...)
 		b = q.appendSQLType(b, field)
-		if field.HasFlag(NotNullFlag) {
+		if field.hasFlag(NotNullFlag) {
 			b = append(b, " NOT NULL"...)
 		}
-		if field.HasFlag(UniqueFlag) {
+		if field.hasFlag(UniqueFlag) {
 			b = append(b, " UNIQUE"...)
 		}
 		if field.Default != "" {
@@ -131,7 +131,7 @@ func (q *createTableQuery) appendSQLType(b []byte, field *Field) []byte {
 		b = append(b, ")"...)
 		return b
 	}
-	if field.HasFlag(PrimaryKeyFlag) {
+	if field.hasFlag(PrimaryKeyFlag) {
 		return append(b, pkSQLType(field.SQLType)...)
 	}
 	return append(b, field.SQLType...)

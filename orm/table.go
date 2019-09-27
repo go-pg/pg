@@ -99,28 +99,28 @@ func newTable(typ reflect.Type) *Table {
 
 	typ = reflect.PtrTo(t.Type)
 	if typ.Implements(afterScanHookType) {
-		t.SetFlag(AfterScanHookFlag)
+		t.setFlag(AfterScanHookFlag)
 	}
 	if typ.Implements(afterSelectHookType) {
-		t.SetFlag(AfterSelectHookFlag)
+		t.setFlag(AfterSelectHookFlag)
 	}
 	if typ.Implements(beforeInsertHookType) {
-		t.SetFlag(BeforeInsertHookFlag)
+		t.setFlag(BeforeInsertHookFlag)
 	}
 	if typ.Implements(afterInsertHookType) {
-		t.SetFlag(AfterInsertHookFlag)
+		t.setFlag(AfterInsertHookFlag)
 	}
 	if typ.Implements(beforeUpdateHookType) {
-		t.SetFlag(BeforeUpdateHookFlag)
+		t.setFlag(BeforeUpdateHookFlag)
 	}
 	if typ.Implements(afterUpdateHookType) {
-		t.SetFlag(AfterUpdateHookFlag)
+		t.setFlag(AfterUpdateHookFlag)
 	}
 	if typ.Implements(beforeDeleteHookType) {
-		t.SetFlag(BeforeDeleteHookFlag)
+		t.setFlag(BeforeDeleteHookFlag)
 	}
 	if typ.Implements(afterDeleteHookType) {
-		t.SetFlag(AfterDeleteHookFlag)
+		t.setFlag(AfterDeleteHookFlag)
 	}
 
 	for _, hook := range oldHooks {
@@ -156,11 +156,11 @@ func (t *Table) String() string {
 	return "model=" + t.TypeName
 }
 
-func (t *Table) SetFlag(flag uint16) {
+func (t *Table) setFlag(flag uint16) {
 	t.flags |= flag
 }
 
-func (t *Table) HasFlag(flag uint16) bool {
+func (t *Table) hasFlag(flag uint16) bool {
 	if t == nil {
 		return false
 	}
@@ -183,7 +183,7 @@ func (t *Table) mustSoftDelete() error {
 
 func (t *Table) AddField(field *Field) {
 	t.Fields = append(t.Fields, field)
-	if field.HasFlag(PrimaryKeyFlag) {
+	if field.hasFlag(PrimaryKeyFlag) {
 		t.PKs = append(t.PKs, field)
 	} else {
 		t.DataFields = append(t.DataFields, field)
@@ -193,7 +193,7 @@ func (t *Table) AddField(field *Field) {
 
 func (t *Table) RemoveField(field *Field) {
 	t.Fields = removeField(t.Fields, field)
-	if field.HasFlag(PrimaryKeyFlag) {
+	if field.hasFlag(PrimaryKeyFlag) {
 		t.PKs = removeField(t.PKs, field)
 	} else {
 		t.DataFields = removeField(t.DataFields, field)
@@ -356,7 +356,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		pgTag := tagparser.Parse(f.Tag.Get("pg"))
 		if _, ok := pgTag.Options["discard_unknown_columns"]; ok {
-			t.SetFlag(discardUnknownColumnsFlag)
+			t.setFlag(discardUnknownColumnsFlag)
 		}
 
 		return nil
@@ -391,11 +391,11 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 
 	if _, ok := pgTag.Options["notnull"]; ok {
-		field.SetFlag(NotNullFlag)
+		field.setFlag(NotNullFlag)
 	}
 	if v, ok := pgTag.Options["unique"]; ok {
 		if v == "" {
-			field.SetFlag(UniqueFlag)
+			field.setFlag(UniqueFlag)
 		}
 		// Split the value by comma, this will allow multiple names to be specified.
 		// We can use this to create multiple named unique constraints where a single column
@@ -419,29 +419,29 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	//nolint
 	if _, ok := pgTag.Options["pk"]; ok {
-		field.SetFlag(PrimaryKeyFlag)
+		field.setFlag(PrimaryKeyFlag)
 	} else if strings.HasSuffix(field.SQLName, "_id") ||
 		strings.HasSuffix(field.SQLName, "_uuid") {
-		field.SetFlag(ForeignKeyFlag)
+		field.setFlag(ForeignKeyFlag)
 	} else if strings.HasPrefix(field.SQLName, "fk_") {
-		field.SetFlag(ForeignKeyFlag)
+		field.setFlag(ForeignKeyFlag)
 	} else if len(t.PKs) == 0 && !pgTag.HasOption("nopk") {
 		switch field.SQLName {
 		case "id", "uuid", "pk_" + t.ModelName:
-			field.SetFlag(PrimaryKeyFlag)
+			field.setFlag(PrimaryKeyFlag)
 		}
 	}
 
 	if _, ok := pgTag.Options["use_zero"]; ok {
-		field.SetFlag(UseZeroFlag)
+		field.setFlag(UseZeroFlag)
 	}
 	if _, ok := pgTag.Options["array"]; ok {
-		field.SetFlag(ArrayFlag)
+		field.setFlag(ArrayFlag)
 	}
 
 	field.SQLType = fieldSQLType(field, pgTag)
 	if strings.HasSuffix(field.SQLType, "[]") {
-		field.SetFlag(ArrayFlag)
+		field.setFlag(ArrayFlag)
 	}
 
 	if v, ok := pgTag.Options["on_delete"]; ok {
@@ -458,7 +458,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	} else if _, ok := pgTag.Options["json_use_number"]; ok {
 		field.append = types.Appender(f.Type)
 		field.scan = scanJSONValue
-	} else if field.HasFlag(ArrayFlag) {
+	} else if field.hasFlag(ArrayFlag) {
 		field.append = types.ArrayAppender(f.Type)
 		field.scan = types.ArrayScanner(f.Type)
 	} else if _, ok := pgTag.Options["hstore"]; ok {
@@ -785,7 +785,7 @@ func fieldSQLType(field *Field, pgTag *tagparser.Tag) string {
 		return "hstore"
 	}
 
-	if field.HasFlag(ArrayFlag) {
+	if field.hasFlag(ArrayFlag) {
 		switch field.Type.Kind() {
 		case reflect.Slice, reflect.Array:
 			sqlType := sqlType(field.Type.Elem())
