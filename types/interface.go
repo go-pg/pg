@@ -35,7 +35,7 @@ var qWarn sync.Once
 
 func (q Q) AppendValue(b []byte, flags int) ([]byte, error) {
 	qWarn.Do(func() {
-		internal.Logger.Printf("DEPRECATED: types.Q is replaced with types.Safe")
+		internal.Logger.Printf("DEPRECATED: types.Q is replaced with pg.Safe")
 	})
 	return append(b, q...), nil
 }
@@ -61,7 +61,7 @@ var fWarn sync.Once
 
 func (f F) AppendValue(b []byte, flags int) ([]byte, error) {
 	fWarn.Do(func() {
-		internal.Logger.Printf("DEPRECATED: types.F is replaced with types.Ident")
+		internal.Logger.Printf("DEPRECATED: types.F is replaced with pg.Ident")
 	})
 	return AppendIdent(b, string(f), flags), nil
 }
