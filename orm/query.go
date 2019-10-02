@@ -533,7 +533,7 @@ func (q *Query) whereGroup(conj string, fn func(*Query) (*Query, error)) *Query 
 
 // WhereIn is a shortcut for Where and pg.In:
 func (q *Query) WhereIn(where string, slice interface{}) *Query {
-	return q.Where(where, types.InSlice(slice))
+	return q.Where(where, types.In(slice))
 }
 
 // WhereInMulti is a shortcut for Where and pg.InMulti:

@@ -75,7 +75,7 @@ func F(field string) types.ValueAppender {
 //
 //    WHERE id IN (1, 2, 3, 4)
 func In(slice interface{}) types.ValueAppender {
-	return types.InSlice(slice)
+	return types.In(slice)
 }
 
 // InMulti accepts multiple values and returns a wrapper that can be used
