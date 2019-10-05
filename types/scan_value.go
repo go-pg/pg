@@ -79,7 +79,7 @@ func Scanner(typ reflect.Type) ScannerFunc {
 		return v.(ScannerFunc)
 	}
 	fn := scanner(typ, false)
-	registerScanner(typ, fn)
+	_, _ = scannersMap.LoadOrStore(typ, fn)
 	return fn
 }
 

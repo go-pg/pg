@@ -75,7 +75,7 @@ func Appender(typ reflect.Type) AppenderFunc {
 		return v.(AppenderFunc)
 	}
 	fn := appender(typ, false)
-	registerAppender(typ, fn)
+	_, _ = appendersMap.LoadOrStore(typ, fn)
 	return fn
 }
 
