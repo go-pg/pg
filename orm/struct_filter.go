@@ -59,8 +59,9 @@ func (sf *structFilter) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, err
 	})
 
 	isPlaceholder := isPlaceholderFormatter(fmter)
+	startLen := len(b)
 
-	before := len(b)
+	prevLen := len(b)
 	for _, f := range sf.info.Fields {
 		fv := f.Value(sf.value)
 		if f.Omit(fv) {
@@ -89,8 +90,9 @@ func (sf *structFilter) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, err
 			continue
 		}
 
-		if len(b) != before {
+		if len(b) != prevLen {
 			b = append(b, " AND "...)
+			prevLen = len(b)
 		}
 
 		if sf.info.TableName != "" {
@@ -110,6 +112,10 @@ func (sf *structFilter) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, err
 		if isSlice {
 			b = append(b, ')')
 		}
+	}
+
+	if len(b) == startLen {
+		b = append(b, "TRUE"...)
 	}
 
 	return b, nil

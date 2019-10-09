@@ -35,7 +35,7 @@ var _ = Describe("structFilter", func() {
 
 		b, err := f.AppendQuery(defaultFmter, nil)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(b).To(BeNil())
+		Expect(string(b)).To(Equal("TRUE"))
 	})
 
 	It("constructs WHERE clause with filled filter", func() {
