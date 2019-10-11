@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/go-pg/pg/internal/parser"
+	"github.com/go-pg/pg/v8/internal/parser"
 )
 
 var endOfHstore = errors.New("pg: end of hstore")

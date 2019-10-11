@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/go-pg/pg/types"
+	"github.com/go-pg/pg/v8/types"
 )
 
 var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()

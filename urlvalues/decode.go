@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-pg/pg/internal/struct_filter"
+	"github.com/go-pg/pg/v8/internal/struct_filter"
 )
 
 // Decode decodes url values into the struct.

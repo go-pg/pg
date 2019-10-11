@@ -3,7 +3,7 @@ package tag_test
 import (
 	"testing"
 
-	"github.com/go-pg/pg/internal/tag"
+	"github.com/go-pg/pg/v8/internal/tag"
 )
 
 var tagTests = []struct {

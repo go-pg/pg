@@ -1,6 +1,6 @@
 package types
 
-import "github.com/go-pg/pg/internal"
+import "github.com/go-pg/pg/v8/internal"
 
 func AppendField(b []byte, field string, quote int) []byte {
 	return appendField(b, internal.StringToBytes(field), quote)

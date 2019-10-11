@@ -1,7 +1,7 @@
 package orm
 
 import (
-	"github.com/go-pg/pg/types"
+	"github.com/go-pg/pg/v8/types"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

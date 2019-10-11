@@ -40,7 +40,7 @@
 ## Get Started
 
 ```shell
-go get -u github.com/go-pg/pg
+go get -u github.com/go-pg/pg/v8
 ```
 
 - [Wiki](https://github.com/go-pg/pg/wiki)
@@ -55,8 +55,8 @@ package pg_test
 import (
     "fmt"
 
-    "github.com/go-pg/pg"
-    "github.com/go-pg/pg/orm"
+    "github.com/go-pg/pg/v8"
+    "github.com/go-pg/pg/v8/orm"
 )
 
 type User struct {

@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-pg/pg"
-	"github.com/go-pg/pg/orm"
-	"github.com/go-pg/pg/types"
+	"github.com/go-pg/pg/v8"
+	"github.com/go-pg/pg/v8/orm"
+	"github.com/go-pg/pg/v8/types"
 )
 
 func benchmarkDB() *pg.DB {
