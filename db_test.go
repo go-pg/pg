@@ -1315,8 +1315,12 @@ var _ = Describe("ORM", func() {
 				Relation("Editor.Avatar").
 				Relation("Genres").
 				Relation("Comments").
-				Relation("Translations").
-				Relation("Translations.Comments").
+				Relation("Translations", func(q *orm.Query) (*orm.Query, error) {
+					return q.Order("id"), nil
+				}).
+				Relation("Translations.Comments", func(q *orm.Query) (*orm.Query, error) {
+					return q.Order("text"), nil
+				}).
 				First()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(book).To(Equal(&Book{
