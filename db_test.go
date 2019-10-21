@@ -299,7 +299,9 @@ var _ = Describe("DB", func() {
 		It("returns an error when query can't be prepared", func() {
 			for i := 0; i < 3; i++ {
 				_, err := db.Prepare("totally invalid sql")
-				Expect(err).To(MatchError(`ERROR #42601 syntax error at or near "totally"`))
+				Expect(err).NotTo(BeNil())
+				Expect(strings.Contains(err.Error(), "#42601")).To(BeTrue())
+				Expect(strings.Contains(err.Error(), "syntax error")).To(BeTrue())
 
 				_, err = db.Exec("SELECT 1")
 				Expect(err).NotTo(HaveOccurred())
