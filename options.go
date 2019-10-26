@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -99,10 +100,20 @@ func (opt *Options) init() {
 	if opt.Addr == "" {
 		switch opt.Network {
 		case "tcp":
-			opt.Addr = "localhost:5432"
+			host := env("PGHOST", "localhost")
+			port := env("PGPORT", "5432")
+			opt.Addr = fmt.Sprintf("%s:%s", host, port)
 		case "unix":
 			opt.Addr = "/var/run/postgresql/.s.PGSQL.5432"
 		}
+	}
+
+	if opt.User == "" {
+		opt.User = env("PGUSER", "postgres")
+	}
+
+	if opt.Database == "" {
+		opt.Database = env("PGDATABASE", "postgres")
 	}
 
 	if opt.PoolSize == 0 {
@@ -140,6 +151,14 @@ func (opt *Options) init() {
 	case 0:
 		opt.MaxRetryBackoff = 4 * time.Second
 	}
+}
+
+func env(key, defValue string) string {
+	envValue := os.Getenv(key)
+	if envValue != "" {
+		return envValue
+	}
+	return defValue
 }
 
 // ParseURL parses an URL into options that can be used to connect to PostgreSQL.
