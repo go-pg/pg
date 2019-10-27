@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -27,12 +28,7 @@ func TestGinkgo(t *testing.T) {
 
 func pgOptions() *pg.Options {
 	return &pg.Options{
-		User:     "postgres",
-		Database: "postgres",
-
-		TLSConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
+		TLSConfig: getTLSConfig(),
 
 		MaxRetries:      1,
 		MinRetryBackoff: -1,
@@ -49,6 +45,16 @@ func pgOptions() *pg.Options {
 	}
 }
 
+func getTLSConfig() *tls.Config {
+	pgSSLMode := os.Getenv("PGSSLMODE")
+	if pgSSLMode == "disable" {
+		return nil
+	}
+	return &tls.Config{
+		InsecureSkipVerify: true,
+	}
+}
+
 var _testDB *pg.DB
 
 func testDB() *pg.DB {
@@ -62,13 +68,23 @@ func TestDBString(t *testing.T) {
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
-	wanted := `DB<Addr="localhost:5432">`
+	env := func(key, defValue string) string {
+		envValue := os.Getenv(key)
+		if envValue != "" {
+			return envValue
+		}
+		return defValue
+	}
+	host := env("PGHOST", "localhost")
+	port := env("PGPORT", "5432")
+
+	wanted := fmt.Sprintf(`DB<Addr="%s:%s">`, host, port)
 	if db.String() != wanted {
 		t.Fatalf("got %q, wanted %q", db.String(), wanted)
 	}
 
 	db = db.WithParam("param1", "value1").WithParam("param2", 2)
-	wanted = `DB<Addr="localhost:5432" param1=value1 param2=2>`
+	wanted = fmt.Sprintf(`DB<Addr="%s:%s" param1=value1 param2=2>`, host, port)
 	if db.String() != wanted {
 		t.Fatalf("got %q, wanted %q", db.String(), wanted)
 	}
