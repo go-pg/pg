@@ -154,6 +154,18 @@ var _ = Describe("CreateTable", func() {
 		s := createTableQueryString(q, &CreateTableOptions{})
 		Expect(s).To(Equal(`CREATE TABLE "create_table_with_multiple_named_uniques" ("id" bigserial, "account_id" bigint, "order_number" text, "store_order_number" text, PRIMARY KEY ("id"), UNIQUE ("account_id", "order_number"), UNIQUE ("account_id", "store_order_number"))`))
 	})
+
+	It("supports model without a table name", func() {
+		type Model struct {
+			tableName struct{} `pg:"_"`
+			Id        int
+		}
+
+		q := NewQuery(nil, &Model{}).Table("dynamic_name")
+
+		s := createTableQueryString(q, &CreateTableOptions{})
+		Expect(s).To(Equal(`CREATE TABLE "dynamic_name" ("id" bigserial, PRIMARY KEY ("id"))`))
+	})
 })
 
 func createTableQueryString(q *Query, opt *CreateTableOptions) string {

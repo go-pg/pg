@@ -261,3 +261,17 @@ var _ = Describe("embedding with ignored field", func() {
 		Expect(table.DataFields).To(HaveLen(1))
 	})
 })
+
+type Nameless struct {
+	tableName struct{} `pg:"_"`
+
+	Id int
+}
+
+var _ = Describe("_ as table name", func() {
+	It("sets empty table name", func() {
+		table := orm.GetTable(reflect.TypeOf(Nameless{}))
+		Expect(table.FullName).To(Equal(types.Safe("")))
+		Expect(table.FullNameForSelects).To(Equal(types.Safe("")))
+	})
+})

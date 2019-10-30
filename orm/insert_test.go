@@ -232,7 +232,7 @@ var _ = Describe("Insert", func() {
 		Expect(s).To(Equal(`INSERT INTO "models" ("id", "bool") VALUES (DEFAULT, DEFAULT) RETURNING "id", "bool"`))
 	})
 
-	It("support models without a name", func() {
+	It("support models without a table name", func() {
 		type Model struct {
 			tableName struct{} `pg:"_"`
 			Id        int
