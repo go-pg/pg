@@ -1,6 +1,6 @@
 # Changelog
 
-## v9 WIP
+## v9
 
 - `pg:",notnull"` is reworked. Now it means SQL `NOT NULL` constraint and nothing more.
 - Added `pg:",use_zero"` to prevent go-pg from converting Go zero values to SQL `NULL`.
