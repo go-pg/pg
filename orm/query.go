@@ -1500,6 +1500,9 @@ func (q *Query) appendReturning(fmter QueryFormatter, b []byte) (_ []byte, err e
 func (q *Query) appendWith(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	b = append(b, "WITH "...)
 	for i, with := range q.with {
+		if with.recursive {
+			b = append(b, "RECURSIVE "...)
+		}
 		if i > 0 {
 			b = append(b, ", "...)
 		}
