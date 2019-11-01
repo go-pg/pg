@@ -23,8 +23,9 @@ const (
 )
 
 type withQuery struct {
-	name  string
-	query QueryAppender
+	name      string
+	recursive bool
+	query     QueryAppender
 }
 
 type joinQuery struct {
@@ -219,27 +220,42 @@ func (q *Query) AllWithDeleted() *Query {
 
 // With adds subq as common table expression with the given name.
 func (q *Query) With(name string, subq *Query) *Query {
-	return q._with(name, newSelectQuery(subq))
+	return q._with(name, newSelectQuery(subq), false)
+}
+
+func (q *Query) WithRecursive(name string, subq *Query) *Query {
+	return q._with(name, newSelectQuery(subq), true)
 }
 
 func (q *Query) WithInsert(name string, subq *Query) *Query {
-	return q._with(name, newInsertQuery(subq))
+	return q._with(name, newInsertQuery(subq), false)
 }
 
 func (q *Query) WithUpdate(name string, subq *Query) *Query {
-	return q._with(name, newUpdateQuery(subq, false))
+	return q._with(name, newUpdateQuery(subq, false), false)
 }
 
 func (q *Query) WithDelete(name string, subq *Query) *Query {
-	return q._with(name, newDeleteQuery(subq))
+	return q._with(name, newDeleteQuery(subq), false)
 }
 
-func (q *Query) _with(name string, subq QueryAppender) *Query {
+func (q *Query) _with(name string, subq QueryAppender, recursive bool) *Query {
 	q.with = append(q.with, withQuery{
-		name:  name,
-		query: subq,
+		name:      name,
+		query:     subq,
+		recursive: recursive,
 	})
 	return q
+}
+
+// WrapWithRecursive creates new Query and adds to it current query as
+// common table expression with the given name.
+func (q *Query) WrapWithRecursive(name string) *Query {
+	wrapper := q.New()
+	wrapper.with = q.with
+	q.with = nil
+	wrapper = wrapper.WithRecursive(name, q)
+	return wrapper
 }
 
 // WrapWith creates new Query and adds to it current query as
