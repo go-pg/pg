@@ -1,4 +1,4 @@
-module github.com/go-pg/pg/v9
+module github.com/tpoxa/pg/v9
 
 go 1.11
 
