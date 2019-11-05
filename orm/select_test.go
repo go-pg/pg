@@ -354,6 +354,13 @@ var _ = Describe("Select Order", func() {
 	})
 })
 
+type NonSoftDeleteModel struct {
+	Id                int `pg:",pk"`
+	Name              string
+	SoftDeleteModelId int
+	SoftDeleteModel   *SoftDeleteModel
+}
+
 type SoftDeleteModel struct {
 	Id        int
 	DeletedAt time.Time `pg:",soft_delete"`
@@ -409,6 +416,13 @@ var _ = Describe("SoftDeleteModel", func() {
 
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT "soft_delete_parent"."id", "soft_delete_parent"."name", "soft_delete_parent"."date_deleted", "children"."id" AS "children__id", "children"."soft_delete_parent_id" AS "children__soft_delete_parent_id", "children"."name" AS "children__name", "children__sub_children"."id" AS "children__sub_children__id", "children__sub_children"."soft_delete_child_id" AS "children__sub_children__soft_delete_child_id", "children__sub_children"."name" AS "children__sub_children__name" FROM "soft_delete_parents" AS "soft_delete_parent" LEFT JOIN "soft_delete_children" AS "children" ON "children"."soft_delete_parent_id" = "soft_delete_parent"."id" LEFT JOIN "soft_delete_sub_children" AS "children__sub_children" ON "children__sub_children"."soft_delete_child_id" = "children"."id" WHERE "soft_delete_parent"."date_deleted" IS NULL`))
+	})
+
+	It("will join a non-SoftDelete with a SoftDelete", func() {
+		q := NewQuery(nil, &NonSoftDeleteModel{}).Relation("SoftDeleteModel")
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "non_soft_delete_model"."id", "non_soft_delete_model"."name", "non_soft_delete_model"."soft_delete_model_id", "soft_delete_model"."id" AS "soft_delete_model__id", "soft_delete_model"."deleted_at" AS "soft_delete_model__deleted_at" FROM "non_soft_delete_models" AS "non_soft_delete_model" LEFT JOIN "soft_delete_models" AS "soft_delete_model" ON ("soft_delete_model"."id" = "non_soft_delete_model"."soft_delete_model_id") AND "soft_delete_model"."deleted_at" IS NULL`))
 	})
 })
 
