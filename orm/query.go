@@ -147,7 +147,11 @@ func (q *Query) err(err error) *Query {
 }
 
 func (q *Query) hasFlag(flag queryFlag) bool {
-	return q.flags&flag != 0
+	return hasFlag(q.flags, flag)
+}
+
+func hasFlag(flags, flag queryFlag) bool {
+	return flags&flag != 0
 }
 
 func (q *Query) withFlag(flag queryFlag) *Query {
@@ -1412,7 +1416,7 @@ func (q *Query) appendSoftDelete(b []byte) []byte {
 	b = append(b, q.model.Table().SoftDeleteField.Column...)
 	if q.hasFlag(deletedFlag) {
 		b = append(b, " IS NOT NULL"...)
-	} else if !q.hasFlag(allWithDeletedFlag) {
+	} else {
 		b = append(b, " IS NULL"...)
 	}
 	return b
