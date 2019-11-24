@@ -32,7 +32,7 @@
 - [Creating tables from structs](https://godoc.org/github.com/go-pg/pg#example-DB-CreateTable).
 - [ForEach](https://godoc.org/github.com/go-pg/pg#example-DB-Model-ForEach) that calls a function for each row returned by the query without loading all rows into the memory.
 - Works with PgBouncer in transaction pooling mode.
-- [Migrations](https://github.com/go-pg/migrations).
+- Migrations: [one](https://github.com/go-pg/migrations) and [two](https://github.com/robinjoseph08/go-pg-migrations).
 - [Sharding](https://github.com/go-pg/sharding).
 - [Model generator from SQL tables](https://github.com/dizzyfool/genna).
 
