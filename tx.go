@@ -12,7 +12,9 @@ import (
 	"github.com/go-pg/pg/v9/orm"
 )
 
-var errTxDone = errors.New("pg: transaction has already been committed or rolled back")
+// ErrTxDone is returned by any operation that is performed on a transaction
+// that has already been committed or rolled back.
+var ErrTxDone = errors.New("pg: transaction has already been committed or rolled back")
 
 // Tx is an in-progress database transaction. It is safe for concurrent use
 // by multiple goroutines.
@@ -93,7 +95,7 @@ func (tx *Tx) RunInTransaction(fn func(*Tx) error) error {
 func (tx *Tx) withConn(c context.Context, fn func(context.Context, *pool.Conn) error) error {
 	err := tx.db.withConn(c, fn)
 	if err == pool.ErrClosed {
-		return errTxDone
+		return ErrTxDone
 	}
 	return err
 }
