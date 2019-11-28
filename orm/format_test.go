@@ -94,6 +94,7 @@ var formatTests = []formatTest{
 	{q: `?`, params: params{types.Safe(`\?param`)}, wanted: `\?param`},
 
 	{q: "?string", params: params{structv}, wanted: `'string_value'`},
+	{q: "?(string)", params: params{structv}, wanted: `'string_value'`},
 	{q: "?iface", params: params{structv}, wanted: `'iface_value'`},
 	{q: "?string", params: params{&StructFormatter{}}, wanted: `NULL`},
 	{q: "?use_zero", params: params{&StructFormatter{}}, wanted: `''`},

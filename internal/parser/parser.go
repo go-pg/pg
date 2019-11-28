@@ -83,6 +83,15 @@ func (p *Parser) ReadSep(sep byte) ([]byte, bool) {
 }
 
 func (p *Parser) ReadIdentifier() (string, bool) {
+	if p.i < len(p.b) && p.b[p.i] == '(' {
+		s := p.i + 1
+		if ind := bytes.IndexByte(p.b[s:], ')'); ind != -1 {
+			b := p.b[s : s+ind]
+			p.i = s + ind + 1
+			return internal.BytesToString(b), false
+		}
+	}
+
 	ind := len(p.b) - p.i
 	var alpha bool
 	for i, c := range p.b[p.i:] {
