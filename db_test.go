@@ -1009,7 +1009,7 @@ type Genre struct {
 	Name   string
 	Rating int `pg:"-"` // - is used to ignore field
 
-	Books []Book `pg:"many2many:book_genres"` // many to many relation
+	Books []Book `pg:"many2many:?shard.book_genres"` // many to many relation
 
 	ParentId  int
 	Subgenres []Genre `pg:"fk:parent_id"`
@@ -1133,7 +1133,7 @@ var _ = Describe("ORM", func() {
 	var db *pg.DB
 
 	BeforeEach(func() {
-		db = pg.Connect(pgOptions())
+		db = pg.Connect(pgOptions()).WithParam("shard", pg.Ident("public"))
 
 		err := createTestSchema(db)
 		Expect(err).NotTo(HaveOccurred())

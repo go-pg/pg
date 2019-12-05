@@ -645,7 +645,7 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 			Type:          Many2ManyRelation,
 			Field:         field,
 			JoinTable:     joinTable,
-			M2MTableName:  quoteIdent(m2mTableName),
+			M2MTableName:  types.Safe(m2mTableName),
 			M2MTableAlias: m2mTableAlias,
 			BaseFKs:       fks,
 			JoinFKs:       joinFKs,
