@@ -45,6 +45,7 @@
 go-pg requires a Go version with [Modules](https://github.com/golang/go/wiki/Modules) support and uses import versioning. So please make sure to initialize a Go module before installing go-pg:
 
 ```shell
+go mod init github.com/my/repo
 go get github.com/go-pg/pg/v9
 ```
 
