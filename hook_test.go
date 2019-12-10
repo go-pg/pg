@@ -14,7 +14,9 @@ type HookTest struct {
 	Id    int
 	Value string
 
-	afterScan   int
+	beforeScan int
+	afterScan  int
+
 	afterSelect int
 
 	beforeInsert int
@@ -27,48 +29,63 @@ type HookTest struct {
 	afterDelete  int
 }
 
-var _ orm.AfterSelectHook = (*HookTest)(nil)
-var _ orm.BeforeInsertHook = (*HookTest)(nil)
-var _ orm.AfterInsertHook = (*HookTest)(nil)
-var _ orm.BeforeUpdateHook = (*HookTest)(nil)
-var _ orm.AfterUpdateHook = (*HookTest)(nil)
-var _ orm.BeforeDeleteHook = (*HookTest)(nil)
-var _ orm.AfterDeleteHook = (*HookTest)(nil)
+var _ orm.BeforeScanHook = (*HookTest)(nil)
+
+func (t *HookTest) BeforeScan(c context.Context) error {
+	t.beforeScan++
+	return nil
+}
+
+var _ orm.AfterScanHook = (*HookTest)(nil)
 
 func (t *HookTest) AfterScan(c context.Context) error {
 	t.afterScan++
 	return nil
 }
 
+var _ orm.AfterSelectHook = (*HookTest)(nil)
+
 func (t *HookTest) AfterSelect(c context.Context) error {
 	t.afterSelect++
 	return nil
 }
+
+var _ orm.BeforeInsertHook = (*HookTest)(nil)
 
 func (t *HookTest) BeforeInsert(c context.Context) (context.Context, error) {
 	t.beforeInsert++
 	return c, nil
 }
 
+var _ orm.AfterInsertHook = (*HookTest)(nil)
+
 func (t *HookTest) AfterInsert(c context.Context) error {
 	t.afterInsert++
 	return nil
 }
+
+var _ orm.BeforeUpdateHook = (*HookTest)(nil)
 
 func (t *HookTest) BeforeUpdate(c context.Context) (context.Context, error) {
 	t.beforeUpdate++
 	return c, nil
 }
 
+var _ orm.AfterUpdateHook = (*HookTest)(nil)
+
 func (t *HookTest) AfterUpdate(c context.Context) error {
 	t.afterUpdate++
 	return nil
 }
 
+var _ orm.BeforeDeleteHook = (*HookTest)(nil)
+
 func (t *HookTest) BeforeDelete(c context.Context) (context.Context, error) {
 	t.beforeDelete++
 	return c, nil
 }
+
+var _ orm.AfterDeleteHook = (*HookTest)(nil)
 
 func (t *HookTest) AfterDelete(c context.Context) error {
 	t.afterDelete++
@@ -99,8 +116,12 @@ var _ = Describe("HookTest", func() {
 		var hook HookTest
 		err := db.Model(&hook).Select()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.afterScan).To(Equal(1))
-		Expect(hook.afterSelect).To(Equal(1))
+		Expect(hook).To(Equal(HookTest{
+			Id:          1,
+			beforeScan:  1,
+			afterScan:   1,
+			afterSelect: 1,
+		}))
 	})
 
 	It("calls AfterSelect for a slice model", func() {
@@ -108,20 +129,27 @@ var _ = Describe("HookTest", func() {
 		err := db.Model(&hooks).Select()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(hooks).To(HaveLen(1))
-		Expect(hooks[0].afterScan).To(Equal(1))
-		Expect(hooks[0].afterSelect).To(Equal(1))
+		Expect(hooks[0]).To(Equal(HookTest{
+			Id:          1,
+			beforeScan:  1,
+			afterScan:   1,
+			afterSelect: 1,
+		}))
 	})
 
 	It("calls BeforeInsert and AfterInsert", func() {
 		hook := HookTest{
-			Id:    1,
-			Value: "value",
+			Id: 1,
 		}
 		err := db.Insert(&hook)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.afterScan).To(Equal(0))
-		Expect(hook.beforeInsert).To(Equal(1))
-		Expect(hook.afterInsert).To(Equal(1))
+		Expect(hook).To(Equal(HookTest{
+			Id:           1,
+			beforeScan:   1,
+			afterScan:    1,
+			beforeInsert: 1,
+			afterInsert:  1,
+		}))
 	})
 
 	It("calls BeforeUpdate and AfterUpdate", func() {
@@ -130,9 +158,11 @@ var _ = Describe("HookTest", func() {
 		}
 		err := db.Update(&hook)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.afterScan).To(Equal(0))
-		Expect(hook.beforeUpdate).To(Equal(1))
-		Expect(hook.afterUpdate).To(Equal(1))
+		Expect(hook).To(Equal(HookTest{
+			Id:           1,
+			beforeUpdate: 1,
+			afterUpdate:  1,
+		}))
 	})
 
 	It("does not call BeforeUpdate and AfterUpdate for nil model", func() {
@@ -149,9 +179,11 @@ var _ = Describe("HookTest", func() {
 		}
 		err := db.Delete(&hook)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook.afterScan).To(Equal(0))
-		Expect(hook.beforeDelete).To(Equal(1))
-		Expect(hook.afterDelete).To(Equal(1))
+		Expect(hook).To(Equal(HookTest{
+			Id:           1,
+			beforeDelete: 1,
+			afterDelete:  1,
+		}))
 	})
 
 	It("does not call BeforeDelete and AfterDelete for nil model", func() {

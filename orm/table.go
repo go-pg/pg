@@ -20,14 +20,15 @@ import (
 )
 
 const (
-	AfterScanHookFlag = uint16(1) << iota
-	AfterSelectHookFlag
-	BeforeInsertHookFlag
-	AfterInsertHookFlag
-	BeforeUpdateHookFlag
-	AfterUpdateHookFlag
-	BeforeDeleteHookFlag
-	AfterDeleteHookFlag
+	beforeScanHookFlag = uint16(1) << iota
+	afterScanHookFlag
+	afterSelectHookFlag
+	beforeInsertHookFlag
+	afterInsertHookFlag
+	beforeUpdateHookFlag
+	afterUpdateHookFlag
+	beforeDeleteHookFlag
+	afterDeleteHookFlag
 	discardUnknownColumnsFlag
 )
 
@@ -98,29 +99,32 @@ func newTable(typ reflect.Type) *Table {
 	t.Alias = quoteIdent(t.ModelName)
 
 	typ = reflect.PtrTo(t.Type)
+	if typ.Implements(beforeScanHookType) {
+		t.setFlag(beforeScanHookFlag)
+	}
 	if typ.Implements(afterScanHookType) {
-		t.setFlag(AfterScanHookFlag)
+		t.setFlag(afterScanHookFlag)
 	}
 	if typ.Implements(afterSelectHookType) {
-		t.setFlag(AfterSelectHookFlag)
+		t.setFlag(afterSelectHookFlag)
 	}
 	if typ.Implements(beforeInsertHookType) {
-		t.setFlag(BeforeInsertHookFlag)
+		t.setFlag(beforeInsertHookFlag)
 	}
 	if typ.Implements(afterInsertHookType) {
-		t.setFlag(AfterInsertHookFlag)
+		t.setFlag(afterInsertHookFlag)
 	}
 	if typ.Implements(beforeUpdateHookType) {
-		t.setFlag(BeforeUpdateHookFlag)
+		t.setFlag(beforeUpdateHookFlag)
 	}
 	if typ.Implements(afterUpdateHookType) {
-		t.setFlag(AfterUpdateHookFlag)
+		t.setFlag(afterUpdateHookFlag)
 	}
 	if typ.Implements(beforeDeleteHookType) {
-		t.setFlag(BeforeDeleteHookFlag)
+		t.setFlag(beforeDeleteHookFlag)
 	}
 	if typ.Implements(afterDeleteHookType) {
-		t.setFlag(AfterDeleteHookFlag)
+		t.setFlag(afterDeleteHookFlag)
 	}
 
 	for _, hook := range oldHooks {

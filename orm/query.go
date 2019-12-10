@@ -1006,7 +1006,7 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 
 	c := q.ctx
 
-	if q.model != nil && q.model.Table().hasFlag(BeforeInsertHookFlag) {
+	if q.model != nil && q.model.Table().hasFlag(beforeInsertHookFlag) {
 		c, err = q.model.BeforeInsert(c)
 		if err != nil {
 			return nil, err
