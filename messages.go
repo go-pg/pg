@@ -768,13 +768,22 @@ func setByteSliceLen(b [][]byte, n int) [][]byte {
 	return b
 }
 
-func readDataRow(rd *internal.BufReader, scanner orm.ColumnScanner, columns [][]byte) error {
+func readDataRow(
+	ctx context.Context, rd *internal.BufReader, scanner orm.ColumnScanner, columns [][]byte,
+) error {
 	colNum, err := readInt16(rd)
 	if err != nil {
 		return err
 	}
 
+	if h, ok := scanner.(orm.BeforeScanHook); ok {
+		if err := h.BeforeScan(ctx); err != nil {
+			return err
+		}
+	}
+
 	var firstErr error
+
 	for colIdx := int16(0); colIdx < colNum; colIdx++ {
 		n, err := readInt32(rd)
 		if err != nil {
@@ -811,6 +820,12 @@ func readDataRow(rd *internal.BufReader, scanner orm.ColumnScanner, columns [][]
 		}
 	}
 
+	if h, ok := scanner.(orm.AfterScanHook); ok {
+		if err := h.AfterScan(ctx); err != nil {
+			return err
+		}
+	}
+
 	return firstErr
 }
 
@@ -822,7 +837,9 @@ func newModel(mod interface{}) (orm.Model, error) {
 	return m, m.Init()
 }
 
-func readSimpleQueryData(rd *internal.BufReader, mod interface{}) (*result, error) {
+func readSimpleQueryData(
+	ctx context.Context, rd *internal.BufReader, mod interface{},
+) (*result, error) {
 	var res result
 	var firstErr error
 	for {
@@ -850,7 +867,7 @@ func readSimpleQueryData(rd *internal.BufReader, mod interface{}) (*result, erro
 			}
 		case dataRowMsg:
 			scanner := res.model.NextColumnScanner()
-			if err := readDataRow(rd, scanner, rd.Columns); err != nil {
+			if err := readDataRow(ctx, rd, scanner, rd.Columns); err != nil {
 				if firstErr == nil {
 					firstErr = err
 				}
@@ -904,7 +921,9 @@ func readSimpleQueryData(rd *internal.BufReader, mod interface{}) (*result, erro
 	}
 }
 
-func readExtQueryData(rd *internal.BufReader, mod interface{}, columns [][]byte) (*result, error) {
+func readExtQueryData(
+	ctx context.Context, rd *internal.BufReader, mod interface{}, columns [][]byte,
+) (*result, error) {
 	var res result
 	var firstErr error
 	for {
@@ -932,7 +951,7 @@ func readExtQueryData(rd *internal.BufReader, mod interface{}, columns [][]byte)
 			}
 
 			scanner := res.model.NextColumnScanner()
-			if err := readDataRow(rd, scanner, columns); err != nil {
+			if err := readDataRow(ctx, rd, scanner, columns); err != nil {
 				if firstErr == nil {
 					firstErr = err
 				}

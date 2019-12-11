@@ -523,20 +523,11 @@ func (db *baseDB) simpleQueryData(
 
 	var res *result
 	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *internal.BufReader) error {
-		res, err = readSimpleQueryData(rd, model)
+		res, err = readSimpleQueryData(c, rd, model)
 		return err
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	if res.model != nil && res.returned > 0 {
-		if m, ok := res.model.(orm.AfterScanHook); ok {
-			err = m.AfterScan(c)
-			if err != nil {
-				return nil, err
-			}
-		}
 	}
 
 	return res, nil
