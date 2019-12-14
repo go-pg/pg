@@ -62,6 +62,7 @@ type Table struct {
 	ModelName string
 
 	Name               string
+	Schema             types.Safe
 	FullName           types.Safe
 	FullNameForSelects types.Safe
 
@@ -145,8 +146,13 @@ func (t *Table) init2() {
 }
 
 func (t *Table) setName(name types.Safe) {
-	t.FullName = name
-	t.FullNameForSelects = name
+	if t.Schema != "" {
+		t.FullName = t.Schema + "." + name
+		t.FullNameForSelects = t.Schema + "." + name
+	} else {
+		t.FullName = name
+		t.FullNameForSelects = name
+	}
 	if t.Alias == "" {
 		t.Alias = name
 	}
@@ -285,6 +291,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 				t.FullNameForSelects = embeddedTable.FullNameForSelects
 				t.Alias = embeddedTable.Alias
 				t.ModelName = embeddedTable.ModelName
+				t.Schema = embeddedTable.Schema
 			}
 
 			continue
@@ -325,6 +332,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			return nil
 		}
 
+		schema, ok := pgTag.Options["schema"]
+		if ok {
+			s, _ := tagparser.Unquote(schema)
+			t.Schema = types.Safe(internal.QuoteTableName(s))
+		}
+
 		tableSpace, ok := pgTag.Options["tablespace"]
 		if ok {
 			s, _ := tagparser.Unquote(tableSpace)
@@ -346,7 +359,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		if s, ok := pgTag.Options["select"]; ok {
 			s, _ = tagparser.Unquote(s)
-			t.FullNameForSelects = types.Safe(internal.QuoteTableName(s))
+			fullNameForSelects := types.Safe(internal.QuoteTableName(s))
+			if t.Schema != "" {
+				t.FullNameForSelects = t.Schema + "." + fullNameForSelects
+			} else {
+				t.FullNameForSelects = fullNameForSelects
+			}
 		}
 
 		if v, ok := pgTag.Options["alias"]; ok {

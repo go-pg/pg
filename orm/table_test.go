@@ -245,6 +245,20 @@ var _ = Describe("anonymous struct", func() {
 		Expect(table.FullNameForSelects).To(Equal(types.Safe("some_name")))
 		Expect(table.Alias).To(Equal(types.Safe("some_name")))
 	})
+
+	It("alias not broken by schema", func() {
+		var model struct {
+			tableName struct{} `pg:"some_name,schema:some_schema"`
+
+			ID   uint64
+			Data string
+		}
+
+		table := orm.GetTable(reflect.TypeOf(model))
+		Expect(table.FullName).To(Equal(types.Safe("some_schema.some_name")))
+		Expect(table.FullNameForSelects).To(Equal(types.Safe("some_schema.some_name")))
+		Expect(table.Alias).To(Equal(types.Safe("some_name")))
+	})
 })
 
 type O struct {
@@ -273,5 +287,33 @@ var _ = Describe("_ as table name", func() {
 		table := orm.GetTable(reflect.TypeOf(Nameless{}))
 		Expect(table.FullName).To(Equal(types.Safe("")))
 		Expect(table.FullNameForSelects).To(Equal(types.Safe("")))
+	})
+})
+
+type WithSchema struct {
+	tableName struct{} `pg:"my_table,schema:my_schema"`
+
+	Id int
+}
+
+var _ = Describe("table with provided schema", func() {
+	It("should append schema name before table name", func() {
+		table := orm.GetTable(reflect.TypeOf(WithSchema{}))
+		Expect(table.FullName).To(Equal(types.Safe("my_schema.my_table")))
+		Expect(table.FullNameForSelects).To(Equal(types.Safe("my_schema.my_table")))
+	})
+})
+
+type WithSchemaAndSelect struct {
+	tableName struct{} `pg:"my_table,schema:my_schema,select:my_view"`
+
+	Id int
+}
+
+var _ = Describe("table with provided schema and select", func() {
+	It("should append schema name before table name", func() {
+		table := orm.GetTable(reflect.TypeOf(WithSchemaAndSelect{}))
+		Expect(table.FullName).To(Equal(types.Safe("my_schema.my_table")))
+		Expect(table.FullNameForSelects).To(Equal(types.Safe("my_schema.my_view")))
 	})
 })
