@@ -16,7 +16,6 @@ type Conn struct {
 	netConn net.Conn
 
 	rd *internal.BufReader
-	wb *WriteBuffer
 
 	ProcessID int32
 	SecretKey int32
@@ -31,7 +30,6 @@ type Conn struct {
 func NewConn(netConn net.Conn) *Conn {
 	cn := &Conn{
 		rd: internal.NewBufReader(netConn),
-		wb: NewWriteBuffer(),
 
 		createdAt: time.Now(),
 	}
@@ -85,13 +83,16 @@ func (cn *Conn) WithWriter(
 		return err
 	}
 
-	cn.wb.Reset()
-	err = fn(cn.wb)
+	wb := getWriteBuffer()
+	defer putWriteBuffer(wb)
+
+	wb.Reset()
+	err = fn(wb)
 	if err != nil {
 		return err
 	}
 
-	_, err = cn.netConn.Write(cn.wb.Bytes)
+	_, err = cn.netConn.Write(wb.Bytes)
 	return err
 }
 
