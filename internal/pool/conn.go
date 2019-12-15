@@ -21,10 +21,10 @@ type Conn struct {
 	SecretKey int32
 	lastID    int64
 
+	createdAt time.Time
+	usedAt    uint32 // atomic
 	pooled    bool
 	Inited    bool
-	createdAt time.Time
-	usedAt    int64 // atomic
 }
 
 func NewConn(netConn net.Conn) *Conn {
@@ -39,12 +39,12 @@ func NewConn(netConn net.Conn) *Conn {
 }
 
 func (cn *Conn) UsedAt() time.Time {
-	unix := atomic.LoadInt64(&cn.usedAt)
-	return time.Unix(unix, 0)
+	unix := atomic.LoadUint32(&cn.usedAt)
+	return time.Unix(int64(unix), 0)
 }
 
 func (cn *Conn) SetUsedAt(tm time.Time) {
-	atomic.StoreInt64(&cn.usedAt, tm.Unix())
+	atomic.StoreUint32(&cn.usedAt, uint32(tm.Unix()))
 }
 
 func (cn *Conn) RemoteAddr() net.Addr {
