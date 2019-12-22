@@ -185,6 +185,8 @@ func (q *insertQuery) appendValues(
 		switch {
 		case q.placeholder:
 			b = append(b, '?')
+		case !f.NullZero() && f.HasZeroValue(strct):
+			b = f.AppendValue(b, strct, 1)
 		case (f.Default != "" || f.NullZero()) && f.HasZeroValue(strct):
 			b = append(b, "DEFAULT"...)
 			q.addReturningField(f)

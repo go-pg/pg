@@ -162,6 +162,16 @@ var _ = Describe("Insert", func() {
 		Expect(s).To(Equal(`INSERT INTO "insert_default_tests" ("id", "value") VALUES (1, DEFAULT) RETURNING "value"`))
 	})
 
+	It("supports value when default value and use_zero is used together", func() {
+		type EmptyValueModel struct {
+			Value string `pg:",use_zero,default:''"`
+		}
+		q := NewQuery(nil, &EmptyValueModel{})
+
+		s := insertQueryString(q)
+		Expect(s).To(Equal(`INSERT INTO "empty_value_models" ("value") VALUES ('')`))
+	})
+
 	It("supports RETURNING NULL", func() {
 		q := NewQuery(nil, &InsertDefaultTest{Id: 1}).Returning("NULL")
 
