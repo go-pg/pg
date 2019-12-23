@@ -3,8 +3,9 @@ package types
 import (
 	"bytes"
 	"database/sql"
-	"encoding/json"
 	"time"
+
+	"github.com/segmentio/encoding/json"
 )
 
 var jsonNull = []byte("null")

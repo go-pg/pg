@@ -2,8 +2,9 @@ package types_test
 
 import (
 	"bytes"
-	"encoding/json"
 	"testing"
+
+	"github.com/segmentio/encoding/json"
 
 	"github.com/go-pg/pg/v9/types"
 )
