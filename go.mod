@@ -8,6 +8,8 @@ require (
 	github.com/jinzhu/inflection v1.0.0
 	github.com/onsi/ginkgo v1.10.1
 	github.com/onsi/gomega v1.7.0
+	github.com/segmentio/encoding v0.1.8
+	github.com/vmihailenco/msgpack/v4 v4.3.1
 	github.com/vmihailenco/tagparser v0.1.1
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15

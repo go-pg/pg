@@ -148,7 +148,7 @@ func TestAnynomousStructField(t *testing.T) {
 
 	var st MyStruct
 	_, err := db.Query(&st, "SELECT ARRAY[1,2,3,4] AS ints")
-	wanted := "json: cannot unmarshal number into Go value of type pg_test.MyInt"
+	wanted := `json: cannot unmarshal "1" into Go value of type pg_test.MyInt`
 	if err.Error() != wanted {
 		t.Fatal(err)
 	}
