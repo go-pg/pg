@@ -55,6 +55,10 @@ func (q *selectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		}
 	}
 
+	if len(q.q.union) > 0 {
+		b = append(b, '(')
+	}
+
 	b = append(b, "SELECT "...)
 
 	if len(q.q.distinctOn) > 0 {
@@ -154,14 +158,6 @@ func (q *selectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		}
 	}
 
-	for _, u := range q.q.union {
-		b = append(b, u.expr...)
-		b, err = u.query.AppendQuery(fmter, b)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	if q.count == "" {
 		if len(q.q.order) > 0 {
 			b = append(b, " ORDER BY "...)
@@ -199,11 +195,26 @@ func (q *selectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		b = append(b, ` FROM "_count_wrapper"`...)
 	}
 
+	if len(q.q.union) > 0 {
+		b = append(b, ")"...)
+
+		for _, u := range q.q.union {
+			b = append(b, u.expr...)
+			b = append(b, '(')
+			b, err = u.query.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
+			b = append(b, ")"...)
+		}
+	}
+
 	return b, q.q.stickyErr
 }
 
 func (q selectQuery) appendColumns(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	start := len(b)
+
 	switch {
 	case q.q.columns != nil:
 		b, err = q.q.appendColumns(fmter, b)
