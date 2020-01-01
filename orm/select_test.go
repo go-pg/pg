@@ -259,16 +259,6 @@ var _ = Describe("Count", func() {
 		Expect(s).To(Equal(`WITH "_count_wrapper" AS (SELECT DISTINCT group_id) SELECT count(*) FROM "_count_wrapper"`))
 	})
 
-	It("supports Union", func() {
-		q1 := NewQuery(nil, &SelectModel{}).Where("1 = 1")
-		q := NewQuery(nil, &SelectModel{}).
-			Where("2 = 2").
-			Union(q1)
-
-		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" WHERE (2 = 2) UNION SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" WHERE (1 = 1)`))
-	})
-
 	It("supports empty WhereStruct", func() {
 		q := NewQuery(nil, &SelectModel{}).WhereStruct(struct{}{})
 
@@ -423,6 +413,27 @@ var _ = Describe("SoftDeleteModel", func() {
 
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT "non_soft_delete_model"."id", "non_soft_delete_model"."name", "non_soft_delete_model"."soft_delete_model_id", "soft_delete_model"."id" AS "soft_delete_model__id", "soft_delete_model"."deleted_at" AS "soft_delete_model__deleted_at" FROM "non_soft_delete_models" AS "non_soft_delete_model" LEFT JOIN "soft_delete_models" AS "soft_delete_model" ON ("soft_delete_model"."id" = "non_soft_delete_model"."soft_delete_model_id") AND "soft_delete_model"."deleted_at" IS NULL`))
+	})
+})
+
+var _ = Describe("union", func() {
+	It("simple", func() {
+		q1 := NewQuery(nil).ColumnExpr("1").OrderExpr("1 ASC")
+		q2 := NewQuery(nil).ColumnExpr("2").OrderExpr("1 ASC")
+
+		s := selectQueryString(q1.Union(q2))
+		Expect(s).To(Equal(`(SELECT 1 ORDER BY 1 ASC) UNION (SELECT 2 ORDER BY 1 ASC)`))
+	})
+
+	It("manual", func() {
+		q1 := NewQuery(nil).ColumnExpr("1").OrderExpr("1 ASC")
+		q2 := NewQuery(nil).ColumnExpr("2").OrderExpr("1 ASC")
+		q := NewQuery(nil).
+			ColumnExpr("(?) UNION ALL (?)", q1, q2).
+			OrderExpr("1 DESC")
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT (SELECT 1 ORDER BY 1 ASC) UNION ALL (SELECT 2 ORDER BY 1 ASC) ORDER BY 1 DESC`))
 	})
 })
 
