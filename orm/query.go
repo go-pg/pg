@@ -121,6 +121,7 @@ func (q *Query) Clone() *Query {
 		columns:     q.columns[:len(q.columns):len(q.columns)],
 		set:         q.set[:len(q.set):len(q.set)],
 		modelValues: modelValues,
+		extraValues: q.extraValues[:len(q.extraValues):len(q.extraValues)],
 		where:       q.where[:len(q.where):len(q.where)],
 		updWhere:    q.updWhere[:len(q.updWhere):len(q.updWhere)],
 		joins:       q.joins[:len(q.joins):len(q.joins)],
