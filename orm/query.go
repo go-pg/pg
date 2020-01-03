@@ -1143,7 +1143,7 @@ func (q *Query) update(scan []interface{}, omitZero bool) (Result, error) {
 }
 
 func (q *Query) returningQuery(c context.Context, model Model, query interface{}) (Result, error) {
-	if len(q.returning) == 0 {
+	if !q.hasReturning() {
 		return q.db.QueryContext(c, model, query, q.model)
 	}
 	if _, ok := model.(useQueryOne); ok {
@@ -1464,12 +1464,22 @@ func (q *Query) appendSet(fmter QueryFormatter, b []byte) (_ []byte, err error) 
 	return b, nil
 }
 
-func (q *Query) appendReturning(fmter QueryFormatter, b []byte) (_ []byte, err error) {
-	if len(q.returning) == 1 && q.returning[0].params == nil {
-		query := q.returning[0].query
-		if query == "NULL" || query == "null" {
-			return b, nil
+func (q *Query) hasReturning() bool {
+	if len(q.returning) == 0 {
+		return false
+	}
+	if len(q.returning) == 1 {
+		switch q.returning[0].query {
+		case "null", "NULL":
+			return false
 		}
+	}
+	return true
+}
+
+func (q *Query) appendReturning(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+	if !q.hasReturning() {
+		return b, nil
 	}
 
 	b = append(b, " RETURNING "...)
