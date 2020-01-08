@@ -302,7 +302,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 	}
 }
 
-//nolint
+// nolint
 func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	pgTag := tagparser.Parse(f.Tag.Get("pg"))
 	tmpTag := tagparser.Parse(f.Tag.Get("sql"))
@@ -422,7 +422,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		}
 	}
 
-	//nolint
+	// nolint
 	if _, ok := pgTag.Options["pk"]; ok {
 		field.setFlag(PrimaryKeyFlag)
 	} else if strings.HasSuffix(field.SQLName, "_id") ||
@@ -498,12 +498,14 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 
 	if _, ok := pgTag.Options["soft_delete"]; ok {
-		switch field.Type {
-		case timeType, nullTimeType:
+		if field.Type.Kind() == reflect.Int64 ||
+			field.Type == nullIntType ||
+			field.Type == timeType ||
+			field.Type == nullTimeType {
 			t.SoftDeleteField = field
-		default:
+		} else {
 			err := fmt.Errorf(
-				"soft_delete is only supported for time.Time and pg.NullTime")
+				"soft_delete is only supported for time.Time, pg.NullTime, sql.NullInt64 and int64")
 			panic(err)
 		}
 	}
@@ -569,7 +571,7 @@ func (t *Table) tryRelation(field *Field) bool {
 	return false
 }
 
-//nolint
+// nolint
 func (t *Table) tryRelationSlice(field *Field) bool {
 	elemType := indirectType(field.Type.Elem())
 	if elemType.Kind() != reflect.Struct {
@@ -998,7 +1000,7 @@ func scanJSONValue(v reflect.Value, rd types.Reader, n int) error {
 	}
 
 	// Zero value so it works with SelectOrInsert.
-	//TODO: better handle slices
+	// TODO: better handle slices
 	v.Set(reflect.New(v.Type()).Elem())
 
 	if n == -1 {

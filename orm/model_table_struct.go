@@ -2,6 +2,7 @@ package orm
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
@@ -362,15 +363,29 @@ func (m *structTableModel) join(
 func (m *structTableModel) setSoftDeleteField() {
 	field := m.table.SoftDeleteField
 	value := field.Value(m.strct)
+	kind := value.Kind()
 
+	unixNow := time.Now().UnixNano() / 1e6
 	now := time.Now()
-	switch {
-	case value.Kind() == reflect.Ptr:
-		value.Set(reflect.ValueOf(&now))
-	case field.Type == timeType:
-		value.Set(reflect.ValueOf(now))
-	default:
-		value.Set(reflect.ValueOf(types.NullTime{Time: now}))
+
+	if kind == reflect.Ptr {
+		switch {
+		case field.Type.Kind() == reflect.Int64:
+			value.Set(reflect.ValueOf(&unixNow))
+		case field.Type == timeType:
+			value.Set(reflect.ValueOf(&now))
+		}
+	} else {
+		switch {
+		case kind == reflect.Int64:
+			value.Set(reflect.ValueOf(unixNow))
+		case field.Type == nullIntType:
+			value.Set(reflect.ValueOf(sql.NullInt64{Int64: unixNow}))
+		case field.Type == timeType:
+			value.Set(reflect.ValueOf(now))
+		case field.Type == nullTimeType:
+			value.Set(reflect.ValueOf(types.NullTime{Time: now}))
+		}
 	}
 }
 
