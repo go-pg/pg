@@ -295,7 +295,7 @@ func (q *Query) Column(columns ...string) *Query {
 			continue
 		}
 
-		// TODO: remove
+		//TODO: remove
 		if q.model != nil {
 			if j := q.model.Join(column, nil); j != nil {
 				internal.Logger.Printf("DEPRECATED: replace Column(%q) with Relation(%q)",
@@ -1528,7 +1528,7 @@ func (q *Query) isSliceModelWithData() bool {
 	return ok && m.sliceLen > 0
 }
 
-// ------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 type wherePKQuery struct {
 	q *Query
