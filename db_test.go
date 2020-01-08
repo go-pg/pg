@@ -2184,54 +2184,54 @@ var _ = Describe("ORM", func() {
 	})
 })
 
-type SoftDeleteModel struct {
+type SoftDeleteWithTimeModel struct {
 	Id        int
 	DeletedAt time.Time `pg:",soft_delete"`
 }
 
-var _ = Describe("soft delete", func() {
+var _ = Describe("soft delete with time column", func() {
 	var db *pg.DB
 
 	BeforeEach(func() {
 		db = testDB()
 
-		err := db.CreateTable((*SoftDeleteModel)(nil), &orm.CreateTableOptions{
+		err := db.CreateTable((*SoftDeleteWithTimeModel)(nil), &orm.CreateTableOptions{
 			Temp: true,
 		})
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		err := db.DropTable((*SoftDeleteModel)(nil), nil)
+		err := db.DropTable((*SoftDeleteWithTimeModel)(nil), nil)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	assert := func() {
 		It("soft deletes the model", func() {
-			model := new(SoftDeleteModel)
+			model := new(SoftDeleteWithTimeModel)
 			err := db.Model(model).Select()
 			Expect(err).To(Equal(pg.ErrNoRows))
 
-			n, err := db.Model((*SoftDeleteModel)(nil)).Count()
+			n, err := db.Model((*SoftDeleteWithTimeModel)(nil)).Count()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(n).To(Equal(0))
 		})
 
 		It("Deleted allows to select deleted model", func() {
-			model := new(SoftDeleteModel)
+			model := new(SoftDeleteWithTimeModel)
 			err := db.Model(model).Deleted().Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(model.Id).To(Equal(1))
 			Expect(model.DeletedAt).To(BeTemporally("~", time.Now(), 3*time.Second))
 
-			n, err := db.Model((*SoftDeleteModel)(nil)).Deleted().Count()
+			n, err := db.Model((*SoftDeleteWithTimeModel)(nil)).Deleted().Count()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(n).To(Equal(1))
 		})
 
 		Describe("ForceDelete", func() {
 			BeforeEach(func() {
-				model := &SoftDeleteModel{
+				model := &SoftDeleteWithTimeModel{
 					Id: 1,
 				}
 				err := db.ForceDelete(model)
@@ -2239,11 +2239,11 @@ var _ = Describe("soft delete", func() {
 			})
 
 			It("deletes the model", func() {
-				model := new(SoftDeleteModel)
+				model := new(SoftDeleteWithTimeModel)
 				err := db.Model(model).Deleted().Select()
 				Expect(err).To(Equal(pg.ErrNoRows))
 
-				n, err := db.Model((*SoftDeleteModel)(nil)).Deleted().Count()
+				n, err := db.Model((*SoftDeleteWithTimeModel)(nil)).Deleted().Count()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(n).To(Equal(0))
 			})
@@ -2252,13 +2252,13 @@ var _ = Describe("soft delete", func() {
 
 	Describe("nil model", func() {
 		BeforeEach(func() {
-			model := &SoftDeleteModel{
+			model := &SoftDeleteWithTimeModel{
 				Id: 1,
 			}
 			err := db.Insert(model)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = db.Model((*SoftDeleteModel)(nil)).Where("1 = 1").Delete()
+			_, err = db.Model((*SoftDeleteWithTimeModel)(nil)).Where("1 = 1").Delete()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -2267,7 +2267,7 @@ var _ = Describe("soft delete", func() {
 
 	Describe("model", func() {
 		BeforeEach(func() {
-			model := &SoftDeleteModel{
+			model := &SoftDeleteWithTimeModel{
 				Id: 1,
 			}
 			err := db.Insert(model)
@@ -2276,6 +2276,104 @@ var _ = Describe("soft delete", func() {
 			err = db.Delete(model)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(model.DeletedAt).To(BeTemporally("~", time.Now(), time.Second))
+		})
+
+		assert()
+	})
+})
+
+type SoftDeleteWithIntModel struct {
+	Id        int
+	DeletedAt *int64 `pg:",soft_delete"`
+}
+
+var _ = Describe("soft delete with int column", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = testDB()
+
+		err := db.CreateTable((*SoftDeleteWithIntModel)(nil), &orm.CreateTableOptions{
+			Temp: true,
+		})
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		err := db.DropTable((*SoftDeleteWithIntModel)(nil), nil)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	assert := func() {
+		It("soft deletes the model", func() {
+			model := new(SoftDeleteWithIntModel)
+			err := db.Model(model).Select()
+			Expect(err).To(Equal(pg.ErrNoRows))
+
+			n, err := db.Model((*SoftDeleteWithIntModel)(nil)).Count()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(n).To(Equal(0))
+		})
+
+		It("Deleted allows to select deleted model", func() {
+			model := new(SoftDeleteWithIntModel)
+			err := db.Model(model).Deleted().Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(model.Id).To(Equal(1))
+			Expect(*model.DeletedAt).To(BeNumerically("~", time.Now().UnixNano() / 1e6))
+
+			n, err := db.Model((*SoftDeleteWithIntModel)(nil)).Deleted().Count()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(n).To(Equal(1))
+		})
+
+		Describe("ForceDelete", func() {
+			BeforeEach(func() {
+				model := &SoftDeleteWithIntModel{
+					Id: 1,
+				}
+				err := db.ForceDelete(model)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("deletes the model", func() {
+				model := new(SoftDeleteWithIntModel)
+				err := db.Model(model).Deleted().Select()
+				Expect(err).To(Equal(pg.ErrNoRows))
+
+				n, err := db.Model((*SoftDeleteWithIntModel)(nil)).Deleted().Count()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(n).To(Equal(0))
+			})
+		})
+	}
+
+	Describe("nil model", func() {
+		BeforeEach(func() {
+			model := &SoftDeleteWithIntModel{
+				Id: 1,
+			}
+			err := db.Insert(model)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = db.Model((*SoftDeleteWithIntModel)(nil)).Where("1 = 1").Delete()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		assert()
+	})
+
+	Describe("model", func() {
+		BeforeEach(func() {
+			model := &SoftDeleteWithIntModel{
+				Id: 1,
+			}
+			err := db.Insert(model)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = db.Delete(model)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(*model.DeletedAt).To(BeNumerically("~", time.Now().UnixNano() / 1e6))
 		})
 
 		assert()
