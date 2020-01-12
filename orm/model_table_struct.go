@@ -365,7 +365,7 @@ func (m *structTableModel) setSoftDeleteField() {
 	value := field.Value(m.strct)
 	kind := value.Kind()
 
-	unixNow := time.Now().UnixNano() / 1e6
+	unixNow := time.Now().UnixNano()
 	now := time.Now()
 
 	if kind == reflect.Ptr {
