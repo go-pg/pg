@@ -2320,7 +2320,7 @@ var _ = Describe("soft delete with int column", func() {
 			err := db.Model(model).Deleted().Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(model.Id).To(Equal(1))
-			deletedTime := time.Unix(0, (*model.DeletedAt)*int64(time.Millisecond))
+			deletedTime := time.Unix(0, *model.DeletedAt)
 			Expect(deletedTime).To(BeTemporally("~", time.Now(), time.Second))
 
 			n, err := db.Model((*SoftDeleteWithIntModel)(nil)).Deleted().Count()
@@ -2374,7 +2374,7 @@ var _ = Describe("soft delete with int column", func() {
 
 			err = db.Delete(model)
 			Expect(err).NotTo(HaveOccurred())
-			deletedTime := time.Unix(0, (*model.DeletedAt)*int64(time.Millisecond))
+			deletedTime := time.Unix(0, *model.DeletedAt)
 			Expect(deletedTime).To(BeTemporally("~", time.Now(), time.Second))
 		})
 
