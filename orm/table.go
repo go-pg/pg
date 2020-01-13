@@ -84,7 +84,8 @@ type Table struct {
 	Relations map[string]*Relation
 	Unique    map[string][]*Field
 
-	SoftDeleteField *Field
+	SoftDeleteField    *Field
+	SetSoftDeleteField func(fv reflect.Value)
 
 	flags uint16
 }
@@ -498,16 +499,13 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 
 	if _, ok := pgTag.Options["soft_delete"]; ok {
-		if field.Type.Kind() == reflect.Int64 ||
-			field.Type == nullIntType ||
-			field.Type == timeType ||
-			field.Type == nullTimeType {
-			t.SoftDeleteField = field
-		} else {
+		t.SetSoftDeleteField = setSoftDeleteFieldFunc(f.Type)
+		if t.SetSoftDeleteField == nil {
 			err := fmt.Errorf(
-				"soft_delete is only supported for time.Time, pg.NullTime, sql.NullInt64 and int64")
+				"pg: soft_delete is only supported for time.Time, pg.NullTime, sql.NullInt64 and int64")
 			panic(err)
 		}
+		t.SoftDeleteField = field
 	}
 
 	return field
@@ -1040,4 +1038,56 @@ func logSQLTagDeprecated() {
 	sqlTagDeprecatedOnce.Do(func() {
 		internal.Logger.Printf(`DEPRECATED: use pg:"..." struct field tag instead of sql:"..." `)
 	})
+}
+
+func setSoftDeleteFieldFunc(typ reflect.Type) func(fv reflect.Value) {
+	switch typ {
+	case timeType:
+		return func(fv reflect.Value) {
+			ptr := fv.Addr().Interface().(*time.Time)
+			*ptr = time.Now()
+		}
+	case nullTimeType:
+		return func(fv reflect.Value) {
+			ptr := fv.Addr().Interface().(*types.NullTime)
+			*ptr = types.NullTime{Time: time.Now()}
+		}
+	case nullIntType:
+		return func(fv reflect.Value) {
+			ptr := fv.Addr().Interface().(*sql.NullInt64)
+			*ptr = sql.NullInt64{Int64: time.Now().UnixNano()}
+		}
+	}
+
+	switch typ.Kind() { //nolint:gocritic
+	case reflect.Int64:
+		return func(fv reflect.Value) {
+			ptr := fv.Addr().Interface().(*int64)
+			*ptr = time.Now().UnixNano()
+		}
+	}
+
+	if typ.Kind() != reflect.Ptr {
+		return nil
+	}
+
+	typ = typ.Elem()
+
+	switch typ { //nolint:gocritic
+	case timeType:
+		return func(fv reflect.Value) {
+			now := time.Now()
+			fv.Set(reflect.ValueOf(&now))
+		}
+	}
+
+	switch typ.Kind() { //nolint:gocritic
+	case reflect.Int64:
+		return func(fv reflect.Value) {
+			utime := time.Now().UnixNano()
+			fv.Set(reflect.ValueOf(&utime))
+		}
+	}
+
+	return nil
 }

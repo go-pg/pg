@@ -2,11 +2,9 @@ package orm
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/go-pg/pg/v9/types"
 )
@@ -361,32 +359,8 @@ func (m *structTableModel) join(
 }
 
 func (m *structTableModel) setSoftDeleteField() {
-	field := m.table.SoftDeleteField
-	value := field.Value(m.strct)
-	kind := value.Kind()
-
-	unixNow := time.Now().UnixNano()
-	now := time.Now()
-
-	if kind == reflect.Ptr {
-		switch {
-		case field.Type.Kind() == reflect.Int64:
-			value.Set(reflect.ValueOf(&unixNow))
-		case field.Type == timeType:
-			value.Set(reflect.ValueOf(&now))
-		}
-	} else {
-		switch {
-		case kind == reflect.Int64:
-			value.Set(reflect.ValueOf(unixNow))
-		case field.Type == nullIntType:
-			value.Set(reflect.ValueOf(sql.NullInt64{Int64: unixNow}))
-		case field.Type == timeType:
-			value.Set(reflect.ValueOf(now))
-		case field.Type == nullTimeType:
-			value.Set(reflect.ValueOf(types.NullTime{Time: now}))
-		}
-	}
+	fv := m.table.SoftDeleteField.Value(m.strct)
+	m.table.SetSoftDeleteField(fv)
 }
 
 func splitColumn(s string) (string, string) {
