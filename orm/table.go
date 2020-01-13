@@ -498,12 +498,14 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 
 	if _, ok := pgTag.Options["soft_delete"]; ok {
-		switch field.Type {
-		case timeType, nullTimeType:
+		if field.Type.Kind() == reflect.Int64 ||
+			field.Type == nullIntType ||
+			field.Type == timeType ||
+			field.Type == nullTimeType {
 			t.SoftDeleteField = field
-		default:
+		} else {
 			err := fmt.Errorf(
-				"soft_delete is only supported for time.Time and pg.NullTime")
+				"soft_delete is only supported for time.Time, pg.NullTime, sql.NullInt64 and int64")
 			panic(err)
 		}
 	}

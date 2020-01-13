@@ -295,7 +295,7 @@ func (q *Query) Column(columns ...string) *Query {
 			continue
 		}
 
-		//TODO: remove
+		// TODO: remove
 		if q.model != nil {
 			if j := q.model.Join(column, nil); j != nil {
 				internal.Logger.Printf("DEPRECATED: replace Column(%q) with Relation(%q)",
@@ -1167,7 +1167,11 @@ func (q *Query) Delete(values ...interface{}) (Result, error) {
 
 	clone := q.Clone()
 	if q.model.IsNil() {
-		clone = clone.Set("? = ?", table.SoftDeleteField.Column, time.Now())
+		if table.SoftDeleteField.SQLType == pgTypeBigint {
+			clone = clone.Set("? = ?", table.SoftDeleteField.Column, time.Now().UnixNano())
+		} else {
+			clone = clone.Set("? = ?", table.SoftDeleteField.Column, time.Now())
+		}
 	} else {
 		clone.model.setSoftDeleteField()
 		clone = clone.Column(table.SoftDeleteField.SQLName)
@@ -1524,7 +1528,7 @@ func (q *Query) isSliceModelWithData() bool {
 	return ok && m.sliceLen > 0
 }
 
-//------------------------------------------------------------------------------
+// ------------------------------------------------------------------------------
 
 type wherePKQuery struct {
 	q *Query
