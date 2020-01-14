@@ -11,7 +11,7 @@ import (
 
 	"github.com/segmentio/encoding/json"
 
-	"github.com/go-pg/pg/v9/internal"
+	"github.com/whenspeakteam/pg/v9/internal"
 )
 
 var valueScannerType = reflect.TypeOf((*ValueScanner)(nil)).Elem()

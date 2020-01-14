@@ -3,14 +3,14 @@
 ## v9
 
 - `pg:",notnull"` is reworked. Now it means SQL `NOT NULL` constraint and nothing more.
-- Added `pg:",use_zero"` to prevent go-pg from converting Go zero values to SQL `NULL`.
+- Added `pg:",use_zero"` to prevent whenspeakteam from converting Go zero values to SQL `NULL`.
 - UpdateNotNull is renamed to UpdateNotZero. As previously it omits zero Go values, but it does not take in account if field is nullable or not.
 - ORM supports DistinctOn.
 - Hooks accept and return context.
 - Client respects Context.Deadline when setting net.Conn deadline.
 - Client listens on Context.Done while waiting for a connection from the pool and returns an error when context context is cancelled.
 - `Query.Column` does not accept relation name any more. Use `Query.Relation` instead which returns an error if relation does not exist.
-- urlvalues package is removed in favor of https://github.com/go-pg/urlstruct. You can also use struct based filters via `Query.WhereStruct`.
+- urlvalues package is removed in favor of https://github.com/whenspeakteam/urlstruct. You can also use struct based filters via `Query.WhereStruct`.
 - `NewModel` and `AddModel` methods of `HooklessModel` interface were renamed to `NextColumnScanner` and `AddColumnScanner` respectively.
 - `types.F` and `pg.F` are deprecated in favor of `pg.Ident`.
 - `types.Q` is deprecated in favor of `pg.Safe`.

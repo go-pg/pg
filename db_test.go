@@ -1002,7 +1002,7 @@ var _ = Describe("errors", func() {
 
 type Genre struct {
 	// tableName is an optional field that specifies custom table name and alias.
-	// By default go-pg generates table name and alias from struct name.
+	// By default whenspeakteam generates table name and alias from struct name.
 	tableName struct{} `pg:"genres,alias:genre"` // default values are the same
 
 	Id     int // Id is automatically detected as primary key

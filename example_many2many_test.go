@@ -44,12 +44,12 @@ func createManyToManyTables(db *pg.DB) error {
 	return nil
 }
 
-// go-pg default convention is that:
+// whenspeakteam default convention is that:
 //   - Primary key is called Id, e.g. Model1.Id and Model2.Id.
 //   - Many to many table has columns Model1Id and Model2Id.
 //
 // If you are not using that convention you have 2 options:
-//   1. Use orm.RegisterTable to register m2m table so go-pg has a chance
+//   1. Use orm.RegisterTable to register m2m table so whenspeakteam has a chance
 //      to adopt to your convention.
 //   2. Use `pg:fk:model2_id,joinFK:model1_id` to specify columns.
 func ExampleDB_Model_manyToMany() {
