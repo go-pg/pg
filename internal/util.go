@@ -90,3 +90,13 @@ func isPostgresKeyword(s string) bool {
 		return false
 	}
 }
+
+func Unwrap(err error) error {
+	u, ok := err.(interface {
+		Unwrap() error
+	})
+	if !ok {
+		return nil
+	}
+	return u.Unwrap()
+}

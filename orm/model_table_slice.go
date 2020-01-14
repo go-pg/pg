@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"time"
 
+	"github.com/whenspeakteam/pg/v9/internal"
 	"github.com/whenspeakteam/pg/v9/types"
 )
 
@@ -14,6 +15,7 @@ type sliceTableModel struct {
 	slice      reflect.Value
 	sliceLen   int
 	sliceOfPtr bool
+	nextElem   func() reflect.Value
 }
 
 var _ TableModel = (*sliceTableModel)(nil)
@@ -26,6 +28,7 @@ func newSliceTableModel(slice reflect.Value, elemType reflect.Type) *sliceTableM
 		},
 		slice:    slice,
 		sliceLen: slice.Len(),
+		nextElem: internal.MakeSliceNextElemFunc(slice),
 	}
 	m.init(slice.Type())
 	return m
@@ -87,85 +90,71 @@ func (m *sliceTableModel) AddColumnScanner(_ ColumnScanner) error {
 	return nil
 }
 
+var _ BeforeScanHook = (*sliceTableModel)(nil)
+
+func (m *sliceTableModel) BeforeScan(c context.Context) error {
+	if m.table.hasFlag(beforeScanHookFlag) {
+		return callBeforeScanHook(c, m.strct.Addr())
+	}
+	return nil
+}
+
 var _ AfterScanHook = (*sliceTableModel)(nil)
 
 func (m *sliceTableModel) AfterScan(c context.Context) error {
-	if m.table.HasFlag(AfterScanHookFlag) {
-		return callAfterScanHookSlice(c, m.slice, m.sliceOfPtr)
+	if m.table.hasFlag(afterScanHookFlag) {
+		return callAfterScanHook(c, m.strct.Addr())
 	}
 	return nil
 }
 
 func (m *sliceTableModel) AfterSelect(c context.Context) error {
-	if m.table.HasFlag(AfterSelectHookFlag) {
+	if m.table.hasFlag(afterSelectHookFlag) {
 		return callAfterSelectHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return nil
 }
 
 func (m *sliceTableModel) BeforeInsert(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeInsertHookFlag) {
+	if m.table.hasFlag(beforeInsertHookFlag) {
 		return callBeforeInsertHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return c, nil
 }
 
 func (m *sliceTableModel) AfterInsert(c context.Context) error {
-	if m.table.HasFlag(AfterInsertHookFlag) {
+	if m.table.hasFlag(afterInsertHookFlag) {
 		return callAfterInsertHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return nil
 }
 
 func (m *sliceTableModel) BeforeUpdate(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeUpdateHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(beforeUpdateHookFlag) && !m.IsNil() {
 		return callBeforeUpdateHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return c, nil
 }
 
 func (m *sliceTableModel) AfterUpdate(c context.Context) error {
-	if m.table.HasFlag(AfterUpdateHookFlag) {
+	if m.table.hasFlag(afterUpdateHookFlag) {
 		return callAfterUpdateHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return nil
 }
 
 func (m *sliceTableModel) BeforeDelete(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeDeleteHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(beforeDeleteHookFlag) && !m.IsNil() {
 		return callBeforeDeleteHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return c, nil
 }
 
 func (m *sliceTableModel) AfterDelete(c context.Context) error {
-	if m.table.HasFlag(AfterDeleteHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(afterDeleteHookFlag) && !m.IsNil() {
 		return callAfterDeleteHookSlice(c, m.slice, m.sliceOfPtr)
 	}
 	return nil
-}
-
-func (m *sliceTableModel) nextElem() reflect.Value {
-	if m.slice.Len() < m.slice.Cap() {
-		m.slice.Set(m.slice.Slice(0, m.slice.Len()+1))
-		elem := m.slice.Index(m.slice.Len() - 1)
-		if m.sliceOfPtr {
-			if elem.IsNil() {
-				elem.Set(reflect.New(elem.Type().Elem()))
-			}
-			return elem.Elem()
-		}
-		return elem
-	}
-
-	if m.sliceOfPtr {
-		elem := reflect.New(m.table.Type)
-		m.slice.Set(reflect.Append(m.slice, elem))
-		return elem.Elem()
-	}
-
-	m.slice.Set(reflect.Append(m.slice, m.table.zeroStruct))
-	return m.slice.Index(m.slice.Len() - 1)
 }
 
 func (m *sliceTableModel) setSoftDeleteField() {

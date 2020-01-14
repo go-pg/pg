@@ -16,7 +16,7 @@ func InMulti(values ...interface{}) ValueAppender {
 	}
 }
 
-func InSlice(slice interface{}) ValueAppender {
+func In(slice interface{}) ValueAppender {
 	return &inOp{
 		slice: reflect.ValueOf(slice),
 	}

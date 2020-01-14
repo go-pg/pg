@@ -20,7 +20,7 @@ func TestQueryFormatQuery(t *testing.T) {
 	}{
 		"not_foo",
 	}
-	fmter := Formatter{}.WithModel(q)
+	fmter := NewFormatter().WithModel(q)
 	b := fmter.FormatQuery(nil, "?foo ?TableName ?TableAlias ?TableColumns ?Columns", params)
 
 	wanted := `'not_foo' "format_models" "format_model" "format_model"."foo", "format_model"."bar" "foo", "bar"`

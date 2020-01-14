@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
-	"time"
 
 	"github.com/whenspeakteam/pg/v9/types"
 )
@@ -158,59 +157,68 @@ func (m *structTableModel) AddColumnScanner(_ ColumnScanner) error {
 	return nil
 }
 
+var _ BeforeScanHook = (*structTableModel)(nil)
+
+func (m *structTableModel) BeforeScan(c context.Context) error {
+	if m.table.hasFlag(beforeScanHookFlag) {
+		return callBeforeScanHook(c, m.strct.Addr())
+	}
+	return nil
+}
+
 var _ AfterScanHook = (*structTableModel)(nil)
 
 func (m *structTableModel) AfterScan(c context.Context) error {
-	if m.table.HasFlag(AfterScanHookFlag) {
+	if m.table.hasFlag(afterScanHookFlag) {
 		return callAfterScanHook(c, m.strct.Addr())
 	}
 	return nil
 }
 
 func (m *structTableModel) AfterSelect(c context.Context) error {
-	if m.table.HasFlag(AfterSelectHookFlag) {
+	if m.table.hasFlag(afterSelectHookFlag) {
 		return callAfterSelectHook(c, m.strct.Addr())
 	}
 	return nil
 }
 
 func (m *structTableModel) BeforeInsert(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeInsertHookFlag) {
+	if m.table.hasFlag(beforeInsertHookFlag) {
 		return callBeforeInsertHook(c, m.strct.Addr())
 	}
 	return c, nil
 }
 
 func (m *structTableModel) AfterInsert(c context.Context) error {
-	if m.table.HasFlag(AfterInsertHookFlag) {
+	if m.table.hasFlag(afterInsertHookFlag) {
 		return callAfterInsertHook(c, m.strct.Addr())
 	}
 	return nil
 }
 
 func (m *structTableModel) BeforeUpdate(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeUpdateHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(beforeUpdateHookFlag) && !m.IsNil() {
 		return callBeforeUpdateHook(c, m.strct.Addr())
 	}
 	return c, nil
 }
 
 func (m *structTableModel) AfterUpdate(c context.Context) error {
-	if m.table.HasFlag(AfterUpdateHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(afterUpdateHookFlag) && !m.IsNil() {
 		return callAfterUpdateHook(c, m.strct.Addr())
 	}
 	return nil
 }
 
 func (m *structTableModel) BeforeDelete(c context.Context) (context.Context, error) {
-	if m.table.HasFlag(BeforeDeleteHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(beforeDeleteHookFlag) && !m.IsNil() {
 		return callBeforeDeleteHook(c, m.strct.Addr())
 	}
 	return c, nil
 }
 
 func (m *structTableModel) AfterDelete(c context.Context) error {
-	if m.table.HasFlag(AfterDeleteHookFlag) && !m.IsNil() {
+	if m.table.hasFlag(afterDeleteHookFlag) && !m.IsNil() {
 		return callAfterDeleteHook(c, m.strct.Addr())
 	}
 	return nil
@@ -223,7 +231,7 @@ func (m *structTableModel) ScanColumn(
 	if ok {
 		return err
 	}
-	if m.table.HasFlag(discardUnknownColumnsFlag) {
+	if m.table.hasFlag(discardUnknownColumnsFlag) {
 		return nil
 	}
 	return fmt.Errorf("pg: can't find column=%s in %s (try discard_unknown_columns)",
@@ -351,18 +359,8 @@ func (m *structTableModel) join(
 }
 
 func (m *structTableModel) setSoftDeleteField() {
-	field := m.table.SoftDeleteField
-	value := field.Value(m.strct)
-
-	now := time.Now()
-	switch {
-	case value.Kind() == reflect.Ptr:
-		value.Set(reflect.ValueOf(&now))
-	case field.Type == timeType:
-		value.Set(reflect.ValueOf(now))
-	default:
-		value.Set(reflect.ValueOf(types.NullTime{Time: now}))
-	}
+	fv := m.table.SoftDeleteField.Value(m.strct)
+	m.table.SetSoftDeleteField(fv)
 }
 
 func splitColumn(s string) (string, string) {

@@ -8,6 +8,18 @@ import (
 	"github.com/whenspeakteam/pg/v9/orm"
 )
 
+type BeforeScanHook = orm.BeforeScanHook
+type AfterScanHook = orm.AfterScanHook
+type AfterSelectHook = orm.AfterSelectHook
+type BeforeInsertHook = orm.BeforeInsertHook
+type AfterInsertHook = orm.AfterInsertHook
+type BeforeUpdateHook = orm.BeforeUpdateHook
+type AfterUpdateHook = orm.AfterUpdateHook
+type BeforeDeleteHook = orm.BeforeDeleteHook
+type AfterDeleteHook = orm.AfterDeleteHook
+
+//------------------------------------------------------------------------------
+
 type dummyFormatter struct{}
 
 func (dummyFormatter) FormatQuery(b []byte, query string, params ...interface{}) []byte {
@@ -21,9 +33,8 @@ type QueryEvent struct {
 	Model     interface{}
 	Query     interface{}
 	Params    []interface{}
-	Attempt   int
 	Result    Result
-	Error     error
+	Err       error
 
 	Stash map[interface{}]interface{}
 }
@@ -73,7 +84,6 @@ func (db *baseDB) beforeQuery(
 	ormDB orm.DB,
 	model, query interface{},
 	params []interface{},
-	attempt int,
 ) (context.Context, *QueryEvent, error) {
 	if len(db.queryHooks) == 0 {
 		return c, nil, nil
@@ -85,7 +95,6 @@ func (db *baseDB) beforeQuery(
 		Model:     model,
 		Query:     query,
 		Params:    params,
-		Attempt:   attempt,
 	}
 	for _, hook := range db.queryHooks {
 		var err error
@@ -107,14 +116,16 @@ func (db *baseDB) afterQuery(
 		return nil
 	}
 
-	event.Error = err
+	event.Err = err
 	event.Result = res
+
 	for _, hook := range db.queryHooks {
 		err := hook.AfterQuery(c, event)
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

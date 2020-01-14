@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/whenspeakteam/pg"
-	"github.com/whenspeakteam/pg/orm"
+	"github.com/whenspeakteam/pg/v9"
+	"github.com/whenspeakteam/pg/v9/orm"
 )
 
 type MyType struct {
-	MyInfo [3]bool `sql:",array"`
+	MyInfo [3]bool `pg:",array"`
 }
 
 func createSchema(db *pg.DB) error {

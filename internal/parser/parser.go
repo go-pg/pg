@@ -22,12 +22,12 @@ func NewString(s string) *Parser {
 	return New(internal.StringToBytes(s))
 }
 
-func (p *Parser) Bytes() []byte {
-	return p.b[p.i:]
-}
-
 func (p *Parser) Valid() bool {
 	return p.i < len(p.b)
+}
+
+func (p *Parser) Bytes() []byte {
+	return p.b[p.i:]
 }
 
 func (p *Parser) Read() byte {
@@ -83,6 +83,15 @@ func (p *Parser) ReadSep(sep byte) ([]byte, bool) {
 }
 
 func (p *Parser) ReadIdentifier() (string, bool) {
+	if p.i < len(p.b) && p.b[p.i] == '(' {
+		s := p.i + 1
+		if ind := bytes.IndexByte(p.b[s:], ')'); ind != -1 {
+			b := p.b[s : s+ind]
+			p.i = s + ind + 1
+			return internal.BytesToString(b), false
+		}
+	}
+
 	ind := len(p.b) - p.i
 	var alpha bool
 	for i, c := range p.b[p.i:] {
@@ -121,4 +130,12 @@ func (p *Parser) ReadNumber() int {
 	}
 	p.i += ind
 	return n
+}
+
+func isNum(c byte) bool {
+	return c >= '0' && c <= '9'
+}
+
+func isAlpha(c byte) bool {
+	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }

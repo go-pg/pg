@@ -9,7 +9,7 @@ import (
 func ExampleDB_Model_hstoreStructTag() {
 	type Item struct {
 		Id    int64
-		Attrs map[string]string `sql:",hstore"` // marshalled as PostgreSQL hstore
+		Attrs map[string]string `pg:",hstore"` // marshalled as PostgreSQL hstore
 	}
 
 	_, err := pgdb.Exec(`CREATE TEMP TABLE items (id serial, attrs hstore)`)

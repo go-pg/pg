@@ -18,7 +18,7 @@ func (e ValuerError) Value() (driver.Value, error) {
 }
 
 type StructFormatter struct {
-	tableName struct{} `sql:"my_name,alias:my_alias"`
+	tableName struct{} `pg:"my_name,alias:my_alias"`
 
 	String  string
 	UseZero string `pg:",use_zero"`
@@ -29,8 +29,8 @@ func (StructFormatter) Method() string {
 	return "method_value"
 }
 
-func (StructFormatter) MethodParam() types.Q {
-	return types.Q("?string")
+func (StructFormatter) MethodParam() types.Safe {
+	return types.Safe("?string")
 }
 
 func (StructFormatter) MethodWithArgs(string) string {
@@ -84,16 +84,17 @@ var formatTests = []formatTest{
 	{q: "one ?MethodWithCompositeReturn two", params: params{structv}, wanted: "one ?MethodWithCompositeReturn two"},
 
 	{q: "?", params: params{uint64(math.MaxUint64)}, wanted: "18446744073709551615"},
-	{q: "?", params: params{orm.Q("query")}, wanted: "query"},
-	{q: "?", params: params{types.F("field")}, wanted: `"field"`},
+	{q: "?", params: params{types.Safe("query")}, wanted: "query"},
+	{q: "?", params: params{types.Ident("field")}, wanted: `"field"`},
 	{q: "?", params: params{structv}, wanted: `'{"String":"string_value","UseZero":"","Iface":"iface_value"}'`},
 
 	{q: `\? ?`, params: params{1}, wanted: "? 1"},
-	{q: `?`, params: params{types.Q(`\?`)}, wanted: `\?`},
-	{q: `?`, params: params{types.Q(`\\?`)}, wanted: `\\?`},
-	{q: `?`, params: params{types.Q(`\?param`)}, wanted: `\?param`},
+	{q: `?`, params: params{types.Safe(`\?`)}, wanted: `\?`},
+	{q: `?`, params: params{types.Safe(`\\?`)}, wanted: `\\?`},
+	{q: `?`, params: params{types.Safe(`\?param`)}, wanted: `\?param`},
 
 	{q: "?string", params: params{structv}, wanted: `'string_value'`},
+	{q: "?(string)", params: params{structv}, wanted: `'string_value'`},
 	{q: "?iface", params: params{structv}, wanted: `'iface_value'`},
 	{q: "?string", params: params{&StructFormatter{}}, wanted: `NULL`},
 	{q: "?use_zero", params: params{&StructFormatter{}}, wanted: `''`},
@@ -121,19 +122,19 @@ var formatTests = []formatTest{
 	},
 	{
 		q:         "?",
-		params:    params{types.Q("?string")},
+		params:    params{types.Safe("?string")},
 		paramsMap: paramsMap{"string": "my_value"},
 		wanted:    "?string",
 	},
 	{
 		q:         "?",
-		params:    params{types.F("?string")},
-		paramsMap: paramsMap{"string": types.Q("my_value")},
+		params:    params{types.Ident("?string")},
+		paramsMap: paramsMap{"string": types.Safe("my_value")},
 		wanted:    `"?string"`,
 	},
 	{
 		q:         "?",
-		params:    params{orm.Q("?string")},
+		params:    params{orm.SafeQuery("?string")},
 		paramsMap: paramsMap{"string": "my_value"},
 		wanted:    "'my_value'",
 	},
@@ -146,8 +147,8 @@ var formatTests = []formatTest{
 }
 
 func TestFormatQuery(t *testing.T) {
-	for _, test := range formatTests {
-		var f orm.Formatter
+	for i, test := range formatTests {
+		f := orm.NewFormatter()
 		for k, v := range test.paramsMap {
 			f = f.WithParam(k, v)
 		}
@@ -155,29 +156,32 @@ func TestFormatQuery(t *testing.T) {
 		got := f.FormatQuery(nil, test.q, test.params...)
 		if string(got) != test.wanted {
 			t.Fatalf(
-				"got %q, wanted %q (q=%q params=%v paramsMap=%v)",
-				got, test.wanted, test.q, test.params, test.paramsMap,
+				"#%d: got %q, wanted %q (q=%q params=%v paramsMap=%v)",
+				i, got, test.wanted, test.q, test.params, test.paramsMap,
 			)
 		}
 	}
 }
 
 func BenchmarkFormatQueryWithoutParams(b *testing.B) {
+	var f orm.Formatter
 	for i := 0; i < b.N; i++ {
-		_ = orm.Q("SELECT * FROM my_table WHERE id = 1")
+		_ = f.FormatQuery(nil, "SELECT * FROM my_table WHERE id = 1")
 	}
 }
 
 func BenchmarkFormatQuery1Param(b *testing.B) {
+	var f orm.Formatter
 	for i := 0; i < b.N; i++ {
-		_ = orm.Q("SELECT * FROM my_table WHERE id = ?", 1)
+		_ = f.FormatQuery(nil, "SELECT * FROM my_table WHERE id = ?", 1)
 	}
 }
 
 func BenchmarkFormatQuery10Params(b *testing.B) {
+	var f orm.Formatter
 	for i := 0; i < b.N; i++ {
-		_ = orm.Q(
-			"SELECT * FROM my_table WHERE id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+		_ = f.FormatQuery(
+			nil, "SELECT * FROM my_table WHERE id IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
 			1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
 		)
 	}
@@ -190,17 +194,19 @@ func BenchmarkFormatQuerySprintf(b *testing.B) {
 }
 
 func BenchmarkFormatQueryStructParam(b *testing.B) {
+	var f orm.Formatter
 	param := StructFormatter{
 		String: "1",
 	}
 	for i := 0; i < b.N; i++ {
-		_ = orm.Q("SELECT * FROM my_table WHERE id = ?string", param)
+		_ = f.FormatQuery(nil, "SELECT * FROM my_table WHERE id = ?string", param)
 	}
 }
 
 func BenchmarkFormatQueryStructMethod(b *testing.B) {
+	var f orm.Formatter
 	param := StructFormatter{}
 	for i := 0; i < b.N; i++ {
-		_ = orm.Q("SELECT * FROM my_table WHERE id = ?Method", &param)
+		_ = f.FormatQuery(nil, "SELECT * FROM my_table WHERE id = ?Method", &param)
 	}
 }

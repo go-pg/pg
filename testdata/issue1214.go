@@ -3,12 +3,12 @@ package main
 import (
 	"log"
 
-	"github.com/whenspeakteam/pg"
+	"github.com/whenspeakteam/pg/v9"
 )
 
 type Test struct {
-	ID   string `json:"id" sql:",pk"`
-	Data *Data  `sql:"type:jsonb"`
+	ID   string `json:"id" pg:",pk"`
+	Data *Data  `pg:"type:jsonb"`
 }
 
 type Data struct {

@@ -1,9 +1,9 @@
 # PostgreSQL client and ORM for Golang
 
-[![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=master)](https://travis-ci.org/go-pg/pg)
+[![Build Status](https://travis-ci.org/whenspeakteam/pg.svg?branch=master)](https://travis-ci.org/whenspeakteam/pg)
 [![GoDoc](https://godoc.org/github.com/whenspeakteam/pg?status.svg)](https://godoc.org/github.com/whenspeakteam/pg)
 
-## Features:
+## Features
 
 - Basic types: integers, floats, string, bool, time.Time, net.IP, net.IPNet.
 - sql.NullBool, sql.NullString, sql.NullInt64, sql.NullFloat64 and [pg.NullTime](http://godoc.org/github.com/whenspeakteam/pg#NullTime).
@@ -12,7 +12,7 @@
 - PostgreSQL multidimensional Arrays using [array tag](https://godoc.org/github.com/whenspeakteam/pg#example-DB-Model-PostgresArrayStructTag) and [Array wrapper](https://godoc.org/github.com/whenspeakteam/pg#example-Array).
 - Hstore using [hstore tag](https://godoc.org/github.com/whenspeakteam/pg#example-DB-Model-HstoreStructTag) and [Hstore wrapper](https://godoc.org/github.com/whenspeakteam/pg#example-Hstore).
 - [Composite types](https://godoc.org/github.com/whenspeakteam/pg#example-DB-Model-CompositeType).
-- All struct fields are nullable by default and zero values (empty string, 0, zero time, empty map or slice, nil ptr) are marshalled as SQL `NULL`. `sql:",notnull"` is used to add SQL `NOT NULL` constraint and `pg:",use_zero"` to allow Go zero values.
+- All struct fields are nullable by default and zero values (empty string, 0, zero time, empty map or slice, nil ptr) are marshalled as SQL `NULL`. `pg:",notnull"` is used to add SQL `NOT NULL` constraint and `pg:",use_zero"` to allow Go zero values.
 - [Transactions](http://godoc.org/github.com/whenspeakteam/pg#example-DB-Begin).
 - [Prepared statements](http://godoc.org/github.com/whenspeakteam/pg#example-DB-Prepare).
 - [Notifications](http://godoc.org/github.com/whenspeakteam/pg#example-Listener) using `LISTEN` and `NOTIFY`.
@@ -30,18 +30,22 @@
 - ORM supports [has one](https://godoc.org/github.com/whenspeakteam/pg#example-DB-Model-HasOne), [belongs to](https://godoc.org/github.com/whenspeakteam/pg#example-DB-Model-BelongsTo), [has many](https://godoc.org/github.com/whenspeakteam/pg#example-DB-Model-HasMany), and [many to many](https://godoc.org/github.com/whenspeakteam/pg#example-DB-Model-ManyToMany) with composite/multi-column primary keys.
 - [Soft deletes](https://godoc.org/github.com/whenspeakteam/pg#example-DB-Model-SoftDelete).
 - [Creating tables from structs](https://godoc.org/github.com/whenspeakteam/pg#example-DB-CreateTable).
-- [Pagination](https://godoc.org/github.com/whenspeakteam/pg/urlvalues#NewPager) and [URL filters](https://godoc.org/github.com/whenspeakteam/pg/urlvalues#Filters) helpers.
 - [ForEach](https://godoc.org/github.com/whenspeakteam/pg#example-DB-Model-ForEach) that calls a function for each row returned by the query without loading all rows into the memory.
 - Works with PgBouncer in transaction pooling mode.
-- [Migrations](https://github.com/whenspeakteam/migrations).
+
+## Ecosystem
+
+- Migrations by [vmihailenco](https://github.com/whenspeakteam/migrations) and [robinjoseph08](https://github.com/robinjoseph08/whenspeakteam-migrations).
 - [Sharding](https://github.com/whenspeakteam/sharding).
 - [Model generator from SQL tables](https://github.com/dizzyfool/genna).
+- [urlstruct](https://github.com/whenspeakteam/urlstruct) to decode `url.Values` into structs.
 
 ## Get Started
 
-go-pg requires Go version with [Modules](https://github.com/golang/go/wiki/Modules) support and uses import versioning. So please make sure to initialize a Go module before installing go-pg:
+whenspeakteam requires a Go version with [Modules](https://github.com/golang/go/wiki/Modules) support and uses import versioning. So please make sure to initialize a Go module before installing whenspeakteam:
 
 ```shell
+go mod init github.com/my/repo
 go get github.com/whenspeakteam/pg/v9
 ```
 

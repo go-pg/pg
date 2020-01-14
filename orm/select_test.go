@@ -8,11 +8,11 @@ import (
 )
 
 type User struct {
-	tableName struct{} `sql:"user"`
+	tableName struct{} `pg:"user"`
 }
 
 type User2 struct {
-	tableName struct{} `sql:"select:user,alias:user"`
+	tableName struct{} `pg:"select:user,alias:user"`
 }
 
 type SelectModel struct {
@@ -258,6 +258,13 @@ var _ = Describe("Count", func() {
 		s := queryString(q.countSelectQuery("count(*)"))
 		Expect(s).To(Equal(`WITH "_count_wrapper" AS (SELECT DISTINCT group_id) SELECT count(*) FROM "_count_wrapper"`))
 	})
+
+	It("supports empty WhereStruct", func() {
+		q := NewQuery(nil, &SelectModel{}).WhereStruct(struct{}{})
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" WHERE TRUE`))
+	})
 })
 
 var _ = Describe("With", func() {
@@ -337,17 +344,96 @@ var _ = Describe("Select Order", func() {
 	})
 })
 
+type NonSoftDeleteModel struct {
+	Id                int `pg:",pk"`
+	Name              string
+	SoftDeleteModelId int
+	SoftDeleteModel   *SoftDeleteModel
+}
+
 type SoftDeleteModel struct {
 	Id        int
 	DeletedAt time.Time `pg:",soft_delete"`
 }
 
+type SoftDeleteParent struct {
+	Id          uint64 `pg:"id,pk"`
+	Name        string
+	DateDeleted *time.Time `pg:",soft_delete"`
+
+	Children *SoftDeleteChild
+}
+
+type SoftDeleteChild struct {
+	Id                 uint64            `pg:"id,pk"`
+	SoftDeleteParentId uint64            `pg:"soft_delete_parent_id,on_delete:CASCADE"`
+	SoftDeleteParent   *SoftDeleteParent `pg:"-"`
+	Name               string
+	SubChildren        *SoftDeleteSubChild
+}
+
+type SoftDeleteSubChild struct {
+	Id                uint64           `pg:"id,pk"`
+	SoftDeleteChildId uint64           `pg:"soft_delete_child_id,on_delete:CASCADE"`
+	SoftDeleteChild   *SoftDeleteChild `pg:"-"`
+	Name              string
+}
+
 var _ = Describe("SoftDeleteModel", func() {
-	It("works with User model", func() {
+	It("filters out deleted rows by default", func() {
 		q := NewQuery(nil, &SoftDeleteModel{})
 
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT "soft_delete_model"."id", "soft_delete_model"."deleted_at" FROM "soft_delete_models" AS "soft_delete_model" WHERE "soft_delete_model"."deleted_at" IS NULL`))
+	})
+
+	It("supports Deleted", func() {
+		q := NewQuery(nil, &SoftDeleteModel{}).Deleted()
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "soft_delete_model"."id", "soft_delete_model"."deleted_at" FROM "soft_delete_models" AS "soft_delete_model" WHERE "soft_delete_model"."deleted_at" IS NOT NULL`))
+	})
+
+	It("supports AllWithDeleted", func() {
+		q := NewQuery(nil, &SoftDeleteModel{}).AllWithDeleted()
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "soft_delete_model"."id", "soft_delete_model"."deleted_at" FROM "soft_delete_models" AS "soft_delete_model"`))
+	})
+
+	It("will respect join SoftDelete", func() {
+		q := NewQuery(nil, &SoftDeleteParent{}).Relation("Children").Relation("Children.SubChildren")
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "soft_delete_parent"."id", "soft_delete_parent"."name", "soft_delete_parent"."date_deleted", "children"."id" AS "children__id", "children"."soft_delete_parent_id" AS "children__soft_delete_parent_id", "children"."name" AS "children__name", "children__sub_children"."id" AS "children__sub_children__id", "children__sub_children"."soft_delete_child_id" AS "children__sub_children__soft_delete_child_id", "children__sub_children"."name" AS "children__sub_children__name" FROM "soft_delete_parents" AS "soft_delete_parent" LEFT JOIN "soft_delete_children" AS "children" ON "children"."soft_delete_parent_id" = "soft_delete_parent"."id" LEFT JOIN "soft_delete_sub_children" AS "children__sub_children" ON "children__sub_children"."soft_delete_child_id" = "children"."id" WHERE "soft_delete_parent"."date_deleted" IS NULL`))
+	})
+
+	It("will join a non-SoftDelete with a SoftDelete", func() {
+		q := NewQuery(nil, &NonSoftDeleteModel{}).Relation("SoftDeleteModel")
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "non_soft_delete_model"."id", "non_soft_delete_model"."name", "non_soft_delete_model"."soft_delete_model_id", "soft_delete_model"."id" AS "soft_delete_model__id", "soft_delete_model"."deleted_at" AS "soft_delete_model__deleted_at" FROM "non_soft_delete_models" AS "non_soft_delete_model" LEFT JOIN "soft_delete_models" AS "soft_delete_model" ON ("soft_delete_model"."id" = "non_soft_delete_model"."soft_delete_model_id") AND "soft_delete_model"."deleted_at" IS NULL`))
+	})
+})
+
+var _ = Describe("union", func() {
+	It("simple", func() {
+		q1 := NewQuery(nil).ColumnExpr("1").OrderExpr("1 ASC")
+		q2 := NewQuery(nil).ColumnExpr("2").OrderExpr("1 ASC")
+
+		s := selectQueryString(q1.Union(q2))
+		Expect(s).To(Equal(`(SELECT 1 ORDER BY 1 ASC) UNION (SELECT 2 ORDER BY 1 ASC)`))
+	})
+
+	It("manual", func() {
+		q1 := NewQuery(nil).ColumnExpr("1").OrderExpr("1 ASC")
+		q2 := NewQuery(nil).ColumnExpr("2").OrderExpr("1 ASC")
+		q := NewQuery(nil).
+			ColumnExpr("(?) UNION ALL (?)", q1, q2).
+			OrderExpr("1 DESC")
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT (SELECT 1 ORDER BY 1 ASC) UNION ALL (SELECT 2 ORDER BY 1 ASC) ORDER BY 1 DESC`))
 	})
 })
 
@@ -358,7 +444,7 @@ func selectQueryString(q *Query) string {
 }
 
 func queryString(f QueryAppender) string {
-	fmter := Formatter{}.WithModel(f)
+	fmter := NewFormatter().WithModel(f)
 	b, err := f.AppendQuery(fmter, nil)
 	Expect(err).NotTo(HaveOccurred())
 	return string(b)

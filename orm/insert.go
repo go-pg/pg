@@ -178,6 +178,7 @@ func (q *insertQuery) appendValues(
 			if err != nil {
 				return nil, err
 			}
+			q.addReturningField(f)
 			continue
 		}
 
@@ -239,6 +240,9 @@ func (q *insertQuery) appendSliceValues(
 }
 
 func (q *insertQuery) addReturningField(field *Field) {
+	if len(q.q.returning) > 0 {
+		return
+	}
 	for _, f := range q.returningFields {
 		if f == field {
 			return
@@ -266,7 +270,7 @@ func (q *insertQuery) appendColumns(b []byte, fields []*Field) []byte {
 		if i > 0 || len(fields) > 0 {
 			b = append(b, ", "...)
 		}
-		b = types.AppendField(b, v.column, 1)
+		b = types.AppendIdent(b, v.column, 1)
 	}
 	return b
 }

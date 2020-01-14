@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"math"
 	"net"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -27,12 +28,7 @@ func TestGinkgo(t *testing.T) {
 
 func pgOptions() *pg.Options {
 	return &pg.Options{
-		User:     "postgres",
-		Database: "postgres",
-
-		TLSConfig: &tls.Config{
-			InsecureSkipVerify: true,
-		},
+		TLSConfig: getTLSConfig(),
 
 		MaxRetries:      1,
 		MinRetryBackoff: -1,
@@ -49,6 +45,16 @@ func pgOptions() *pg.Options {
 	}
 }
 
+func getTLSConfig() *tls.Config {
+	pgSSLMode := os.Getenv("PGSSLMODE")
+	if pgSSLMode == "disable" {
+		return nil
+	}
+	return &tls.Config{
+		InsecureSkipVerify: true,
+	}
+}
+
 var _testDB *pg.DB
 
 func testDB() *pg.DB {
@@ -62,13 +68,23 @@ func TestDBString(t *testing.T) {
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
-	wanted := `DB<Addr="localhost:5432">`
+	env := func(key, defValue string) string {
+		envValue := os.Getenv(key)
+		if envValue != "" {
+			return envValue
+		}
+		return defValue
+	}
+	host := env("PGHOST", "localhost")
+	port := env("PGPORT", "5432")
+
+	wanted := fmt.Sprintf(`DB<Addr="%s:%s">`, host, port)
 	if db.String() != wanted {
 		t.Fatalf("got %q, wanted %q", db.String(), wanted)
 	}
 
 	db = db.WithParam("param1", "value1").WithParam("param2", 2)
-	wanted = `DB<Addr="localhost:5432" param1=value1 param2=2>`
+	wanted = fmt.Sprintf(`DB<Addr="%s:%s" param1=value1 param2=2>`, host, port)
 	if db.String() != wanted {
 		t.Fatalf("got %q, wanted %q", db.String(), wanted)
 	}
@@ -132,7 +148,7 @@ func TestAnynomousStructField(t *testing.T) {
 
 	var st MyStruct
 	_, err := db.Query(&st, "SELECT ARRAY[1,2,3,4] AS ints")
-	wanted := "json: cannot unmarshal number into Go value of type pg_test.MyInt"
+	wanted := `json: cannot unmarshal "1" into Go value of type pg_test.MyInt`
 	if err.Error() != wanted {
 		t.Fatal(err)
 	}
@@ -214,7 +230,7 @@ var _ = Describe("DB", func() {
 	Describe("uint64 in struct field", func() {
 		It("is appended and scanned as int64", func() {
 			type My struct {
-				ID uint64 `sql:"type:bigint"`
+				ID uint64 `pg:"type:bigint"`
 			}
 
 			err := db.CreateTable((*My)(nil), &orm.CreateTableOptions{
@@ -299,7 +315,9 @@ var _ = Describe("DB", func() {
 		It("returns an error when query can't be prepared", func() {
 			for i := 0; i < 3; i++ {
 				_, err := db.Prepare("totally invalid sql")
-				Expect(err).To(MatchError(`ERROR #42601 syntax error at or near "totally"`))
+				Expect(err).NotTo(BeNil())
+				Expect(strings.Contains(err.Error(), "#42601")).To(BeTrue())
+				Expect(strings.Contains(err.Error(), "syntax error")).To(BeTrue())
 
 				_, err = db.Exec("SELECT 1")
 				Expect(err).NotTo(HaveOccurred())
@@ -451,7 +469,7 @@ var _ = Describe("Time", func() {
 
 var _ = Describe("array model", func() {
 	type value struct {
-		Values []int16 `sql:",array"`
+		Values []int16 `pg:",array"`
 	}
 
 	var db *pg.DB
@@ -984,12 +1002,12 @@ var _ = Describe("errors", func() {
 
 type Genre struct {
 	// tableName is an optional field that specifies custom table name and alias.
-	// By default go-pg generates table name and alias from struct name.
-	tableName struct{} `sql:"genres,alias:genre"` // default values are the same
+	// By default whenspeakteam generates table name and alias from struct name.
+	tableName struct{} `pg:"genres,alias:genre"` // default values are the same
 
 	Id     int // Id is automatically detected as primary key
 	Name   string
-	Rating int `sql:"-"` // - is used to ignore field
+	Rating int `pg:"-"` // - is used to ignore field
 
 	Books []Book `pg:"many2many:book_genres"` // many to many relation
 
@@ -1008,7 +1026,7 @@ type Image struct {
 
 type Author struct {
 	ID    int     // both "Id" and "ID" are detected as primary key
-	Name  string  `sql:",unique"`
+	Name  string  `pg:",unique"`
 	Books []*Book // has many relation
 
 	AvatarId int
@@ -1020,11 +1038,11 @@ func (a Author) String() string {
 }
 
 type BookGenre struct {
-	tableName struct{} `sql:"alias:bg"` // custom table alias
+	tableName struct{} `pg:"alias:bg"` // custom table alias
 
-	BookId  int `sql:",pk"` // pk tag is used to mark field as primary key
+	BookId  int `pg:",pk"` // pk tag is used to mark field as primary key
 	Book    *Book
-	GenreId int `sql:",pk"`
+	GenreId int `pg:",pk"`
 	Genre   *Genre
 
 	Genre_Rating int // belongs to and is copied to Genre model
@@ -1037,7 +1055,7 @@ type Book struct {
 	Author    Author // has one relation
 	EditorID  int
 	Editor    *Author   // has one relation
-	CreatedAt time.Time `sql:"default:now()"`
+	CreatedAt time.Time `pg:"default:now()"`
 	UpdatedAt time.Time
 
 	Genres       []Genre       `pg:"many2many:book_genres"` // many to many relation
@@ -1068,12 +1086,12 @@ type BookWithCommentCount struct {
 }
 
 type Translation struct {
-	tableName struct{} `sql:",alias:tr"` // custom table alias
+	tableName struct{} `pg:",alias:tr"` // custom table alias
 
 	Id     int
-	BookId int    `sql:"unique:book_id_lang"`
+	BookId int    `pg:"unique:book_id_lang"`
 	Book   *Book  // has one relation
-	Lang   string `sql:"unique:book_id_lang"`
+	Lang   string `pg:"unique:book_id_lang"`
 
 	Comments []Comment `pg:",polymorphic:trackable_"` // has many polymorphic relation
 }
@@ -1315,8 +1333,12 @@ var _ = Describe("ORM", func() {
 				Relation("Editor.Avatar").
 				Relation("Genres").
 				Relation("Comments").
-				Relation("Translations").
-				Relation("Translations.Comments").
+				Relation("Translations", func(q *orm.Query) (*orm.Query, error) {
+					return q.Order("id"), nil
+				}).
+				Relation("Translations.Comments", func(q *orm.Query) (*orm.Query, error) {
+					return q.Order("text"), nil
+				}).
 				First()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(book).To(Equal(&Book{
@@ -2162,54 +2184,54 @@ var _ = Describe("ORM", func() {
 	})
 })
 
-type SoftDeleteModel struct {
+type SoftDeleteWithTimeModel struct {
 	Id        int
 	DeletedAt time.Time `pg:",soft_delete"`
 }
 
-var _ = Describe("soft delete", func() {
+var _ = Describe("soft delete with time column", func() {
 	var db *pg.DB
 
 	BeforeEach(func() {
 		db = testDB()
 
-		err := db.CreateTable((*SoftDeleteModel)(nil), &orm.CreateTableOptions{
+		err := db.CreateTable((*SoftDeleteWithTimeModel)(nil), &orm.CreateTableOptions{
 			Temp: true,
 		})
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		err := db.DropTable((*SoftDeleteModel)(nil), nil)
+		err := db.DropTable((*SoftDeleteWithTimeModel)(nil), nil)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	assert := func() {
 		It("soft deletes the model", func() {
-			model := new(SoftDeleteModel)
+			model := new(SoftDeleteWithTimeModel)
 			err := db.Model(model).Select()
 			Expect(err).To(Equal(pg.ErrNoRows))
 
-			n, err := db.Model((*SoftDeleteModel)(nil)).Count()
+			n, err := db.Model((*SoftDeleteWithTimeModel)(nil)).Count()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(n).To(Equal(0))
 		})
 
 		It("Deleted allows to select deleted model", func() {
-			model := new(SoftDeleteModel)
+			model := new(SoftDeleteWithTimeModel)
 			err := db.Model(model).Deleted().Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(model.Id).To(Equal(1))
 			Expect(model.DeletedAt).To(BeTemporally("~", time.Now(), 3*time.Second))
 
-			n, err := db.Model((*SoftDeleteModel)(nil)).Deleted().Count()
+			n, err := db.Model((*SoftDeleteWithTimeModel)(nil)).Deleted().Count()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(n).To(Equal(1))
 		})
 
 		Describe("ForceDelete", func() {
 			BeforeEach(func() {
-				model := &SoftDeleteModel{
+				model := &SoftDeleteWithTimeModel{
 					Id: 1,
 				}
 				err := db.ForceDelete(model)
@@ -2217,11 +2239,11 @@ var _ = Describe("soft delete", func() {
 			})
 
 			It("deletes the model", func() {
-				model := new(SoftDeleteModel)
+				model := new(SoftDeleteWithTimeModel)
 				err := db.Model(model).Deleted().Select()
 				Expect(err).To(Equal(pg.ErrNoRows))
 
-				n, err := db.Model((*SoftDeleteModel)(nil)).Deleted().Count()
+				n, err := db.Model((*SoftDeleteWithTimeModel)(nil)).Deleted().Count()
 				Expect(err).NotTo(HaveOccurred())
 				Expect(n).To(Equal(0))
 			})
@@ -2230,13 +2252,13 @@ var _ = Describe("soft delete", func() {
 
 	Describe("nil model", func() {
 		BeforeEach(func() {
-			model := &SoftDeleteModel{
+			model := &SoftDeleteWithTimeModel{
 				Id: 1,
 			}
 			err := db.Insert(model)
 			Expect(err).NotTo(HaveOccurred())
 
-			_, err = db.Model((*SoftDeleteModel)(nil)).Where("1 = 1").Delete()
+			_, err = db.Model((*SoftDeleteWithTimeModel)(nil)).Where("1 = 1").Delete()
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -2245,7 +2267,7 @@ var _ = Describe("soft delete", func() {
 
 	Describe("model", func() {
 		BeforeEach(func() {
-			model := &SoftDeleteModel{
+			model := &SoftDeleteWithTimeModel{
 				Id: 1,
 			}
 			err := db.Insert(model)
@@ -2254,6 +2276,106 @@ var _ = Describe("soft delete", func() {
 			err = db.Delete(model)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(model.DeletedAt).To(BeTemporally("~", time.Now(), time.Second))
+		})
+
+		assert()
+	})
+})
+
+type SoftDeleteWithIntModel struct {
+	Id        int
+	DeletedAt *int64 `pg:",soft_delete"`
+}
+
+var _ = Describe("soft delete with int column", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = testDB()
+
+		err := db.CreateTable((*SoftDeleteWithIntModel)(nil), &orm.CreateTableOptions{
+			Temp: true,
+		})
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		err := db.DropTable((*SoftDeleteWithIntModel)(nil), nil)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	assert := func() {
+		It("soft deletes the model", func() {
+			model := new(SoftDeleteWithIntModel)
+			err := db.Model(model).Select()
+			Expect(err).To(Equal(pg.ErrNoRows))
+
+			n, err := db.Model((*SoftDeleteWithIntModel)(nil)).Count()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(n).To(Equal(0))
+		})
+
+		It("Deleted allows to select deleted model", func() {
+			model := new(SoftDeleteWithIntModel)
+			err := db.Model(model).Deleted().Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(model.Id).To(Equal(1))
+			deletedTime := time.Unix(0, *model.DeletedAt)
+			Expect(deletedTime).To(BeTemporally("~", time.Now(), time.Second))
+
+			n, err := db.Model((*SoftDeleteWithIntModel)(nil)).Deleted().Count()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(n).To(Equal(1))
+		})
+
+		Describe("ForceDelete", func() {
+			BeforeEach(func() {
+				model := &SoftDeleteWithIntModel{
+					Id: 1,
+				}
+				err := db.ForceDelete(model)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("deletes the model", func() {
+				model := new(SoftDeleteWithIntModel)
+				err := db.Model(model).Deleted().Select()
+				Expect(err).To(Equal(pg.ErrNoRows))
+
+				n, err := db.Model((*SoftDeleteWithIntModel)(nil)).Deleted().Count()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(n).To(Equal(0))
+			})
+		})
+	}
+
+	Describe("nil model", func() {
+		BeforeEach(func() {
+			model := &SoftDeleteWithIntModel{
+				Id: 1,
+			}
+			err := db.Insert(model)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = db.Model((*SoftDeleteWithIntModel)(nil)).Where("1 = 1").Delete()
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		assert()
+	})
+
+	Describe("model", func() {
+		BeforeEach(func() {
+			model := &SoftDeleteWithIntModel{
+				Id: 1,
+			}
+			err := db.Insert(model)
+			Expect(err).NotTo(HaveOccurred())
+
+			err = db.Delete(model)
+			Expect(err).NotTo(HaveOccurred())
+			deletedTime := time.Unix(0, *model.DeletedAt)
+			Expect(deletedTime).To(BeTemporally("~", time.Now(), time.Second))
 		})
 
 		assert()

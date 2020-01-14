@@ -4,14 +4,38 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/whenspeakteam/pg/v9/internal/structfilter"
+	"github.com/whenspeakteam/pg/v9/types"
+	"github.com/whenspeakteam/urlstruct"
 )
+
+var ops = [...]string{
+	urlstruct.OpEq:    " = ",
+	urlstruct.OpNotEq: " != ",
+	urlstruct.OpLT:    " < ",
+	urlstruct.OpLTE:   " <= ",
+	urlstruct.OpGT:    " > ",
+	urlstruct.OpGTE:   " >= ",
+	urlstruct.OpIEq:   " ILIKE ",
+	urlstruct.OpMatch: " SIMILAR TO ",
+}
+
+var sliceOps = [...]string{
+	urlstruct.OpEq:    " = ANY",
+	urlstruct.OpNotEq: " != ALL",
+}
+
+func getOp(ops []string, op urlstruct.OpCode) string {
+	if int(op) < len(ops) {
+		return ops[op]
+	}
+	return ""
+}
 
 type structFilter struct {
 	value reflect.Value // reflect.Struct
 
-	strctOnce sync.Once
-	strct     *structfilter.Struct // lazy
+	infoOnce sync.Once
+	info     *urlstruct.StructInfo // lazy
 }
 
 var _ queryWithSepAppender = (*structFilter)(nil)
@@ -30,40 +54,68 @@ func (sf *structFilter) AppendSep(b []byte) []byte {
 }
 
 func (sf *structFilter) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
-	sf.strctOnce.Do(func() {
-		sf.strct = structfilter.GetStruct(sf.value.Type())
+	sf.infoOnce.Do(func() {
+		sf.info = urlstruct.DescribeStruct(sf.value.Type())
 	})
 
 	isPlaceholder := isPlaceholderFormatter(fmter)
+	startLen := len(b)
 
-	before := len(b)
-	for _, f := range sf.strct.Fields {
+	prevLen := len(b)
+	for _, f := range sf.info.Fields {
 		fv := f.Value(sf.value)
 		if f.Omit(fv) {
 			continue
 		}
 
-		if len(b) != before {
-			b = append(b, " AND "...)
+		isSlice := f.Type.Kind() == reflect.Slice
+
+		var op string
+		if isSlice {
+			op = getOp(sliceOps[:], f.Op)
+		} else {
+			op = getOp(ops[:], f.Op)
+		}
+		if op == "" {
+			continue
 		}
 
-		if sf.strct.TableName != "" {
-			b = append(b, sf.strct.TableName...)
+		var appendValue types.AppenderFunc
+		if isSlice {
+			appendValue = types.ArrayAppender(f.Type)
+		} else {
+			appendValue = types.Appender(f.Type)
+		}
+		if appendValue == nil {
+			continue
+		}
+
+		if len(b) != prevLen {
+			b = append(b, " AND "...)
+			prevLen = len(b)
+		}
+
+		if sf.info.TableName != "" {
+			b = types.AppendIdent(b, sf.info.TableName, 1)
 			b = append(b, '.')
 		}
 		b = append(b, f.Column...)
-		b = append(b, f.OpValue...)
-		if f.IsSlice {
+		b = append(b, op...)
+		if isSlice {
 			b = append(b, '(')
 		}
 		if isPlaceholder {
 			b = append(b, '?')
 		} else {
-			b = f.Append(b, fv, 1)
+			b = appendValue(b, fv, 1)
 		}
-		if f.IsSlice {
+		if isSlice {
 			b = append(b, ')')
 		}
+	}
+
+	if len(b) == startLen {
+		b = append(b, "TRUE"...)
 	}
 
 	return b, nil

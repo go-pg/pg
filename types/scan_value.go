@@ -2,12 +2,14 @@ package types
 
 import (
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"reflect"
+	"sync"
 	"time"
+
+	"github.com/segmentio/encoding/json"
 
 	"github.com/whenspeakteam/pg/v9/internal"
 )
@@ -55,8 +57,31 @@ func init() {
 	}
 }
 
+var scannersMap sync.Map
+
+// RegisterScanner registers an scanner func for the type.
+// Expecting to be used only during initialization, it panics
+// if there is already a registered scanner for the given type.
+func RegisterScanner(value interface{}, fn ScannerFunc) {
+	registerScanner(reflect.TypeOf(value), fn)
+}
+
+func registerScanner(typ reflect.Type, fn ScannerFunc) {
+	_, loaded := scannersMap.LoadOrStore(typ, fn)
+	if loaded {
+		err := fmt.Errorf("pg: scanner for the type=%s is already registered",
+			typ.String())
+		panic(err)
+	}
+}
+
 func Scanner(typ reflect.Type) ScannerFunc {
-	return scanner(typ, false)
+	if v, ok := scannersMap.Load(typ); ok {
+		return v.(ScannerFunc)
+	}
+	fn := scanner(typ, false)
+	_, _ = scannersMap.LoadOrStore(typ, fn)
+	return fn
 }
 
 func scanner(typ reflect.Type, pgArray bool) ScannerFunc {
@@ -251,7 +276,7 @@ func scanJSONValue(v reflect.Value, rd Reader, n int) error {
 	}
 
 	// Zero value so it works with SelectOrInsert.
-	// TODO: better handle slices
+	//TODO: better handle slices
 	v.Set(reflect.New(v.Type()).Elem())
 
 	if n == -1 {
@@ -272,7 +297,9 @@ func scanTimeValue(v reflect.Value, rd Reader, n int) error {
 		return err
 	}
 
-	v.Set(reflect.ValueOf(tm))
+	ptr := v.Addr().Interface().(*time.Time)
+	*ptr = tm
+
 	return nil
 }
 
@@ -295,7 +322,9 @@ func scanIPValue(v reflect.Value, rd Reader, n int) error {
 		return fmt.Errorf("pg: invalid ip=%q", tmp)
 	}
 
-	v.Set(reflect.ValueOf(ip))
+	ptr := v.Addr().Interface().(*net.IP)
+	*ptr = ip
+
 	return nil
 }
 
@@ -321,7 +350,9 @@ func scanIPNetValue(v reflect.Value, rd Reader, n int) error {
 		return err
 	}
 
-	v.Set(reflect.ValueOf(*ipnet))
+	ptr := v.Addr().Interface().(*net.IPNet)
+	*ptr = *ipnet
+
 	return nil
 }
 

@@ -24,10 +24,6 @@ type TemplateAppender interface {
 	AppendTemplate(b []byte) ([]byte, error)
 }
 
-type QueryFormatter interface {
-	FormatQuery(b []byte, query string, params ...interface{}) []byte
-}
-
 type queryCommand interface {
 	QueryAppender
 	TemplateAppender
