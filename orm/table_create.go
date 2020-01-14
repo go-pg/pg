@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"sort"
 	"strconv"
 
 	"github.com/whenspeakteam/pg/v9/types"
@@ -13,8 +14,8 @@ type CreateTableOptions struct {
 
 	// FKConstraints causes CreateTable to create foreign key constraints
 	// for has one relations. ON DELETE hook can be added using tag
-	// `sql:"on_delete:RESTRICT"` on foreign key field. ON UPDATE hook can be added using tag
-	// `sql:"on_update:CASCADE"`
+	// `pg:"on_delete:RESTRICT"` on foreign key field. ON UPDATE hook can be added using tag
+	// `pg:"on_update:CASCADE"`
 	FKConstraints bool
 }
 
@@ -84,10 +85,10 @@ func (q *createTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte
 		b = append(b, field.Column...)
 		b = append(b, " "...)
 		b = q.appendSQLType(b, field)
-		if field.HasFlag(NotNullFlag) {
+		if field.hasFlag(NotNullFlag) {
 			b = append(b, " NOT NULL"...)
 		}
-		if field.HasFlag(UniqueFlag) {
+		if field.hasFlag(UniqueFlag) {
 			b = append(b, " UNIQUE"...)
 		}
 		if field.Default != "" {
@@ -97,9 +98,7 @@ func (q *createTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte
 	}
 
 	b = appendPKConstraint(b, table.PKs)
-	for _, fields := range table.Unique {
-		b = appendUnique(b, fields)
-	}
+	b = appendUniqueConstraints(b, table)
 
 	if q.opt != nil && q.opt.FKConstraints {
 		for _, rel := range table.Relations {
@@ -122,14 +121,17 @@ func (q *createTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte
 }
 
 func (q *createTableQuery) appendSQLType(b []byte, field *Field) []byte {
+	if field.UserSQLType != "" {
+		return append(b, field.UserSQLType...)
+	}
 	if q.opt != nil && q.opt.Varchar > 0 &&
-		field.SQLType == "text" && !field.HasFlag(customTypeFlag) {
+		field.SQLType == "text" {
 		b = append(b, "varchar("...)
 		b = strconv.AppendInt(b, int64(q.opt.Varchar), 10)
 		b = append(b, ")"...)
 		return b
 	}
-	if field.HasFlag(PrimaryKeyFlag) {
+	if field.hasFlag(PrimaryKeyFlag) {
 		return append(b, pkSQLType(field.SQLType)...)
 	}
 	return append(b, field.SQLType...)
@@ -155,6 +157,20 @@ func appendPKConstraint(b []byte, pks []*Field) []byte {
 	b = append(b, ", PRIMARY KEY ("...)
 	b = appendColumns(b, "", pks)
 	b = append(b, ")"...)
+	return b
+}
+
+func appendUniqueConstraints(b []byte, table *Table) []byte {
+	keys := make([]string, 0, len(table.Unique))
+	for key := range table.Unique {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		b = appendUnique(b, table.Unique[key])
+	}
+
 	return b
 }
 
@@ -193,7 +209,7 @@ func (q createTableQuery) appendFKConstraint(fmter QueryFormatter, b []byte, rel
 	return b
 }
 
-func (q createTableQuery) appendTablespace(b []byte, tableSpace types.Q) []byte {
+func (q createTableQuery) appendTablespace(b []byte, tableSpace types.Safe) []byte {
 	b = append(b, " TABLESPACE "...)
 	b = append(b, tableSpace...)
 	return b

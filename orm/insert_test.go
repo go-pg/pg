@@ -13,14 +13,14 @@ type InsertTest struct {
 }
 
 type EmbeddingTest struct {
-	tableName struct{} `sql:"name"`
+	tableName struct{} `pg:"name"`
 
 	Id    int
 	Field int
 }
 
 type EmbeddedInsertTest struct {
-	tableName struct{} `sql:"my_name"`
+	tableName struct{} `pg:"my_name"`
 	EmbeddingTest
 	Field2 int
 }
@@ -33,17 +33,17 @@ type InheritInsertTest struct {
 type InsertNullTest struct {
 	F1 int
 	F2 int `pg:",use_zero"`
-	F3 int `sql:",pk"`
-	F4 int `sql:",pk" pg:",use_zero"`
+	F3 int `pg:",pk"`
+	F4 int `pg:",pk,use_zero"`
 }
 
 type InsertDefaultTest struct {
 	Id    int
-	Value string `sql:"default:hello"`
+	Value string `pg:"default:hello"`
 }
 
 type InsertQTest struct {
-	Geo  types.Q
+	Geo  types.Safe
 	Func types.ValueAppender
 }
 
@@ -67,7 +67,7 @@ var _ = Describe("Insert", func() {
 		q := NewQuery(nil, model).Value("value", "upper(?)", model.Value)
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello'))`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello')) RETURNING "value"`))
 	})
 
 	It("supports Value 2", func() {
@@ -78,7 +78,7 @@ var _ = Describe("Insert", func() {
 		q := NewQuery(nil, model).Value("value", "upper(?value)")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello'))`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (1, upper('hello')) RETURNING "value"`))
 	})
 
 	It("supports extra Value", func() {
@@ -90,6 +90,14 @@ var _ = Describe("Insert", func() {
 
 		s := insertQueryString(q)
 		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value", "unknown") VALUES (1, 'hello', upper('hello'))`))
+	})
+
+	It("supports ExcludeColumn", func() {
+		model := &InsertTest{}
+		q := NewQuery(nil, model).ExcludeColumn("value")
+
+		s := insertQueryString(q)
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id") VALUES (DEFAULT) RETURNING "id"`))
 	})
 
 	It("multi inserts", func() {
@@ -168,10 +176,10 @@ var _ = Describe("Insert", func() {
 		Expect(s).To(Equal(`INSERT INTO "insert_null_tests" ("f1", "f2", "f3", "f4") VALUES (DEFAULT, 0, DEFAULT, 0) RETURNING "f1", "f3"`))
 	})
 
-	It("inserts types.Q", func() {
+	It("inserts types.Safe", func() {
 		q := NewQuery(nil, &InsertQTest{
-			Geo:  types.Q("ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))')"),
-			Func: Q("my_func(?)", "param"),
+			Geo:  types.Safe("ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))')"),
+			Func: SafeQuery("my_func(?)", "param"),
 		})
 
 		s := insertQueryString(q)
@@ -201,7 +209,7 @@ var _ = Describe("Insert", func() {
 			Value("id", "123")
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (123, DEFAULT), (123, DEFAULT) RETURNING "value"`))
+		Expect(s).To(Equal(`INSERT INTO "insert_tests" ("id", "value") VALUES (123, DEFAULT), (123, DEFAULT) RETURNING "id", "value"`))
 	})
 
 	It("returns an error for empty bulk insert", func() {
@@ -215,7 +223,7 @@ var _ = Describe("Insert", func() {
 	It("supports notnull and default", func() {
 		type Model struct {
 			Id   int
-			Bool bool `sql:",default:_"`
+			Bool bool `pg:",default:_"`
 		}
 
 		q := NewQuery(nil, &Model{})
@@ -224,9 +232,9 @@ var _ = Describe("Insert", func() {
 		Expect(s).To(Equal(`INSERT INTO "models" ("id", "bool") VALUES (DEFAULT, DEFAULT) RETURNING "id", "bool"`))
 	})
 
-	It("support models without a name", func() {
+	It("support models without a table name", func() {
 		type Model struct {
-			tableName struct{} `sql:"_"`
+			tableName struct{} `pg:"_"`
 			Id        int
 		}
 
@@ -234,6 +242,27 @@ var _ = Describe("Insert", func() {
 
 		s := insertQueryString(q)
 		Expect(s).To(Equal(`INSERT INTO "dynamic_name" ("id") VALUES (DEFAULT) RETURNING "id"`))
+	})
+
+	It("support models with pointer uint", func() {
+		type UintModel struct {
+			Id      int
+			OtherId *uint64
+		}
+		v := uint64(2)
+		q := NewQuery(nil, &[]UintModel{
+			{
+				Id:      1,
+				OtherId: &v,
+			},
+			{
+				Id:      2,
+				OtherId: nil,
+			},
+		})
+
+		s := insertQueryString(q)
+		Expect(s).To(Equal(`INSERT INTO "uint_models" ("id", "other_id") VALUES (1, 2), (2, DEFAULT) RETURNING "other_id"`))
 	})
 })
 

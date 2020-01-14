@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/whenspeakteam/pg/v9/internal/iszero"
 	"github.com/whenspeakteam/pg/v9/types"
+	"github.com/whenspeakteam/zerochecker"
 )
 
 const (
@@ -15,7 +15,6 @@ const (
 	UseZeroFlag
 	UniqueFlag
 	ArrayFlag
-	customTypeFlag
 )
 
 type Field struct {
@@ -23,20 +22,21 @@ type Field struct {
 	Type  reflect.Type
 	Index []int
 
-	GoName   string  // struct field name, e.g. Id
-	SQLName  string  // SQL name, .e.g. id
-	Column   types.Q // escaped SQL name, e.g. "id"
-	SQLType  string
-	Default  types.Q
-	OnDelete string
-	OnUpdate string
+	GoName      string     // struct field name, e.g. Id
+	SQLName     string     // SQL name, .e.g. id
+	Column      types.Safe // escaped SQL name, e.g. "id"
+	SQLType     string
+	UserSQLType string
+	Default     types.Safe
+	OnDelete    string
+	OnUpdate    string
 
 	flags uint8
 
 	append types.AppenderFunc
 	scan   types.ScannerFunc
 
-	isZero iszero.Func
+	isZero zerochecker.Func
 }
 
 func indexEqual(ind1, ind2 []int) bool {
@@ -57,11 +57,11 @@ func (f *Field) Clone() *Field {
 	return &cp
 }
 
-func (f *Field) SetFlag(flag uint8) {
+func (f *Field) setFlag(flag uint8) {
 	f.flags |= flag
 }
 
-func (f *Field) HasFlag(flag uint8) bool {
+func (f *Field) hasFlag(flag uint8) bool {
 	return f.flags&flag != 0
 }
 
@@ -87,7 +87,7 @@ func (f *Field) hasZeroField(v reflect.Value, index []int) bool {
 }
 
 func (f *Field) NullZero() bool {
-	return !f.HasFlag(UseZeroFlag)
+	return !f.hasFlag(UseZeroFlag)
 }
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {

@@ -203,7 +203,7 @@ var _ = Describe("DB race", func() {
 
 	It("fully initializes model table", func() {
 		type TestTable struct {
-			tableName struct{} `sql:"'generate_series(0, 9)'"`
+			tableName struct{} `pg:"'generate_series(0, 9)'"`
 		}
 
 		perform(C, func(id int) {

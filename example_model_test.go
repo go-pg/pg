@@ -7,6 +7,7 @@ import (
 
 	"github.com/whenspeakteam/pg/v9"
 	"github.com/whenspeakteam/pg/v9/orm"
+	"github.com/go-pg/pg/v9/types"
 )
 
 func modelDB() *pg.DB {
@@ -223,7 +224,7 @@ func ExampleDB_Insert_selectOrInsert() {
 
 func ExampleDB_Insert_dynamicTableName() {
 	type NamelessModel struct {
-		tableName struct{} `sql:"_"` // "_" means no name
+		tableName struct{} `pg:"_"` // "_" means no name
 		Id        int
 	}
 
@@ -984,7 +985,7 @@ func ExampleQ() {
 	cond := fmt.Sprintf("id = %d", 1)
 
 	var book Book
-	err := db.Model(&book).Where("?", pg.Q(cond)).Select()
+	err := db.Model(&book).Where("?", types.Safe(cond)).Select()
 	if err != nil {
 		panic(err)
 	}
@@ -996,7 +997,7 @@ func ExampleF() {
 	db := modelDB()
 
 	var book Book
-	err := db.Model(&book).Where("? = 1", pg.F("id")).Select()
+	err := db.Model(&book).Where("? = 1", types.Ident("id")).Select()
 	if err != nil {
 		panic(err)
 	}

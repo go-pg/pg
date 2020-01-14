@@ -2,15 +2,17 @@ package orm
 
 import (
 	"database/sql"
-	"encoding/json"
 	"time"
+
+	"github.com/segmentio/encoding/json"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 type CreateTableModel struct {
-	Id             int
+	ID             int
+	Serial         int
 	Int8           int8
 	Uint8          uint8
 	Int16          int16
@@ -21,27 +23,27 @@ type CreateTableModel struct {
 	Uint64         uint64
 	Float32        float32
 	Float64        float64
-	Decimal        float64 `sql:"type:'decimal(10,10)'"`
+	Decimal        float64 `pg:"type:'decimal(10,10)'"`
 	ByteSlice      []byte
 	ByteArray      [32]byte
-	String         string    `sql:"default:'D\\'Angelo'"`
-	Varchar        string    `sql:",type:varchar(500)"`
-	Time           time.Time `sql:"default:now()"`
+	String         string    `pg:"default:'D\\'Angelo'"`
+	Varchar        string    `pg:",type:varchar(500)"`
+	Time           time.Time `pg:"default:now()"`
 	Duration       time.Duration
-	NotNull        int `sql:",notnull"`
+	NotNull        int `pg:",notnull"`
 	NullBool       sql.NullBool
 	NullFloat64    sql.NullFloat64
 	NullInt64      sql.NullInt64
 	NullString     sql.NullString
 	Slice          []int
-	SliceArray     []int `sql:",array"`
+	SliceArray     []int `pg:",array"`
 	Map            map[int]int
-	MapHstore      map[int]int `sql:",hstore"`
+	MapHstore      map[int]int `pg:",hstore"`
 	Struct         struct{}
 	StructPtr      *struct{}
-	Unique         int `sql:",unique"`
-	UniqueField1   int `sql:"unique:field1_field2"`
-	UniqueField2   int `sql:"unique:field1_field2"`
+	Unique         int `pg:",unique"`
+	UniqueField1   int `pg:"unique:field1_field2"`
+	UniqueField2   int `pg:"unique:field1_field2"`
 	JSONRawMessage json.RawMessage
 }
 
@@ -50,37 +52,44 @@ type CreateTableWithoutPKModel struct {
 }
 
 type CreateTableOnDeleteOnUpdateModel struct {
-	Id                 int
-	CreateTableModelId int `sql:"on_delete:RESTRICT, on_update:CASCADE"`
+	ID                 int
+	CreateTableModelID int `pg:"on_delete:RESTRICT, on_update:CASCADE"`
 	CreateTableModel   *CreateTableModel
 }
 
 type CreateTableWithTablespace struct {
-	tableName string `sql:"tablespace:ssd"`
+	tableName string `pg:"tablespace:ssd"`
 
 	String string
 }
 
 type CreateTableWithRangePartition struct {
-	tableName string `sql:"partitionBy:RANGE (time)"`
+	tableName string `pg:"partitionBy:RANGE (time)"`
 
 	Time   time.Time
 	String string
 }
 
 type CreateTableWithListPartition struct {
-	tableName string `sql:"partitionBy:LIST (country)"`
+	tableName string `pg:"partitionBy:LIST (country)"`
 
 	Country string
 	String  string
 }
 
 type CreateTableWithHashPartition struct {
-	tableName string `sql:"partitionBy:HASH (account_id)"`
+	tableName string `pg:"partitionBy:HASH (account_id)"`
 
-	ID        int
+	ID        int `pg:",pk,type:int,default:0"`
 	AccountID int
 	String    string
+}
+
+type CreateTableWithMultipleNamedUniques struct {
+	ID               int    `pg:",pk"`
+	AccountID        int    `pg:",unique:'per_account,per_store'"`
+	OrderNumber      string `pg:",unique:per_account"`
+	StoreOrderNumber string `pg:",unique:per_store"`
 }
 
 var _ = Describe("CreateTable", func() {
@@ -88,7 +97,7 @@ var _ = Describe("CreateTable", func() {
 		q := NewQuery(nil, &CreateTableModel{})
 
 		s := createTableQueryString(q, nil)
-		Expect(s).To(Equal(`CREATE TABLE "create_table_models" ("id" bigserial, "int8" smallint, "uint8" smallint, "int16" smallint, "uint16" integer, "int32" integer, "uint32" bigint, "int64" bigint, "uint64" bigint, "float32" real, "float64" double precision, "decimal" decimal(10,10), "byte_slice" bytea, "byte_array" bytea, "string" text DEFAULT 'D''Angelo', "varchar" varchar(500), "time" timestamptz DEFAULT now(), "duration" bigint, "not_null" bigint NOT NULL, "null_bool" boolean, "null_float64" double precision, "null_int64" bigint, "null_string" text, "slice" jsonb, "slice_array" bigint[], "map" jsonb, "map_hstore" hstore, "struct" jsonb, "struct_ptr" jsonb, "unique" bigint UNIQUE, "unique_field1" bigint, "unique_field2" bigint, "json_raw_message" jsonb, PRIMARY KEY ("id"), UNIQUE ("unique_field1", "unique_field2"))`))
+		Expect(s).To(Equal(`CREATE TABLE "create_table_models" ("id" bigserial, "serial" bigint, "int8" smallint, "uint8" smallint, "int16" smallint, "uint16" integer, "int32" integer, "uint32" bigint, "int64" bigint, "uint64" bigint, "float32" real, "float64" double precision, "decimal" decimal(10,10), "byte_slice" bytea, "byte_array" bytea, "string" text DEFAULT 'D''Angelo', "varchar" varchar(500), "time" timestamptz DEFAULT now(), "duration" bigint, "not_null" bigint NOT NULL, "null_bool" boolean, "null_float64" double precision, "null_int64" bigint, "null_string" text, "slice" jsonb, "slice_array" bigint[], "map" jsonb, "map_hstore" hstore, "struct" jsonb, "struct_ptr" jsonb, "unique" bigint UNIQUE, "unique_field1" bigint, "unique_field2" bigint, "json_raw_message" jsonb, PRIMARY KEY ("id"), UNIQUE ("unique"), UNIQUE ("unique_field1", "unique_field2"))`))
 	})
 
 	It("creates new table without primary key", func() {
@@ -137,7 +146,26 @@ var _ = Describe("CreateTable", func() {
 		q := NewQuery(nil, &CreateTableWithHashPartition{})
 
 		s := createTableQueryString(q, &CreateTableOptions{})
-		Expect(s).To(Equal(`CREATE TABLE "create_table_with_hash_partitions" ("id" bigserial, "account_id" bigint, "string" text, PRIMARY KEY ("id")) PARTITION BY HASH (account_id)`))
+		Expect(s).To(Equal(`CREATE TABLE "create_table_with_hash_partitions" ("id" int DEFAULT 0, "account_id" bigint, "string" text, PRIMARY KEY ("id")) PARTITION BY HASH (account_id)`))
+	})
+
+	It("creates new table with multiple named unique constraints", func() {
+		q := NewQuery(nil, &CreateTableWithMultipleNamedUniques{})
+
+		s := createTableQueryString(q, &CreateTableOptions{})
+		Expect(s).To(Equal(`CREATE TABLE "create_table_with_multiple_named_uniques" ("id" bigserial, "account_id" bigint, "order_number" text, "store_order_number" text, PRIMARY KEY ("id"), UNIQUE ("account_id", "order_number"), UNIQUE ("account_id", "store_order_number"))`))
+	})
+
+	It("supports model without a table name", func() {
+		type Model struct {
+			tableName struct{} `pg:"_"`
+			Id        int
+		}
+
+		q := NewQuery(nil, &Model{}).Table("dynamic_name")
+
+		s := createTableQueryString(q, &CreateTableOptions{})
+		Expect(s).To(Equal(`CREATE TABLE "dynamic_name" ("id" bigserial, PRIMARY KEY ("id"))`))
 	})
 })
 

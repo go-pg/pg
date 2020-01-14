@@ -51,12 +51,17 @@ func (m *m2mModel) NextColumnScanner() ColumnScanner {
 }
 
 func (m *m2mModel) AddColumnScanner(_ ColumnScanner) error {
-	m.buf = modelIDMap(m.buf[:0], m.columns, m.rel.BaseFKs)
-	dstValues, ok := m.dstValues[string(m.buf)]
+	buf, err := m.modelIDMap(m.buf[:0])
+	if err != nil {
+		return err
+	}
+	m.buf = buf
+
+	dstValues, ok := m.dstValues[string(buf)]
 	if !ok {
 		return fmt.Errorf(
 			"pg: relation=%q has no base %s with id=%q (check join conditions)",
-			m.rel.Field.GoName, m.baseTable, m.buf)
+			m.rel.Field.GoName, m.baseTable, buf)
 	}
 
 	for _, v := range dstValues {
@@ -70,14 +75,19 @@ func (m *m2mModel) AddColumnScanner(_ ColumnScanner) error {
 	return nil
 }
 
-func modelIDMap(b []byte, m map[string]string, columns []string) []byte {
-	for i, col := range columns {
+func (m *m2mModel) modelIDMap(b []byte) ([]byte, error) {
+	for i, col := range m.rel.BaseFKs {
 		if i > 0 {
 			b = append(b, ',')
 		}
-		b = append(b, m[col]...)
+		if s, ok := m.columns[col]; ok {
+			b = append(b, s...)
+		} else {
+			return nil, fmt.Errorf("pg: %s has no column=%q",
+				m.sliceTableModel, col)
+		}
 	}
-	return b
+	return b, nil
 }
 
 func (m *m2mModel) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {

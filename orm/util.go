@@ -110,7 +110,7 @@ func modelID(b []byte, v reflect.Value, fields []*Field) []byte {
 	return b
 }
 
-func appendColumns(b []byte, table types.Q, fields []*Field) []byte {
+func appendColumns(b []byte, table types.Safe, fields []*Field) []byte {
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)

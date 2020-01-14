@@ -73,7 +73,7 @@ func TestParseURL(t *testing.T) {
 			"",
 			0,
 			true,
-			errors.New("pg: sslmode 'verify-ca' is not supported"),
+			nil,
 		},
 		{
 			"postgres://vasya:pupkin@somewhere.at.amazonaws.com:5432/postgres?sslmode=verify-full",
@@ -84,7 +84,7 @@ func TestParseURL(t *testing.T) {
 			"",
 			0,
 			true,
-			errors.New("pg: sslmode 'verify-full' is not supported"),
+			nil,
 		},
 		{
 			"postgres://vasya:pupkin@somewhere.at.amazonaws.com:5432/postgres?sslmode=disable",
@@ -255,8 +255,6 @@ func TestParseURL(t *testing.T) {
 			if c.tls {
 				if o.TLSConfig == nil {
 					t.Error("got nil TLSConfig, expected a TLSConfig")
-				} else if !o.TLSConfig.InsecureSkipVerify {
-					t.Error("must set InsecureSkipVerify to true in TLSConfig, got false")
 				}
 			}
 		})

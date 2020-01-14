@@ -40,7 +40,6 @@ var _ = Describe("embedded Model", func() {
 		Expect(id.GoName).To(Equal("Id"))
 		Expect(id.SQLName).To(Equal("id"))
 		Expect(string(id.Column)).To(Equal(`"id"`))
-		Expect(id.HasFlag(orm.PrimaryKeyFlag)).To(BeTrue())
 		Expect(string(id.AppendValue(nil, strct, 1))).To(Equal("1"))
 
 		Expect(table.PKs).To(HaveLen(1))
@@ -58,7 +57,7 @@ var _ = Describe("embedded Model", func() {
 })
 
 type C struct {
-	Name int `sql:",pk"`
+	Name int `pg:",pk"`
 	Id   int
 	UUID int
 }
@@ -169,11 +168,11 @@ var _ = Describe("model with circular reference", func() {
 })
 
 type J struct {
-	JId int64 `sql:",pk"`
+	JId int64 `pg:",pk"`
 }
 
 type K struct {
-	KId  int64 `sql:",pk"`
+	KId  int64 `pg:",pk"`
 	MyId int64
 	My   *J
 }
@@ -235,22 +234,22 @@ var _ = Describe("embedding", func() {
 var _ = Describe("anonymous struct", func() {
 	It("has an alias", func() {
 		var model struct {
-			tableName struct{} `sql:"some_name"`
+			tableName struct{} `pg:"some_name"`
 
 			ID   uint64
 			Data string
 		}
 
 		table := orm.GetTable(reflect.TypeOf(model))
-		Expect(table.FullName).To(Equal(types.Q("some_name")))
-		Expect(table.FullNameForSelects).To(Equal(types.Q("some_name")))
-		Expect(table.Alias).To(Equal(types.Q("some_name")))
+		Expect(table.FullName).To(Equal(types.Safe("some_name")))
+		Expect(table.FullNameForSelects).To(Equal(types.Safe("some_name")))
+		Expect(table.Alias).To(Equal(types.Safe("some_name")))
 	})
 })
 
 type O struct {
 	M
-	Id struct{} `sql:"-"`
+	Id struct{} `pg:"-"`
 }
 
 var _ = Describe("embedding with ignored field", func() {
@@ -260,5 +259,19 @@ var _ = Describe("embedding with ignored field", func() {
 		Expect(table.FieldsMap).To(HaveLen(2))
 		Expect(table.PKs).To(HaveLen(0))
 		Expect(table.DataFields).To(HaveLen(1))
+	})
+})
+
+type Nameless struct {
+	tableName struct{} `pg:"_"`
+
+	Id int
+}
+
+var _ = Describe("_ as table name", func() {
+	It("sets empty table name", func() {
+		table := orm.GetTable(reflect.TypeOf(Nameless{}))
+		Expect(table.FullName).To(Equal(types.Safe("")))
+		Expect(table.FullNameForSelects).To(Equal(types.Safe("")))
 	})
 })

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -38,6 +39,17 @@ type Options struct {
 	// TLS config for secure connections.
 	TLSConfig *tls.Config
 
+	// Dial timeout for establishing new connections.
+	// Default is 5 seconds.
+	DialTimeout time.Duration
+
+	// Timeout for socket reads. If reached, commands will fail
+	// with a timeout instead of blocking.
+	ReadTimeout time.Duration
+	// Timeout for socket writes. If reached, commands will fail
+	// with a timeout instead of blocking.
+	WriteTimeout time.Duration
+
 	// Hook that is called after new connection is established
 	// and user is authenticated.
 	OnConnect func(*Conn) error
@@ -53,17 +65,6 @@ type Options struct {
 	// Maximum backoff between each retry.
 	// Default is 4 seconds; -1 disables backoff.
 	MaxRetryBackoff time.Duration
-
-	// Dial timeout for establishing new connections.
-	// Default is 5 seconds.
-	DialTimeout time.Duration
-
-	// Timeout for socket reads. If reached, commands will fail
-	// with a timeout instead of blocking.
-	ReadTimeout time.Duration
-	// Timeout for socket writes. If reached, commands will fail
-	// with a timeout instead of blocking.
-	WriteTimeout time.Duration
 
 	// Maximum number of socket connections.
 	// Default is 10 connections per every CPU as reported by runtime.NumCPU.
@@ -99,10 +100,20 @@ func (opt *Options) init() {
 	if opt.Addr == "" {
 		switch opt.Network {
 		case "tcp":
-			opt.Addr = "localhost:5432"
+			host := env("PGHOST", "localhost")
+			port := env("PGPORT", "5432")
+			opt.Addr = fmt.Sprintf("%s:%s", host, port)
 		case "unix":
 			opt.Addr = "/var/run/postgresql/.s.PGSQL.5432"
 		}
+	}
+
+	if opt.User == "" {
+		opt.User = env("PGUSER", "postgres")
+	}
+
+	if opt.Database == "" {
+		opt.Database = env("PGDATABASE", "postgres")
 	}
 
 	if opt.PoolSize == 0 {
@@ -140,6 +151,14 @@ func (opt *Options) init() {
 	case 0:
 		opt.MaxRetryBackoff = 4 * time.Second
 	}
+}
+
+func env(key, defValue string) string {
+	envValue := os.Getenv(key)
+	if envValue != "" {
+		return envValue
+	}
+	return defValue
 }
 
 // ParseURL parses an URL into options that can be used to connect to PostgreSQL.
@@ -190,6 +209,8 @@ func ParseURL(sURL string) (*Options, error) {
 
 	if sslMode, ok := query["sslmode"]; ok && len(sslMode) > 0 {
 		switch sslMode[0] {
+		case "verify-ca", "verify-full":
+			options.TLSConfig = &tls.Config{}
 		case "allow", "prefer", "require":
 			options.TLSConfig = &tls.Config{InsecureSkipVerify: true} //nolint
 		case "disable":

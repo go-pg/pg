@@ -2,18 +2,12 @@ package pool_test
 
 import (
 	"context"
-	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
 	"github.com/whenspeakteam/pg/v9/internal/pool"
 )
-
-func TestGinkgo(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "pool")
-}
 
 var _ = Describe("SingleConnPool", func() {
 	var p *pool.SingleConnPool

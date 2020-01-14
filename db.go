@@ -18,8 +18,9 @@ func Connect(opt *Options) *DB {
 	return newDB(
 		context.Background(),
 		&baseDB{
-			opt:  opt,
-			pool: newConnPool(opt),
+			opt:   opt,
+			pool:  newConnPool(opt),
+			fmter: orm.NewFormatter(),
 		},
 	)
 }
@@ -98,9 +99,7 @@ type Conn struct {
 
 var _ orm.DB = (*Conn)(nil)
 
-// Conn returns a single connection by either opening a new connection
-// or returning an existing connection from the connection pool. Conn will
-// block until either a connection is returned or ctx is canceled.
+// Conn returns a single connection from the connection pool.
 // Queries run on the same Conn will be run in the same database session.
 //
 // Every Conn must be returned to the database pool after use by

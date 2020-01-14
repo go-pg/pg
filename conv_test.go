@@ -3,13 +3,14 @@ package pg_test
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 	"math"
 	"net"
 	"reflect"
 	"testing"
 	"time"
+
+	"github.com/segmentio/encoding/json"
 
 	"github.com/whenspeakteam/pg/v9"
 	"github.com/whenspeakteam/pg/v9/orm"

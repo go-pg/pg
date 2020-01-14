@@ -85,30 +85,32 @@ func (stmt *Stmt) ExecContext(c context.Context, params ...interface{}) (Result,
 }
 
 func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error) {
+	c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, nil, stmt.q, params)
+	if err != nil {
+		return nil, err
+	}
+
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		if attempt > 0 {
-			if err := internal.Sleep(c, stmt.db.retryBackoff(attempt-1)); err != nil {
-				return nil, err
+			lastErr = internal.Sleep(c, stmt.db.retryBackoff(attempt-1))
+			if lastErr != nil {
+				break
 			}
-		}
-
-		c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, nil, stmt.q, params, attempt)
-		if err != nil {
-			return nil, err
 		}
 
 		lastErr = stmt.withConn(c, func(c context.Context, cn *pool.Conn) error {
 			res, err = stmt.extQuery(c, cn, stmt.name, params...)
-			if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
-				return err
-			}
 			return err
 		})
 		if !stmt.db.shouldRetry(lastErr) {
 			break
 		}
+	}
+
+	if err := stmt.db.afterQuery(c, evt, res, lastErr); err != nil {
+		return nil, err
 	}
 	return res, lastErr
 }
@@ -148,30 +150,32 @@ func (stmt *Stmt) QueryContext(c context.Context, model interface{}, params ...i
 }
 
 func (stmt *Stmt) query(c context.Context, model interface{}, params ...interface{}) (Result, error) {
+	c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, model, stmt.q, params)
+	if err != nil {
+		return nil, err
+	}
+
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		if attempt > 0 {
-			if err := internal.Sleep(c, stmt.db.retryBackoff(attempt-1)); err != nil {
-				return nil, err
+			lastErr = internal.Sleep(c, stmt.db.retryBackoff(attempt-1))
+			if lastErr != nil {
+				break
 			}
-		}
-
-		c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, model, stmt.q, params, attempt)
-		if err != nil {
-			return nil, err
 		}
 
 		lastErr = stmt.withConn(c, func(c context.Context, cn *pool.Conn) error {
 			res, err = stmt.extQueryData(c, cn, stmt.name, model, stmt.columns, params...)
-			if err := stmt.db.afterQuery(c, evt, res, err); err != nil {
-				return err
-			}
 			return err
 		})
 		if !stmt.db.shouldRetry(lastErr) {
 			break
 		}
+	}
+
+	if err := stmt.db.afterQuery(c, evt, res, lastErr); err != nil {
+		return nil, err
 	}
 	return res, lastErr
 }
@@ -260,20 +264,11 @@ func (stmt *Stmt) extQueryData(
 
 	var res *result
 	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
-		res, err = readExtQueryData(rd, model, columns)
+		res, err = readExtQueryData(c, rd, model, columns)
 		return err
 	})
 	if err != nil {
 		return nil, err
-	}
-
-	if res.model != nil && res.returned > 0 {
-		if m, ok := res.model.(orm.AfterScanHook); ok {
-			err = m.AfterScan(c)
-			if err != nil {
-				return nil, err
-			}
-		}
 	}
 
 	return res, nil

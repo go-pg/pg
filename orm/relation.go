@@ -21,8 +21,8 @@ type Relation struct {
 	Polymorphic *Field
 	FKValues    []*Field
 
-	M2MTableName  types.Q
-	M2MTableAlias types.Q
+	M2MTableName  types.Safe
+	M2MTableAlias types.Safe
 	BaseFKs       []string
 	JoinFKs       []string
 }

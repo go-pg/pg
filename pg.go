@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"strconv"
+	"sync"
 
 	"github.com/whenspeakteam/pg/v9/internal"
 	"github.com/whenspeakteam/pg/v9/orm"
@@ -34,15 +35,35 @@ func Scan(values ...interface{}) orm.ColumnScanner {
 	return orm.Scan(values...)
 }
 
-// Q replaces any placeholders found in the query.
-func Q(query string, params ...interface{}) types.ValueAppender {
-	return orm.Q(query, params...)
+// Safe represents a safe SQL query.
+type Safe = types.Safe
+
+// Ident represents a SQL identifier, e.g. table or column name.
+type Ident = types.Ident
+
+// SafeQuery replaces any placeholders found in the query.
+func SafeQuery(query string, params ...interface{}) *orm.SafeQueryAppender {
+	return orm.SafeQuery(query, params...)
 }
 
-// F quotes a SQL identifier such as a table or column name replacing any
-// placeholders found in the field.
+var qWarn sync.Once
+
+// DEPRECATED. Use Safe instead.
+func Q(query string, params ...interface{}) types.ValueAppender {
+	qWarn.Do(func() {
+		internal.Logger.Printf("DEPRECATED: pg.Q is replaced with pg.SafeQuery")
+	})
+	return SafeQuery(query, params...)
+}
+
+var fWarn sync.Once
+
+// DEPRECATED. Use Ident instead.
 func F(field string) types.ValueAppender {
-	return types.F(field)
+	fWarn.Do(func() {
+		internal.Logger.Printf("DEPRECATED: pg.F is replaced with pg.Ident")
+	})
+	return Ident(field)
 }
 
 // In accepts a slice and returns a wrapper that can be used with PostgreSQL
@@ -54,7 +75,7 @@ func F(field string) types.ValueAppender {
 //
 //    WHERE id IN (1, 2, 3, 4)
 func In(slice interface{}) types.ValueAppender {
-	return types.InSlice(slice)
+	return types.In(slice)
 }
 
 // InMulti accepts multiple values and returns a wrapper that can be used
@@ -74,7 +95,7 @@ func InMulti(values ...interface{}) types.ValueAppender {
 //
 // For struct fields you can use array tag:
 //
-//    Emails  []string `sql:",array"`
+//    Emails  []string `pg:",array"`
 func Array(v interface{}) *types.Array {
 	return types.NewArray(v)
 }
@@ -85,7 +106,7 @@ func Array(v interface{}) *types.Array {
 //
 // For struct fields you can use hstore tag:
 //
-//    Attrs map[string]string `sql:",hstore"`
+//    Attrs map[string]string `pg:",hstore"`
 func Hstore(v interface{}) *types.Hstore {
 	return types.NewHstore(v)
 }
