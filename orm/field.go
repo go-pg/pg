@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/whenspeakteam/pg/v9/types"
-	"github.com/whenspeakteam/zerochecker"
+	"github.com/go-pg/zerochecker"
 )
 
 const (

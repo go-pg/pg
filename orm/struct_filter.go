@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/whenspeakteam/pg/v9/types"
-	"github.com/whenspeakteam/urlstruct"
+	"github.com/go-pg/urlstruct"
 )
 
 var ops = [...]string{

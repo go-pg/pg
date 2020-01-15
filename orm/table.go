@@ -17,7 +17,7 @@ import (
 
 	"github.com/whenspeakteam/pg/v9/internal"
 	"github.com/whenspeakteam/pg/v9/types"
-	"github.com/whenspeakteam/zerochecker"
+	"github.com/go-pg/zerochecker"
 )
 
 const (

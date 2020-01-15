@@ -38,7 +38,7 @@
 - Migrations by [vmihailenco](https://github.com/whenspeakteam/migrations) and [robinjoseph08](https://github.com/robinjoseph08/whenspeakteam-migrations).
 - [Sharding](https://github.com/whenspeakteam/sharding).
 - [Model generator from SQL tables](https://github.com/dizzyfool/genna).
-- [urlstruct](https://github.com/whenspeakteam/urlstruct) to decode `url.Values` into structs.
+- [urlstruct](https://github.com/go-pg/urlstruct") to decode `url.Values` into structs.
 
 ## Get Started
 
