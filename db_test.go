@@ -205,6 +205,10 @@ func TestBigColumn(t *testing.T) {
 		t.Fatalf("got %d, wanted %d", len(test.Text), colLen)
 	}
 
+	if _, err := db.Exec("SELECT * FROM tests"); err != nil {
+		t.Fatal(err)
+	}
+
 	_, err = db.CopyTo(ioutil.Discard, "COPY (SELECT * FROM tests) TO STDOUT WITH CSV")
 	if err != nil {
 		t.Fatal(err)

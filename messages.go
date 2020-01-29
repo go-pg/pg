@@ -641,8 +641,7 @@ func readSimpleQuery(rd *internal.BufReader) (*result, error) {
 				return nil, err
 			}
 		case dataRowMsg:
-			_, err := rd.ReadN(msgLen)
-			if err != nil {
+			if _, err := rd.Discard(msgLen); err != nil {
 				return nil, err
 			}
 			res.returned++
