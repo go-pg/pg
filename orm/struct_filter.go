@@ -99,7 +99,9 @@ func (sf *structFilter) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, err
 			b = types.AppendIdent(b, sf.info.TableName, 1)
 			b = append(b, '.')
 		}
+		b = append(b, '"')
 		b = append(b, f.Column...)
+		b = append(b, '"')
 		b = append(b, op...)
 		if isSlice {
 			b = append(b, '(')
