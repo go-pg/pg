@@ -133,6 +133,20 @@ var _ = Describe("Select", func() {
 		Expect(s).To(Equal(`SELECT "id", "name", "has_one_id" FROM "select_models" AS "select_model"`))
 	})
 
+	It("expands ?TablePKs", func() {
+		q := NewQuery(nil, &SelectModel{Id: 1}).ColumnExpr("?TablePKs")
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "select_model"."id" FROM "select_models" AS "select_model"`))
+	})
+
+	It("expands ?PKs", func() {
+		q := NewQuery(nil, &SelectModel{Id: 1}).ColumnExpr("?PKs")
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "id" FROM "select_models" AS "select_model"`))
+	})
+
 	It("supports multiple groups", func() {
 		q := NewQuery(nil).Group("one").Group("two")
 
