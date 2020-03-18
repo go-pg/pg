@@ -72,15 +72,17 @@ func callHookSlice2(
 	hook func(context.Context, reflect.Value) error,
 ) error {
 	var firstErr error
-	for i := 0; i < slice.Len(); i++ {
-		v := slice.Index(i)
-		if !ptr {
-			v = v.Addr()
-		}
+	if slice.IsValid() {
+		for i := 0; i < slice.Len(); i++ {
+			v := slice.Index(i)
+			if !ptr {
+				v = v.Addr()
+			}
 
-		err := hook(c, v)
-		if err != nil && firstErr == nil {
-			firstErr = err
+			err := hook(c, v)
+			if err != nil && firstErr == nil {
+				firstErr = err
+			}
 		}
 	}
 	return firstErr
