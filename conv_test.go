@@ -10,9 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/segmentio/encoding/json"
-
 	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v9/internal"
 	"github.com/go-pg/pg/v9/orm"
 	"github.com/go-pg/pg/v9/types"
 )
@@ -24,11 +23,11 @@ func (m *JSONMap) Scan(b interface{}) error {
 		*m = nil
 		return nil
 	}
-	return json.Unmarshal(b.([]byte), m)
+	return internal.Json.Unmarshal(b.([]byte), m)
 }
 
 func (m JSONMap) Value() (driver.Value, error) {
-	b, err := json.Marshal(m)
+	b, err := internal.Json.Marshal(m)
 	if err != nil {
 		return nil, err
 	}

@@ -1005,7 +1005,7 @@ func scanJSONValue(v reflect.Value, rd types.Reader, n int) error {
 		return nil
 	}
 
-	dec := json.NewDecoder(rd)
+	dec := internal.Json.NewDecoder(rd)
 	dec.UseNumber()
 	return dec.Decode(v.Addr().Interface())
 }

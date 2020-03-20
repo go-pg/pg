@@ -283,7 +283,7 @@ func scanJSONValue(v reflect.Value, rd Reader, n int) error {
 		return nil
 	}
 
-	dec := json.NewDecoder(rd)
+	dec := internal.Json.NewDecoder(rd)
 	return dec.Decode(v.Addr().Interface())
 }
 
