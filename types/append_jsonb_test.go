@@ -4,8 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/segmentio/encoding/json"
-
+	"github.com/go-pg/pg/v9/pgjson"
 	"github.com/go-pg/pg/v9/types"
 )
 
@@ -30,7 +29,7 @@ func TestAppendJSONB(t *testing.T) {
 }
 
 func BenchmarkAppendJSONB(b *testing.B) {
-	bytes, err := json.Marshal(jsonbTests)
+	bytes, err := pgjson.Marshal(jsonbTests)
 	if err != nil {
 		b.Fatal(err)
 	}

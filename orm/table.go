@@ -16,6 +16,7 @@ import (
 	"github.com/vmihailenco/tagparser"
 
 	"github.com/go-pg/pg/v9/internal"
+	"github.com/go-pg/pg/v9/pgjson"
 	"github.com/go-pg/pg/v9/types"
 	"github.com/go-pg/zerochecker"
 )
@@ -1005,7 +1006,7 @@ func scanJSONValue(v reflect.Value, rd types.Reader, n int) error {
 		return nil
 	}
 
-	dec := json.NewDecoder(rd)
+	dec := pgjson.NewDecoder(rd)
 	dec.UseNumber()
 	return dec.Decode(v.Addr().Interface())
 }
