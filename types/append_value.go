@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/segmentio/encoding/json"
+	"github.com/vmihailenco/bufpool"
 
 	"github.com/whenspeakteam/pg/v9/internal"
 )
@@ -165,7 +166,19 @@ func appendBytesValue(b []byte, v reflect.Value, flags int) []byte {
 }
 
 func appendArrayBytesValue(b []byte, v reflect.Value, flags int) []byte {
-	return AppendBytes(b, v.Slice(0, v.Len()).Bytes(), flags)
+	if v.CanAddr() {
+		return AppendBytes(b, v.Slice(0, v.Len()).Bytes(), flags)
+	}
+
+	buf := bufpool.Get(v.Len())
+
+	tmp := buf.Bytes()
+	reflect.Copy(reflect.ValueOf(tmp), v)
+	b = AppendBytes(b, tmp, flags)
+
+	bufpool.Put(buf)
+
+	return b
 }
 
 func appendStringValue(b []byte, v reflect.Value, flags int) []byte {

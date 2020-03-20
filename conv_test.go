@@ -183,6 +183,7 @@ func conversionTests() []conversionTest {
 		{src: nil, dst: new([]byte), pgtype: "bytea", wantnil: true},
 		{src: []byte("hello world\000"), dst: new([]byte), pgtype: "bytea"},
 		{src: []byte{}, dst: new([]byte), pgtype: "bytea", wantzero: true},
+		{src: [3]byte{}, dst: new([3]byte), pgtype: "bytea"},
 
 		{src: nil, dst: int8(0), pgtype: "smallint", wanterr: "pg: Scan(nonsettable int8)"},
 		{src: nil, dst: new(int8), pgtype: "smallint", wantzero: true},
