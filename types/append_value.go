@@ -9,10 +9,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/segmentio/encoding/json"
 	"github.com/vmihailenco/bufpool"
 
 	"github.com/go-pg/pg/v9/internal"
+	"github.com/go-pg/pg/v9/pgjson"
 )
 
 var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
@@ -196,7 +196,7 @@ func appendJSONValue(b []byte, v reflect.Value, flags int) []byte {
 	buf := internal.GetBuffer()
 	defer internal.PutBuffer(buf)
 
-	if err := json.NewEncoder(buf).Encode(v.Interface()); err != nil {
+	if err := pgjson.NewEncoder(buf).Encode(v.Interface()); err != nil {
 		return AppendError(b, err)
 	}
 

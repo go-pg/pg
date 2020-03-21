@@ -12,6 +12,7 @@ import (
 	"github.com/segmentio/encoding/json"
 
 	"github.com/go-pg/pg/v9/internal"
+	"github.com/go-pg/pg/v9/pgjson"
 )
 
 var valueScannerType = reflect.TypeOf((*ValueScanner)(nil)).Elem()
@@ -283,7 +284,7 @@ func scanJSONValue(v reflect.Value, rd Reader, n int) error {
 		return nil
 	}
 
-	dec := json.NewDecoder(rd)
+	dec := pgjson.NewDecoder(rd)
 	return dec.Decode(v.Addr().Interface())
 }
 
