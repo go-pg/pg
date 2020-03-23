@@ -329,7 +329,7 @@ func (m *structTableModel) join(
 
 			lastJoin = j
 		} else {
-			model, err := newTableModelIndex(bind, index, rel)
+			model, err := newTableModelIndex(m.table.Type, bind, index, rel)
 			if err != nil {
 				return nil
 			}

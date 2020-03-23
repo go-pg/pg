@@ -69,8 +69,8 @@ func newTableModelValue(v reflect.Value) (TableModel, error) {
 	return nil, fmt.Errorf("pg: Model(unsupported %s)", v.Type())
 }
 
-func newTableModelIndex(root reflect.Value, index []int, rel *Relation) (TableModel, error) {
-	typ := typeByIndex(root.Type(), index)
+func newTableModelIndex(typ reflect.Type, root reflect.Value, index []int, rel *Relation) (TableModel, error) {
+	typ = typeByIndex(typ, index)
 
 	if typ.Kind() == reflect.Struct {
 		return &structTableModel{
