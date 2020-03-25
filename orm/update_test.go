@@ -88,7 +88,7 @@ var _ = Describe("Update", func() {
 		}}
 		q := NewQuery(nil, &slice)
 
-		s := updateQueryStringWithBlanks(q)
+		s := updateQueryStringOmitZero(q)
 		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = COALESCE(_data."value", "update_test"."value") FROM (VALUES (1::bigint, 'hello'::mytype), (2::bigint, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
 	})
 
@@ -146,6 +146,28 @@ var _ = Describe("Update", func() {
 		s := updateQueryString(q)
 		Expect(s).To(Equal(`UPDATE "models" SET  WHERE "models"."id" = NULL`))
 	})
+
+	It("omits zero values", func() {
+		type Model struct {
+			ID   int
+			Str  string
+			Bool *bool
+		}
+
+		{
+			q := NewQuery(nil, &Model{ID: 1, Str: "hello"}).WherePK()
+
+			s := updateQueryStringOmitZero(q)
+			Expect(s).To(Equal(`UPDATE "models" AS "model" SET "str" = 'hello' WHERE "model"."id" = 1`))
+		}
+
+		{
+			q := NewQuery(nil, &Model{ID: 1, Bool: new(bool)}).WherePK()
+
+			s := updateQueryStringOmitZero(q)
+			Expect(s).To(Equal(`UPDATE "models" AS "model" SET "bool" = FALSE WHERE "model"."id" = 1`))
+		}
+	})
 })
 
 func updateQueryString(q *Query) string {
@@ -154,7 +176,7 @@ func updateQueryString(q *Query) string {
 	return s
 }
 
-func updateQueryStringWithBlanks(q *Query) string {
+func updateQueryStringOmitZero(q *Query) string {
 	upd := newUpdateQuery(q, true)
 	s := queryString(upd)
 	return s
