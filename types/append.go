@@ -2,11 +2,12 @@ package types
 
 import (
 	"database/sql/driver"
-	"encoding/hex"
 	"math"
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/tmthrgd/go-hex"
 )
 
 func Append(b []byte, v interface{}, flags int) []byte {

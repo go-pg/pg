@@ -139,19 +139,26 @@ func (tx *Tx) ExecContext(c context.Context, query interface{}, params ...interf
 	return tx.exec(c, query, params...)
 }
 
-func (tx *Tx) exec(c context.Context, query interface{}, params ...interface{}) (Result, error) {
-	c, evt, err := tx.db.beforeQuery(c, tx, nil, query, params)
+func (tx *Tx) exec(ctx context.Context, query interface{}, params ...interface{}) (Result, error) {
+	wb := pool.GetWriteBuffer()
+	defer pool.PutWriteBuffer(wb)
+
+	if err := writeQueryMsg(wb, tx.db.fmter, query, params...); err != nil {
+		return nil, err
+	}
+
+	ctx, evt, err := tx.db.beforeQuery(ctx, tx, nil, query, params, wb.Query())
 	if err != nil {
 		return nil, err
 	}
 
 	var res Result
-	lastErr := tx.withConn(c, func(c context.Context, cn *pool.Conn) error {
-		res, err = tx.db.simpleQuery(c, cn, query, params...)
+	lastErr := tx.withConn(ctx, func(ctx context.Context, cn *pool.Conn) error {
+		res, err = tx.db.simpleQuery(ctx, cn, wb)
 		return err
 	})
 
-	if err := tx.db.afterQuery(c, evt, res, lastErr); err != nil {
+	if err := tx.db.afterQuery(ctx, evt, res, lastErr); err != nil {
 		return nil, err
 	}
 	return res, lastErr
@@ -195,23 +202,30 @@ func (tx *Tx) QueryContext(
 }
 
 func (tx *Tx) query(
-	c context.Context,
+	ctx context.Context,
 	model interface{},
 	query interface{},
 	params ...interface{},
 ) (Result, error) {
-	c, evt, err := tx.db.beforeQuery(c, tx, model, query, params)
+	wb := pool.GetWriteBuffer()
+	defer pool.PutWriteBuffer(wb)
+
+	if err := writeQueryMsg(wb, tx.db.fmter, query, params...); err != nil {
+		return nil, err
+	}
+
+	ctx, evt, err := tx.db.beforeQuery(ctx, tx, model, query, params, wb.Query())
 	if err != nil {
 		return nil, err
 	}
 
 	var res *result
-	lastErr := tx.withConn(c, func(c context.Context, cn *pool.Conn) error {
-		res, err = tx.db.simpleQueryData(c, cn, model, query, params...)
+	lastErr := tx.withConn(ctx, func(ctx context.Context, cn *pool.Conn) error {
+		res, err = tx.db.simpleQueryData(ctx, cn, model, wb)
 		return err
 	})
 
-	if err := tx.db.afterQuery(c, evt, res, lastErr); err != nil {
+	if err := tx.db.afterQuery(ctx, evt, res, err); err != nil {
 		return nil, err
 	}
 	return res, lastErr

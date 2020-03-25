@@ -4,7 +4,10 @@ import (
 	"sync"
 
 	"github.com/go-pg/pg/v9/internal"
+	"github.com/go-pg/pg/v9/internal/pool"
 )
+
+type Reader = pool.Reader
 
 type ValueScanner interface {
 	ScanValue(rd Reader, n int) error
@@ -64,13 +67,4 @@ func (f F) AppendValue(b []byte, flags int) ([]byte, error) {
 		internal.Logger.Printf("DEPRECATED: types.F is replaced with pg.Ident")
 	})
 	return AppendIdent(b, string(f), flags), nil
-}
-
-//------------------------------------------------------------------------------
-
-type Reader = internal.Reader
-type BytesReader = internal.BytesReader
-
-func NewBytesReader(buf []byte) *BytesReader {
-	return internal.NewBytesReader(buf)
 }

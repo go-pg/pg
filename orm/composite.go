@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/go-pg/pg/v9/internal/pool"
 	"github.com/go-pg/pg/v9/types"
 )
 
@@ -34,7 +35,7 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 		}
 
 		p := newCompositeParser(rd)
-		var elemReader *types.BytesReader
+		var elemReader *pool.BytesReader
 
 		var firstErr error
 		for i := 0; ; i++ {
@@ -49,14 +50,14 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 			if i >= len(table.Fields) {
 				if firstErr == nil {
 					firstErr = fmt.Errorf(
-						"%s has %d fields, but composite at least %d values",
+						"pg: %s has %d fields, but composite requires at least %d values",
 						table, len(table.Fields), i)
 				}
 				continue
 			}
 
 			if elemReader == nil {
-				elemReader = types.NewBytesReader(elem)
+				elemReader = pool.NewBytesReader(elem)
 			} else {
 				elemReader.Reset(elem)
 			}

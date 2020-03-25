@@ -13,6 +13,9 @@ import (
 	"strings"
 	"time"
 
+	"go.opentelemetry.io/otel/api/trace"
+
+	"github.com/go-pg/pg/v9/internal"
 	"github.com/go-pg/pg/v9/internal/pool"
 )
 
@@ -105,6 +108,15 @@ func (opt *Options) init() {
 			opt.Addr = fmt.Sprintf("%s:%s", host, port)
 		case "unix":
 			opt.Addr = "/var/run/postgresql/.s.PGSQL.5432"
+		}
+	}
+	if opt.Dialer == nil {
+		opt.Dialer = func(ctx context.Context, network, addr string) (net.Conn, error) {
+			netDialer := &net.Dialer{
+				Timeout:   opt.DialTimeout,
+				KeepAlive: 5 * time.Minute,
+			}
+			return netDialer.DialContext(ctx, network, addr)
 		}
 	}
 
@@ -248,17 +260,14 @@ func ParseURL(sURL string) (*Options, error) {
 }
 
 func (opt *Options) getDialer() func(context.Context) (net.Conn, error) {
-	if opt.Dialer != nil {
-		return func(ctx context.Context) (net.Conn, error) {
-			return opt.Dialer(ctx, opt.Network, opt.Addr)
-		}
-	}
 	return func(ctx context.Context) (net.Conn, error) {
-		netDialer := &net.Dialer{
-			Timeout:   opt.DialTimeout,
-			KeepAlive: 5 * time.Minute,
-		}
-		return netDialer.DialContext(ctx, opt.Network, opt.Addr)
+		var conn net.Conn
+		err := internal.WithSpan(ctx, "dialer", func(ctx context.Context, span trace.Span) error {
+			var err error
+			conn, err = opt.Dialer(ctx, opt.Network, opt.Addr)
+			return err
+		})
+		return conn, err
 	}
 }
 

@@ -3,14 +3,14 @@ package parser
 import (
 	"fmt"
 
-	"github.com/go-pg/pg/v9/internal"
+	"github.com/go-pg/pg/v9/internal/pool"
 )
 
 type StreamingParser struct {
-	internal.Reader
+	pool.Reader
 }
 
-func NewStreamingParser(rd internal.Reader) StreamingParser {
+func NewStreamingParser(rd pool.Reader) StreamingParser {
 	return StreamingParser{
 		Reader: rd,
 	}

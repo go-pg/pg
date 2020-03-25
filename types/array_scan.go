@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/go-pg/pg/v9/internal"
+	"github.com/go-pg/pg/v9/internal/pool"
 )
 
 var arrayValueScannerType = reflect.TypeOf((*ArrayValueScanner)(nil)).Elem()
@@ -74,7 +75,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 
 		p := newArrayParser(rd)
 		nextValue := internal.MakeSliceNextElemFunc(v)
-		var elemRd *BytesReader
+		var elemRd *pool.BytesReader
 
 		for {
 			elem, err := p.NextElem()
@@ -86,7 +87,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 			}
 
 			if elemRd == nil {
-				elemRd = NewBytesReader(elem)
+				elemRd = pool.NewBytesReader(elem)
 			} else {
 				elemRd.Reset(elem)
 			}
@@ -312,7 +313,7 @@ func scanArrayValueScannerValue(v reflect.Value, rd Reader, n int) error {
 	}
 
 	p := newArrayParser(rd)
-	var elemRd *BytesReader
+	var elemRd *pool.BytesReader
 	for {
 		elem, err := p.NextElem()
 		if err != nil {
@@ -323,7 +324,7 @@ func scanArrayValueScannerValue(v reflect.Value, rd Reader, n int) error {
 		}
 
 		if elemRd == nil {
-			elemRd = NewBytesReader(elem)
+			elemRd = pool.NewBytesReader(elem)
 		} else {
 			elemRd.Reset(elem)
 		}

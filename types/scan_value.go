@@ -405,8 +405,7 @@ func scanArrayBytesValue(v reflect.Value, rd Reader, n int) error {
 		return nil
 	}
 
-	_, err := readBytes(rd, b)
-	return err
+	return ReadBytes(rd, b)
 }
 
 func scanValueScannerValue(v reflect.Value, rd Reader, n int) error {

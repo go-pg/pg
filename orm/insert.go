@@ -18,13 +18,16 @@ type insertQuery struct {
 	placeholder     bool
 }
 
-var _ QueryAppender = (*insertQuery)(nil)
 var _ queryCommand = (*insertQuery)(nil)
 
 func newInsertQuery(q *Query) *insertQuery {
 	return &insertQuery{
 		q: q,
 	}
+}
+
+func (q *insertQuery) IsInsert() bool {
+	return true
 }
 
 func (q *insertQuery) Clone() queryCommand {
@@ -38,11 +41,15 @@ func (q *insertQuery) Query() *Query {
 	return q.q
 }
 
+var _ TemplateAppender = (*insertQuery)(nil)
+
 func (q *insertQuery) AppendTemplate(b []byte) ([]byte, error) {
 	cp := q.Clone().(*insertQuery)
 	cp.placeholder = true
 	return cp.AppendQuery(dummyFormatter{}, b)
 }
+
+var _ QueryAppender = (*insertQuery)(nil)
 
 func (q *insertQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if q.q.stickyErr != nil {
