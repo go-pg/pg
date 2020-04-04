@@ -5,7 +5,7 @@ import (
 	"reflect"
 
 	"github.com/vmihailenco/bufpool"
-	"github.com/vmihailenco/msgpack/v4"
+	"github.com/vmihailenco/msgpack/v5"
 
 	"github.com/go-pg/pg/v9/types"
 )
@@ -17,7 +17,11 @@ func msgpackAppender(_ reflect.Type) types.AppenderFunc {
 		buf := msgpackPool.Get()
 		defer msgpackPool.Put(buf)
 
-		if err := msgpack.NewEncoder(buf).EncodeValue(v); err != nil {
+		enc := msgpack.GetEncoder()
+		defer msgpack.PutEncoder(enc)
+
+		enc.Reset(buf)
+		if err := enc.EncodeValue(v); err != nil {
 			return types.AppendError(b, err)
 		}
 
@@ -40,7 +44,11 @@ func msgpackScanner(_ reflect.Type) types.ScannerFunc {
 			return err
 		}
 
-		if err := msgpack.NewDecoder(buf).DecodeValue(v); err != nil {
+		dec := msgpack.GetDecoder()
+		defer msgpack.PutDecoder(dec)
+
+		dec.Reset(buf)
+		if err := dec.DecodeValue(v); err != nil {
 			return err
 		}
 
