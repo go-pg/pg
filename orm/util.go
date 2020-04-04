@@ -46,6 +46,9 @@ func typeByIndex(t reflect.Type, index []int) reflect.Type {
 }
 
 func fieldByIndex(v reflect.Value, index []int) reflect.Value {
+	if len(index) == 1 {
+		return v.Field(index[0])
+	}
 	for i, idx := range index {
 		if i > 0 {
 			v = indirectNew(v)
