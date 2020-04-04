@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"strconv"
-	"sync"
 
 	"github.com/go-pg/pg/v9/internal"
 	"github.com/go-pg/pg/v9/orm"
@@ -44,26 +43,6 @@ type Ident = types.Ident
 // SafeQuery replaces any placeholders found in the query.
 func SafeQuery(query string, params ...interface{}) *orm.SafeQueryAppender {
 	return orm.SafeQuery(query, params...)
-}
-
-var qWarn sync.Once
-
-// DEPRECATED. Use Safe instead.
-func Q(query string, params ...interface{}) types.ValueAppender {
-	qWarn.Do(func() {
-		internal.Logger.Printf("DEPRECATED: pg.Q is replaced with pg.SafeQuery")
-	})
-	return SafeQuery(query, params...)
-}
-
-var fWarn sync.Once
-
-// DEPRECATED. Use Ident instead.
-func F(field string) types.ValueAppender {
-	fWarn.Do(func() {
-		internal.Logger.Printf("DEPRECATED: pg.F is replaced with pg.Ident")
-	})
-	return Ident(field)
 }
 
 // In accepts a slice and returns a wrapper that can be used with PostgreSQL

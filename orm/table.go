@@ -130,13 +130,6 @@ func newTable(typ reflect.Type) *Table {
 		t.setFlag(afterDeleteHookFlag)
 	}
 
-	for _, hook := range oldHooks {
-		if typ.Implements(hook) {
-			internal.Logger.Printf("DEPRECATED: model hooks on %s must be updated - "+
-				"see https://github.com/go-pg/pg/wiki/Model-Hooks", t.TypeName)
-		}
-	}
-
 	return t
 }
 
@@ -280,12 +273,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 
 			pgTag := tagparser.Parse(f.Tag.Get("pg"))
 			_, inherit := pgTag.Options["inherit"]
-			_, override := pgTag.Options["override"]
-			if override {
-				internal.Logger.Printf(
-					`DEPRECATED: %s: replace pg:",override" with pg:",inherit"`, t)
-			}
-			if inherit || override {
+			if inherit {
 				embeddedTable := _tables.get(fieldType, true)
 				t.TypeName = embeddedTable.TypeName
 				t.FullName = embeddedTable.FullName
@@ -307,27 +295,9 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 //nolint
 func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	pgTag := tagparser.Parse(f.Tag.Get("pg"))
-	tmpTag := tagparser.Parse(f.Tag.Get("sql"))
-	if tmpTag.Name != "" {
-		logSQLTagDeprecated()
-		pgTag.Name = tmpTag.Name
-	}
-	for k, v := range tmpTag.Options {
-		logSQLTagDeprecated()
-		if _, ok := pgTag.Options[k]; !ok {
-			if pgTag.Options == nil {
-				pgTag.Options = tmpTag.Options
-				break
-			}
-			pgTag.Options[k] = v
-		}
-	}
 
 	switch f.Name {
-	case "tableName", "TableName":
-		if f.Name == "TableName" {
-			internal.Logger.Printf("DEPRECATED: %s: rename TableName to tableName", t)
-		}
+	case "tableName":
 		if len(index) > 0 {
 			return nil
 		}
@@ -1031,14 +1001,6 @@ func tryUnderscorePrefix(s string) string {
 
 func quoteIdent(s string) types.Safe {
 	return types.Safe(types.AppendIdent(nil, s, 1))
-}
-
-var sqlTagDeprecatedOnce sync.Once
-
-func logSQLTagDeprecated() {
-	sqlTagDeprecatedOnce.Do(func() {
-		internal.Logger.Printf(`DEPRECATED: use pg:"..." struct field tag instead of sql:"..." `)
-	})
 }
 
 func setSoftDeleteFieldFunc(typ reflect.Type) func(fv reflect.Value) {
