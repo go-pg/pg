@@ -6,6 +6,8 @@ linters:
   enable-all: true
   disable:
     - gochecknoglobals
-    - goconst
+    - gocognit
+    - gomnd
+    - wsl
     - funlen
     - godox
