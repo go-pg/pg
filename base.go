@@ -193,7 +193,7 @@ func (db *baseDB) Close() error {
 // Exec executes a query ignoring returned rows. The params are for any
 // placeholders in the query.
 func (db *baseDB) Exec(query interface{}, params ...interface{}) (res Result, err error) {
-	return db.exec(context.Background(), query, params...)
+	return db.exec(db.db.Context(), query, params...)
 }
 
 func (db *baseDB) ExecContext(c context.Context, query interface{}, params ...interface{}) (Result, error) {
@@ -235,7 +235,7 @@ func (db *baseDB) exec(c context.Context, query interface{}, params ...interface
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (db *baseDB) ExecOne(query interface{}, params ...interface{}) (Result, error) {
-	return db.execOne(context.Background(), query, params...)
+	return db.execOne(db.db.Context(), query, params...)
 }
 
 func (db *baseDB) ExecOneContext(c context.Context, query interface{}, params ...interface{}) (Result, error) {
@@ -257,7 +257,7 @@ func (db *baseDB) execOne(c context.Context, query interface{}, params ...interf
 // Query executes a query that returns rows, typically a SELECT.
 // The params are for any placeholders in the query.
 func (db *baseDB) Query(model, query interface{}, params ...interface{}) (res Result, err error) {
-	return db.query(context.Background(), model, query, params...)
+	return db.query(db.db.Context(), model, query, params...)
 }
 
 func (db *baseDB) QueryContext(c context.Context, model, query interface{}, params ...interface{}) (Result, error) {
@@ -299,7 +299,7 @@ func (db *baseDB) query(c context.Context, model, query interface{}, params ...i
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
 func (db *baseDB) QueryOne(model, query interface{}, params ...interface{}) (Result, error) {
-	return db.queryOne(context.Background(), model, query, params...)
+	return db.queryOne(db.db.Context(), model, query, params...)
 }
 
 func (db *baseDB) QueryOneContext(c context.Context, model, query interface{}, params ...interface{}) (Result, error) {
