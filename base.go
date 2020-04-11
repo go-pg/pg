@@ -335,8 +335,26 @@ func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}
 // TODO: don't get/put conn in the pool
 func (db *baseDB) copyFrom(
 	c context.Context, cn *pool.Conn, r io.Reader, query interface{}, params ...interface{},
-) (Result, error) {
-	err := cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+) (res Result, err error) {
+	var evt *QueryEvent
+
+	var model interface{}
+	if len(params) > 0 {
+		model, _ = params[len(params)-1].(orm.TableModel)
+	}
+
+	c, evt, err = db.beforeQuery(c, db.db, model, query, params)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if afterQueryErr := db.afterQuery(c, evt, res, err); afterQueryErr != nil {
+			err = afterQueryErr
+		}
+	}()
+
+	err = cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeQueryMsg(wb, db.fmter, query, params...)
 	})
 	if err != nil {
@@ -368,7 +386,6 @@ func (db *baseDB) copyFrom(
 		return nil, err
 	}
 
-	var res Result
 	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		res, err = readReadyForQuery(rd)
 		return err
@@ -392,15 +409,32 @@ func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) 
 
 func (db *baseDB) copyTo(
 	c context.Context, cn *pool.Conn, w io.Writer, query interface{}, params ...interface{},
-) (Result, error) {
-	err := cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+) (res Result, err error) {
+	var evt *QueryEvent
+
+	var model interface{}
+	if len(params) > 0 {
+		model, _ = params[len(params)-1].(orm.TableModel)
+	}
+
+	c, evt, err = db.beforeQuery(c, db.db, model, query, params)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if afterQueryErr := db.afterQuery(c, evt, res, err); afterQueryErr != nil {
+			err = afterQueryErr
+		}
+	}()
+
+	err = cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeQueryMsg(wb, db.fmter, query, params...)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	var res Result
 	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *internal.BufReader) error {
 		err := readCopyOutResponse(rd)
 		if err != nil {
