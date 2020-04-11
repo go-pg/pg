@@ -79,6 +79,10 @@ func (db *baseDB) getConn(c context.Context) (*pool.Conn, error) {
 	err = db.initConn(c, cn)
 	if err != nil {
 		db.pool.Remove(cn, err)
+		// It is safe to reset SingleConnPool if conn can't be initialized.
+		if p, ok := db.pool.(*pool.SingleConnPool); ok {
+			_ = p.Reset()
+		}
 		if err := internal.Unwrap(err); err != nil {
 			return nil, err
 		}
