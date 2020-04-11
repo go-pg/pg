@@ -324,7 +324,7 @@ func (db *baseDB) queryOne(c context.Context, model, query interface{}, params .
 
 // CopyFrom copies data from reader to a table.
 func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
-	c := context.TODO()
+	c := db.db.Context()
 	err = db.withConn(c, func(c context.Context, cn *pool.Conn) error {
 		res, err = db.copyFrom(c, cn, r, query, params...)
 		return err
@@ -382,7 +382,7 @@ func (db *baseDB) copyFrom(
 
 // CopyTo copies data from a table to writer.
 func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (res Result, err error) {
-	c := context.TODO()
+	c := db.db.Context()
 	err = db.withConn(c, func(c context.Context, cn *pool.Conn) error {
 		res, err = db.copyTo(c, cn, w, query, params...)
 		return err
