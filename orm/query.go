@@ -78,7 +78,11 @@ type Query struct {
 }
 
 func NewQuery(db DB, model ...interface{}) *Query {
-	q := &Query{ctx: db.Context()}
+	ctx := context.Background()
+	if db != nil {
+		ctx = db.Context()
+	}
+	q := &Query{ctx: ctx}
 	return q.DB(db).Model(model...)
 }
 
