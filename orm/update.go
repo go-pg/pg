@@ -167,7 +167,7 @@ func (q *updateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct refl
 
 	pos := len(b)
 	for _, f := range fields {
-		if q.omitZero && f.HasZeroValue(strct) {
+		if !f.hasFlag(UseZeroFlag) && q.omitZero && f.HasZeroValue(strct) {
 			continue
 		}
 
