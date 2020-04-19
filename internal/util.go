@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel/api/core"
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/trace"
 )
@@ -106,11 +105,6 @@ func Unwrap(err error) error {
 	}
 	return u.Unwrap()
 }
-
-var (
-	logTypeKey    = core.Key("log.type")
-	logMessageKey = core.Key("log.message")
-)
 
 func WithSpan(
 	ctx context.Context,

@@ -345,7 +345,9 @@ func (db *baseDB) QueryOne(model, query interface{}, params ...interface{}) (Res
 	return db.queryOne(db.db.Context(), model, query, params...)
 }
 
-func (db *baseDB) QueryOneContext(ctx context.Context, model, query interface{}, params ...interface{}) (Result, error) {
+func (db *baseDB) QueryOneContext(
+	ctx context.Context, model, query interface{}, params ...interface{},
+) (Result, error) {
 	return db.queryOne(ctx, model, query, params...)
 }
 
@@ -377,23 +379,30 @@ func (db *baseDB) copyFrom(
 ) (res Result, err error) {
 	var evt *QueryEvent
 
+	wb := pool.GetWriteBuffer()
+	defer pool.PutWriteBuffer(wb)
+
+	if err := writeQueryMsg(wb, db.fmter, query, params...); err != nil {
+		return nil, err
+	}
+
 	var model interface{}
 	if len(params) > 0 {
 		model, _ = params[len(params)-1].(orm.TableModel)
 	}
 
-	c, evt, err = db.beforeQuery(c, db.db, model, query, params)
+	ctx, evt, err = db.beforeQuery(ctx, db.db, model, query, params, wb.Query())
 	if err != nil {
 		return nil, err
 	}
 
 	defer func() {
-		if afterQueryErr := db.afterQuery(c, evt, res, err); afterQueryErr != nil {
+		if afterQueryErr := db.afterQuery(ctx, evt, res, err); afterQueryErr != nil {
 			err = afterQueryErr
 		}
 	}()
 
-	err := cn.WithWriter(ctx, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+	err = cn.WithWriter(ctx, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeQueryMsg(wb, db.fmter, query, params...)
 	})
 	if err != nil {
@@ -451,12 +460,19 @@ func (db *baseDB) copyTo(
 ) (res Result, err error) {
 	var evt *QueryEvent
 
+	wb := pool.GetWriteBuffer()
+	defer pool.PutWriteBuffer(wb)
+
+	if err := writeQueryMsg(wb, db.fmter, query, params...); err != nil {
+		return nil, err
+	}
+
 	var model interface{}
 	if len(params) > 0 {
 		model, _ = params[len(params)-1].(orm.TableModel)
 	}
 
-	c, evt, err = db.beforeQuery(c, db.db, model, query, params)
+	c, evt, err = db.beforeQuery(c, db.db, model, query, params, wb.Query())
 	if err != nil {
 		return nil, err
 	}
@@ -474,7 +490,7 @@ func (db *baseDB) copyTo(
 		return nil, err
 	}
 
-	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *internal.BufReader) error {
+	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.BufReader) error {
 		err := readCopyOutResponse(rd)
 		if err != nil {
 			return err

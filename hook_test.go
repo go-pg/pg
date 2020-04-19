@@ -388,11 +388,11 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 
 				q, err := evt.UnformattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY ?TableName TO STDOUT CSV`))
+				Expect(string(q)).To(Equal(`COPY ?TableName TO STDOUT CSV`))
 
 				q, err = evt.FormattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY "hook_tests" TO STDOUT CSV`))
+				Expect(string(q)).To(Equal(`COPY "hook_tests" TO STDOUT CSV`))
 
 				evt.Stash = map[interface{}]interface{}{
 					"data": 1,
@@ -410,11 +410,11 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 
 				q, err := evt.UnformattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY ?TableName TO STDOUT CSV`))
+				Expect(string(q)).To(Equal(`COPY ?TableName TO STDOUT CSV`))
 
 				q, err = evt.FormattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY "hook_tests" TO STDOUT CSV`))
+				Expect(string(q)).To(Equal(`COPY "hook_tests" TO STDOUT CSV`))
 
 				Expect(evt.Stash["data"]).To(Equal(1))
 
@@ -436,11 +436,11 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 
 				q, err := evt.UnformattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
+				Expect(string(q)).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
 
 				q, err = evt.FormattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
+				Expect(string(q)).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
 
 				evt.Stash = map[interface{}]interface{}{
 					"data": 1,
@@ -457,11 +457,11 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 
 				q, err := evt.UnformattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
+				Expect(string(q)).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
 
 				q, err = evt.FormattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
+				Expect(string(q)).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
 
 				Expect(evt.Stash["data"]).To(Equal(1))
 
@@ -486,11 +486,11 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 
 				q, err := evt.UnformattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY ?TableName FROM STDIN CSV`))
+				Expect(string(q)).To(Equal(`COPY ?TableName FROM STDIN CSV`))
 
 				q, err = evt.FormattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+				Expect(string(q)).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
 
 				evt.Stash = map[interface{}]interface{}{
 					"data": 1,
@@ -508,11 +508,11 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 
 				q, err := evt.UnformattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY ?TableName FROM STDIN CSV`))
+				Expect(string(q)).To(Equal(`COPY ?TableName FROM STDIN CSV`))
 
 				q, err = evt.FormattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+				Expect(string(q)).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
 
 				Expect(evt.Stash["data"]).To(Equal(1))
 
@@ -535,11 +535,11 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 
 				q, err := evt.UnformattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+				Expect(string(q)).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
 
 				q, err = evt.FormattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+				Expect(string(q)).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
 
 				evt.Stash = map[interface{}]interface{}{
 					"data": 1,
@@ -556,11 +556,11 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 
 				q, err := evt.UnformattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+				Expect(string(q)).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
 
 				q, err = evt.FormattedQuery()
 				Expect(err).NotTo(HaveOccurred())
-				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+				Expect(string(q)).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
 
 				Expect(evt.Stash["data"]).To(Equal(1))
 
