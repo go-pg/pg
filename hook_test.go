@@ -2,6 +2,8 @@ package pg_test
 
 import (
 	"context"
+	"io/ioutil"
+	"strings"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -213,6 +215,15 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 	BeforeEach(func() {
 		db = pg.Connect(pgOptions())
 		count = 0
+
+		qs := []string{
+			"CREATE TEMP TABLE hook_tests (id int, value text)",
+			"INSERT INTO hook_tests VALUES (1, '')",
+		}
+		for _, q := range qs {
+			_, err := db.Exec(q)
+			Expect(err).NotTo(HaveOccurred())
+		}
 	})
 
 	AfterEach(func() {
@@ -360,6 +371,204 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 		It("is called for Model", func() {
 			_, err := db.Model((*HookTest)(nil)).Exec("CREATE INDEX stories_author_id_idx ON ?TableName (author_id)")
 			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Describe("CopyTo", func() {
+		It("is called for CopyTo with model", func() {
+			hookImpl := struct{ queryHookTest }{}
+			hookImpl.beforeQueryMethod = func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+				Expect(evt.DB).To(Equal(db))
+				Expect(evt.Query).To(Equal(`COPY ?TableName TO STDOUT CSV`))
+				Expect(evt.Model).NotTo(BeNil())
+				Expect(evt.Params).To(ContainElement(evt.Model))
+				Expect(evt.Err).To(BeNil())
+
+				q, err := evt.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY ?TableName TO STDOUT CSV`))
+
+				q, err = evt.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY "hook_tests" TO STDOUT CSV`))
+
+				evt.Stash = map[interface{}]interface{}{
+					"data": 1,
+				}
+
+				return c, nil
+			}
+
+			hookImpl.afterQueryMethod = func(c context.Context, evt *pg.QueryEvent) error {
+				Expect(evt.DB).To(Equal(db))
+				Expect(evt.Query).To(Equal(`COPY ?TableName TO STDOUT CSV`))
+				Expect(evt.Model).NotTo(BeNil())
+				Expect(evt.Params).To(ContainElement(evt.Model))
+				Expect(evt.Err).NotTo(HaveOccurred())
+
+				q, err := evt.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY ?TableName TO STDOUT CSV`))
+
+				q, err = evt.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY "hook_tests" TO STDOUT CSV`))
+
+				Expect(evt.Stash["data"]).To(Equal(1))
+
+				return nil
+			}
+			db.AddQueryHook(hookImpl)
+
+			_, err := db.Model((*HookTest)(nil)).CopyTo(ioutil.Discard, `COPY ?TableName TO STDOUT CSV`)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("is called for CopyTo without model", func() {
+			hookImpl := struct{ queryHookTest }{}
+			hookImpl.beforeQueryMethod = func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+				Expect(evt.DB).To(Equal(db))
+				Expect(evt.Query).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
+				Expect(evt.Params).To(BeNil())
+				Expect(evt.Err).To(BeNil())
+
+				q, err := evt.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
+
+				q, err = evt.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
+
+				evt.Stash = map[interface{}]interface{}{
+					"data": 1,
+				}
+
+				return c, nil
+			}
+
+			hookImpl.afterQueryMethod = func(c context.Context, evt *pg.QueryEvent) error {
+				Expect(evt.DB).To(Equal(db))
+				Expect(evt.Query).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
+				Expect(evt.Params).To(BeNil())
+				Expect(evt.Err).To(BeNil())
+
+				q, err := evt.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
+
+				q, err = evt.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY (SELECT 1) TO STDOUT CSV`))
+
+				Expect(evt.Stash["data"]).To(Equal(1))
+
+				return nil
+			}
+			db.AddQueryHook(hookImpl)
+
+			_, err := db.CopyTo(ioutil.Discard, `COPY (SELECT 1) TO STDOUT CSV`)
+			Expect(err).NotTo(HaveOccurred())
+		})
+	})
+
+	Describe("CopyFrom", func() {
+		It("is called for CopyFrom with model", func() {
+			hookImpl := struct{ queryHookTest }{}
+			hookImpl.beforeQueryMethod = func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+				Expect(evt.DB).To(Equal(db))
+				Expect(evt.Query).To(Equal(`COPY ?TableName FROM STDIN CSV`))
+				Expect(evt.Model).NotTo(BeNil())
+				Expect(evt.Params).To(ContainElement(evt.Model))
+				Expect(evt.Err).To(BeNil())
+
+				q, err := evt.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY ?TableName FROM STDIN CSV`))
+
+				q, err = evt.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+
+				evt.Stash = map[interface{}]interface{}{
+					"data": 1,
+				}
+
+				return c, nil
+			}
+
+			hookImpl.afterQueryMethod = func(c context.Context, evt *pg.QueryEvent) error {
+				Expect(evt.DB).To(Equal(db))
+				Expect(evt.Query).To(Equal(`COPY ?TableName FROM STDIN CSV`))
+				Expect(evt.Model).NotTo(BeNil())
+				Expect(evt.Params).To(ContainElement(evt.Model))
+				Expect(evt.Err).NotTo(HaveOccurred())
+
+				q, err := evt.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY ?TableName FROM STDIN CSV`))
+
+				q, err = evt.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+
+				Expect(evt.Stash["data"]).To(Equal(1))
+
+				return nil
+			}
+			db.AddQueryHook(hookImpl)
+
+			const in = `10,test`
+			_, err := db.Model((*HookTest)(nil)).CopyFrom(strings.NewReader(in), `COPY ?TableName FROM STDIN CSV`)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("is called for CopyFrom without model", func() {
+			hookImpl := struct{ queryHookTest }{}
+			hookImpl.beforeQueryMethod = func(c context.Context, evt *pg.QueryEvent) (context.Context, error) {
+				Expect(evt.DB).To(Equal(db))
+				Expect(evt.Query).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+				Expect(evt.Model).To(BeNil())
+				Expect(evt.Err).To(BeNil())
+
+				q, err := evt.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+
+				q, err = evt.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+
+				evt.Stash = map[interface{}]interface{}{
+					"data": 1,
+				}
+
+				return c, nil
+			}
+
+			hookImpl.afterQueryMethod = func(c context.Context, evt *pg.QueryEvent) error {
+				Expect(evt.DB).To(Equal(db))
+				Expect(evt.Query).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+				Expect(evt.Model).To(BeNil())
+				Expect(evt.Err).NotTo(HaveOccurred())
+
+				q, err := evt.UnformattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+
+				q, err = evt.FormattedQuery()
+				Expect(err).NotTo(HaveOccurred())
+				Expect(q).To(Equal(`COPY "hook_tests" FROM STDIN CSV`))
+
+				Expect(evt.Stash["data"]).To(Equal(1))
+
+				return nil
+			}
+			db.AddQueryHook(hookImpl)
+
+			const in = `10,test`
+			_, err := db.CopyFrom(strings.NewReader(in), `COPY "hook_tests" FROM STDIN CSV`)
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })
