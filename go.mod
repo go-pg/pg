@@ -1,8 +1,9 @@
-module github.com/go-pg/pg/v9
+module github.com/go-pg/pg/v10
 
 go 1.11
 
 require (
+	github.com/go-pg/pg/v9 v9.1.6
 	github.com/go-pg/urlstruct v0.4.0
 	github.com/go-pg/zerochecker v0.1.1
 	github.com/golang/protobuf v1.4.0 // indirect

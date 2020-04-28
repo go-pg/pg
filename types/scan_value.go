@@ -11,8 +11,8 @@ import (
 
 	"github.com/segmentio/encoding/json"
 
-	"github.com/go-pg/pg/v9/internal"
-	"github.com/go-pg/pg/v9/pgjson"
+	"github.com/go-pg/pg/v10/internal"
+	"github.com/go-pg/pg/v10/pgjson"
 )
 
 var valueScannerType = reflect.TypeOf((*ValueScanner)(nil)).Elem()
