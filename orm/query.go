@@ -1579,7 +1579,8 @@ func appendColumnAndSliceValue(
 	b = append(b, " IN ("...)
 
 	isPlaceholder := isPlaceholderFormatter(fmter)
-	for i := 0; i < slice.Len(); i++ {
+	sliceLen := slice.Len()
+	for i := 0; i < sliceLen; i++ {
 		if i > 0 {
 			b = append(b, ", "...)
 		}

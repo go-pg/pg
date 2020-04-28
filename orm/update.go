@@ -279,7 +279,8 @@ func (q *updateQuery) appendSliceValues(
 			return nil, err
 		}
 	} else {
-		for i := 0; i < slice.Len(); i++ {
+		sliceLen := slice.Len()
+		for i := 0; i < sliceLen; i++ {
 			if i > 0 {
 				b = append(b, "), ("...)
 			}

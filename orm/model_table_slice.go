@@ -171,7 +171,8 @@ func (m *sliceTableModel) setSoftDeleteField() {
 		value = reflect.ValueOf(types.NullTime{Time: now})
 	}
 
-	for i := 0; i < m.slice.Len(); i++ {
+	sliceLen := m.slice.Len()
+	for i := 0; i < sliceLen; i++ {
 		strct := indirect(m.slice.Index(i))
 		field.Value(strct).Set(value)
 	}

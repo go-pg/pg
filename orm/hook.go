@@ -50,7 +50,8 @@ func callHookSlice(
 	hook func(context.Context, reflect.Value) (context.Context, error),
 ) (context.Context, error) {
 	var firstErr error
-	for i := 0; i < slice.Len(); i++ {
+	sliceLen := slice.Len()
+	for i := 0; i < sliceLen; i++ {
 		v := slice.Index(i)
 		if !ptr {
 			v = v.Addr()
@@ -73,7 +74,8 @@ func callHookSlice2(
 ) error {
 	var firstErr error
 	if slice.IsValid() {
-		for i := 0; i < slice.Len(); i++ {
+		sliceLen := slice.Len()
+		for i := 0; i < sliceLen; i++ {
 			v := slice.Index(i)
 			if !ptr {
 				v = v.Addr()
