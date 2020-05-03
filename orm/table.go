@@ -267,7 +267,9 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 		index := make([]int, len(baseIndex))
 		copy(index, baseIndex)
 
-		if f.Anonymous {
+		pgTag := tagparser.Parse(f.Tag.Get("pg"))
+
+		if f.Anonymous || pgTag.HasOption("embedded") {
 			if f.Tag.Get("sql") == "-" || f.Tag.Get("pg") == "-" {
 				continue
 			}
@@ -278,7 +280,6 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 			}
 			t.addFields(fieldType, append(index, f.Index...))
 
-			pgTag := tagparser.Parse(f.Tag.Get("pg"))
 			_, inherit := pgTag.Options["inherit"]
 			_, override := pgTag.Options["override"]
 			if override {
