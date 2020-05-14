@@ -5,7 +5,7 @@ import (
 	"io"
 	"time"
 
-	"go.opentelemetry.io/otel/api/core"
+	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/trace"
 
 	"github.com/go-pg/pg/v10/internal"
@@ -235,7 +235,7 @@ func (db *baseDB) exec(ctx context.Context, query interface{}, params ...interfa
 
 		lastErr = internal.WithSpan(ctx, "exec", func(ctx context.Context, span trace.Span) error {
 			if attempt > 0 {
-				span.SetAttributes(core.Key("retry").Int(attempt))
+				span.SetAttributes(kv.Int("retry", attempt))
 
 				if err := internal.Sleep(ctx, db.retryBackoff(attempt-1)); err != nil {
 					return err
@@ -313,7 +313,7 @@ func (db *baseDB) query(ctx context.Context, model, query interface{}, params ..
 
 		lastErr = internal.WithSpan(ctx, "query", func(ctx context.Context, span trace.Span) error {
 			if attempt > 0 {
-				span.SetAttributes(core.Key("retry").Int(attempt))
+				span.SetAttributes(kv.Int("retry", attempt))
 
 				if err := internal.Sleep(ctx, db.retryBackoff(attempt-1)); err != nil {
 					return err
