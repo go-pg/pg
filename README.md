@@ -1,23 +1,23 @@
 # PostgreSQL client and ORM for Golang
 
 [![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=master)](https://travis-ci.org/go-pg/pg)
-[![GoDoc](https://godoc.org/github.com/go-pg/pg?status.svg)](https://pkg.go.dev/github.com/go-pg/pg/v9?tab=doc)
+[![GoDoc](https://godoc.org/github.com/go-pg/pg?status.svg)](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
 
 ## Features
 
 - Basic types: integers, floats, string, bool, time.Time, net.IP, net.IPNet.
-- sql.NullBool, sql.NullString, sql.NullInt64, sql.NullFloat64 and [pg.NullTime](http://godoc.org/github.com/go-pg/pg#NullTime).
+- sql.NullBool, sql.NullString, sql.NullInt64, sql.NullFloat64 and [pg.NullTime](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#NullTime).
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
 - Structs, maps and arrays are marshalled as JSON by default.
 - PostgreSQL multidimensional Arrays using [array tag](https://godoc.org/github.com/go-pg/pg#example-DB-Model-PostgresArrayStructTag) and [Array wrapper](https://godoc.org/github.com/go-pg/pg#example-Array).
 - Hstore using [hstore tag](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HstoreStructTag) and [Hstore wrapper](https://godoc.org/github.com/go-pg/pg#example-Hstore).
 - [Composite types](https://godoc.org/github.com/go-pg/pg#example-DB-Model-CompositeType).
 - All struct fields are nullable by default and zero values (empty string, 0, zero time, empty map or slice, nil ptr) are marshalled as SQL `NULL`. `pg:",notnull"` is used to add SQL `NOT NULL` constraint and `pg:",use_zero"` to allow Go zero values.
-- [Transactions](http://godoc.org/github.com/go-pg/pg#example-DB-Begin).
-- [Prepared statements](http://godoc.org/github.com/go-pg/pg#example-DB-Prepare).
-- [Notifications](http://godoc.org/github.com/go-pg/pg#example-Listener) using `LISTEN` and `NOTIFY`.
-- [Copying data](http://godoc.org/github.com/go-pg/pg#example-DB-CopyFrom) using `COPY FROM` and `COPY TO`.
-- [Timeouts](http://godoc.org/github.com/go-pg/pg#Options) and canceling queries using context.Context.
+- [Transactions](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Begin).
+- [Prepared statements](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Prepare).
+- [Notifications](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-Listener) using `LISTEN` and `NOTIFY`.
+- [Copying data](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-CopyFrom) using `COPY FROM` and `COPY TO`.
+- [Timeouts](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#Options) and canceling queries using context.Context.
 - Automatic connection pooling with [circuit breaker](https://en.wikipedia.org/wiki/Circuit_breaker_design_pattern) support.
 - Queries retries on network errors.
 - Working with models using [ORM](https://godoc.org/github.com/go-pg/pg#example-DB-Model) and [SQL](https://godoc.org/github.com/go-pg/pg#example-DB-Query).
@@ -46,12 +46,12 @@ go-pg requires a Go version with [Modules](https://github.com/golang/go/wiki/Mod
 
 ```shell
 go mod init github.com/my/repo
-go get github.com/go-pg/pg/v9
+go get github.com/go-pg/pg/v10
 ```
 
 - [Wiki](https://github.com/go-pg/pg/wiki)
-- [API docs](http://godoc.org/github.com/go-pg/pg)
-- [Examples](http://godoc.org/github.com/go-pg/pg#pkg-examples)
+- [API docs](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
+- [Examples](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#pkg-examples)
 
 ## Look & Feel
 
@@ -61,8 +61,8 @@ package pg_test
 import (
     "fmt"
 
-    "github.com/go-pg/pg/v9"
-    "github.com/go-pg/pg/v9/orm"
+    "github.com/go-pg/pg/v10"
+    "github.com/go-pg/pg/v10/orm"
 )
 
 type User struct {
