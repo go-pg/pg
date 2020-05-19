@@ -156,7 +156,8 @@ func (m *sliceTableModel) AfterDelete(c context.Context) error {
 }
 
 func (m *sliceTableModel) setSoftDeleteField() {
-	for i := 0; i < m.slice.Len(); i++ {
+	sliceLen := m.slice.Len()
+	for i := 0; i < sliceLen; i++ {
 		strct := indirect(m.slice.Index(i))
 		fv := m.table.SoftDeleteField.Value(strct)
 		m.table.SetSoftDeleteField(fv)

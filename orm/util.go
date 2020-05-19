@@ -92,7 +92,8 @@ func walk(v reflect.Value, index []int, fn func(reflect.Value)) {
 	v = reflect.Indirect(v)
 	switch v.Kind() {
 	case reflect.Slice:
-		for i := 0; i < v.Len(); i++ {
+		sliceLen := v.Len()
+		for i := 0; i < sliceLen; i++ {
 			visitField(v.Index(i), index, fn)
 		}
 	default:
