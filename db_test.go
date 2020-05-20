@@ -137,7 +137,7 @@ func TestEmptyQuery(t *testing.T) {
 	assert(err)
 }
 
-func TestAnynomousStructField(t *testing.T) {
+func TestAnonymousStructField(t *testing.T) {
 	type MyInt struct{ int }
 
 	type MyStruct struct {
@@ -148,6 +148,7 @@ func TestAnynomousStructField(t *testing.T) {
 
 	var st MyStruct
 	_, err := db.Query(&st, "SELECT ARRAY[1,2,3,4] AS ints")
+	Expect(err).ToNot(BeNil())
 	if !strings.Contains(err.Error(), "json: cannot unmarshal") {
 		t.Fatal(err)
 	}
@@ -353,7 +354,7 @@ var _ = Describe("DB.Conn", func() {
 		Expect(db.Close()).NotTo(HaveOccurred())
 	})
 
-	It("does not ackquire connection immediately", func() {
+	It("does not acquire connection immediately", func() {
 		conn := db.Conn()
 
 		stats := db.PoolStats()
@@ -363,7 +364,7 @@ var _ = Describe("DB.Conn", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
-	It("ackquires connection when used and frees when closed", func() {
+	It("acquires connection when used and frees when closed", func() {
 		conn := db.Conn()
 		_, err := conn.Exec("SELECT 1")
 		Expect(err).NotTo(HaveOccurred())
@@ -1182,7 +1183,7 @@ var _ = Describe("ORM", func() {
 			ID:       11,
 			Name:     "author 2",
 			AvatarId: images[1].Id,
-		}, Author{
+		}, {
 			ID:       12,
 			Name:     "author 3",
 			AvatarId: images[2].Id,
@@ -1201,7 +1202,7 @@ var _ = Describe("ORM", func() {
 			Title:    "book 2",
 			AuthorID: 10,
 			EditorID: 12,
-		}, Book{
+		}, {
 			Id:       102,
 			Title:    "book 3",
 			AuthorID: 11,

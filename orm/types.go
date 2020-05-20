@@ -13,7 +13,7 @@ const (
 	// Network Addresses
 	pgTypeInet    = "inet"    // IPv4 or IPv6 hosts and networks
 	pgTypeCidr    = "cidr"    // IPv4 or IPv6 networks
-	pgTypeMacaddr = "macaddr" // MAC adresses
+	pgTypeMacaddr = "macaddr" // MAC addresses
 
 	// Boolean
 	pgTypeBoolean = "boolean"

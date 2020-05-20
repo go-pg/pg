@@ -30,7 +30,7 @@ func (StructFormatter) Method() string {
 }
 
 func (StructFormatter) MethodParam() types.Safe {
-	return types.Safe("?string")
+	return "?string"
 }
 
 func (StructFormatter) MethodWithArgs(string) string {

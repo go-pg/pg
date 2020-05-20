@@ -8,7 +8,7 @@
 - ORM supports DistinctOn.
 - Hooks accept and return context.
 - Client respects Context.Deadline when setting net.Conn deadline.
-- Client listens on Context.Done while waiting for a connection from the pool and returns an error when context context is cancelled.
+- Client listens on Context.Done while waiting for a connection from the pool and returns an error when context is cancelled.
 - `Query.Column` does not accept relation name any more. Use `Query.Relation` instead which returns an error if relation does not exist.
 - urlvalues package is removed in favor of https://github.com/go-pg/urlstruct. You can also use struct based filters via `Query.WhereStruct`.
 - `NewModel` and `AddModel` methods of `HooklessModel` interface were renamed to `NextColumnScanner` and `AddColumnScanner` respectively.
@@ -64,7 +64,7 @@
 ## v6.9
 
 - `pg:"fk"` tag now accepts SQL names instead of Go names, e.g. `pg:"fk:ParentId"` becomes `pg:"fk:parent_id"`. Old code should continue working in most cases, but it is strongly advised to start using new convention.
-- uint and uint64 SQL type is changed from decimal to bigint according to the the lesser of two evils principle. Use `sql:"type:decimal"` to get old behavior.
+- uint and uint64 SQL type is changed from decimal to bigint according to the lesser of two evils principle. Use `sql:"type:decimal"` to get old behavior.
 
 ## v6.8
 
@@ -79,7 +79,7 @@
  - Support for net.IP and net.IPNet.
  - Support for context.Context.
  - Bulk/multi updates.
- - Query.WhereGroup for enclosing conditions in paretheses.
+ - Query.WhereGroup for enclosing conditions in parentheses.
 
 ## v5
 
