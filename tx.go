@@ -60,7 +60,7 @@ func (db *baseDB) Begin() (*Tx, error) {
 }
 
 // RunInTransaction runs a function in a transaction. If function
-// returns an error transaction is rollbacked, otherwise transaction
+// returns an error transaction is rolled back, otherwise transaction
 // is committed.
 func (db *baseDB) RunInTransaction(fn func(*Tx) error) error {
 	tx, err := db.Begin()
@@ -76,7 +76,7 @@ func (tx *Tx) Begin() (*Tx, error) {
 }
 
 // RunInTransaction runs a function in the transaction. If function
-// returns an error transaction is rollbacked, otherwise transaction
+// returns an error transaction is rolled back, otherwise transaction
 // is committed.
 func (tx *Tx) RunInTransaction(fn func(*Tx) error) error {
 	defer func() {
@@ -372,7 +372,7 @@ func (tx *Tx) Rollback() error {
 	return err
 }
 
-// Close calls Rollback if the tx has not already beed committed or rolled back.
+// Close calls Rollback if the tx has not already been committed or rolled back.
 func (tx *Tx) Close() error {
 	if tx.closed() {
 		return nil

@@ -97,7 +97,7 @@ func SetLogger(logger *log.Logger) {
 
 //------------------------------------------------------------------------------
 
-// Strings is a typealias for a slice of strings
+// Strings is a type alias for a slice of strings
 type Strings []string
 
 var _ orm.HooklessModel = (*Strings)(nil)
@@ -149,7 +149,7 @@ func (strings Strings) AppendValue(dst []byte, quote int) ([]byte, error) {
 
 //------------------------------------------------------------------------------
 
-// Ints is a typealias for a slice of int64 values
+// Ints is a type alias for a slice of int64 values
 type Ints []int64
 
 var _ orm.HooklessModel = (*Ints)(nil)

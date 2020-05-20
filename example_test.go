@@ -177,7 +177,7 @@ func ExampleDB_RunInTransaction() {
 	db := txExample()
 
 	incrInTx := func(db *pg.DB) error {
-		// Transaction is automatically rollbacked on error.
+		// Transaction is automatically rolled back on error.
 		return db.RunInTransaction(func(tx *pg.Tx) error {
 			var counter int
 			_, err := tx.QueryOne(
