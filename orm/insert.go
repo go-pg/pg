@@ -26,8 +26,8 @@ func newInsertQuery(q *Query) *insertQuery {
 	}
 }
 
-func (q *insertQuery) IsInsert() bool {
-	return true
+func (q *insertQuery) Operation() string {
+	return InsertOp
 }
 
 func (q *insertQuery) Clone() queryCommand {

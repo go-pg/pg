@@ -32,6 +32,10 @@ func newUpdateQuery(q *Query, omitZero bool) *updateQuery {
 	}
 }
 
+func (q *updateQuery) Operation() string {
+	return UpdateOp
+}
+
 func (q *updateQuery) Clone() queryCommand {
 	return &updateQuery{
 		q:           q.q.Clone(),

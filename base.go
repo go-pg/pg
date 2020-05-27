@@ -22,7 +22,7 @@ type baseDB struct {
 	queryHooks []QueryHook
 }
 
-// PoolStats contains the stats of a connection pool
+// PoolStats contains the stats of a connection pool.
 type PoolStats pool.Stats
 
 // PoolStats returns connection pool stats.

@@ -23,6 +23,10 @@ func newSelectQuery(q *Query) *selectQuery {
 	}
 }
 
+func (q *selectQuery) Operation() string {
+	return SelectOp
+}
+
 func (q *selectQuery) Clone() queryCommand {
 	return &selectQuery{
 		q:     q.q.Clone(),
