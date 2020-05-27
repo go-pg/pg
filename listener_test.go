@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v10"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -90,6 +90,7 @@ var _ = Context("Listener", func() {
 			wait <- struct{}{}
 			_, _, err := ln.Receive()
 
+			Expect(err).ToNot(BeNil())
 			Expect(err.Error()).To(SatisfyAny(
 				Equal("EOF"),
 				MatchRegexp(`use of closed (file or )?network connection$`),

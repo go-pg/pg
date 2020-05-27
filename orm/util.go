@@ -3,7 +3,7 @@ package orm
 import (
 	"reflect"
 
-	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/pg/v10/types"
 )
 
 func indirect(v reflect.Value) reflect.Value {
@@ -45,17 +45,40 @@ func typeByIndex(t reflect.Type, index []int) reflect.Type {
 	return indirectType(t)
 }
 
-func fieldByIndex(v reflect.Value, index []int) reflect.Value {
+func fieldByIndex(v reflect.Value, index []int) (_ reflect.Value, ok bool) {
+	if len(index) == 1 {
+		return v.Field(index[0]), true
+	}
+
 	for i, idx := range index {
 		if i > 0 {
-			v = indirectNew(v)
+			if v.Kind() == reflect.Ptr {
+				if v.IsNil() {
+					return v, false
+				}
+				v = v.Elem()
+			}
+		}
+		v = v.Field(idx)
+	}
+	return v, true
+}
+
+func fieldByIndexAlloc(v reflect.Value, index []int) reflect.Value {
+	if len(index) == 1 {
+		return v.Field(index[0])
+	}
+
+	for i, idx := range index {
+		if i > 0 {
+			v = indirectNil(v)
 		}
 		v = v.Field(idx)
 	}
 	return v
 }
 
-func indirectNew(v reflect.Value) reflect.Value {
+func indirectNil(v reflect.Value) reflect.Value {
 	if v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			v.Set(reflect.New(v.Type().Elem()))
@@ -69,7 +92,8 @@ func walk(v reflect.Value, index []int, fn func(reflect.Value)) {
 	v = reflect.Indirect(v)
 	switch v.Kind() {
 	case reflect.Slice:
-		for i := 0; i < v.Len(); i++ {
+		sliceLen := v.Len()
+		for i := 0; i < sliceLen; i++ {
 			visitField(v.Index(i), index, fn)
 		}
 	default:

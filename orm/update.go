@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-pg/pg/v9/internal"
-	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/pg/v10/internal"
+	"github.com/go-pg/pg/v10/types"
 )
 
 func Update(db DB, model interface{}) error {
@@ -279,7 +279,8 @@ func (q *updateQuery) appendSliceValues(
 			return nil, err
 		}
 	} else {
-		for i := 0; i < slice.Len(); i++ {
+		sliceLen := slice.Len()
+		for i := 0; i < sliceLen; i++ {
 			if i > 0 {
 				b = append(b, "), ("...)
 			}

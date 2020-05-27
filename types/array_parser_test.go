@@ -2,6 +2,8 @@ package types
 
 import (
 	"testing"
+
+	"github.com/go-pg/pg/v10/internal/pool"
 )
 
 var arrayTests = []struct {
@@ -25,7 +27,7 @@ var arrayTests = []struct {
 
 func TestArrayParser(t *testing.T) {
 	for testi, test := range arrayTests {
-		p := newArrayParser(NewBytesReader([]byte(test.s)))
+		p := newArrayParser(pool.NewBytesReader([]byte(test.s)))
 
 		var got []string
 		for {
@@ -59,7 +61,7 @@ var array = `{foo,bar,"some relatively long string","foo\""}`
 
 func BenchmarkArrayParserArray(b *testing.B) {
 	bb := []byte(array)
-	rd := NewBytesReader(bb)
+	rd := pool.NewBytesReader(bb)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -88,7 +90,7 @@ func BenchmarkArrayParserSubArray(b *testing.B) {
 	}
 	bb = append(bb, '}')
 
-	rd := NewBytesReader(bb)
+	rd := pool.NewBytesReader(bb)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {

@@ -7,8 +7,8 @@ import (
 	"math"
 	"testing"
 
-	"github.com/go-pg/pg/v9/orm"
-	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/pg/v10/orm"
+	"github.com/go-pg/pg/v10/types"
 )
 
 type ValuerError string
@@ -30,7 +30,7 @@ func (StructFormatter) Method() string {
 }
 
 func (StructFormatter) MethodParam() types.Safe {
-	return types.Safe("?string")
+	return "?string"
 }
 
 func (StructFormatter) MethodWithArgs(string) string {

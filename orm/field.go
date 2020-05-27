@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/pg/v10/types"
 	"github.com/go-pg/zerochecker"
 )
 
@@ -66,7 +66,7 @@ func (f *Field) hasFlag(flag uint8) bool {
 }
 
 func (f *Field) Value(strct reflect.Value) reflect.Value {
-	return fieldByIndex(strct, f.Index)
+	return fieldByIndexAlloc(strct, f.Index)
 }
 
 func (f *Field) HasZeroValue(strct reflect.Value) bool {
@@ -91,7 +91,11 @@ func (f *Field) NullZero() bool {
 }
 
 func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
-	fv := f.Value(strct)
+	fv, ok := fieldByIndex(strct, f.Index)
+	if !ok {
+		return types.AppendNull(b, quote)
+	}
+
 	if f.NullZero() && f.isZero(fv) {
 		return types.AppendNull(b, quote)
 	}
@@ -102,7 +106,7 @@ func (f *Field) AppendValue(b []byte, strct reflect.Value, quote int) []byte {
 }
 
 func (f *Field) ScanValue(strct reflect.Value, rd types.Reader, n int) error {
-	fv := fieldByIndex(strct, f.Index)
+	fv := f.Value(strct)
 	if f.scan == nil {
 		return fmt.Errorf("pg: ScanValue(unsupported %s)", fv.Type())
 	}

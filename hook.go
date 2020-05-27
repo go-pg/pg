@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-pg/pg/v9/orm"
+	"github.com/go-pg/pg/v10/orm"
 )
 
 type BeforeScanHook = orm.BeforeScanHook
@@ -28,13 +28,14 @@ func (dummyFormatter) FormatQuery(b []byte, query string, params ...interface{})
 
 // QueryEvent ...
 type QueryEvent struct {
-	StartTime time.Time
-	DB        orm.DB
-	Model     interface{}
-	Query     interface{}
-	Params    []interface{}
-	Result    Result
-	Err       error
+	StartTime  time.Time
+	DB         orm.DB
+	Model      interface{}
+	Query      interface{}
+	Params     []interface{}
+	fmtedQuery []byte
+	Result     Result
+	Err        error
 
 	Stash map[interface{}]interface{}
 }
@@ -46,12 +47,8 @@ type QueryHook interface {
 }
 
 // UnformattedQuery returns the unformatted query of a query event
-func (ev *QueryEvent) UnformattedQuery() (string, error) {
-	b, err := queryString(ev.Query)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
+func (e *QueryEvent) UnformattedQuery() ([]byte, error) {
+	return queryString(e.Query)
 }
 
 func queryString(query interface{}) ([]byte, error) {
@@ -66,12 +63,8 @@ func queryString(query interface{}) ([]byte, error) {
 }
 
 // FormattedQuery returns the formatted query of a query event
-func (ev *QueryEvent) FormattedQuery() (string, error) {
-	b, err := appendQuery(ev.DB.Formatter(), nil, ev.Query, ev.Params...)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
+func (e *QueryEvent) FormattedQuery() ([]byte, error) {
+	return e.fmtedQuery, nil
 }
 
 // AddQueryHook adds a hook into query processing.
@@ -84,17 +77,19 @@ func (db *baseDB) beforeQuery(
 	ormDB orm.DB,
 	model, query interface{},
 	params []interface{},
+	fmtedQuery []byte,
 ) (context.Context, *QueryEvent, error) {
 	if len(db.queryHooks) == 0 {
 		return c, nil, nil
 	}
 
 	event := &QueryEvent{
-		StartTime: time.Now(),
-		DB:        ormDB,
-		Model:     model,
-		Query:     query,
-		Params:    params,
+		StartTime:  time.Now(),
+		DB:         ormDB,
+		Model:      model,
+		Query:      query,
+		Params:     params,
+		fmtedQuery: fmtedQuery,
 	}
 	for _, hook := range db.queryHooks {
 		var err error

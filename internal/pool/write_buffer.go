@@ -6,26 +6,27 @@ import (
 	"sync"
 )
 
-const defaultBufSize = 65536
-
 var pool = sync.Pool{
 	New: func() interface{} {
 		return NewWriteBuffer()
 	},
 }
 
-func getWriteBuffer() *WriteBuffer {
-	return pool.Get().(*WriteBuffer)
+func GetWriteBuffer() *WriteBuffer {
+	wb := pool.Get().(*WriteBuffer)
+	wb.Reset()
+	return wb
 }
 
-func putWriteBuffer(wb *WriteBuffer) {
+func PutWriteBuffer(wb *WriteBuffer) {
 	pool.Put(wb)
 }
 
 type WriteBuffer struct {
 	Bytes []byte
 
-	msgStart, paramStart int
+	msgStart   int
+	paramStart int
 }
 
 func NewWriteBuffer() *WriteBuffer {
@@ -55,6 +56,10 @@ func (buf *WriteBuffer) StartMessage(c byte) {
 func (buf *WriteBuffer) FinishMessage() {
 	binary.BigEndian.PutUint32(
 		buf.Bytes[buf.msgStart:], uint32(len(buf.Bytes)-buf.msgStart))
+}
+
+func (buf *WriteBuffer) Query() []byte {
+	return buf.Bytes[buf.msgStart+4 : len(buf.Bytes)-1]
 }
 
 func (buf *WriteBuffer) StartParam() {

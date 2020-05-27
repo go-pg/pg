@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-pg/pg/v9/internal"
-	"github.com/go-pg/pg/v9/internal/pool"
-	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/pg/v10/internal"
+	"github.com/go-pg/pg/v10/internal/pool"
+	"github.com/go-pg/pg/v10/types"
 )
 
 const gopgChannel = "gopg:ping"
@@ -191,7 +191,7 @@ func (ln *Listener) ReceiveTimeout(timeout time.Duration) (channel, payload stri
 		return "", "", err
 	}
 
-	err = cn.WithReader(context.TODO(), timeout, func(rd *internal.BufReader) error {
+	err = cn.WithReader(context.TODO(), timeout, func(rd *pool.BufReader) error {
 		channel, payload, err = readNotification(rd)
 		return err
 	})

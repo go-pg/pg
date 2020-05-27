@@ -1,9 +1,7 @@
 package internal
 
 import (
-	"bytes"
 	"math/rand"
-	"sync"
 	"time"
 )
 
@@ -23,20 +21,4 @@ func RetryBackoff(retry int, minBackoff, maxBackoff time.Duration) time.Duration
 		return 0
 	}
 	return time.Duration(rand.Int63n(int64(backoff)))
-}
-
-var bufPool = sync.Pool{
-	New: func() interface{} {
-		return new(bytes.Buffer)
-	},
-}
-
-func GetBuffer() *bytes.Buffer {
-	buf := bufPool.Get().(*bytes.Buffer)
-	buf.Reset()
-	return buf
-}
-
-func PutBuffer(buf *bytes.Buffer) {
-	bufPool.Put(buf)
 }

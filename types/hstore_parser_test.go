@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"github.com/go-pg/pg/v9/internal"
+	"github.com/go-pg/pg/v10/internal/pool"
 )
 
 var hstoreTests = []struct {
@@ -21,7 +21,7 @@ var hstoreTests = []struct {
 
 func TestHstoreParser(t *testing.T) {
 	for testi, test := range hstoreTests {
-		got, err := scanMapStringString(internal.NewBytesReader([]byte(test.s)), 0)
+		got, err := scanMapStringString(pool.NewBytesReader([]byte(test.s)), 0)
 		if err != nil {
 			t.Fatal(err)
 		}

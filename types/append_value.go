@@ -11,8 +11,8 @@ import (
 
 	"github.com/vmihailenco/bufpool"
 
-	"github.com/go-pg/pg/v9/internal"
-	"github.com/go-pg/pg/v9/pgjson"
+	"github.com/go-pg/pg/v10/internal"
+	"github.com/go-pg/pg/v10/pgjson"
 )
 
 var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
@@ -192,9 +192,11 @@ func appendStructValue(b []byte, v reflect.Value, flags int) []byte {
 	return appendJSONValue(b, v, flags)
 }
 
+var jsonPool bufpool.Pool
+
 func appendJSONValue(b []byte, v reflect.Value, flags int) []byte {
-	buf := internal.GetBuffer()
-	defer internal.PutBuffer(buf)
+	buf := jsonPool.Get()
+	defer jsonPool.Put(buf)
 
 	if err := pgjson.NewEncoder(buf).Encode(v.Interface()); err != nil {
 		return AppendError(b, err)

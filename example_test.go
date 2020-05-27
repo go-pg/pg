@@ -7,8 +7,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-pg/pg/v9"
-	"github.com/go-pg/pg/v9/orm"
+	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v10/orm"
 )
 
 var pgdb *pg.DB
@@ -177,7 +177,7 @@ func ExampleDB_RunInTransaction() {
 	db := txExample()
 
 	incrInTx := func(db *pg.DB) error {
-		// Transaction is automatically rollbacked on error.
+		// Transaction is automatically rolled back on error.
 		return db.RunInTransaction(func(tx *pg.Tx) error {
 			var counter int
 			_, err := tx.QueryOne(

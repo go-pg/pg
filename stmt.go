@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	"github.com/go-pg/pg/v9/internal"
-	"github.com/go-pg/pg/v9/internal/pool"
-	"github.com/go-pg/pg/v9/orm"
+	"github.com/go-pg/pg/v10/internal"
+	"github.com/go-pg/pg/v10/internal/pool"
+	"github.com/go-pg/pg/v10/orm"
 )
 
 var errStmtClosed = errors.New("pg: statement is closed")
@@ -85,7 +85,7 @@ func (stmt *Stmt) ExecContext(c context.Context, params ...interface{}) (Result,
 }
 
 func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error) {
-	c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, nil, stmt.q, params)
+	c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, nil, stmt.q, params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +150,7 @@ func (stmt *Stmt) QueryContext(c context.Context, model interface{}, params ...i
 }
 
 func (stmt *Stmt) query(c context.Context, model interface{}, params ...interface{}) (Result, error) {
-	c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, model, stmt.q, params)
+	c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, model, stmt.q, params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -236,7 +236,7 @@ func (stmt *Stmt) extQuery(
 	}
 
 	var res Result
-	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
+	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *pool.BufReader) error {
 		res, err = readExtQuery(rd)
 		return err
 	})
@@ -263,7 +263,7 @@ func (stmt *Stmt) extQueryData(
 	}
 
 	var res *result
-	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *internal.BufReader) error {
+	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *pool.BufReader) error {
 		res, err = readExtQueryData(c, rd, model, columns)
 		return err
 	})

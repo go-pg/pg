@@ -1,13 +1,14 @@
 package types
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"reflect"
 	"time"
 
-	"github.com/go-pg/pg/v9/internal"
+	"github.com/tmthrgd/go-hex"
+
+	"github.com/go-pg/pg/v10/internal"
 )
 
 func Scan(v interface{}, rd Reader, n int) error {
@@ -70,33 +71,38 @@ func ScanBytes(rd Reader, n int) ([]byte, error) {
 	if n == 0 {
 		return []byte{}, nil
 	}
-	return readBytes(rd, nil)
+
+	b := make([]byte, hex.DecodedLen(n-2))
+	if err := ReadBytes(rd, b); err != nil {
+		return nil, err
+	}
+	return b, nil
 }
 
-func readBytes(rd Reader, b []byte) ([]byte, error) {
+func ReadBytes(rd Reader, b []byte) error {
 	tmp, err := rd.ReadFullTemp()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	if len(tmp) < 2 {
-		return nil, fmt.Errorf("pg: can't parse bytea: %q", tmp)
+		return fmt.Errorf("pg: can't parse bytea: %q", tmp)
 	}
 
 	if tmp[0] != '\\' || tmp[1] != 'x' {
-		return nil, fmt.Errorf("pg: can't parse bytea: %q", tmp)
+		return fmt.Errorf("pg: can't parse bytea: %q", tmp)
 	}
 	tmp = tmp[2:] // Trim off "\\x".
 
-	if b == nil {
-		b = make([]byte, hex.DecodedLen(len(tmp)))
-	}
-	written, err := hex.Decode(b, tmp)
-	if err != nil {
-		return nil, err
+	if len(b) != hex.DecodedLen(len(tmp)) {
+		return fmt.Errorf("pg: too small buf to decode hex")
 	}
 
-	return b[:written], err
+	if _, err := hex.Decode(b, tmp); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func ScanInt(rd Reader, n int) (int, error) {

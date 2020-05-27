@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-pg/pg/v9/internal"
-	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/pg/v10/internal"
+	"github.com/go-pg/pg/v10/types"
 )
 
 type queryFlag uint8
@@ -90,7 +90,7 @@ func NewQueryContext(c context.Context, db DB, model ...interface{}) *Query {
 	return NewQuery(db, model...).Context(c)
 }
 
-// New returns new zero Query binded to the current db.
+// New returns new zero Query bound to the current db.
 func (q *Query) New() *Query {
 	cp := &Query{
 		ctx:   q.ctx,
@@ -297,15 +297,6 @@ func (q *Query) Column(columns ...string) *Query {
 				q.columns = make([]QueryAppender, 0)
 			}
 			continue
-		}
-
-		// TODO: remove
-		if q.model != nil {
-			if j := q.model.Join(column, nil); j != nil {
-				internal.Logger.Printf("DEPRECATED: replace Column(%q) with Relation(%q)",
-					column, column)
-				continue
-			}
 		}
 
 		q.columns = append(q.columns, fieldAppender{column})
@@ -1588,7 +1579,8 @@ func appendColumnAndSliceValue(
 	b = append(b, " IN ("...)
 
 	isPlaceholder := isPlaceholderFormatter(fmter)
-	for i := 0; i < slice.Len(); i++ {
+	sliceLen := slice.Len()
+	for i := 0; i < sliceLen; i++ {
 		if i > 0 {
 			b = append(b, ", "...)
 		}

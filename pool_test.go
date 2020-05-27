@@ -3,7 +3,7 @@ package pg_test
 import (
 	"time"
 
-	"github.com/go-pg/pg/v9"
+	"github.com/go-pg/pg/v10"
 
 	. "gopkg.in/check.v1"
 )
@@ -150,5 +150,6 @@ func (t *PoolTest) TestClosedStmt(c *C) {
 	c.Assert(err.Error(), Equals, "pg: statement is closed")
 
 	_, err = stmt.Exec(1)
+	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: statement is closed")
 }

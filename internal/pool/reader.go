@@ -1,4 +1,4 @@
-package internal
+package pool
 
 type Reader interface {
 	Buffered() int

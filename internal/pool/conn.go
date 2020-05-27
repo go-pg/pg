@@ -7,7 +7,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-pg/pg/v9/internal"
+	"github.com/go-pg/pg/v10/internal"
+	"go.opentelemetry.io/otel/api/kv"
+	"go.opentelemetry.io/otel/api/trace"
 )
 
 var noDeadline = time.Time{}
@@ -15,7 +17,7 @@ var noDeadline = time.Time{}
 type Conn struct {
 	netConn net.Conn
 
-	rd *internal.BufReader
+	rd *BufReader
 
 	ProcessID int32
 	SecretKey int32
@@ -29,7 +31,7 @@ type Conn struct {
 
 func NewConn(netConn net.Conn) *Conn {
 	cn := &Conn{
-		rd: internal.NewBufReader(netConn),
+		rd: NewBufReader(netConn),
 
 		createdAt: time.Now(),
 	}
@@ -66,32 +68,55 @@ func (cn *Conn) NextID() string {
 }
 
 func (cn *Conn) WithReader(
-	ctx context.Context, timeout time.Duration, fn func(rd *internal.BufReader) error,
+	ctx context.Context, timeout time.Duration, fn func(rd *BufReader) error,
 ) error {
-	err := cn.netConn.SetReadDeadline(cn.deadline(ctx, timeout))
-	if err != nil {
+	return internal.WithSpan(ctx, "with_reader", func(ctx context.Context, span trace.Span) error {
+		err := cn.netConn.SetReadDeadline(cn.deadline(ctx, timeout))
+		if err != nil {
+			return err
+		}
+
+		cn.rd.bytesRead = 0
+		err = fn(cn.rd)
+		span.SetAttributes(kv.Int64("net.read_bytes", cn.rd.bytesRead))
+
 		return err
-	}
-	return fn(cn.rd)
+	})
 }
 
 func (cn *Conn) WithWriter(
 	ctx context.Context, timeout time.Duration, fn func(wb *WriteBuffer) error,
+) error {
+	return internal.WithSpan(ctx, "with_writer", func(ctx context.Context, span trace.Span) error {
+		wb := GetWriteBuffer()
+		defer PutWriteBuffer(wb)
+
+		if err := fn(wb); err != nil {
+			return err
+		}
+
+		return cn.writeBuffer(ctx, span, timeout, wb)
+	})
+}
+
+func (cn *Conn) WriteBuffer(ctx context.Context, timeout time.Duration, wb *WriteBuffer) error {
+	return internal.WithSpan(ctx, "with_writer", func(ctx context.Context, span trace.Span) error {
+		return cn.writeBuffer(ctx, span, timeout, wb)
+	})
+}
+
+func (cn *Conn) writeBuffer(
+	ctx context.Context,
+	span trace.Span,
+	timeout time.Duration,
+	wb *WriteBuffer,
 ) error {
 	err := cn.netConn.SetWriteDeadline(cn.deadline(ctx, timeout))
 	if err != nil {
 		return err
 	}
 
-	wb := getWriteBuffer()
-	defer putWriteBuffer(wb)
-
-	wb.Reset()
-	err = fn(wb)
-	if err != nil {
-		return err
-	}
-
+	span.SetAttributes(kv.Int("net.wrote_bytes", len(wb.Bytes)))
 	_, err = cn.netConn.Write(wb.Bytes)
 	return err
 }

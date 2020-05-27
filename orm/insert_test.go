@@ -1,7 +1,7 @@
 package orm
 
 import (
-	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/pg/v10/types"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -178,7 +178,7 @@ var _ = Describe("Insert", func() {
 
 	It("inserts types.Safe", func() {
 		q := NewQuery(nil, &InsertQTest{
-			Geo:  types.Safe("ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))')"),
+			Geo:  "ST_GeomFromText('POLYGON((75.150000 29.530000, 77.000000 29.000000, 77.600000 29.500000, 75.150000 29.530000))')",
 			Func: SafeQuery("my_func(?)", "param"),
 		})
 

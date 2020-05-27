@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-pg/pg/v9"
-	"github.com/go-pg/pg/v9/orm"
-	"github.com/go-pg/pg/v9/pgjson"
-	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v10/orm"
+	"github.com/go-pg/pg/v10/pgjson"
+	"github.com/go-pg/pg/v10/types"
 )
 
 type JSONMap map[string]interface{}
@@ -208,7 +208,7 @@ func conversionTests() []conversionTest {
 		{src: int64(math.MaxInt64), dst: new(*int64), pgtype: "bigint"},
 		{src: int64(math.MinInt64), dst: new(int64), pgtype: "bigint"},
 
-		{src: nil, dst: int(0), pgtype: "bigint", wanterr: "pg: Scan(nonsettable int)"},
+		{src: nil, dst: 0, pgtype: "bigint", wanterr: "pg: Scan(nonsettable int)"},
 		{src: nil, dst: new(int), pgtype: "bigint", wantzero: true},
 		{src: int64(math.MaxInt64), dst: new(int64), pgtype: "bigint"},
 		{src: int64(math.MaxInt64), dst: new(*int64), pgtype: "bigint"},

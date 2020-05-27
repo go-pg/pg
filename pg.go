@@ -5,11 +5,10 @@ import (
 	"io"
 	"log"
 	"strconv"
-	"sync"
 
-	"github.com/go-pg/pg/v9/internal"
-	"github.com/go-pg/pg/v9/orm"
-	"github.com/go-pg/pg/v9/types"
+	"github.com/go-pg/pg/v10/internal"
+	"github.com/go-pg/pg/v10/orm"
+	"github.com/go-pg/pg/v10/types"
 )
 
 // Discard is used with Query and QueryOne to discard rows.
@@ -44,26 +43,6 @@ type Ident = types.Ident
 // SafeQuery replaces any placeholders found in the query.
 func SafeQuery(query string, params ...interface{}) *orm.SafeQueryAppender {
 	return orm.SafeQuery(query, params...)
-}
-
-var qWarn sync.Once
-
-// DEPRECATED. Use Safe instead.
-func Q(query string, params ...interface{}) types.ValueAppender {
-	qWarn.Do(func() {
-		internal.Logger.Printf("DEPRECATED: pg.Q is replaced with pg.SafeQuery")
-	})
-	return SafeQuery(query, params...)
-}
-
-var fWarn sync.Once
-
-// DEPRECATED. Use Ident instead.
-func F(field string) types.ValueAppender {
-	fWarn.Do(func() {
-		internal.Logger.Printf("DEPRECATED: pg.F is replaced with pg.Ident")
-	})
-	return Ident(field)
 }
 
 // In accepts a slice and returns a wrapper that can be used with PostgreSQL
@@ -118,7 +97,7 @@ func SetLogger(logger *log.Logger) {
 
 //------------------------------------------------------------------------------
 
-// Strings is a typealias for a slice of strings
+// Strings is a type alias for a slice of strings
 type Strings []string
 
 var _ orm.HooklessModel = (*Strings)(nil)
@@ -170,7 +149,7 @@ func (strings Strings) AppendValue(dst []byte, quote int) ([]byte, error) {
 
 //------------------------------------------------------------------------------
 
-// Ints is a typealias for a slice of int64 values
+// Ints is a type alias for a slice of int64 values
 type Ints []int64
 
 var _ orm.HooklessModel = (*Ints)(nil)

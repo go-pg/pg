@@ -11,8 +11,8 @@ import (
 
 	"github.com/segmentio/encoding/json"
 
-	"github.com/go-pg/pg/v9/internal"
-	"github.com/go-pg/pg/v9/pgjson"
+	"github.com/go-pg/pg/v10/internal"
+	"github.com/go-pg/pg/v10/pgjson"
 )
 
 var valueScannerType = reflect.TypeOf((*ValueScanner)(nil)).Elem()
@@ -405,8 +405,7 @@ func scanArrayBytesValue(v reflect.Value, rd Reader, n int) error {
 		return nil
 	}
 
-	_, err := readBytes(rd, b)
-	return err
+	return ReadBytes(rd, b)
 }
 
 func scanValueScannerValue(v reflect.Value, rd Reader, n int) error {
