@@ -14,6 +14,14 @@ import (
 	"github.com/go-pg/pg/v10/types"
 )
 
+const (
+	SelectOp      = "SELECT"
+	InsertOp      = "INSERT"
+	UpdateOp      = "UPDATE"
+	DeleteOp      = "DELETE"
+	CreateTableOp = "CREATE TABLE"
+)
+
 type queryFlag uint8
 
 const (

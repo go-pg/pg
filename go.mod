@@ -20,7 +20,7 @@ require (
 	golang.org/x/net v0.0.0-20200513185701-a91f0712d120 // indirect
 	golang.org/x/sys v0.0.0-20200513112337-417ce2331b5c // indirect
 	google.golang.org/appengine v1.6.6 // indirect
-	google.golang.org/grpc v1.29.1 // indirect
+	google.golang.org/grpc v1.29.1
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	mellium.im/sasl v0.2.1
 )
