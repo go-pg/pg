@@ -46,7 +46,8 @@ type QueryHook interface {
 	AfterQuery(context.Context, *QueryEvent) error
 }
 
-// UnformattedQuery returns the unformatted query of a query event
+// UnformattedQuery returns the unformatted query of a query event.
+// The query is only valid until the query Result is returned to the user.
 func (e *QueryEvent) UnformattedQuery() ([]byte, error) {
 	return queryString(e.Query)
 }
@@ -62,7 +63,8 @@ func queryString(query interface{}) ([]byte, error) {
 	}
 }
 
-// FormattedQuery returns the formatted query of a query event
+// FormattedQuery returns the formatted query of a query event.
+// The query is only valid until the query Result is returned to the user.
 func (e *QueryEvent) FormattedQuery() ([]byte, error) {
 	return e.fmtedQuery, nil
 }
@@ -73,14 +75,14 @@ func (db *baseDB) AddQueryHook(hook QueryHook) {
 }
 
 func (db *baseDB) beforeQuery(
-	c context.Context,
+	ctx context.Context,
 	ormDB orm.DB,
 	model, query interface{},
 	params []interface{},
 	fmtedQuery []byte,
 ) (context.Context, *QueryEvent, error) {
 	if len(db.queryHooks) == 0 {
-		return c, nil, nil
+		return ctx, nil, nil
 	}
 
 	event := &QueryEvent{
@@ -91,18 +93,20 @@ func (db *baseDB) beforeQuery(
 		Params:     params,
 		fmtedQuery: fmtedQuery,
 	}
+
 	for _, hook := range db.queryHooks {
 		var err error
-		c, err = hook.BeforeQuery(c, event)
+		ctx, err = hook.BeforeQuery(ctx, event)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
-	return c, event, nil
+
+	return ctx, event, nil
 }
 
 func (db *baseDB) afterQuery(
-	c context.Context,
+	ctx context.Context,
 	event *QueryEvent,
 	res Result,
 	err error,
@@ -115,7 +119,7 @@ func (db *baseDB) afterQuery(
 	event.Result = res
 
 	for _, hook := range db.queryHooks {
-		err := hook.AfterQuery(c, event)
+		err := hook.AfterQuery(ctx, event)
 		if err != nil {
 			return err
 		}
