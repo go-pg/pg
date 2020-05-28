@@ -6,7 +6,7 @@ require (
 	github.com/go-pg/pg/v9 v9.1.6 // indirect
 	github.com/go-pg/urlstruct v0.4.0
 	github.com/go-pg/zerochecker v0.1.1
-	github.com/golang/protobuf v1.4.1 // indirect
+	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/jinzhu/inflection v1.0.0
 	github.com/onsi/ginkgo v1.10.1
 	github.com/onsi/gomega v1.7.0
@@ -15,12 +15,13 @@ require (
 	github.com/vmihailenco/bufpool v0.1.11
 	github.com/vmihailenco/msgpack/v5 v5.0.0-alpha.2
 	github.com/vmihailenco/tagparser v0.1.1
-	go.opentelemetry.io/otel v0.5.0
+	go.opentelemetry.io/otel v0.6.0
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37 // indirect
-	golang.org/x/net v0.0.0-20200513185701-a91f0712d120 // indirect
-	golang.org/x/sys v0.0.0-20200513112337-417ce2331b5c // indirect
+	golang.org/x/net v0.0.0-20200520182314-0ba52f642ac2 // indirect
+	golang.org/x/sys v0.0.0-20200523222454-059865788121 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
 	google.golang.org/grpc v1.29.1
+	google.golang.org/protobuf v1.24.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15
 	mellium.im/sasl v0.2.1
 )
