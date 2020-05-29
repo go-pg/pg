@@ -191,6 +191,10 @@ func AppendBytes(b []byte, bytes []byte, flags int) []byte {
 }
 
 func appendDriverValuer(b []byte, v driver.Valuer, flags int) []byte {
+	ref := reflect.ValueOf(v)
+	if v == nil || (ref.Kind() == reflect.Ptr && ref.IsNil()) {
+		return AppendNull(b, flags)
+	}
 	value, err := v.Value()
 	if err != nil {
 		return AppendError(b, err)
