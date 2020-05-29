@@ -20,6 +20,7 @@ func NewArray(vi interface{}) *Array {
 	if !v.IsValid() {
 		panic(fmt.Errorf("pg: Array(nil)"))
 	}
+
 	return &Array{
 		v: v,
 
@@ -39,7 +40,12 @@ func (a *Array) ScanValue(rd Reader, n int) error {
 	if a.scan == nil {
 		return fmt.Errorf("pg: Array(unsupported %s)", a.v.Type())
 	}
-	return a.scan(a.v, rd, n)
+
+	if a.v.Kind() != reflect.Ptr {
+		return fmt.Errorf("pg: Array(non-pointer %s)", a.v.Type())
+	}
+
+	return a.scan(a.v.Elem(), rd, n)
 }
 
 func (a *Array) Value() interface{} {

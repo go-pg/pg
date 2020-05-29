@@ -41,13 +41,26 @@ func Scan(v interface{}, rd Reader, n int) error {
 	if !vv.IsValid() {
 		return errors.New("pg: Scan(nil)")
 	}
+
 	if vv.Kind() != reflect.Ptr {
-		return fmt.Errorf("pg: Scan(nonsettable %T)", v)
+		return fmt.Errorf("pg: Scan(non-pointer %T)", v)
 	}
+	if vv.IsNil() {
+		return fmt.Errorf("pg: Scan(non-settable %T)", v)
+	}
+
 	vv = vv.Elem()
-	if !vv.IsValid() {
-		return fmt.Errorf("pg: Scan(nonsettable %T)", v)
+	if vv.Kind() == reflect.Interface {
+		if vv.IsNil() {
+			return errors.New("pg: Scan(nil)")
+		}
+
+		vv = vv.Elem()
+		if vv.Kind() != reflect.Ptr {
+			return fmt.Errorf("pg: Decode(non-pointer %s)", vv.Type().String())
+		}
 	}
+
 	return ScanValue(vv, rd, n)
 }
 

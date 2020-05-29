@@ -964,10 +964,6 @@ func foreignKeys(base, join *Table, fk string, tryFK bool) []*Field {
 }
 
 func scanJSONValue(v reflect.Value, rd types.Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(non-pointer %s)", v.Type())
-	}
-
 	// Zero value so it works with SelectOrInsert.
 	//TODO: better handle slices
 	v.Set(reflect.New(v.Type()).Elem())

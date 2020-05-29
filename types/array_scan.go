@@ -53,7 +53,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 	return func(v reflect.Value, rd Reader, n int) error {
 		v = reflect.Indirect(v)
 		if !v.CanSet() {
-			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+			return fmt.Errorf("pg: Scan(non-settable %s)", v.Type())
 		}
 
 		kind := v.Kind()
@@ -113,7 +113,7 @@ func ArrayScanner(typ reflect.Type) ScannerFunc {
 func scanSliceStringValue(v reflect.Value, rd Reader, n int) error {
 	v = reflect.Indirect(v)
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+		return fmt.Errorf("pg: Scan(non-settable %s)", v.Type())
 	}
 
 	strings, err := decodeSliceString(rd, n)
@@ -150,7 +150,7 @@ func decodeSliceString(rd Reader, n int) ([]string, error) {
 func scanSliceIntValue(v reflect.Value, rd Reader, n int) error {
 	v = reflect.Indirect(v)
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+		return fmt.Errorf("pg: Scan(non-settable %s)", v.Type())
 	}
 
 	slice, err := decodeSliceInt(rd, n)
@@ -197,7 +197,7 @@ func decodeSliceInt(rd Reader, n int) ([]int, error) {
 func scanSliceInt64Value(v reflect.Value, rd Reader, n int) error {
 	v = reflect.Indirect(v)
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+		return fmt.Errorf("pg: Scan(non-settable %s)", v.Type())
 	}
 
 	slice, err := decodeSliceInt64(rd, n)
@@ -244,7 +244,7 @@ func decodeSliceInt64(rd Reader, n int) ([]int64, error) {
 func scanSliceFloat64Value(v reflect.Value, rd Reader, n int) error {
 	v = reflect.Indirect(v)
 	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+		return fmt.Errorf("pg: Scan(non-settable %s)", v.Type())
 	}
 
 	slice, err := decodeSliceFloat64(rd, n)
@@ -290,23 +290,11 @@ func decodeSliceFloat64(rd Reader, n int) ([]float64, error) {
 
 func scanArrayValueScannerValue(v reflect.Value, rd Reader, n int) error {
 	if n == -1 {
-		if !v.IsNil() {
-			if !v.CanSet() {
-				return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-			}
-			v.Set(reflect.Zero(v.Type()))
-		}
 		return nil
 	}
 
-	if v.IsNil() {
-		if !v.CanSet() {
-			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-		}
-		v.Set(reflect.New(v.Type().Elem()))
-	}
+	scanner := v.Addr().Interface().(ArrayValueScanner)
 
-	scanner := v.Interface().(ArrayValueScanner)
 	err := scanner.BeforeScanArrayValue(rd, n)
 	if err != nil {
 		return err

@@ -20,15 +20,20 @@ func NewHstore(vi interface{}) *Hstore {
 	if !v.IsValid() {
 		panic(fmt.Errorf("pg.Hstore(nil)"))
 	}
-	v = reflect.Indirect(v)
-	if v.Kind() != reflect.Map {
-		panic(fmt.Errorf("pg.Hstore(unsupported %s)", v.Type()))
+
+	typ := v.Type()
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
 	}
+	if typ.Kind() != reflect.Map {
+		panic(fmt.Errorf("pg.Hstore(unsupported %s)", typ))
+	}
+
 	return &Hstore{
 		v: v,
 
-		append: HstoreAppender(v.Type()),
-		scan:   HstoreScanner(v.Type()),
+		append: HstoreAppender(typ),
+		scan:   HstoreScanner(typ),
 	}
 }
 
@@ -44,5 +49,9 @@ func (h *Hstore) AppendValue(b []byte, flags int) ([]byte, error) {
 }
 
 func (h *Hstore) ScanValue(rd Reader, n int) error {
-	return h.scan(h.v, rd, n)
+	if h.v.Kind() != reflect.Ptr {
+		return fmt.Errorf("pg: Hstore(non-pointer %s)", h.v.Type())
+	}
+
+	return h.scan(h.v.Elem(), rd, n)
 }

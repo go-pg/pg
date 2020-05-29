@@ -142,7 +142,7 @@ func ptrScannerFunc(typ reflect.Type) ScannerFunc {
 				return nil
 			}
 			if !v.CanSet() {
-				return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+				return fmt.Errorf("pg: Scan(non-settable %s)", v.Type())
 			}
 			v.Set(reflect.Zero(v.Type()))
 			return nil
@@ -150,7 +150,7 @@ func ptrScannerFunc(typ reflect.Type) ScannerFunc {
 
 		if v.IsNil() {
 			if !v.CanSet() {
-				return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+				return fmt.Errorf("pg: Scan(non-settable %s)", v.Type())
 			}
 			v.Set(reflect.New(v.Type().Elem()))
 		}
@@ -183,10 +183,6 @@ func ScanValue(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanBoolValue(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	if n == -1 {
 		v.SetBool(false)
 		return nil
@@ -202,10 +198,6 @@ func scanBoolValue(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanInt64Value(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	num, err := ScanInt64(rd, n)
 	if err != nil {
 		return err
@@ -216,10 +208,6 @@ func scanInt64Value(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanUint64Value(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	num, err := ScanUint64(rd, n)
 	if err != nil {
 		return err
@@ -230,10 +218,6 @@ func scanUint64Value(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanFloat32Value(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	num, err := ScanFloat32(rd, n)
 	if err != nil {
 		return err
@@ -244,10 +228,6 @@ func scanFloat32Value(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanFloat64Value(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	num, err := ScanFloat64(rd, n)
 	if err != nil {
 		return err
@@ -258,10 +238,6 @@ func scanFloat64Value(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanStringValue(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	s, err := ScanString(rd, n)
 	if err != nil {
 		return err
@@ -272,10 +248,6 @@ func scanStringValue(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanJSONValue(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	// Zero value so it works with SelectOrInsert.
 	//TODO: better handle slices
 	v.Set(reflect.New(v.Type()).Elem())
@@ -289,10 +261,6 @@ func scanJSONValue(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanTimeValue(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	tm, err := ScanTime(rd, n)
 	if err != nil {
 		return err
@@ -305,10 +273,6 @@ func scanTimeValue(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanIPValue(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	if n == -1 {
 		return nil
 	}
@@ -332,10 +296,6 @@ func scanIPValue(v reflect.Value, rd Reader, n int) error {
 var zeroIPNetValue = reflect.ValueOf(net.IPNet{})
 
 func scanIPNetValue(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	if n == -1 {
 		v.Set(zeroIPNetValue)
 		return nil
@@ -358,10 +318,6 @@ func scanIPNetValue(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanJSONRawMessageValue(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	if n == -1 {
 		v.SetBytes(nil)
 		return nil
@@ -377,10 +333,6 @@ func scanJSONRawMessageValue(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanBytesValue(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	if n == -1 {
 		v.SetBytes(nil)
 		return nil
@@ -425,7 +377,7 @@ func scanValueScannerValue(v reflect.Value, rd Reader, n int) error {
 
 func scanValueScannerAddrValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanAddr() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+		return fmt.Errorf("pg: Scan(non-settable %s)", v.Type())
 	}
 	return v.Addr().Interface().(ValueScanner).ScanValue(rd, n)
 }
@@ -447,7 +399,7 @@ func scanSQLScannerValue(v reflect.Value, rd Reader, n int) error {
 
 func scanSQLScannerAddrValue(v reflect.Value, rd Reader, n int) error {
 	if !v.CanAddr() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
+		return fmt.Errorf("pg: Scan(non-settable %s)", v.Type())
 	}
 	return scanSQLScanner(v.Addr().Interface().(sql.Scanner), rd, n)
 }
