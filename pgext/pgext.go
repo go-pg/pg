@@ -81,7 +81,7 @@ func (h OpenTelemetryHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) e
 	}
 
 	if evt.Err != nil {
-		span.SetStatus(codes.Internal, evt.Err.Error())
+		span.SetStatus(codes.Internal, "")
 		span.AddEvent(ctx, "error",
 			kv.String("error.type", reflect.TypeOf(evt.Err).String()),
 			kv.String("error.message", reflect.TypeOf(evt.Err.Error()).String()),

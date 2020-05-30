@@ -15,10 +15,6 @@ func HstoreScanner(typ reflect.Type) ScannerFunc {
 }
 
 func scanMapStringStringValue(v reflect.Value, rd Reader, n int) error {
-	if !v.CanSet() {
-		return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-	}
-
 	m, err := scanMapStringString(rd, n)
 	if err != nil {
 		return err

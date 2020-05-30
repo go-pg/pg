@@ -56,7 +56,7 @@ func init() {
 
 var appendersMap sync.Map
 
-// RegisterAppender registers an appender func for the type.
+// RegisterAppender registers an appender func for the value type.
 // Expecting to be used only during initialization, it panics
 // if there is already a registered appender for the given type.
 func RegisterAppender(value interface{}, fn AppenderFunc) {

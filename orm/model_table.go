@@ -52,7 +52,17 @@ func newTableModel(value interface{}) (TableModel, error) {
 		return nil, errModelNil
 	}
 
-	return newTableModelValue(v.Elem())
+	v = v.Elem()
+	if v.Kind() == reflect.Interface {
+		if !v.IsNil() {
+			v = v.Elem()
+			if v.Kind() != reflect.Ptr {
+				return nil, fmt.Errorf("pg: Model(non-pointer %s)", v.Type().String())
+			}
+		}
+	}
+
+	return newTableModelValue(v)
 }
 
 func newTableModelValue(v reflect.Value) (TableModel, error) {

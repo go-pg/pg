@@ -15,10 +15,6 @@ func compositeScanner(typ reflect.Type) types.ScannerFunc {
 
 	var table *Table
 	return func(v reflect.Value, rd types.Reader, n int) error {
-		if !v.CanSet() {
-			return fmt.Errorf("pg: Scan(nonsettable %s)", v.Type())
-		}
-
 		if n == -1 {
 			v.Set(reflect.Zero(v.Type()))
 			return nil

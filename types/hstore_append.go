@@ -11,6 +11,7 @@ func HstoreAppender(typ reflect.Type) AppenderFunc {
 	if typ.Key() == stringType && typ.Elem() == stringType {
 		return appendMapStringStringValue
 	}
+
 	return func(b []byte, v reflect.Value, flags int) []byte {
 		err := fmt.Errorf("pg.Hstore(unsupported %s)", v.Type())
 		return AppendError(b, err)
