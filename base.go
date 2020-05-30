@@ -506,6 +506,13 @@ func (db *baseDB) copyTo(
 	return res, nil
 }
 
+// Ping verifies a connection to the database is still alive,
+// establishing a connection if necessary.
+func (db *baseDB) Ping(ctx context.Context) error {
+	_, err := db.ExecContext(ctx, "SELECT 1")
+	return err
+}
+
 // Model returns new query for the model.
 func (db *baseDB) Model(model ...interface{}) *orm.Query {
 	return orm.NewQuery(db.db, model...)

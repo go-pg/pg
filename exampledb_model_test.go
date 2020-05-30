@@ -97,8 +97,14 @@ func ExampleDB_Model() {
 	// Story<1 Cool story User<1 admin [admin1@admin admin2@admin]>>
 }
 
+// createSchema creates database schema for User and Story models.
 func createSchema(db *pg.DB) error {
-	for _, model := range []interface{}{(*User)(nil), (*Story)(nil)} {
+	models := []interface{}{
+		(*User)(nil),
+		(*Story)(nil),
+	}
+
+	for _, model := range models {
 		err := db.CreateTable(model, &orm.CreateTableOptions{
 			Temp: true,
 		})
