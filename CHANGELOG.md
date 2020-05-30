@@ -2,7 +2,7 @@
 
 ## v10 (unreleased)
 
-- `pgext.OpenTemetryHook` that adds OpenTelemetry instrumentation.
+- `pgext.OpenTemetryHook` that adds OpenTelemetry [instrumentation](https://pg.uptrace.dev/guide/tracing.html).
 - `pg.QueryHook` returns temp byte slice to reduce memory usage.
 - `,msgpack` tag that uses https://github.com/vmihailenco/msgpack to marshal data in MsgPack format.
 - Deprecated types and funcs are removed.
