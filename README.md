@@ -16,7 +16,7 @@
 
 ### Sponsors
 
-- **Uptrace.dev** - [distributed traces and metrics](https://uptrace.dev)
+- [**Uptrace.dev** - distributed traces and metrics](https://uptrace.dev)
 
 ## Features
 
