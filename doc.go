@@ -1,4 +1,4 @@
 /*
-Package pg implements a PostgreSQL client.
+pg provides PostgreSQL client.
 */
 package pg
