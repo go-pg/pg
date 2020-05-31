@@ -3,15 +3,19 @@
 [![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=master)](https://travis-ci.org/go-pg/pg)
 [![GoDoc](https://godoc.org/github.com/go-pg/pg?status.svg)](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
 
+- [Docs](https://pg.uptrace.dev)
+- [Reference](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
+- [Examples](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#pkg-examples)
+
 ## Features
 
 - Basic types: integers, floats, string, bool, time.Time, net.IP, net.IPNet.
 - sql.NullBool, sql.NullString, sql.NullInt64, sql.NullFloat64 and [pg.NullTime](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#NullTime).
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
 - Structs, maps and arrays are marshalled as JSON by default.
-- PostgreSQL multidimensional Arrays using [array tag](https://godoc.org/github.com/go-pg/pg#example-DB-Model-PostgresArrayStructTag) and [Array wrapper](https://godoc.org/github.com/go-pg/pg#example-Array).
-- Hstore using [hstore tag](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HstoreStructTag) and [Hstore wrapper](https://godoc.org/github.com/go-pg/pg#example-Hstore).
-- [Composite types](https://godoc.org/github.com/go-pg/pg#example-DB-Model-CompositeType).
+- PostgreSQL multidimensional Arrays using [array tag](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Model-PostgresArrayStructTag) and [Array wrapper](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-Array).
+- Hstore using [hstore tag](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Model-HstoreStructTag) and [Hstore wrapper](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-Hstore).
+- [Composite types](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Model-CompositeType).
 - All struct fields are nullable by default and zero values (empty string, 0, zero time, empty map or slice, nil ptr) are marshalled as SQL `NULL`. `pg:",notnull"` is used to add SQL `NOT NULL` constraint and `pg:",use_zero"` to allow Go zero values.
 - [Transactions](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Begin).
 - [Prepared statements](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Prepare).
@@ -20,17 +24,17 @@
 - [Timeouts](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#Options) and canceling queries using context.Context.
 - Automatic connection pooling with [circuit breaker](https://en.wikipedia.org/wiki/Circuit_breaker_design_pattern) support.
 - Queries retry on network errors.
-- Working with models using [ORM](https://godoc.org/github.com/go-pg/pg#example-DB-Model) and [SQL](https://godoc.org/github.com/go-pg/pg#example-DB-Query).
-- Scanning variables using [ORM](https://godoc.org/github.com/go-pg/pg#example-DB-Select-SomeColumnsIntoVars) and [SQL](https://godoc.org/github.com/go-pg/pg#example-Scan).
-- [SelectOrInsert](https://godoc.org/github.com/go-pg/pg#example-DB-Insert-SelectOrInsert) using on-conflict.
-- [INSERT ... ON CONFLICT DO UPDATE](https://godoc.org/github.com/go-pg/pg#example-DB-Insert-OnConflictDoUpdate) using ORM.
-- Bulk/batch [inserts](https://godoc.org/github.com/go-pg/pg#example-DB-Insert-BulkInsert), [updates](https://godoc.org/github.com/go-pg/pg#example-DB-Update-BulkUpdate), and [deletes](https://godoc.org/github.com/go-pg/pg#example-DB-Delete-BulkDelete).
-- Common table expressions using [WITH](https://godoc.org/github.com/go-pg/pg#example-DB-Select-With) and [WrapWith](https://godoc.org/github.com/go-pg/pg#example-DB-Select-WrapWith).
-- [CountEstimate](https://godoc.org/github.com/go-pg/pg#example-DB-Model-CountEstimate) using `EXPLAIN` to get [estimated number of matching rows](https://wiki.postgresql.org/wiki/Count_estimate).
-- ORM supports [has one](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasOne), [belongs to](https://godoc.org/github.com/go-pg/pg#example-DB-Model-BelongsTo), [has many](https://godoc.org/github.com/go-pg/pg#example-DB-Model-HasMany), and [many to many](https://godoc.org/github.com/go-pg/pg#example-DB-Model-ManyToMany) with composite/multi-column primary keys.
-- [Soft deletes](https://godoc.org/github.com/go-pg/pg#example-DB-Model-SoftDelete).
-- [Creating tables from structs](https://godoc.org/github.com/go-pg/pg#example-DB-CreateTable).
-- [ForEach](https://godoc.org/github.com/go-pg/pg#example-DB-Model-ForEach) that calls a function for each row returned by the query without loading all rows into the memory.
+- Working with models using [ORM](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Model) and [SQL](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Query).
+- Scanning variables using [ORM](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Select-SomeColumnsIntoVars) and [SQL](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-Scan).
+- [SelectOrInsert](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Insert-SelectOrInsert) using on-conflict.
+- [INSERT ... ON CONFLICT DO UPDATE](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Insert-OnConflictDoUpdate) using ORM.
+- Bulk/batch [inserts](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Insert-BulkInsert), [updates](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Update-BulkUpdate), and [deletes](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Delete-BulkDelete).
+- Common table expressions using [WITH](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Select-With) and [WrapWith](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Select-WrapWith).
+- [CountEstimate](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Model-CountEstimate) using `EXPLAIN` to get [estimated number of matching rows](https://wiki.postgresql.org/wiki/Count_estimate).
+- ORM supports [has one](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Model-HasOne), [belongs to](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Model-BelongsTo), [has many](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Model-HasMany), and [many to many](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Model-ManyToMany) with composite/multi-column primary keys.
+- [Soft deletes](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Model-SoftDelete).
+- [Creating tables from structs](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-CreateTable).
+- [ForEach](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB-Model-ForEach) that calls a function for each row returned by the query without loading all rows into the memory.
 - Works with PgBouncer in transaction pooling mode.
 
 ## Ecosystem
@@ -39,134 +43,6 @@
 - [Sharding](https://github.com/go-pg/sharding).
 - [Model generator from SQL tables](https://github.com/dizzyfool/genna).
 - [urlstruct](https://github.com/go-pg/urlstruct) to decode `url.Values` into structs.
-
-## Get Started
-
-go-pg requires a Go version with [Modules](https://github.com/golang/go/wiki/Modules) support and uses import versioning. So please make sure to initialize a Go module before installing go-pg:
-
-```shell
-go mod init github.com/my/repo
-go get github.com/go-pg/pg/v10
-```
-
-- [Wiki](https://github.com/go-pg/pg/wiki)
-- [API docs](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
-- [Examples](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#pkg-examples)
-
-## Look & Feel
-
-```go
-package pg_test
-
-import (
-    "fmt"
-
-    "github.com/go-pg/pg/v10"
-    "github.com/go-pg/pg/v10/orm"
-)
-
-type User struct {
-    Id     int64
-    Name   string
-    Emails []string
-}
-
-func (u User) String() string {
-    return fmt.Sprintf("User<%d %s %v>", u.Id, u.Name, u.Emails)
-}
-
-type Story struct {
-    Id       int64
-    Title    string
-    AuthorId int64
-    Author   *User
-}
-
-func (s Story) String() string {
-    return fmt.Sprintf("Story<%d %s %s>", s.Id, s.Title, s.Author)
-}
-
-func ExampleDB_Model() {
-    db := pg.Connect(&pg.Options{
-        User: "postgres",
-    })
-    defer db.Close()
-
-    err := createSchema(db)
-    if err != nil {
-        panic(err)
-    }
-
-    user1 := &User{
-        Name:   "admin",
-        Emails: []string{"admin1@admin", "admin2@admin"},
-    }
-    err = db.Insert(user1)
-    if err != nil {
-        panic(err)
-    }
-
-    err = db.Insert(&User{
-        Name:   "root",
-        Emails: []string{"root1@root", "root2@root"},
-    })
-    if err != nil {
-        panic(err)
-    }
-
-    story1 := &Story{
-        Title:    "Cool story",
-        AuthorId: user1.Id,
-    }
-    err = db.Insert(story1)
-    if err != nil {
-        panic(err)
-    }
-
-    // Select user by primary key.
-    user := &User{Id: user1.Id}
-    err = db.Select(user)
-    if err != nil {
-        panic(err)
-    }
-
-    // Select all users.
-    var users []User
-    err = db.Model(&users).Select()
-    if err != nil {
-        panic(err)
-    }
-
-    // Select story and associated author in one query.
-    story := new(Story)
-    err = db.Model(story).
-        Relation("Author").
-        Where("story.id = ?", story1.Id).
-        Select()
-    if err != nil {
-        panic(err)
-    }
-
-    fmt.Println(user)
-    fmt.Println(users)
-    fmt.Println(story)
-    // Output: User<1 admin [admin1@admin admin2@admin]>
-    // [User<1 admin [admin1@admin admin2@admin]> User<2 root [root1@root root2@root]>]
-    // Story<1 Cool story User<1 admin [admin1@admin admin2@admin]>>
-}
-
-func createSchema(db *pg.DB) error {
-    for _, model := range []interface{}{(*User)(nil), (*Story)(nil)} {
-        err := db.CreateTable(model, &orm.CreateTableOptions{
-            Temp: true,
-        })
-        if err != nil {
-            return err
-        }
-    }
-    return nil
-}
-```
 
 ## See also
 
