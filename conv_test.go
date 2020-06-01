@@ -34,6 +34,33 @@ func (m JSONMap) Value() (driver.Value, error) {
 	return string(b), nil
 }
 
+//------------------------------------------------------------------------------
+
+type Valuer struct {
+	v string
+}
+
+var _ driver.Valuer = (*Valuer)(nil)
+
+func (v Valuer) Value() (driver.Value, error) {
+	return v.v, nil
+}
+
+var _ sql.Scanner = (*Valuer)(nil)
+
+func (v *Valuer) Scan(src interface{}) error {
+	switch src := src.(type) {
+	case nil:
+		v.v = ""
+		return nil
+	case []byte:
+		v.v = string(src)
+		return nil
+	default:
+		return fmt.Errorf("unsupported type: %T", src)
+	}
+}
+
 type Struct struct {
 	Foo string
 }
@@ -376,6 +403,11 @@ func conversionTests() []conversionTest {
 		{src: mustParseCIDR("192.168.100.128/25"), dst: new(net.IPNet), pgtype: "cidr"},
 		{src: mustParseCIDR("2001:4f8:3:ba::/64"), dst: new(net.IPNet), pgtype: "cidr"},
 		{src: mustParseCIDR("2001:4f8:3:ba:2e0:81ff:fe22:d1f1/128"), dst: new(net.IPNet), pgtype: "cidr"},
+
+		{src: nil, dst: new(Valuer), wanted: Valuer{}},
+		{src: (*Valuer)(nil), dst: new(Valuer), wanted: Valuer{}},
+		{src: new(Valuer), dst: new(Valuer), wanted: Valuer{}},
+		{src: Valuer{v: "hello"}, dst: new(Valuer)},
 	}
 }
 

@@ -236,3 +236,11 @@ func appendAppenderValue(b []byte, v reflect.Value, flags int) []byte {
 func appendDriverValuerValue(b []byte, v reflect.Value, flags int) []byte {
 	return appendDriverValuer(b, v.Interface().(driver.Valuer), flags)
 }
+
+func appendDriverValuer(b []byte, v driver.Valuer, flags int) []byte {
+	value, err := v.Value()
+	if err != nil {
+		return AppendError(b, err)
+	}
+	return Append(b, value, flags)
+}
