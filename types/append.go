@@ -1,7 +1,6 @@
 package types
 
 import (
-	"database/sql/driver"
 	"math"
 	"reflect"
 	"strconv"
@@ -34,8 +33,6 @@ func Append(b []byte, v interface{}, flags int) []byte {
 		return AppendBytes(b, v, flags)
 	case ValueAppender:
 		return appendAppender(b, v, flags)
-	case driver.Valuer:
-		return appendDriverValuer(b, v, flags)
 	default:
 		return appendValue(b, reflect.ValueOf(v), flags)
 	}
@@ -188,14 +185,6 @@ func AppendBytes(b []byte, bytes []byte, flags int) []byte {
 	}
 
 	return b
-}
-
-func appendDriverValuer(b []byte, v driver.Valuer, flags int) []byte {
-	value, err := v.Value()
-	if err != nil {
-		return AppendError(b, err)
-	}
-	return Append(b, value, flags)
 }
 
 func appendAppender(b []byte, v ValueAppender, flags int) []byte {

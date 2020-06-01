@@ -384,13 +384,13 @@ func scanValueScannerAddrValue(v reflect.Value, rd Reader, n int) error {
 
 func scanSQLScannerValue(v reflect.Value, rd Reader, n int) error {
 	if n == -1 {
-		if v.IsNil() {
+		if nilable(v) && v.IsNil() {
 			return nil
 		}
 		return scanSQLScanner(v.Interface().(sql.Scanner), rd, n)
 	}
 
-	if v.IsNil() {
+	if nilable(v) && v.IsNil() {
 		v.Set(reflect.New(v.Type().Elem()))
 	}
 
