@@ -147,4 +147,17 @@ var _ = Describe("Tx", func() {
 		_, err = db.Exec("DROP TABLE IF EXISTS test_copy_from")
 		Expect(err).NotTo(HaveOccurred())
 	})
+
+	It("drops bad connections", func() {
+		_ = db.RunInTransaction(func(tx *pg.Tx) error {
+			stmt, err := tx.Prepare("invalid statement")
+			if err != nil {
+				return err
+			}
+			return stmt.Close()
+		})
+
+		_, err := db.Exec("select 1")
+		Expect(err).NotTo(HaveOccurred())
+	})
 })

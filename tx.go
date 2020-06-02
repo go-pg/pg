@@ -81,12 +81,17 @@ func (tx *Tx) Begin() (*Tx, error) {
 func (tx *Tx) RunInTransaction(fn func(*Tx) error) error {
 	defer func() {
 		if err := recover(); err != nil {
-			_ = tx.Rollback()
+			if err := tx.Rollback(); err != nil {
+				internal.Logger.Printf("tx.Rollback failed: %s", err)
+			}
 			panic(err)
 		}
 	}()
+
 	if err := fn(tx); err != nil {
-		_ = tx.Rollback()
+		if err := tx.Rollback(); err != nil {
+			internal.Logger.Printf("tx.Rollback failed: %s", err)
+		}
 		return err
 	}
 	return tx.Commit()
@@ -94,7 +99,7 @@ func (tx *Tx) RunInTransaction(fn func(*Tx) error) error {
 
 func (tx *Tx) withConn(c context.Context, fn func(context.Context, *pool.Conn) error) error {
 	err := tx.db.withConn(c, fn)
-	if err == pool.ErrClosed {
+	if tx.closed() && err == pool.ErrClosed {
 		return ErrTxDone
 	}
 	return err
@@ -120,7 +125,8 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 	tx.stmtsMu.Lock()
 	defer tx.stmtsMu.Unlock()
 
-	stmt, err := prepareStmt(tx.db, q)
+	db := tx.db.withPool(pool.NewSingleConnPool(tx.db.pool))
+	stmt, err := prepareStmt(db, q)
 	if err != nil {
 		return nil, err
 	}
@@ -392,6 +398,7 @@ func (tx *Tx) close() {
 		_ = stmt.Close()
 	}
 	tx.stmts = nil
+
 	_ = tx.db.Close()
 }
 
