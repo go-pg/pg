@@ -2,6 +2,7 @@ package pool
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync/atomic"
 )
@@ -170,7 +171,7 @@ func (p *SingleConnPool) Close() error {
 		}
 	}
 
-	return fmt.Errorf("pg: SingleConnPool.Close: infinite loop")
+	return errors.New("pg: SingleConnPool.Close: infinite loop")
 }
 
 func (p *SingleConnPool) Reset() error {
@@ -186,7 +187,7 @@ func (p *SingleConnPool) Reset() error {
 		p.pool.Remove(cn, ErrClosed)
 		p._badConnError.Store(BadConnError{wrapped: nil})
 	default:
-		return fmt.Errorf("pg: SingleConnPool does not have a Conn")
+		return errors.New("pg: SingleConnPool does not have a Conn")
 	}
 
 	if !atomic.CompareAndSwapUint32(&p.state, stateInited, stateDefault) {
