@@ -318,12 +318,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			t.setName("")
 		} else if pgTag.Name != "" {
 			s, _ := tagparser.Unquote(pgTag.Name)
-			t.setName(types.Safe(internal.QuoteTableName(s)))
+			t.setName(types.Safe(quoteTableName(s)))
 		}
 
 		if s, ok := pgTag.Options["select"]; ok {
 			s, _ = tagparser.Unquote(s)
-			t.FullNameForSelects = types.Safe(internal.QuoteTableName(s))
+			t.FullNameForSelects = types.Safe(quoteTableName(s))
 		}
 
 		if v, ok := pgTag.Options["alias"]; ok {
@@ -993,6 +993,15 @@ func tryUnderscorePrefix(s string) string {
 		return internal.Underscore(s) + "_"
 	}
 	return s
+}
+
+func quoteTableName(s string) types.Safe {
+	// Don't quote if table name contains placeholder (?) or parentheses.
+	if strings.IndexByte(s, '?') >= 0 ||
+		strings.IndexByte(s, '(') >= 0 && strings.IndexByte(s, ')') >= 0 {
+		return types.Safe(s)
+	}
+	return quoteIdent(s)
 }
 
 func quoteIdent(s string) types.Safe {
