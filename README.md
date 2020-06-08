@@ -7,14 +7,14 @@
 - [Reference](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
 - [Examples](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#pkg-examples)
 
-### Ecosystem
+## Ecosystem
 
 - Migrations by [vmihailenco](https://github.com/go-pg/migrations) and [robinjoseph08](https://github.com/robinjoseph08/go-pg-migrations).
 - [Sharding](https://github.com/go-pg/sharding).
 - [Model generator from SQL tables](https://github.com/dizzyfool/genna).
 - [urlstruct](https://github.com/go-pg/urlstruct) to decode `url.Values` into structs.
 
-### Sponsors
+## Sponsors
 
 - [**Uptrace.dev** - distributed traces and metrics](https://uptrace.dev)
 
