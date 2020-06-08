@@ -15,7 +15,7 @@ func init() {
 
 type Elem struct {
 	Id    int
-	Elems []Elem `pg:"many2many:elem_to_elems,joinFK:sub_id"`
+	Elems []Elem `pg:"many2many:elem_to_elems,join_fk:sub_id"`
 }
 
 type ElemToElem struct {

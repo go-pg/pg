@@ -592,15 +592,21 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 			}
 		}
 
-		joinFK, joinFKOK := pgTag.Options["joinFK"]
-		if joinFKOK {
+		joinFK, joinFKOk := pgTag.Options["joinFK"]
+		if joinFKOk {
+			internal.Deprecated.Printf("joinFK is renamed to join_fk")
+		} else {
+			joinFK, joinFKOk = pgTag.Options["join_fk"]
+		}
+
+		if joinFKOk {
 			joinFK = tryUnderscorePrefix(joinFK)
 		} else {
 			joinFK = joinTable.ModelName + "_"
 		}
 		var joinFKs []string
 		if m2mTable != nil {
-			keys := foreignKeys(joinTable, m2mTable, joinFK, joinFKOK)
+			keys := foreignKeys(joinTable, m2mTable, joinFK, joinFKOk)
 			if len(keys) == 0 {
 				return false
 			}
@@ -608,7 +614,7 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 				joinFKs = append(joinFKs, fk.SQLName)
 			}
 		} else {
-			if joinFKOK && len(joinTable.PKs) == 1 {
+			if joinFKOk && len(joinTable.PKs) == 1 {
 				joinFKs = append(joinFKs, joinFK)
 			} else {
 				for _, pk := range joinTable.PKs {

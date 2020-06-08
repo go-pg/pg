@@ -9,6 +9,7 @@
 - Changed `pg.QueryHook` to return temp byte slice to reduce memory usage.
 - `,msgpack` struct tag marshals data in MessagePack format using
   https://github.com/vmihailenco/msgpack
+- `joinFK` is deprecated in favor of `join_fk`.
 - Deprecated types and funcs are removed.
 
 ## v9
