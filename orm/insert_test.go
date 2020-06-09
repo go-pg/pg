@@ -145,14 +145,14 @@ var _ = Describe("Insert", func() {
 		q := NewQuery(nil, &EmbeddedInsertTest{})
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO my_name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
+		Expect(s).To(Equal(`INSERT INTO "my_name" ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
 	})
 
 	It("inherits table name from embedded struct", func() {
 		q := NewQuery(nil, &InheritInsertTest{})
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO name ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
+		Expect(s).To(Equal(`INSERT INTO "name" ("id", "field", "field2") VALUES (DEFAULT, DEFAULT, DEFAULT) RETURNING "id", "field", "field2"`))
 	})
 
 	It("supports value when default value is set", func() {
