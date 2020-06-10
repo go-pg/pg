@@ -92,10 +92,11 @@ func TestDBString(t *testing.T) {
 
 func TestOnConnect(t *testing.T) {
 	opt := pgOptions()
-	opt.OnConnect = func(db *pg.Conn) error {
+	opt.OnConnect = func(ctx context.Context, db *pg.Conn) error {
 		_, err := db.Exec("SET application_name = 'myapp'")
 		return err
 	}
+
 	db := pg.Connect(opt)
 	defer db.Close()
 

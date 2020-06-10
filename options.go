@@ -31,6 +31,10 @@ type Options struct {
 	// Network and Addr options.
 	Dialer func(ctx context.Context, network, addr string) (net.Conn, error)
 
+	// Hook that is called after new connection is established
+	// and user is authenticated.
+	OnConnect func(ctx context.Context, cn *Conn) error
+
 	User     string
 	Password string
 	Database string
@@ -52,10 +56,6 @@ type Options struct {
 	// Timeout for socket writes. If reached, commands will fail
 	// with a timeout instead of blocking.
 	WriteTimeout time.Duration
-
-	// Hook that is called after new connection is established
-	// and user is authenticated.
-	OnConnect func(*Conn) error
 
 	// Maximum number of retries before giving up.
 	// Default is to not retry failed queries.
