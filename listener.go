@@ -174,6 +174,37 @@ func (ln *Listener) listen(cn *pool.Conn, channels ...string) error {
 	return err
 }
 
+// Unlisten stops listening for notifications on channels.
+func (ln *Listener) Unlisten(channels ...string) error {
+	ln.channels = removeIfExists(ln.channels, channels...)
+
+	cn, err := ln.conn()
+	if err != nil {
+		return err
+	}
+
+	err = ln.unlisten(cn, channels...)
+	if err != nil {
+		ln.releaseConn(cn, err, false)
+		return err
+	}
+
+	return nil
+}
+
+func (ln *Listener) unlisten(cn *pool.Conn, channels ...string) error {
+	err := cn.WithWriter(ln.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+		for _, channel := range channels {
+			err := writeQueryMsg(wb, ln.db, "UNLISTEN ?", pgChan(channel))
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	return err
+}
+
 // Receive indefinitely waits for a notification. This is low-level API
 // and in most cases Channel should be used instead.
 func (ln *Listener) Receive() (channel string, payload string, err error) {
@@ -326,6 +357,21 @@ loop:
 			}
 		}
 		ss = append(ss, e)
+	}
+	return ss
+}
+
+func removeIfExists(ss []string, es ...string) []string {
+	// FIXME: Protect against data races.
+	for _, e := range es {
+		for i, s := range ss {
+			if s == e {
+				last := len(ss) - 1
+				ss[i] = ss[last]
+				ss = ss[:last]
+				break
+			}
+		}
 	}
 	return ss
 }
