@@ -43,6 +43,9 @@ type Listener struct {
 }
 
 func (ln *Listener) String() string {
+	ln.mu.Lock()
+	defer ln.mu.Unlock()
+
 	return fmt.Sprintf("Listener(%s)", strings.Join(ln.channels, ", "))
 }
 
@@ -148,7 +151,9 @@ func (ln *Listener) Close() error {
 // Listen starts listening for notifications on channels.
 func (ln *Listener) Listen(channels ...string) error {
 	// Always append channels so DB.Listen works correctly.
+	ln.mu.Lock()
 	ln.channels = appendIfNotExists(ln.channels, channels...)
+	ln.mu.Unlock()
 
 	cn, err := ln.connWithLock()
 	if err != nil {
@@ -179,7 +184,9 @@ func (ln *Listener) listen(c context.Context, cn *pool.Conn, channels ...string)
 
 // Unlisten stops listening for notifications on channels.
 func (ln *Listener) Unlisten(channels ...string) error {
+	ln.mu.Lock()
 	ln.channels = removeIfExists(ln.channels, channels...)
+	ln.mu.Unlock()
 
 	cn, err := ln.conn()
 	if err != nil {
@@ -365,7 +372,6 @@ loop:
 }
 
 func removeIfExists(ss []string, es ...string) []string {
-	// FIXME: Protect against data races.
 	for _, e := range es {
 		for i, s := range ss {
 			if s == e {
