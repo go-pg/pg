@@ -2,8 +2,8 @@
 
 ## v10 (unreleased)
 
-- Added `pgext.OpenTemetryHook` that adds OpenTelemetry
-  [instrumentation](https://pg.uptrace.dev/tracing/).
+- Added `pgext.OpenTemetryHook` that adds
+  [PostgreSQL OpenTelemetry instrumentation](https://pg.uptrace.dev/tracing/).
 - Added `pgext.DebugHook` that logs queries and errors.
 - Added `db.Ping` to check if database is healthy.
 - Changed `pg.QueryHook` to return temp byte slice to reduce memory usage.
