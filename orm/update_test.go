@@ -1,6 +1,10 @@
 package orm
 
 import (
+	"database/sql"
+	"time"
+
+	"github.com/go-pg/pg/v10/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -167,6 +171,23 @@ var _ = Describe("Update", func() {
 			s := updateQueryStringOmitZero(q)
 			Expect(s).To(Equal(`UPDATE "models" AS "model" SET "bool" = FALSE WHERE "model"."id" = 1`))
 		}
+	})
+
+	It("bulk updates pg.NullTime", func() {
+		type Model struct {
+			ID        int64          `pg:"id,pk"`
+			CreatedAt types.NullTime `pg:"created_at"`
+			DeletedAt sql.NullTime   `pg:"deleted_at"`
+		}
+
+		q := NewQuery(nil, &[]Model{{
+			ID:        1,
+			CreatedAt: types.NullTime{time.Unix(0, 0)},
+			DeletedAt: sql.NullTime{Time: time.Unix(0, 0), Valid: true},
+		}})
+
+		s := updateQueryString(q)
+		Expect(s).To(Equal(`UPDATE "models" AS "model" SET "created_at" = _data."created_at", "deleted_at" = _data."deleted_at" FROM (VALUES (1::bigint, '1970-01-01 00:00:00+00:00:00'::timestamptz, '1970-01-01 00:00:00+00:00:00'::timestamptz)) AS _data("id", "created_at", "deleted_at") WHERE "model"."id" = _data."id"`))
 	})
 })
 
