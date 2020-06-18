@@ -37,6 +37,7 @@ const (
 var (
 	timeType           = reflect.TypeOf((*time.Time)(nil)).Elem()
 	nullTimeType       = reflect.TypeOf((*types.NullTime)(nil)).Elem()
+	sqlNullTimeType    = reflect.TypeOf((*sql.NullTime)(nil)).Elem()
 	ipType             = reflect.TypeOf((*net.IP)(nil)).Elem()
 	ipNetType          = reflect.TypeOf((*net.IPNet)(nil)).Elem()
 	scannerType        = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
@@ -781,7 +782,7 @@ func fieldSQLType(field *Field, pgTag *tagparser.Tag) string {
 
 func sqlType(typ reflect.Type) string {
 	switch typ {
-	case timeType:
+	case timeType, nullTimeType, sqlNullTimeType:
 		return pgTypeTimestampTz
 	case ipType:
 		return pgTypeInet
