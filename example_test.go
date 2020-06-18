@@ -2,6 +2,7 @@ package pg_test
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	"github.com/go-pg/pg/v10/orm"
 )
 
+var ctx = context.Background()
 var pgdb *pg.DB
 
 func init() {
@@ -93,7 +95,7 @@ func ExampleDB_Exec() {
 }
 
 func ExampleListener() {
-	ln := pgdb.Listen("mychan")
+	ln := pgdb.Listen(ctx, "mychan")
 	defer ln.Close()
 
 	ch := ln.Channel()

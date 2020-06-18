@@ -75,12 +75,12 @@ func (db *DB) WithParam(param string, value interface{}) *DB {
 }
 
 // Listen listens for notifications sent with NOTIFY command.
-func (db *DB) Listen(channels ...string) *Listener {
+func (db *DB) Listen(ctx context.Context, channels ...string) *Listener {
 	ln := &Listener{
 		db: db,
 	}
 	ln.init()
-	_ = ln.Listen(channels...)
+	_ = ln.Listen(ctx, channels...)
 	return ln
 }
 

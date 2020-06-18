@@ -47,12 +47,12 @@ func (t *PoolTest) TestPoolMaxSize(c *C) {
 }
 
 func (t *PoolTest) TestCloseClosesAllConnections(c *C) {
-	ln := t.db.Listen("test_channel")
+	ln := t.db.Listen(ctx, "test_channel")
 
 	wait := make(chan struct{}, 2)
 	go func() {
 		wait <- struct{}{}
-		_, _, err := ln.Receive()
+		_, _, err := ln.Receive(ctx)
 		c.Assert(err, ErrorMatches, `^(.*use of closed (file or )?network connection|EOF)$`)
 		wait <- struct{}{}
 	}()
@@ -93,7 +93,7 @@ func (t *PoolTest) TestClosedDB(c *C) {
 }
 
 func (t *PoolTest) TestClosedListener(c *C) {
-	ln := t.db.Listen("test_channel")
+	ln := t.db.Listen(ctx, "test_channel")
 
 	c.Assert(t.db.Pool().Len(), Equals, 1)
 	c.Assert(t.db.Pool().IdleLen(), Equals, 0)
@@ -107,7 +107,7 @@ func (t *PoolTest) TestClosedListener(c *C) {
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: listener is closed")
 
-	_, _, err = ln.ReceiveTimeout(time.Second)
+	_, _, err = ln.ReceiveTimeout(ctx, time.Second)
 	c.Assert(err, Not(IsNil))
 	c.Assert(err.Error(), Equals, "pg: listener is closed")
 }

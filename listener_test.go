@@ -20,7 +20,7 @@ var _ = Context("Listener", func() {
 		opt.PoolTimeout = time.Second
 
 		db = pg.Connect(opt)
-		ln = db.Listen("test_channel")
+		ln = db.Listen(ctx, "test_channel")
 	})
 
 	var _ = AfterEach(func() {
@@ -37,7 +37,7 @@ var _ = Context("Listener", func() {
 
 	It("reuses connection", func() {
 		for i := 0; i < 100; i++ {
-			_, _, err := ln.ReceiveTimeout(time.Nanosecond)
+			_, _, err := ln.ReceiveTimeout(ctx, time.Nanosecond)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(MatchRegexp(".+ i/o timeout"))
 		}
@@ -56,7 +56,7 @@ var _ = Context("Listener", func() {
 			defer GinkgoRecover()
 
 			wait <- struct{}{}
-			channel, payload, err := ln.Receive()
+			channel, payload, err := ln.Receive(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(channel).To(Equal("test_channel"))
 			Expect(payload).To(Equal(""))
@@ -88,7 +88,7 @@ var _ = Context("Listener", func() {
 			defer GinkgoRecover()
 
 			wait <- struct{}{}
-			_, _, err := ln.Receive()
+			_, _, err := ln.Receive(ctx)
 
 			Expect(err).ToNot(BeNil())
 			Expect(err.Error()).To(SatisfyAny(
@@ -121,7 +121,7 @@ var _ = Context("Listener", func() {
 			Fail("Listener is not closed")
 		}
 
-		_, _, err := ln.Receive()
+		_, _, err := ln.Receive(ctx)
 		Expect(err).To(MatchError("pg: listener is closed"))
 
 		err = ln.Close()
@@ -129,7 +129,7 @@ var _ = Context("Listener", func() {
 	})
 
 	It("returns an error on timeout", func() {
-		channel, payload, err := ln.ReceiveTimeout(time.Second)
+		channel, payload, err := ln.ReceiveTimeout(ctx, time.Second)
 		Expect(err.(net.Error).Timeout()).To(BeTrue())
 		Expect(channel).To(Equal(""))
 		Expect(payload).To(Equal(""))
@@ -140,10 +140,10 @@ var _ = Context("Listener", func() {
 		Expect(cn).NotTo(BeNil())
 		cn.SetNetConn(&badConn{})
 
-		err := ln.Listen("test_channel2")
+		err := ln.Listen(ctx, "test_channel2")
 		Expect(err).Should(MatchError("bad connection"))
 
-		err = ln.Listen("test_channel2")
+		err = ln.Listen(ctx, "test_channel2")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -152,10 +152,10 @@ var _ = Context("Listener", func() {
 		Expect(cn).NotTo(BeNil())
 		cn.SetNetConn(&badConn{})
 
-		_, _, err := ln.ReceiveTimeout(time.Second)
+		_, _, err := ln.ReceiveTimeout(ctx, time.Second)
 		Expect(err).Should(MatchError("bad connection"))
 
-		_, _, err = ln.ReceiveTimeout(time.Second)
+		_, _, err = ln.ReceiveTimeout(ctx, time.Second)
 		Expect(err.(net.Error).Timeout()).To(BeTrue())
 
 		wait := make(chan struct{}, 2)
@@ -163,7 +163,7 @@ var _ = Context("Listener", func() {
 			defer GinkgoRecover()
 
 			wait <- struct{}{}
-			_, _, lnerr := ln.Receive()
+			_, _, lnerr := ln.Receive(ctx)
 			Expect(lnerr).NotTo(HaveOccurred())
 			wait <- struct{}{}
 		}()
@@ -206,14 +206,14 @@ var _ = Context("Listener", func() {
 			defer GinkgoRecover()
 
 			for i := 0; i < N; i++ {
-				_, _, err := ln.ReceiveTimeout(5 * time.Second)
+				_, _, err := ln.ReceiveTimeout(ctx, 5*time.Second)
 				Expect(err).NotTo(HaveOccurred())
 			}
 			close(done)
 		}()
 
 		for i := 0; i < N; i++ {
-			err := ln.Listen("test_channel")
+			err := ln.Listen(ctx, "test_channel")
 			Expect(err).NotTo(HaveOccurred())
 		}
 
