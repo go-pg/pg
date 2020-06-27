@@ -241,9 +241,9 @@ var _ = Describe("anonymous struct", func() {
 		}
 
 		table := orm.GetTable(reflect.TypeOf(model))
-		Expect(table.FullName).To(Equal(types.Safe("some_name")))
-		Expect(table.FullNameForSelects).To(Equal(types.Safe("some_name")))
-		Expect(table.Alias).To(Equal(types.Safe("some_name")))
+		Expect(table.FullName).To(Equal(types.Safe(`"some_name"`)))
+		Expect(table.FullNameForSelects).To(Equal(types.Safe(`"some_name"`)))
+		Expect(table.Alias).To(Equal(types.Safe(`"some_name"`)))
 	})
 })
 

@@ -41,7 +41,7 @@ func (q *dropCompositeQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
-	if q.q.model == nil {
+	if q.q.tableModel == nil {
 		return nil, errModelNil
 	}
 
@@ -49,7 +49,7 @@ func (q *dropCompositeQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte
 	if q.opt != nil && q.opt.IfExists {
 		b = append(b, "IF EXISTS "...)
 	}
-	b = append(b, q.q.model.Table().Alias...)
+	b = append(b, q.q.tableModel.Table().Alias...)
 	if q.opt != nil && q.opt.Cascade {
 		b = append(b, " CASCADE"...)
 	}

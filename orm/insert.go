@@ -3,6 +3,7 @@ package orm
 import (
 	"fmt"
 	"reflect"
+	"sort"
 
 	"github.com/go-pg/pg/v10/types"
 )
@@ -73,54 +74,9 @@ func (q *insertQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		return nil, err
 	}
 
-	if q.q.hasMultiTables() {
-		if q.q.columns != nil {
-			b = append(b, " ("...)
-			b, err = q.q.appendColumns(fmter, b)
-			if err != nil {
-				return nil, err
-			}
-			b = append(b, ")"...)
-		}
-		b = append(b, " SELECT * FROM "...)
-		b, err = q.q.appendOtherTables(fmter, b)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		if !q.q.hasModel() {
-			return nil, errModelNil
-		}
-
-		fields, err := q.q.getFields()
-		if err != nil {
-			return nil, err
-		}
-
-		if len(fields) == 0 {
-			fields = q.q.model.Table().Fields
-		}
-		value := q.q.model.Value()
-
-		b = append(b, " ("...)
-		b = q.appendColumns(b, fields)
-		b = append(b, ") VALUES ("...)
-		if m, ok := q.q.model.(*sliceTableModel); ok {
-			if m.sliceLen == 0 {
-				err = fmt.Errorf("pg: can't bulk-insert empty slice %s", value.Type())
-				return nil, err
-			}
-			b, err = q.appendSliceValues(fmter, b, fields, value)
-			if err != nil {
-				return nil, err
-			}
-		} else {
-			b, err = q.appendValues(fmter, b, fields, value)
-			if err != nil {
-				return nil, err
-			}
-		}
-		b = append(b, ")"...)
+	b, err = q.appendColumnsValues(fmter, b)
+	if err != nil {
+		return nil, err
 	}
 
 	if q.q.onConflict != nil {
@@ -143,7 +99,7 @@ func (q *insertQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 				}
 
 				if len(fields) == 0 {
-					fields = q.q.model.Table().DataFields
+					fields = q.q.tableModel.Table().DataFields
 				}
 
 				b = q.appendSetExcluded(b, fields)
@@ -169,6 +125,98 @@ func (q *insertQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	}
 
 	return b, q.q.stickyErr
+}
+
+func (q *insertQuery) appendColumnsValues(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+	if q.q.hasMultiTables() {
+		if q.q.columns != nil {
+			b = append(b, " ("...)
+			b, err = q.q.appendColumns(fmter, b)
+			if err != nil {
+				return nil, err
+			}
+			b = append(b, ")"...)
+		}
+
+		b = append(b, " SELECT * FROM "...)
+		b, err = q.q.appendOtherTables(fmter, b)
+		if err != nil {
+			return nil, err
+		}
+
+		return b, nil
+	}
+
+	if m, ok := q.q.model.(*mapModel); ok {
+		return appendMapColumnsValues(b, m.m), nil
+	}
+
+	if !q.q.hasModel() {
+		return nil, errModelNil
+	}
+
+	fields, err := q.q.getFields()
+	if err != nil {
+		return nil, err
+	}
+
+	if len(fields) == 0 {
+		fields = q.q.tableModel.Table().Fields
+	}
+	value := q.q.tableModel.Value()
+
+	b = append(b, " ("...)
+	b = q.appendColumns(b, fields)
+	b = append(b, ") VALUES ("...)
+	if m, ok := q.q.tableModel.(*sliceTableModel); ok {
+		if m.sliceLen == 0 {
+			err = fmt.Errorf("pg: can't bulk-insert empty slice %s", value.Type())
+			return nil, err
+		}
+		b, err = q.appendSliceValues(fmter, b, fields, value)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		b, err = q.appendValues(fmter, b, fields, value)
+		if err != nil {
+			return nil, err
+		}
+	}
+	b = append(b, ")"...)
+
+	return b, nil
+}
+
+func appendMapColumnsValues(b []byte, m map[string]interface{}) []byte {
+	keys := make([]string, 0, len(m))
+
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	b = append(b, " ("...)
+
+	for i, k := range keys {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = types.AppendIdent(b, k, 1)
+	}
+
+	b = append(b, ") VALUES ("...)
+
+	for i, k := range keys {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+		b = types.Append(b, m[k], 1)
+	}
+
+	b = append(b, ")"...)
+
+	return b
 }
 
 func (q *insertQuery) appendValues(

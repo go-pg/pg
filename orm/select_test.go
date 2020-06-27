@@ -98,7 +98,7 @@ var _ = Describe("Select", func() {
 	It("specifies all columns for has many", func() {
 		q := NewQuery(nil, &SelectModel{Id: 1}).Relation("HasMany")
 
-		q, err := q.model.GetJoin("HasMany").manyQuery(q.New())
+		q, err := q.tableModel.GetJoin("HasMany").manyQuery(q.New())
 		Expect(err).NotTo(HaveOccurred())
 
 		s := selectQueryString(q)
@@ -112,7 +112,7 @@ var _ = Describe("Select", func() {
 				return q, nil
 			})
 
-		q, err := q.model.GetJoin("HasMany").manyQuery(q.New())
+		q, err := q.tableModel.GetJoin("HasMany").manyQuery(q.New())
 		Expect(err).NotTo(HaveOccurred())
 
 		s := selectQueryString(q)

@@ -31,54 +31,6 @@ type TableModel interface {
 	scanColumn(int, string, types.Reader, int) (bool, error)
 }
 
-func newTableModel(value interface{}) (TableModel, error) {
-	if value, ok := value.(TableModel); ok {
-		return value, nil
-	}
-
-	v := reflect.ValueOf(value)
-	if !v.IsValid() {
-		return nil, errModelNil
-	}
-	if v.Kind() != reflect.Ptr {
-		return nil, fmt.Errorf("pg: Model(non-pointer %T)", value)
-	}
-
-	if v.IsNil() {
-		typ := v.Type().Elem()
-		if typ.Kind() == reflect.Struct {
-			return newStructTableModel(GetTable(typ)), nil
-		}
-		return nil, errModelNil
-	}
-
-	v = v.Elem()
-	if v.Kind() == reflect.Interface {
-		if !v.IsNil() {
-			v = v.Elem()
-			if v.Kind() != reflect.Ptr {
-				return nil, fmt.Errorf("pg: Model(non-pointer %s)", v.Type().String())
-			}
-		}
-	}
-
-	return newTableModelValue(v)
-}
-
-func newTableModelValue(v reflect.Value) (TableModel, error) {
-	switch v.Kind() {
-	case reflect.Struct:
-		return newStructTableModelValue(v), nil
-	case reflect.Slice:
-		elemType := sliceElemType(v)
-		if elemType.Kind() == reflect.Struct {
-			return newSliceTableModel(v, elemType), nil
-		}
-	}
-
-	return nil, fmt.Errorf("pg: Model(unsupported %s)", v.Type())
-}
-
 func newTableModelIndex(typ reflect.Type, root reflect.Value, index []int, rel *Relation) (TableModel, error) {
 	typ = typeByIndex(typ, index)
 

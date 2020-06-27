@@ -43,7 +43,7 @@ func (q *dropTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, 
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
-	if q.q.model == nil {
+	if q.q.tableModel == nil {
 		return nil, errModelNil
 	}
 

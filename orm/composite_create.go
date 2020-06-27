@@ -44,14 +44,14 @@ func (q *createCompositeQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]by
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
-	if q.q.model == nil {
+	if q.q.tableModel == nil {
 		return nil, errModelNil
 	}
 
-	table := q.q.model.Table()
+	table := q.q.tableModel.Table()
 
 	b = append(b, "CREATE TYPE "...)
-	b = append(b, q.q.model.Table().Alias...)
+	b = append(b, table.Alias...)
 	b = append(b, " AS ("...)
 
 	for i, field := range table.Fields {

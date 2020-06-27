@@ -43,29 +43,56 @@ type Model interface {
 	AfterDeleteHook
 }
 
-func NewModel(values ...interface{}) (Model, error) {
+func NewModel(value interface{}) (Model, error) {
+	return newModel(value, false)
+}
+
+func newScanModel(values []interface{}) (Model, error) {
 	if len(values) > 1 {
 		return Scan(values...), nil
 	}
+	return newModel(values[0], true)
+}
 
-	v0 := values[0]
-	switch v0 := v0.(type) {
+func newModel(value interface{}, scan bool) (Model, error) {
+	switch value := value.(type) {
 	case Model:
-		return v0, nil
+		return value, nil
 	case HooklessModel:
-		return newModelWithHookStubs(v0), nil
+		return newModelWithHookStubs(value), nil
 	case types.ValueScanner, sql.Scanner:
-		return Scan(v0), nil
+		if !scan {
+			return nil, fmt.Errorf("pg: Model(unsupported %T)", value)
+		}
+		return Scan(value), nil
 	}
 
-	v := reflect.ValueOf(v0)
+	v := reflect.ValueOf(value)
 	if !v.IsValid() {
 		return nil, errModelNil
 	}
 	if v.Kind() != reflect.Ptr {
-		return nil, fmt.Errorf("pg: Model(non-pointer %T)", v0)
+		return nil, fmt.Errorf("pg: Model(non-pointer %T)", value)
 	}
+
+	if v.IsNil() {
+		typ := v.Type().Elem()
+		if typ.Kind() == reflect.Struct {
+			return newStructTableModel(GetTable(typ)), nil
+		}
+		return nil, errModelNil
+	}
+
 	v = v.Elem()
+
+	if v.Kind() == reflect.Interface {
+		if !v.IsNil() {
+			v = v.Elem()
+			if v.Kind() != reflect.Ptr {
+				return nil, fmt.Errorf("pg: Model(non-pointer %s)", v.Type().String())
+			}
+		}
+	}
 
 	switch v.Kind() {
 	case reflect.Struct:
@@ -73,15 +100,23 @@ func NewModel(values ...interface{}) (Model, error) {
 			return newStructTableModelValue(v), nil
 		}
 	case reflect.Slice:
-		typ := v.Type()
-		elemType := indirectType(typ.Elem())
+		elemType := sliceElemType(v)
 		if elemType.Kind() == reflect.Struct && elemType != timeType {
 			return newSliceTableModel(v, elemType), nil
 		}
 		return newSliceModel(v, elemType), nil
+	case reflect.Map:
+		typ := v.Type()
+		if typ.Key().Kind() != reflect.String || typ.Elem().Kind() != reflect.Interface {
+			return nil, fmt.Errorf("pg: Model(unsupported %s)", typ.String())
+		}
+		return newMapModel(v.Interface().(map[string]interface{})), nil
 	}
 
-	return Scan(v0), nil
+	if !scan {
+		return nil, fmt.Errorf("pg: Model(unsupported %T)", value)
+	}
+	return Scan(value), nil
 }
 
 type modelWithHookStubs struct {
