@@ -151,7 +151,7 @@ func (q *insertQuery) appendColumnsValues(fmter QueryFormatter, b []byte) (_ []b
 		return appendMapColumnsValues(b, m.m), nil
 	}
 
-	if !q.q.hasModel() {
+	if !q.q.hasTableModel() {
 		return nil, errModelNil
 	}
 

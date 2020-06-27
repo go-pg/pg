@@ -136,7 +136,7 @@ func (q *updateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, e
 	if len(q.q.set) > 0 {
 		return q.q.appendSet(fmter, b)
 	}
-	if !q.q.hasModel() {
+	if !q.q.hasTableModel() {
 		return nil, errModelNil
 	}
 

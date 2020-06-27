@@ -225,7 +225,7 @@ func (q selectQuery) appendColumns(fmter QueryFormatter, b []byte) (_ []byte, er
 		if err != nil {
 			return nil, err
 		}
-	case q.q.hasExplicitModel():
+	case q.q.hasExplicitTableModel():
 		table := q.q.tableModel.Table()
 		b = appendColumns(b, table.Alias, table.Fields)
 	default:

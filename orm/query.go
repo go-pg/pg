@@ -424,7 +424,7 @@ func (q *Query) Set(set string, params ...interface{}) *Query {
 
 // Value overwrites model value for the column in INSERT and UPDATE queries.
 func (q *Query) Value(column string, value string, params ...interface{}) *Query {
-	if !q.hasModel() {
+	if !q.hasTableModel() {
 		q.err(errModelNil)
 		return q
 	}
@@ -571,7 +571,7 @@ func (q *Query) addWhere(f queryWithSepAppender) {
 //
 //    Where("id = ?id")
 func (q *Query) WherePK() *Query {
-	if !q.hasModel() {
+	if !q.hasTableModel() {
 		q.err(errModelNil)
 		return q
 	}
@@ -1293,20 +1293,20 @@ func (q *Query) Exists() (bool, error) {
 	return res.RowsAffected() > 0, nil
 }
 
-func (q *Query) hasModel() bool {
+func (q *Query) hasTableModel() bool {
 	return q.tableModel != nil && !q.tableModel.IsNil()
 }
 
-func (q *Query) hasExplicitModel() bool {
+func (q *Query) hasExplicitTableModel() bool {
 	return q.tableModel != nil && !q.hasFlag(implicitModelFlag)
 }
 
 func (q *Query) modelHasTableName() bool {
-	return q.hasExplicitModel() && q.tableModel.Table().FullName != ""
+	return q.hasExplicitTableModel() && q.tableModel.Table().FullName != ""
 }
 
 func (q *Query) modelHasTableAlias() bool {
-	return q.hasExplicitModel() && q.tableModel.Table().Alias != ""
+	return q.hasExplicitTableModel() && q.tableModel.Table().Alias != ""
 }
 
 func (q *Query) hasTables() bool {
@@ -1531,7 +1531,7 @@ func (q *Query) appendWith(fmter QueryFormatter, b []byte) (_ []byte, err error)
 }
 
 func (q *Query) isSliceModelWithData() bool {
-	if !q.hasModel() {
+	if !q.hasTableModel() {
 		return false
 	}
 	m, ok := q.tableModel.(*sliceTableModel)
