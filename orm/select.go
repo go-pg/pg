@@ -226,7 +226,7 @@ func (q selectQuery) appendColumns(fmter QueryFormatter, b []byte) (_ []byte, er
 			return nil, err
 		}
 	case q.q.hasExplicitModel():
-		table := q.q.model.Table()
+		table := q.q.tableModel.Table()
 		b = appendColumns(b, table.Alias, table.Fields)
 	default:
 		b = append(b, '*')
@@ -273,7 +273,7 @@ func (q *selectQuery) appendTables(fmter QueryFormatter, b []byte) (_ []byte, er
 	tables := q.q.tables
 
 	if q.q.modelHasTableName() {
-		table := q.q.model.Table()
+		table := q.q.tableModel.Table()
 		b = fmter.FormatQuery(b, string(table.FullNameForSelects))
 		if table.Alias != "" {
 			b = append(b, " AS "...)
@@ -290,7 +290,7 @@ func (q *selectQuery) appendTables(fmter QueryFormatter, b []byte) (_ []byte, er
 		}
 		if q.q.modelHasTableAlias() {
 			b = append(b, " AS "...)
-			b = append(b, q.q.model.Table().Alias...)
+			b = append(b, q.q.tableModel.Table().Alias...)
 		}
 
 		tables = tables[1:]

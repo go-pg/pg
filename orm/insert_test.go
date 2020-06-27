@@ -1,6 +1,8 @@
 package orm
 
 import (
+	"time"
+
 	"github.com/go-pg/pg/v10/types"
 
 	. "github.com/onsi/ginkgo"
@@ -263,6 +265,19 @@ var _ = Describe("Insert", func() {
 
 		s := insertQueryString(q)
 		Expect(s).To(Equal(`INSERT INTO "uint_models" ("id", "other_id") VALUES (1, 2), (2, DEFAULT) RETURNING "other_id"`))
+	})
+
+	It("supports map[string]interface{}", func() {
+		q := NewQuery(nil, &map[string]interface{}{
+			"hello": "world",
+			"foo":   123,
+			"bar":   time.Unix(0, 0),
+			"nil":   nil,
+		}).
+			TableExpr("my_table")
+
+		s := insertQueryString(q)
+		Expect(s).To(Equal(`INSERT INTO my_table ("bar", "foo", "hello", "nil") VALUES ('1970-01-01 00:00:00+00:00:00', 123, 'world', NULL)`))
 	})
 })
 

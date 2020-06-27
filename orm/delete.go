@@ -84,7 +84,8 @@ func (q *deleteQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	}
 
 	b = append(b, " WHERE "...)
-	value := q.q.model.Value()
+	value := q.q.tableModel.Value()
+
 	if q.q.isSliceModelWithData() {
 		if len(q.q.where) > 0 {
 			b, err = q.q.appendWhere(fmter, b)
@@ -92,7 +93,7 @@ func (q *deleteQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 				return nil, err
 			}
 		} else {
-			table := q.q.model.Table()
+			table := q.q.tableModel.Table()
 			err = table.checkPKs()
 			if err != nil {
 				return nil, err

@@ -122,7 +122,7 @@ func (q *updateQuery) mustAppendWhere(
 		return q.q.appendWhere(fmter, b)
 	}
 
-	table := q.q.model.Table()
+	table := q.q.tableModel.Table()
 	err = table.checkPKs()
 	if err != nil {
 		return nil, err
@@ -142,7 +142,7 @@ func (q *updateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, e
 
 	b = append(b, " SET "...)
 
-	value := q.q.model.Value()
+	value := q.q.tableModel.Value()
 	if value.Kind() == reflect.Struct {
 		b, err = q.appendSetStruct(fmter, b, value)
 	} else {
@@ -166,7 +166,7 @@ func (q *updateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct refl
 	}
 
 	if len(fields) == 0 {
-		fields = q.q.model.Table().DataFields
+		fields = q.q.tableModel.Table().DataFields
 	}
 
 	pos := len(b)
@@ -223,12 +223,12 @@ func (q *updateQuery) appendSetSlice(b []byte) ([]byte, error) {
 	}
 
 	if len(fields) == 0 {
-		fields = q.q.model.Table().DataFields
+		fields = q.q.tableModel.Table().DataFields
 	}
 
 	var table *Table
 	if q.omitZero {
-		table = q.q.model.Table()
+		table = q.q.tableModel.Table()
 	}
 
 	for i, f := range fields {
@@ -264,12 +264,12 @@ func (q *updateQuery) appendSliceModelData(fmter QueryFormatter, b []byte) ([]by
 	}
 
 	if len(columns) > 0 {
-		columns = append(columns, q.q.model.Table().PKs...)
+		columns = append(columns, q.q.tableModel.Table().PKs...)
 	} else {
-		columns = q.q.model.Table().Fields
+		columns = q.q.tableModel.Table().Fields
 	}
 
-	return q.appendSliceValues(fmter, b, columns, q.q.model.Value())
+	return q.appendSliceValues(fmter, b, columns, q.q.tableModel.Value())
 }
 
 func (q *updateQuery) appendSliceValues(

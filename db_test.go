@@ -915,7 +915,7 @@ var _ = Describe("DB.Insert", func() {
 	It("returns an error if value is not supported", func() {
 		var v int
 		err := db.Insert(&v)
-		Expect(err).To(MatchError("pg: Model(unsupported int)"))
+		Expect(err).To(MatchError("pg: Model(unsupported *int)"))
 	})
 })
 

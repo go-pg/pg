@@ -57,11 +57,11 @@ func (q *createTableQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
-	if q.q.model == nil {
+	if q.q.tableModel == nil {
 		return nil, errModelNil
 	}
 
-	table := q.q.model.Table()
+	table := q.q.tableModel.Table()
 
 	b = append(b, "CREATE "...)
 	if q.opt != nil && q.opt.Temp {
