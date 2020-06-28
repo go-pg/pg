@@ -5,7 +5,7 @@ go 1.11
 require (
 	github.com/go-pg/pg/v9 v9.1.6 // indirect
 	github.com/go-pg/urlstruct v0.4.0
-	github.com/go-pg/zerochecker v0.1.1
+	github.com/go-pg/zerochecker v0.2.0
 	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/jinzhu/inflection v1.0.0
 	github.com/onsi/ginkgo v1.10.1
