@@ -108,7 +108,9 @@ func newModel(value interface{}, scan bool) (Model, error) {
 	case reflect.Map:
 		typ := v.Type()
 		if typ.Key().Kind() != reflect.String || typ.Elem().Kind() != reflect.Interface {
-			return nil, fmt.Errorf("pg: Model(unsupported %s)", typ.String())
+			err := fmt.Errorf("pg: Model(unsupported %s, expected *map[string]interface{})",
+				typ.String())
+			return nil, err
 		}
 		return newMapModel(v.Interface().(map[string]interface{})), nil
 	}

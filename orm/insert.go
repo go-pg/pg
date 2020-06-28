@@ -148,7 +148,7 @@ func (q *insertQuery) appendColumnsValues(fmter QueryFormatter, b []byte) (_ []b
 	}
 
 	if m, ok := q.q.model.(*mapModel); ok {
-		return appendMapColumnsValues(b, m.m), nil
+		return q.appendMapColumnsValues(b, m.m), nil
 	}
 
 	if !q.q.hasTableModel() {
@@ -188,7 +188,7 @@ func (q *insertQuery) appendColumnsValues(fmter QueryFormatter, b []byte) (_ []b
 	return b, nil
 }
 
-func appendMapColumnsValues(b []byte, m map[string]interface{}) []byte {
+func (q *insertQuery) appendMapColumnsValues(b []byte, m map[string]interface{}) []byte {
 	keys := make([]string, 0, len(m))
 
 	for k := range m {
@@ -211,7 +211,11 @@ func appendMapColumnsValues(b []byte, m map[string]interface{}) []byte {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		b = types.Append(b, m[k], 1)
+		if q.placeholder {
+			b = append(b, '?')
+		} else {
+			b = types.Append(b, m[k], 1)
+		}
 	}
 
 	b = append(b, ")"...)

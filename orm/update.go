@@ -3,6 +3,7 @@ package orm
 import (
 	"fmt"
 	"reflect"
+	"sort"
 
 	"github.com/go-pg/pg/v10/internal"
 	"github.com/go-pg/pg/v10/types"
@@ -136,11 +137,16 @@ func (q *updateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, e
 	if len(q.q.set) > 0 {
 		return q.q.appendSet(fmter, b)
 	}
+
+	b = append(b, " SET "...)
+
+	if m, ok := q.q.model.(*mapModel); ok {
+		return q.appendMapSet(b, m.m), nil
+	}
+
 	if !q.q.hasTableModel() {
 		return nil, errModelNil
 	}
-
-	b = append(b, " SET "...)
 
 	value := q.q.tableModel.Value()
 	if value.Kind() == reflect.Struct {
@@ -157,6 +163,31 @@ func (q *updateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, e
 	}
 
 	return b, nil
+}
+
+func (q *updateQuery) appendMapSet(b []byte, m map[string]interface{}) []byte {
+	keys := make([]string, 0, len(m))
+
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for i, k := range keys {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+
+		b = types.AppendIdent(b, k, 1)
+		b = append(b, " = "...)
+		if q.placeholder {
+			b = append(b, '?')
+		} else {
+			b = types.Append(b, m[k], 1)
+		}
+	}
+
+	return b
 }
 
 func (q *updateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct reflect.Value) ([]byte, error) {
