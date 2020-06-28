@@ -2,6 +2,8 @@
 
 ## v10 (unreleased)
 
+- Docs at https://pg.uptrace.dev/ powered by https://github.com/go-pg/docs
+- `Insert` and `Update` support `Model(*map[string]interface{})`.
 - Added `pgext.OpenTemetryHook` that adds
   [PostgreSQL OpenTelemetry instrumentation](https://pg.uptrace.dev/tracing/).
 - Added `pgext.DebugHook` that logs queries and errors.
