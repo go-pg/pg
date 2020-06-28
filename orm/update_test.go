@@ -189,6 +189,20 @@ var _ = Describe("Update", func() {
 		s := updateQueryString(q)
 		Expect(s).To(Equal(`UPDATE "models" AS "model" SET "created_at" = _data."created_at", "deleted_at" = _data."deleted_at" FROM (VALUES (1::bigint, '1970-01-01 00:00:00+00:00:00'::timestamptz, '1970-01-01 00:00:00+00:00:00'::timestamptz)) AS _data("id", "created_at", "deleted_at") WHERE "model"."id" = _data."id"`))
 	})
+
+	It("updates map[string]interface{}", func() {
+		q := NewQuery(nil, &map[string]interface{}{
+			"hello": "world",
+			"foo":   123,
+			"bar":   time.Unix(0, 0),
+			"nil":   nil,
+		}).
+			TableExpr("my_table").
+			Where("id = 1")
+
+		s := updateQueryString(q)
+		Expect(s).To(Equal(`UPDATE my_table SET "bar" = '1970-01-01 00:00:00+00:00:00', "foo" = 123, "hello" = 'world', "nil" = NULL WHERE (id = 1)`))
+	})
 })
 
 func updateQueryString(q *Query) string {
