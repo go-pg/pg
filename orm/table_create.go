@@ -23,6 +23,17 @@ func CreateTable(db DB, model interface{}, opt *CreateTableOptions) error {
 	return NewQuery(db, model).CreateTable(opt)
 }
 
+func PrintTableSchema(model interface{}, opt *CreateTableOptions) (string, error) {
+	q := NewQuery(nil, model)
+	qq := newCreateTableQuery(q, opt)
+	fmter := NewFormatter().WithModel(qq)
+	b, err := qq.AppendQuery(fmter, nil)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
+
 type createTableQuery struct {
 	q   *Query
 	opt *CreateTableOptions
