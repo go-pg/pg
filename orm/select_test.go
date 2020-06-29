@@ -3,6 +3,7 @@ package orm
 import (
 	"time"
 
+	"github.com/go-pg/pg/v10/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
@@ -225,6 +226,22 @@ var _ = Describe("Select", func() {
 
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT DISTINCT ON (expr('foo')) "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
+	})
+
+	It("supports WhereIn", func() {
+		q := NewQuery(nil).
+			WhereIn("id IN (?)", []string{"foo", "bar"})
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT * WHERE (id IN ('foo','bar'))`))
+	})
+
+	It("supports Where & pg.In", func() {
+		q := NewQuery(nil).
+			Where("id IN (?)", types.In([]string{"foo", "bar"}))
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT * WHERE (id IN ('foo','bar'))`))
 	})
 })
 
