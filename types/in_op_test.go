@@ -4,9 +4,13 @@ import (
 	"testing"
 
 	"github.com/go-pg/pg/v10/types"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestInOp(t *testing.T) {
+	_, err := types.In(&[]string{}).AppendValue(nil, 0)
+	assert.EqualError(t, err, "pg: In(non-slice *[]string)")
+
 	tests := []struct {
 		app    types.ValueAppender
 		wanted string
