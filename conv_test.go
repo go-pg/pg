@@ -203,7 +203,7 @@ func conversionTests() []conversionTest {
 		{src: nil, dst: new(*string), pgtype: "text", wantnil: true},
 		{src: "hello world", dst: new(string), pgtype: "text"},
 		{src: "hello world", dst: new(*string), pgtype: "text"},
-		{src: "'\"\000", dst: new(string), wanted: `'"`, pgtype: "text"},
+		{src: "'\"\000\xa7", dst: new(string), wanted: `'"�`, pgtype: "text"},
 
 		{src: nil, dst: []byte(nil), pgtype: "bytea", wanterr: "pg: Scan(non-pointer []uint8)"},
 		{src: nil, dst: new([]byte), pgtype: "bytea", wantnil: true},
