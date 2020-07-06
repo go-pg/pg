@@ -396,6 +396,7 @@ func (db *baseDB) copyFrom(
 		return nil, err
 	}
 
+	// Note that afterQuery uses the err.
 	defer func() {
 		if afterQueryErr := db.afterQuery(ctx, evt, res, err); afterQueryErr != nil {
 			err = afterQueryErr
@@ -456,7 +457,7 @@ func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) 
 }
 
 func (db *baseDB) copyTo(
-	c context.Context, cn *pool.Conn, w io.Writer, query interface{}, params ...interface{},
+	ctx context.Context, cn *pool.Conn, w io.Writer, query interface{}, params ...interface{},
 ) (res Result, err error) {
 	var evt *QueryEvent
 
@@ -472,25 +473,26 @@ func (db *baseDB) copyTo(
 		model, _ = params[len(params)-1].(orm.TableModel)
 	}
 
-	c, evt, err = db.beforeQuery(c, db.db, model, query, params, wb.Query())
+	ctx, evt, err = db.beforeQuery(ctx, db.db, model, query, params, wb.Query())
 	if err != nil {
 		return nil, err
 	}
 
+	// Note that afterQuery uses the err.
 	defer func() {
-		if afterQueryErr := db.afterQuery(c, evt, res, err); afterQueryErr != nil {
+		if afterQueryErr := db.afterQuery(ctx, evt, res, err); afterQueryErr != nil {
 			err = afterQueryErr
 		}
 	}()
 
-	err = cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+	err = cn.WithWriter(ctx, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		return writeQueryMsg(wb, db.fmter, query, params...)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.BufReader) error {
+	err = cn.WithReader(ctx, db.opt.ReadTimeout, func(rd *pool.BufReader) error {
 		err := readCopyOutResponse(rd)
 		if err != nil {
 			return err

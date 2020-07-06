@@ -84,8 +84,8 @@ func (stmt *Stmt) ExecContext(c context.Context, params ...interface{}) (Result,
 	return stmt.exec(c, params...)
 }
 
-func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error) {
-	c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, nil, stmt.q, params, nil)
+func (stmt *Stmt) exec(ctx context.Context, params ...interface{}) (Result, error) {
+	ctx, evt, err := stmt.db.beforeQuery(ctx, stmt.db.db, nil, stmt.q, params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -94,14 +94,14 @@ func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error)
 	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		if attempt > 0 {
-			lastErr = internal.Sleep(c, stmt.db.retryBackoff(attempt-1))
+			lastErr = internal.Sleep(ctx, stmt.db.retryBackoff(attempt-1))
 			if lastErr != nil {
 				break
 			}
 		}
 
-		lastErr = stmt.withConn(c, func(c context.Context, cn *pool.Conn) error {
-			res, err = stmt.extQuery(c, cn, stmt.name, params...)
+		lastErr = stmt.withConn(ctx, func(c context.Context, cn *pool.Conn) error {
+			res, err = stmt.extQuery(ctx, cn, stmt.name, params...)
 			return err
 		})
 		if !stmt.db.shouldRetry(lastErr) {
@@ -109,7 +109,7 @@ func (stmt *Stmt) exec(c context.Context, params ...interface{}) (Result, error)
 		}
 	}
 
-	if err := stmt.db.afterQuery(c, evt, res, lastErr); err != nil {
+	if err := stmt.db.afterQuery(ctx, evt, res, lastErr); err != nil {
 		return nil, err
 	}
 	return res, lastErr
@@ -149,8 +149,8 @@ func (stmt *Stmt) QueryContext(c context.Context, model interface{}, params ...i
 	return stmt.query(c, model, params...)
 }
 
-func (stmt *Stmt) query(c context.Context, model interface{}, params ...interface{}) (Result, error) {
-	c, evt, err := stmt.db.beforeQuery(c, stmt.db.db, model, stmt.q, params, nil)
+func (stmt *Stmt) query(ctx context.Context, model interface{}, params ...interface{}) (Result, error) {
+	ctx, evt, err := stmt.db.beforeQuery(ctx, stmt.db.db, model, stmt.q, params, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -159,14 +159,14 @@ func (stmt *Stmt) query(c context.Context, model interface{}, params ...interfac
 	var lastErr error
 	for attempt := 0; attempt <= stmt.db.opt.MaxRetries; attempt++ {
 		if attempt > 0 {
-			lastErr = internal.Sleep(c, stmt.db.retryBackoff(attempt-1))
+			lastErr = internal.Sleep(ctx, stmt.db.retryBackoff(attempt-1))
 			if lastErr != nil {
 				break
 			}
 		}
 
-		lastErr = stmt.withConn(c, func(c context.Context, cn *pool.Conn) error {
-			res, err = stmt.extQueryData(c, cn, stmt.name, model, stmt.columns, params...)
+		lastErr = stmt.withConn(ctx, func(c context.Context, cn *pool.Conn) error {
+			res, err = stmt.extQueryData(ctx, cn, stmt.name, model, stmt.columns, params...)
 			return err
 		})
 		if !stmt.db.shouldRetry(lastErr) {
@@ -174,7 +174,7 @@ func (stmt *Stmt) query(c context.Context, model interface{}, params ...interfac
 		}
 	}
 
-	if err := stmt.db.afterQuery(c, evt, res, lastErr); err != nil {
+	if err := stmt.db.afterQuery(ctx, evt, res, lastErr); err != nil {
 		return nil, err
 	}
 	return res, lastErr
