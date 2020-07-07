@@ -55,6 +55,7 @@ func init() {
 }
 
 var appendersMap sync.Map
+var registeredAppendersMap sync.Map
 
 // RegisterAppender registers an appender func for the value type.
 // Expecting to be used only during initialization, it panics
@@ -64,12 +65,14 @@ func RegisterAppender(value interface{}, fn AppenderFunc) {
 }
 
 func registerAppender(typ reflect.Type, fn AppenderFunc) {
-	_, loaded := appendersMap.LoadOrStore(typ, fn)
+	_, loaded := registeredAppendersMap.LoadOrStore(typ, fn)
 	if loaded {
 		err := fmt.Errorf("pg: appender for the type=%s is already registered",
 			typ.String())
 		panic(err)
 	}
+
+	appendersMap.Store(typ, fn)
 }
 
 func Appender(typ reflect.Type) AppenderFunc {

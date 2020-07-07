@@ -59,6 +59,7 @@ func init() {
 }
 
 var scannersMap sync.Map
+var registeredScannersMap sync.Map
 
 // RegisterScanner registers an scanner func for the type.
 // Expecting to be used only during initialization, it panics
@@ -68,12 +69,14 @@ func RegisterScanner(value interface{}, fn ScannerFunc) {
 }
 
 func registerScanner(typ reflect.Type, fn ScannerFunc) {
-	_, loaded := scannersMap.LoadOrStore(typ, fn)
+	_, loaded := registeredScannersMap.LoadOrStore(typ, fn)
 	if loaded {
 		err := fmt.Errorf("pg: scanner for the type=%s is already registered",
 			typ.String())
 		panic(err)
 	}
+
+	scannersMap.Store(typ, fn)
 }
 
 func Scanner(typ reflect.Type) ScannerFunc {
