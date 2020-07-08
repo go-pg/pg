@@ -88,23 +88,9 @@ func (m *sliceTableModel) AddColumnScanner(_ ColumnScanner) error {
 	return nil
 }
 
+// Inherit these hooks from structTableModel.
 var _ BeforeScanHook = (*sliceTableModel)(nil)
-
-func (m *sliceTableModel) BeforeScan(ctx context.Context) error {
-	if m.table.hasFlag(beforeScanHookFlag) {
-		return callBeforeScanHook(ctx, m.strct.Addr())
-	}
-	return nil
-}
-
 var _ AfterScanHook = (*sliceTableModel)(nil)
-
-func (m *sliceTableModel) AfterScan(ctx context.Context) error {
-	if m.table.hasFlag(afterScanHookFlag) {
-		return callAfterScanHook(ctx, m.strct.Addr())
-	}
-	return nil
-}
 
 func (m *sliceTableModel) AfterSelect(ctx context.Context) error {
 	if m.table.hasFlag(afterSelectHookFlag) {
