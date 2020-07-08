@@ -31,6 +31,7 @@ type HooklessModel interface {
 type Model interface {
 	HooklessModel
 
+	AfterScanHook
 	AfterSelectHook
 
 	BeforeInsertHook
