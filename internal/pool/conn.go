@@ -71,16 +71,21 @@ func (cn *Conn) WithReader(
 	ctx context.Context, timeout time.Duration, fn func(rd *BufReader) error,
 ) error {
 	return internal.WithSpan(ctx, "with_reader", func(ctx context.Context, span trace.Span) error {
-		err := cn.netConn.SetReadDeadline(cn.deadline(ctx, timeout))
-		if err != nil {
+		if err := cn.netConn.SetReadDeadline(cn.deadline(ctx, timeout)); err != nil {
+			span.RecordError(ctx, err)
 			return err
 		}
 
 		cn.rd.bytesRead = 0
-		err = fn(cn.rd)
+
+		if err := fn(cn.rd); err != nil {
+			span.RecordError(ctx, err)
+			return err
+		}
+
 		span.SetAttributes(kv.Int64("net.read_bytes", cn.rd.bytesRead))
 
-		return err
+		return nil
 	})
 }
 
@@ -92,6 +97,7 @@ func (cn *Conn) WithWriter(
 		defer PutWriteBuffer(wb)
 
 		if err := fn(wb); err != nil {
+			span.RecordError(ctx, err)
 			return err
 		}
 
@@ -111,14 +117,19 @@ func (cn *Conn) writeBuffer(
 	timeout time.Duration,
 	wb *WriteBuffer,
 ) error {
-	err := cn.netConn.SetWriteDeadline(cn.deadline(ctx, timeout))
-	if err != nil {
+	if err := cn.netConn.SetWriteDeadline(cn.deadline(ctx, timeout)); err != nil {
+		span.RecordError(ctx, err)
 		return err
 	}
 
 	span.SetAttributes(kv.Int("net.wrote_bytes", len(wb.Bytes)))
-	_, err = cn.netConn.Write(wb.Bytes)
-	return err
+
+	if _, err := cn.netConn.Write(wb.Bytes); err != nil {
+		span.RecordError(ctx, err)
+		return err
+	}
+
+	return nil
 }
 
 func (cn *Conn) Close() error {

@@ -122,7 +122,7 @@ func (b *BufReader) fill() {
 	// Read new data: try a limited number of times.
 	const maxConsecutiveEmptyReads = 100
 	for i := maxConsecutiveEmptyReads; i > 0; i-- {
-		n, err := b.readDirectly(b.buf[b.w:])
+		n, err := b.read(b.buf[b.w:])
 		b.w += n
 		if err != nil {
 			b.err = err
@@ -163,7 +163,7 @@ func (b *BufReader) Read(p []byte) (n int, err error) {
 		if len(p) >= len(b.buf) {
 			// Large read, empty buffer.
 			// Read directly into p to avoid copy.
-			n, err = b.readDirectly(p)
+			n, err = b.read(p)
 			if n > 0 {
 				b.changeAvailable(-n)
 				b.lastByte = int(p[n-1])
@@ -175,7 +175,7 @@ func (b *BufReader) Read(p []byte) (n int, err error) {
 		// Do not use b.fill, which will loop.
 		b.r = 0
 		b.w = 0
-		n, b.err = b.readDirectly(b.buf)
+		n, b.err = b.read(b.buf)
 		if n == 0 {
 			return 0, b.readErr()
 		}
@@ -429,7 +429,7 @@ func (b *BufReader) ReadFullTemp() ([]byte, error) {
 	return b.ReadFull()
 }
 
-func (b *BufReader) readDirectly(buf []byte) (int, error) {
+func (b *BufReader) read(buf []byte) (int, error) {
 	n, err := b.rd.Read(buf)
 	b.bytesRead += int64(n)
 	return n, err
