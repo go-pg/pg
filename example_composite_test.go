@@ -23,31 +23,31 @@ func ExampleDB_Model_compositeType() {
 	db := connect()
 	defer db.Close()
 
-	err := db.DropTable((*OnHand)(nil), &orm.DropTableOptions{
+	err := db.Model((*OnHand)(nil)).DropTable(&orm.DropTableOptions{
 		IfExists: true,
 		Cascade:  true,
 	})
 	panicIf(err)
 
-	err = db.DropComposite((*InventoryItem)(nil), &orm.DropCompositeOptions{
+	err = db.Model((*InventoryItem)(nil)).DropComposite(&orm.DropCompositeOptions{
 		IfExists: true,
 	})
 	panicIf(err)
 
-	err = db.CreateComposite((*InventoryItem)(nil), nil)
+	err = db.Model((*InventoryItem)(nil)).CreateComposite(nil)
 	panicIf(err)
 
-	err = db.CreateTable((*OnHand)(nil), nil)
+	err = db.Model((*OnHand)(nil)).CreateTable(nil)
 	panicIf(err)
 
-	err = db.Insert(&OnHand{
+	_, err = db.Model(&OnHand{
 		Item: InventoryItem{
 			Name:       "fuzzy dice",
 			SupplierID: 42,
 			Price:      1.99,
 		},
 		Count: 1000,
-	})
+	}).Insert()
 	panicIf(err)
 
 	onHand := new(OnHand)

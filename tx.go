@@ -284,41 +284,6 @@ func (tx *Tx) ModelContext(c context.Context, model ...interface{}) *orm.Query {
 	return orm.NewQueryContext(c, tx, model...)
 }
 
-// Select is an alias for DB.Select.
-func (tx *Tx) Select(model interface{}) error {
-	return orm.Select(tx, model)
-}
-
-// Insert is an alias for DB.Insert.
-func (tx *Tx) Insert(model ...interface{}) error {
-	return orm.Insert(tx, model...)
-}
-
-// Update is an alias for DB.Update.
-func (tx *Tx) Update(model interface{}) error {
-	return orm.Update(tx, model)
-}
-
-// Delete is an alias for DB.Delete.
-func (tx *Tx) Delete(model interface{}) error {
-	return orm.Delete(tx, model)
-}
-
-// ForceDelete forces the deletion of the model with deleted_at column.
-func (tx *Tx) ForceDelete(model interface{}) error {
-	return orm.ForceDelete(tx, model)
-}
-
-// CreateTable is an alias for DB.CreateTable.
-func (tx *Tx) CreateTable(model interface{}, opt *orm.CreateTableOptions) error {
-	return orm.CreateTable(tx, model, opt)
-}
-
-// DropTable is an alias for DB.DropTable.
-func (tx *Tx) DropTable(model interface{}, opt *orm.DropTableOptions) error {
-	return orm.DropTable(tx, model, opt)
-}
-
 // CopyFrom is an alias for DB.CopyFrom.
 func (tx *Tx) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
 	err = tx.withConn(tx.ctx, func(c context.Context, cn *pool.Conn) error {

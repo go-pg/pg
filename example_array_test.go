@@ -18,12 +18,12 @@ func ExampleDB_Model_postgresArrayStructTag() {
 	panicIf(err)
 	defer pgdb.Exec("DROP TABLE items")
 
-	item1 := Item{
+	item1 := &Item{
 		Id:      1,
 		Emails:  []string{"one@example.com", "two@example.com"},
 		Numbers: [][]int{{1, 2}, {3, 4}},
 	}
-	err = pgdb.Insert(&item1)
+	_, err = pgdb.Model(item1).Insert()
 	panicIf(err)
 
 	item := new(Item)

@@ -22,7 +22,7 @@ func ExampleDB_Model_hstoreStructTag() {
 		Id:    1,
 		Attrs: map[string]string{"hello": "world"},
 	}
-	err = pgdb.Insert(&item1)
+	_, err = pgdb.Model(&item1).Insert()
 	if err != nil {
 		panic(err)
 	}

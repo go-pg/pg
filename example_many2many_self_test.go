@@ -29,7 +29,7 @@ func createManyToManySefTables(db *pg.DB) error {
 		(*ElemToElem)(nil),
 	}
 	for _, model := range models {
-		err := db.CreateTable(model, &orm.CreateTableOptions{
+		err := db.Model(model).CreateTable(&orm.CreateTableOptions{
 			Temp: true,
 		})
 		if err != nil {
@@ -55,7 +55,7 @@ func ExampleDB_Model_manyToManySelf() {
 		&ElemToElem{ElemId: 1, SubId: 3},
 	}
 	for _, v := range values {
-		err := db.Insert(v)
+		_, err := db.Model(v).Insert()
 		if err != nil {
 			panic(err)
 		}

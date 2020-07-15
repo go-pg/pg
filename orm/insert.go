@@ -8,11 +8,6 @@ import (
 	"github.com/go-pg/pg/v10/types"
 )
 
-func Insert(db DB, model ...interface{}) error {
-	_, err := NewQuery(db, model...).Insert()
-	return err
-}
-
 type insertQuery struct {
 	q               *Query
 	returningFields []*Field

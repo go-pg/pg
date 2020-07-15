@@ -8,15 +8,6 @@ type CreateCompositeOptions struct {
 	Varchar int // replaces PostgreSQL data type `text` with `varchar(n)`
 }
 
-func CreateComposite(db DB, model interface{}, opt *CreateCompositeOptions) error {
-	q := NewQuery(db, model)
-	_, err := q.db.Exec(&createCompositeQuery{
-		q:   q,
-		opt: opt,
-	})
-	return err
-}
-
 type createCompositeQuery struct {
 	q   *Query
 	opt *CreateCompositeOptions

@@ -43,15 +43,15 @@ func ExampleDB_Model() {
 		Name:   "admin",
 		Emails: []string{"admin1@admin", "admin2@admin"},
 	}
-	err = db.Insert(user1)
+	_, err = db.Model(user1).Insert()
 	if err != nil {
 		panic(err)
 	}
 
-	err = db.Insert(&User{
+	_, err = db.Model(&User{
 		Name:   "root",
 		Emails: []string{"root1@root", "root2@root"},
-	})
+	}).Insert()
 	if err != nil {
 		panic(err)
 	}
@@ -60,14 +60,14 @@ func ExampleDB_Model() {
 		Title:    "Cool story",
 		AuthorId: user1.Id,
 	}
-	err = db.Insert(story1)
+	_, err = db.Model(story1).Insert()
 	if err != nil {
 		panic(err)
 	}
 
 	// Select user by primary key.
 	user := &User{Id: user1.Id}
-	err = db.Select(user)
+	err = db.Model(user).WherePK().Select()
 	if err != nil {
 		panic(err)
 	}
@@ -105,7 +105,7 @@ func createSchema(db *pg.DB) error {
 	}
 
 	for _, model := range models {
-		err := db.CreateTable(model, &orm.CreateTableOptions{
+		err := db.Model(model).CreateTable(&orm.CreateTableOptions{
 			Temp: true,
 		})
 		if err != nil {

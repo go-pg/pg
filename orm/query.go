@@ -1238,6 +1238,22 @@ func (q *Query) DropTable(opt *DropTableOptions) error {
 	return err
 }
 
+func (q *Query) CreateComposite(opt *CreateCompositeOptions) error {
+	_, err := q.db.ExecContext(q.ctx, &createCompositeQuery{
+		q:   q,
+		opt: opt,
+	})
+	return err
+}
+
+func (q *Query) DropComposite(opt *DropCompositeOptions) error {
+	_, err := q.db.ExecContext(q.ctx, &dropCompositeQuery{
+		q:   q,
+		opt: opt,
+	})
+	return err
+}
+
 // Exec is an alias for DB.Exec.
 func (q *Query) Exec(query interface{}, params ...interface{}) (Result, error) {
 	params = append(params, q.tableModel)

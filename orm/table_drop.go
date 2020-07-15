@@ -5,10 +5,6 @@ type DropTableOptions struct {
 	Cascade  bool
 }
 
-func DropTable(db DB, model interface{}, opt *DropTableOptions) error {
-	return NewQuery(db, model).DropTable(opt)
-}
-
 type dropTableQuery struct {
 	q   *Query
 	opt *DropTableOptions

@@ -15,11 +15,11 @@ func ExampleDB_Model_softDelete() {
 	flight1 := &Flight{
 		Id: 1,
 	}
-	err := pgdb.Insert(flight1)
+	_, err := pgdb.Model(flight1).Insert()
 	panicIf(err)
 
 	// Soft delete.
-	err = pgdb.Delete(flight1)
+	_, err = pgdb.Model(flight1).WherePK().Delete()
 	panicIf(err)
 
 	// Count visible flights.
@@ -33,7 +33,7 @@ func ExampleDB_Model_softDelete() {
 	fmt.Println("deleted count", deletedCount)
 
 	// Actually delete the flight.
-	err = pgdb.ForceDelete(flight1)
+	_, err = pgdb.Model(flight1).WherePK().ForceDelete()
 	panicIf(err)
 
 	// Count soft deleted flights.

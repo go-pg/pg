@@ -5,17 +5,8 @@ import (
 	"reflect"
 	"sort"
 
-	"github.com/go-pg/pg/v10/internal"
 	"github.com/go-pg/pg/v10/types"
 )
-
-func Update(db DB, model interface{}) error {
-	res, err := NewQuery(db, model).WherePK().Update()
-	if err != nil {
-		return err
-	}
-	return internal.AssertOneRow(res.RowsAffected())
-}
 
 type updateQuery struct {
 	q           *Query

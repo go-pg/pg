@@ -5,15 +5,6 @@ type DropCompositeOptions struct {
 	Cascade  bool
 }
 
-func DropComposite(db DB, model interface{}, opt *DropCompositeOptions) error {
-	q := NewQuery(db, model)
-	_, err := q.db.Exec(&dropCompositeQuery{
-		q:   q,
-		opt: opt,
-	})
-	return err
-}
-
 type dropCompositeQuery struct {
 	q   *Query
 	opt *DropCompositeOptions

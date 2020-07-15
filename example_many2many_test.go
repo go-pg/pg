@@ -34,7 +34,7 @@ func createManyToManyTables(db *pg.DB) error {
 		(*OrderToItem)(nil),
 	}
 	for _, model := range models {
-		err := db.CreateTable(model, &orm.CreateTableOptions{
+		err := db.Model(model).CreateTable(&orm.CreateTableOptions{
 			Temp: true,
 		})
 		if err != nil {
@@ -68,7 +68,7 @@ func ExampleDB_Model_manyToMany() {
 		&OrderToItem{OrderId: 1, ItemId: 2},
 	}
 	for _, v := range values {
-		err := db.Insert(v)
+		_, err := db.Model(v).Insert()
 		if err != nil {
 			panic(err)
 		}

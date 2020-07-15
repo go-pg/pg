@@ -132,7 +132,7 @@ var _ = Describe("DB race", func() {
 				Expect(a.ID).NotTo(BeZero())
 
 				if i%(N/C) == 0 {
-					err := db.Delete(a)
+					_, err := db.Model(a).WherePK().Delete()
 					if err != pg.ErrNoRows {
 						Expect(err).NotTo(HaveOccurred())
 					}
@@ -161,7 +161,7 @@ var _ = Describe("DB race", func() {
 				Expect(a.ID).NotTo(BeZero())
 
 				if i%(N/C) == 0 {
-					err := db.Delete(a)
+					_, err := db.Model(a).WherePK().Delete()
 					if err != pg.ErrNoRows {
 						Expect(err).NotTo(HaveOccurred())
 					}
