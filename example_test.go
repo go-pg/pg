@@ -12,8 +12,10 @@ import (
 	"github.com/go-pg/pg/v10/orm"
 )
 
-var ctx = context.Background()
-var pgdb *pg.DB
+var (
+	ctx  = context.Background()
+	pgdb *pg.DB
+)
 
 func init() {
 	pgdb = connect()

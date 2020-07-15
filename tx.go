@@ -38,7 +38,7 @@ type Tx struct {
 
 var _ orm.DB = (*Tx)(nil)
 
-// Context returns the context.Context of the transaction
+// Context returns the context.Context of the transaction.
 func (tx *Tx) Context() context.Context {
 	return tx.ctx
 }
@@ -144,7 +144,7 @@ func (tx *Tx) Exec(query interface{}, params ...interface{}) (Result, error) {
 	return tx.exec(tx.ctx, query, params...)
 }
 
-// ExecContext acts like Exec but additionally receives a context
+// ExecContext acts like Exec but additionally receives a context.
 func (tx *Tx) ExecContext(c context.Context, query interface{}, params ...interface{}) (Result, error) {
 	return tx.exec(c, query, params...)
 }
@@ -179,7 +179,7 @@ func (tx *Tx) ExecOne(query interface{}, params ...interface{}) (Result, error) 
 	return tx.execOne(tx.ctx, query, params...)
 }
 
-// ExecOneContext acts like ExecOne but additionally receives a context
+// ExecOneContext acts like ExecOne but additionally receives a context.
 func (tx *Tx) ExecOneContext(c context.Context, query interface{}, params ...interface{}) (Result, error) {
 	return tx.execOne(c, query, params...)
 }
@@ -201,7 +201,7 @@ func (tx *Tx) Query(model interface{}, query interface{}, params ...interface{})
 	return tx.query(tx.ctx, model, query, params...)
 }
 
-// QueryContext acts like Query but additionally receives a context
+// QueryContext acts like Query but additionally receives a context.
 func (tx *Tx) QueryContext(
 	c context.Context,
 	model interface{},
@@ -246,7 +246,7 @@ func (tx *Tx) QueryOne(model interface{}, query interface{}, params ...interface
 	return tx.queryOne(tx.ctx, model, query, params...)
 }
 
-// QueryOneContext acts like QueryOne but additionally receives a context
+// QueryOneContext acts like QueryOne but additionally receives a context.
 func (tx *Tx) QueryOneContext(
 	c context.Context,
 	model interface{},
@@ -283,7 +283,7 @@ func (tx *Tx) Model(model ...interface{}) *orm.Query {
 	return orm.NewQuery(tx, model...)
 }
 
-// ModelContext acts like Model but additionally receives a context
+// ModelContext acts like Model but additionally receives a context.
 func (tx *Tx) ModelContext(c context.Context, model ...interface{}) *orm.Query {
 	return orm.NewQueryContext(c, tx, model...)
 }
@@ -306,7 +306,7 @@ func (tx *Tx) CopyTo(w io.Writer, query interface{}, params ...interface{}) (res
 	return res, err
 }
 
-// Formatter is an alias for DB.Formatter
+// Formatter is an alias for DB.Formatter.
 func (tx *Tx) Formatter() orm.QueryFormatter {
 	return tx.db.Formatter()
 }

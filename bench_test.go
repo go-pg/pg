@@ -173,7 +173,6 @@ func BenchmarkModelHasMany2ManyGopg(b *testing.B) {
 				Column("book.*").Relation("Genres").
 				Limit(100).
 				Select()
-
 			if err != nil {
 				b.Fatal(err)
 			}

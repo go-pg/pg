@@ -11,8 +11,10 @@ import (
 	"github.com/go-pg/pg/v10/internal"
 )
 
-var ErrClosed = errors.New("pg: database is closed")
-var ErrPoolTimeout = errors.New("pg: connection pool timeout")
+var (
+	ErrClosed      = errors.New("pg: database is closed")
+	ErrPoolTimeout = errors.New("pg: connection pool timeout")
+)
 
 var timers = sync.Pool{
 	New: func() interface{} {

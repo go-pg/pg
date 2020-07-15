@@ -13,8 +13,10 @@ type createCompositeQuery struct {
 	opt *CreateCompositeOptions
 }
 
-var _ QueryAppender = (*createCompositeQuery)(nil)
-var _ queryCommand = (*createCompositeQuery)(nil)
+var (
+	_ QueryAppender = (*createCompositeQuery)(nil)
+	_ queryCommand  = (*createCompositeQuery)(nil)
+)
 
 func (q *createCompositeQuery) Clone() queryCommand {
 	return &createCompositeQuery{

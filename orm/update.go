@@ -14,8 +14,10 @@ type updateQuery struct {
 	placeholder bool
 }
 
-var _ QueryAppender = (*updateQuery)(nil)
-var _ queryCommand = (*updateQuery)(nil)
+var (
+	_ QueryAppender = (*updateQuery)(nil)
+	_ queryCommand  = (*updateQuery)(nil)
+)
 
 func newUpdateQuery(q *Query, omitZero bool) *updateQuery {
 	return &updateQuery{

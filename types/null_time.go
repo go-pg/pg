@@ -16,10 +16,12 @@ type NullTime struct {
 	time.Time
 }
 
-var _ json.Marshaler = (*NullTime)(nil)
-var _ json.Unmarshaler = (*NullTime)(nil)
-var _ sql.Scanner = (*NullTime)(nil)
-var _ ValueAppender = (*NullTime)(nil)
+var (
+	_ json.Marshaler   = (*NullTime)(nil)
+	_ json.Unmarshaler = (*NullTime)(nil)
+	_ sql.Scanner      = (*NullTime)(nil)
+	_ ValueAppender    = (*NullTime)(nil)
+)
 
 func (tm NullTime) MarshalJSON() ([]byte, error) {
 	if tm.IsZero() {

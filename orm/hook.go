@@ -7,14 +7,16 @@ import (
 
 type hookStubs struct{}
 
-var _ AfterScanHook = (*hookStubs)(nil)
-var _ AfterSelectHook = (*hookStubs)(nil)
-var _ BeforeInsertHook = (*hookStubs)(nil)
-var _ AfterInsertHook = (*hookStubs)(nil)
-var _ BeforeUpdateHook = (*hookStubs)(nil)
-var _ AfterUpdateHook = (*hookStubs)(nil)
-var _ BeforeDeleteHook = (*hookStubs)(nil)
-var _ AfterDeleteHook = (*hookStubs)(nil)
+var (
+	_ AfterScanHook    = (*hookStubs)(nil)
+	_ AfterSelectHook  = (*hookStubs)(nil)
+	_ BeforeInsertHook = (*hookStubs)(nil)
+	_ AfterInsertHook  = (*hookStubs)(nil)
+	_ BeforeUpdateHook = (*hookStubs)(nil)
+	_ AfterUpdateHook  = (*hookStubs)(nil)
+	_ BeforeDeleteHook = (*hookStubs)(nil)
+	_ AfterDeleteHook  = (*hookStubs)(nil)
+)
 
 func (hookStubs) AfterScan(ctx context.Context) error {
 	return nil

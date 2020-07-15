@@ -10,8 +10,10 @@ type selectQuery struct {
 	count string
 }
 
-var _ QueryAppender = (*selectQuery)(nil)
-var _ queryCommand = (*selectQuery)(nil)
+var (
+	_ QueryAppender = (*selectQuery)(nil)
+	_ queryCommand  = (*selectQuery)(nil)
+)
 
 func newSelectQuery(q *Query) *selectQuery {
 	return &selectQuery{

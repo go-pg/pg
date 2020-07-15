@@ -10,10 +10,12 @@ type dropTableQuery struct {
 	opt *DropTableOptions
 }
 
-var _ QueryAppender = (*dropTableQuery)(nil)
-var _ queryCommand = (*dropTableQuery)(nil)
+var (
+	_ QueryAppender = (*dropTableQuery)(nil)
+	_ queryCommand  = (*dropTableQuery)(nil)
+)
 
-func newDropTableQuery(q *Query, opt *DropTableOptions) *dropTableQuery { //nolint:deadcode
+func newDropTableQuery(q *Query, opt *DropTableOptions) *dropTableQuery {
 	return &dropTableQuery{
 		q:   q,
 		opt: opt,

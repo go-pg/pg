@@ -259,7 +259,7 @@ func (b *BufReader) ReadBytes(fn func(byte) bool) (line []byte, err error) {
 
 		// Pending error?
 		if b.err != nil {
-			line = b.flush() //nolint
+			line = b.flush()
 			err = b.readErr()
 			break
 		}

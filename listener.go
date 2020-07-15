@@ -15,8 +15,10 @@ import (
 
 const gopgChannel = "gopg:ping"
 
-var errListenerClosed = errors.New("pg: listener is closed")
-var errPingTimeout = errors.New("pg: ping timeout")
+var (
+	errListenerClosed = errors.New("pg: listener is closed")
+	errPingTimeout    = errors.New("pg: ping timeout")
+)
 
 // Notification which is received with LISTEN command.
 type Notification struct {

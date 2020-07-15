@@ -12,3 +12,6 @@ linters:
     - funlen
     - godox
     - goerr113
+    - exhaustive
+    - nestif
+    - gofumpt

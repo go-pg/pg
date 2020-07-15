@@ -5,8 +5,10 @@ type deleteQuery struct {
 	placeholder bool
 }
 
-var _ QueryAppender = (*deleteQuery)(nil)
-var _ queryCommand = (*deleteQuery)(nil)
+var (
+	_ QueryAppender = (*deleteQuery)(nil)
+	_ queryCommand  = (*deleteQuery)(nil)
+)
 
 func newDeleteQuery(q *Query) *deleteQuery {
 	return &deleteQuery{
