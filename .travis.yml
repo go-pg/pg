@@ -1,9 +1,8 @@
 dist: xenial
-sudo: false
 language: go
 
 addons:
-  postgresql: "9.6"
+  postgresql: '9.6'
 
 go:
   - 1.13.x
@@ -21,4 +20,6 @@ go_import_path: github.com/go-pg/pg
 
 before_install:
   - psql -U postgres -c "CREATE EXTENSION hstore"
-  - curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(go env GOPATH)/bin v1.24.0
+  - curl -sfL
+    https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s
+    -- -b $(go env GOPATH)/bin v1.24.0

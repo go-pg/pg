@@ -11,3 +11,4 @@ linters:
     - wsl
     - funlen
     - godox
+    - goerr113

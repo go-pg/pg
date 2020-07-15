@@ -45,12 +45,16 @@ func (tx *Tx) Context() context.Context {
 
 // Begin starts a transaction. Most callers should use RunInTransaction instead.
 func (db *baseDB) Begin() (*Tx, error) {
+	return db.BeginContext(db.db.Context())
+}
+
+func (db *baseDB) BeginContext(ctx context.Context) (*Tx, error) {
 	tx := &Tx{
 		db:  db.withPool(pool.NewSingleConnPool(db.pool)),
-		ctx: db.db.Context(),
+		ctx: ctx,
 	}
 
-	err := tx.begin(tx.ctx)
+	err := tx.begin(ctx)
 	if err != nil {
 		tx.close()
 		return nil, err
@@ -329,26 +333,38 @@ func (tx *Tx) begin(ctx context.Context) error {
 	return lastErr
 }
 
-// Commit commits the transaction.
 func (tx *Tx) Commit() error {
-	_, err := tx.Exec("COMMIT")
+	return tx.CommitContext(tx.ctx)
+}
+
+// Commit commits the transaction.
+func (tx *Tx) CommitContext(ctx context.Context) error {
+	_, err := tx.ExecContext(ctx, "COMMIT")
 	tx.close()
 	return err
+}
+
+func (tx *Tx) Rollback() error {
+	return tx.RollbackContext(tx.ctx)
 }
 
 // Rollback aborts the transaction.
-func (tx *Tx) Rollback() error {
-	_, err := tx.Exec("ROLLBACK")
+func (tx *Tx) RollbackContext(ctx context.Context) error {
+	_, err := tx.ExecContext(ctx, "ROLLBACK")
 	tx.close()
 	return err
 }
 
-// Close calls Rollback if the tx has not already been committed or rolled back.
 func (tx *Tx) Close() error {
+	return tx.CloseContext(tx.ctx)
+}
+
+// Close calls Rollback if the tx has not already been committed or rolled back.
+func (tx *Tx) CloseContext(ctx context.Context) error {
 	if tx.closed() {
 		return nil
 	}
-	return tx.Rollback()
+	return tx.RollbackContext(ctx)
 }
 
 func (tx *Tx) close() {
