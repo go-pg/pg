@@ -10,8 +10,10 @@ type dropCompositeQuery struct {
 	opt *DropCompositeOptions
 }
 
-var _ QueryAppender = (*dropCompositeQuery)(nil)
-var _ queryCommand = (*dropCompositeQuery)(nil)
+var (
+	_ QueryAppender = (*dropCompositeQuery)(nil)
+	_ queryCommand  = (*dropCompositeQuery)(nil)
+)
 
 func (q *dropCompositeQuery) Clone() queryCommand {
 	return &dropCompositeQuery{

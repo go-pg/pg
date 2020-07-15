@@ -23,7 +23,7 @@ var _ = Context("Listener", func() {
 		ln = db.Listen(ctx, "test_channel")
 	})
 
-	var _ = AfterEach(func() {
+	_ = AfterEach(func() {
 		_ = ln.Close()
 		_ = db.Close()
 	})

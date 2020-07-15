@@ -12,8 +12,10 @@ type Hstore struct {
 	scan   ScannerFunc
 }
 
-var _ ValueAppender = (*Hstore)(nil)
-var _ ValueScanner = (*Hstore)(nil)
+var (
+	_ ValueAppender = (*Hstore)(nil)
+	_ ValueScanner  = (*Hstore)(nil)
+)
 
 func NewHstore(vi interface{}) *Hstore {
 	v := reflect.ValueOf(vi)

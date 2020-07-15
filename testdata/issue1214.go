@@ -43,7 +43,6 @@ func main() {
 	if err := db.Insert(&t); err != nil {
 		log.Fatal(err)
 	}
-
 }
 
 func createSchema(db *pg.DB) {

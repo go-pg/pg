@@ -8,15 +8,17 @@ import (
 	"github.com/go-pg/pg/v10/orm"
 )
 
-type BeforeScanHook = orm.BeforeScanHook
-type AfterScanHook = orm.AfterScanHook
-type AfterSelectHook = orm.AfterSelectHook
-type BeforeInsertHook = orm.BeforeInsertHook
-type AfterInsertHook = orm.AfterInsertHook
-type BeforeUpdateHook = orm.BeforeUpdateHook
-type AfterUpdateHook = orm.AfterUpdateHook
-type BeforeDeleteHook = orm.BeforeDeleteHook
-type AfterDeleteHook = orm.AfterDeleteHook
+type (
+	BeforeScanHook   = orm.BeforeScanHook
+	AfterScanHook    = orm.AfterScanHook
+	AfterSelectHook  = orm.AfterSelectHook
+	BeforeInsertHook = orm.BeforeInsertHook
+	AfterInsertHook  = orm.AfterInsertHook
+	BeforeUpdateHook = orm.BeforeUpdateHook
+	AfterUpdateHook  = orm.AfterUpdateHook
+	BeforeDeleteHook = orm.BeforeDeleteHook
+	AfterDeleteHook  = orm.AfterDeleteHook
+)
 
 //------------------------------------------------------------------------------
 

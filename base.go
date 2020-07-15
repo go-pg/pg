@@ -373,7 +373,7 @@ func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}
 	return res, err
 }
 
-// TODO: don't get/put conn in the pool
+// TODO: don't get/put conn in the pool.
 func (db *baseDB) copyFrom(
 	ctx context.Context, cn *pool.Conn, r io.Reader, query interface{}, params ...interface{},
 ) (res Result, err error) {

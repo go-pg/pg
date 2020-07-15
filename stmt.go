@@ -122,7 +122,7 @@ func (stmt *Stmt) ExecOne(params ...interface{}) (Result, error) {
 	return stmt.execOne(context.Background(), params...)
 }
 
-// ExecOneContext acts like ExecOne but additionally receives a context
+// ExecOneContext acts like ExecOne but additionally receives a context.
 func (stmt *Stmt) ExecOneContext(c context.Context, params ...interface{}) (Result, error) {
 	return stmt.execOne(c, params...)
 }
@@ -144,7 +144,7 @@ func (stmt *Stmt) Query(model interface{}, params ...interface{}) (Result, error
 	return stmt.query(context.Background(), model, params...)
 }
 
-// QueryContext acts like Query but additionally receives a context
+// QueryContext acts like Query but additionally receives a context.
 func (stmt *Stmt) QueryContext(c context.Context, model interface{}, params ...interface{}) (Result, error) {
 	return stmt.query(c, model, params...)
 }
@@ -187,7 +187,7 @@ func (stmt *Stmt) QueryOne(model interface{}, params ...interface{}) (Result, er
 	return stmt.queryOne(context.Background(), model, params...)
 }
 
-// QueryOneContext acts like QueryOne but additionally receives a context
+// QueryOneContext acts like QueryOne but additionally receives a context.
 func (stmt *Stmt) QueryOneContext(c context.Context, model interface{}, params ...interface{}) (Result, error) {
 	return stmt.queryOne(c, model, params...)
 }

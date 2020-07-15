@@ -12,8 +12,10 @@ type Array struct {
 	scan   ScannerFunc
 }
 
-var _ ValueAppender = (*Array)(nil)
-var _ ValueScanner = (*Array)(nil)
+var (
+	_ ValueAppender = (*Array)(nil)
+	_ ValueScanner  = (*Array)(nil)
+)
 
 func NewArray(vi interface{}) *Array {
 	v := reflect.ValueOf(vi)

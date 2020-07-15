@@ -291,7 +291,6 @@ var _ = Describe("DB", func() {
 			_, err = tx.QueryOne(pg.Discard, "SELECT 1 WHERE 1 = 2")
 			Expect(err).To(Equal(pg.ErrNoRows))
 		})
-
 	})
 
 	Describe("Exec", func() {
@@ -410,7 +409,7 @@ var _ = Describe("DB.Conn", func() {
 })
 
 var _ = Describe("Time", func() {
-	var tests = []struct {
+	tests := []struct {
 		str    string
 		wanted time.Time
 	}{
@@ -1648,41 +1647,42 @@ var _ = Describe("ORM", func() {
 				OrderExpr("genre.id").
 				Select()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(genres).To(Equal([]Genre{{
-				Id:     1,
-				Name:   "genre 1",
-				Rating: 0,
-				Books: []Book{{
-					Id: 100,
-					Translations: []Translation{
-						{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
-						{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
+			Expect(genres).To(Equal([]Genre{
+				{
+					Id:     1,
+					Name:   "genre 1",
+					Rating: 0,
+					Books: []Book{{
+						Id: 100,
+						Translations: []Translation{
+							{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+							{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
+						},
+					}, {
+						Id: 101,
+						Translations: []Translation{
+							{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
+						},
+					}},
+					ParentId: 0,
+					Subgenres: []Genre{
+						{Id: 3, Name: "subgenre 1", Rating: 0, Books: nil, ParentId: 1, Subgenres: nil},
+						{Id: 4, Name: "subgenre 2", Rating: 0, Books: nil, ParentId: 1, Subgenres: nil},
 					},
 				}, {
-					Id: 101,
-					Translations: []Translation{
-						{Id: 1002, BookId: 101, Book: nil, Lang: "ua", Comments: nil},
-					},
-				}},
-				ParentId: 0,
-				Subgenres: []Genre{
-					{Id: 3, Name: "subgenre 1", Rating: 0, Books: nil, ParentId: 1, Subgenres: nil},
-					{Id: 4, Name: "subgenre 2", Rating: 0, Books: nil, ParentId: 1, Subgenres: nil},
+					Id:     2,
+					Name:   "genre 2",
+					Rating: 0,
+					Books: []Book{{
+						Id: 100,
+						Translations: []Translation{
+							{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
+							{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
+						},
+					}},
+					ParentId:  0,
+					Subgenres: nil,
 				},
-			}, {
-				Id:     2,
-				Name:   "genre 2",
-				Rating: 0,
-				Books: []Book{{
-					Id: 100,
-					Translations: []Translation{
-						{Id: 1000, BookId: 100, Book: nil, Lang: "ru", Comments: nil},
-						{Id: 1001, BookId: 100, Book: nil, Lang: "md", Comments: nil},
-					},
-				}},
-				ParentId:  0,
-				Subgenres: nil,
-			},
 			}))
 		})
 

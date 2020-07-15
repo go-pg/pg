@@ -972,7 +972,7 @@ func foreignKeys(base, join *Table, fk string, tryFK bool) []*Field {
 
 func scanJSONValue(v reflect.Value, rd types.Reader, n int) error {
 	// Zero value so it works with SelectOrInsert.
-	//TODO: better handle slices
+	// TODO: better handle slices
 	v.Set(reflect.New(v.Type()).Elem())
 
 	if n == -1 {

@@ -15,8 +15,10 @@ import (
 	"github.com/go-pg/pg/v10/pgjson"
 )
 
-var driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
-var appenderType = reflect.TypeOf((*ValueAppender)(nil)).Elem()
+var (
+	driverValuerType = reflect.TypeOf((*driver.Valuer)(nil)).Elem()
+	appenderType     = reflect.TypeOf((*ValueAppender)(nil)).Elem()
+)
 
 type AppenderFunc func([]byte, reflect.Value, int) []byte
 

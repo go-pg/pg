@@ -49,8 +49,10 @@ func (EmbeddedStructFormatter) Method2() string {
 	return "method_value2"
 }
 
-type params []interface{}
-type paramsMap map[string]interface{}
+type (
+	params    []interface{}
+	paramsMap map[string]interface{}
+)
 
 type formatTest struct {
 	q         string

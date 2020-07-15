@@ -15,12 +15,14 @@ import (
 	"github.com/go-pg/pg/v10/pgjson"
 )
 
-var valueScannerType = reflect.TypeOf((*ValueScanner)(nil)).Elem()
-var sqlScannerType = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
-var timeType = reflect.TypeOf((*time.Time)(nil)).Elem()
-var ipType = reflect.TypeOf((*net.IP)(nil)).Elem()
-var ipNetType = reflect.TypeOf((*net.IPNet)(nil)).Elem()
-var jsonRawMessageType = reflect.TypeOf((*json.RawMessage)(nil)).Elem()
+var (
+	valueScannerType   = reflect.TypeOf((*ValueScanner)(nil)).Elem()
+	sqlScannerType     = reflect.TypeOf((*sql.Scanner)(nil)).Elem()
+	timeType           = reflect.TypeOf((*time.Time)(nil)).Elem()
+	ipType             = reflect.TypeOf((*net.IP)(nil)).Elem()
+	ipNetType          = reflect.TypeOf((*net.IPNet)(nil)).Elem()
+	jsonRawMessageType = reflect.TypeOf((*json.RawMessage)(nil)).Elem()
+)
 
 type ScannerFunc func(reflect.Value, Reader, int) error
 
@@ -249,7 +251,7 @@ func scanStringValue(v reflect.Value, rd Reader, n int) error {
 
 func scanJSONValue(v reflect.Value, rd Reader, n int) error {
 	// Zero value so it works with SelectOrInsert.
-	//TODO: better handle slices
+	// TODO: better handle slices
 	v.Set(reflect.New(v.Type()).Elem())
 
 	if n == -1 {

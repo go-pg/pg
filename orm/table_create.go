@@ -24,8 +24,10 @@ type createTableQuery struct {
 	opt *CreateTableOptions
 }
 
-var _ QueryAppender = (*createTableQuery)(nil)
-var _ queryCommand = (*createTableQuery)(nil)
+var (
+	_ QueryAppender = (*createTableQuery)(nil)
+	_ queryCommand  = (*createTableQuery)(nil)
+)
 
 func newCreateTableQuery(q *Query, opt *CreateTableOptions) *createTableQuery {
 	return &createTableQuery{
