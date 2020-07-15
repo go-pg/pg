@@ -13,6 +13,11 @@
   https://github.com/vmihailenco/msgpack
 - Empty slices and maps are no longer marshaled as `NULL`.
 - `joinFK` is deprecated in favor of `join_fk`.
+- ORM shortcuts are removed:
+  - `db.Select(model)` becomes `db.Model(model).WherePK().Select()`.
+  - `db.Insert(model)` becomes `db.Model(model).Insert()`.
+  - `db.Update(model)` becomes `db.Model(model).WherePK().Update()`.
+  - `db.Delete(model)` becomes `db.Model(model).WherePK().Delete()`.
 - Deprecated types and funcs are removed.
 
 ## v9

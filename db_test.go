@@ -183,16 +183,16 @@ func TestBigColumn(t *testing.T) {
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
-	err := db.CreateTable((*Test)(nil), &orm.CreateTableOptions{
+	err := db.Model((*Test)(nil)).CreateTable(&orm.CreateTableOptions{
 		Temp: true,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	err = db.Insert(&Test{
+	_, err = db.Model(&Test{
 		Text: strings.Repeat("*", colLen),
-	})
+	}).Insert()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +238,7 @@ var _ = Describe("DB", func() {
 				ID uint64 `pg:"type:bigint"`
 			}
 
-			err := db.CreateTable((*My)(nil), &orm.CreateTableOptions{
+			err := db.Model((*My)(nil)).CreateTable(&orm.CreateTableOptions{
 				Temp: true,
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -246,11 +246,11 @@ var _ = Describe("DB", func() {
 			my := &My{
 				ID: math.MaxUint64,
 			}
-			err = db.Insert(my)
+			_, err = db.Model(my).Insert()
 			Expect(err).NotTo(HaveOccurred())
 
 			my = &My{}
-			err = db.Model(my).Select()
+			err = db.Model(my).First()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(my.ID).To(Equal(uint64(math.MaxUint64)))
 		})
@@ -761,35 +761,35 @@ var _ = Describe("DB nulls", func() {
 		}
 
 		It("inserts null value", func() {
-			ins := Test{
+			ins := &Test{
 				Id: 1,
 			}
-			err := db.Insert(&ins)
+			_, err := db.Model(ins).Insert(ins)
 			Expect(err).NotTo(HaveOccurred())
 
-			sel := Test{
+			sel := &Test{
 				Id: 1,
 			}
-			err = db.Select(&sel)
+			err = db.Model(sel).WherePK().Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sel.Value.Valid).To(BeFalse())
 		})
 
 		It("inserts non-null value", func() {
-			ins := Test{
+			ins := &Test{
 				Id: 1,
 				Value: sql.NullInt64{
 					Int64: 2,
 					Valid: true,
 				},
 			}
-			err := db.Insert(&ins)
+			_, err := db.Model(ins).Insert()
 			Expect(err).NotTo(HaveOccurred())
 
-			sel := Test{
+			sel := &Test{
 				Id: 1,
 			}
-			err = db.Select(&sel)
+			err = db.Model(sel).WherePK().Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sel.Value.Valid).To(BeTrue())
 			Expect(sel.Value.Int64).To(Equal(int64(2)))
@@ -803,33 +803,33 @@ var _ = Describe("DB nulls", func() {
 		}
 
 		It("inserts null value", func() {
-			ins := Test{
+			ins := &Test{
 				Id: 1,
 			}
-			err := db.Insert(&ins)
+			_, err := db.Model(ins).Insert()
 			Expect(err).NotTo(HaveOccurred())
 
-			sel := Test{
+			sel := &Test{
 				Id: 1,
 			}
-			err = db.Select(&sel)
+			err = db.Model(sel).WherePK().Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sel.Value).To(BeNil())
 		})
 
 		It("inserts non-null value", func() {
 			value := 2
-			ins := Test{
+			ins := &Test{
 				Id:    1,
 				Value: &value,
 			}
-			err := db.Insert(&ins)
+			_, err := db.Model(ins).Insert()
 			Expect(err).NotTo(HaveOccurred())
 
-			sel := Test{
+			sel := &Test{
 				Id: 1,
 			}
-			err = db.Select(&sel)
+			err = db.Model(sel).WherePK().Select()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(sel.Value).NotTo(BeNil())
 			Expect(*sel.Value).To(Equal(2))
@@ -872,16 +872,16 @@ var _ = Describe("DB.Select", func() {
 			*One
 		}
 
-		err := db.CreateTable((*Two)(nil), &orm.CreateTableOptions{
+		err := db.Model((*Two)(nil)).CreateTable(&orm.CreateTableOptions{
 			Temp: true,
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		err = db.Insert(&Two{
+		_, err = db.Model(&Two{
 			One: &One{
 				ID: 1,
 			},
-		})
+		}).Insert()
 		Expect(err).NotTo(HaveOccurred())
 
 		two := new(Two)
@@ -903,18 +903,18 @@ var _ = Describe("DB.Insert", func() {
 	})
 
 	It("returns an error on nil", func() {
-		err := db.Insert(nil)
+		_, err := db.Model(nil).Insert()
 		Expect(err).To(MatchError("pg: Model(nil)"))
 	})
 
 	It("returns an error if value is not settable", func() {
-		err := db.Insert(1)
+		_, err := db.Model(1).Insert()
 		Expect(err).To(MatchError("pg: Model(non-pointer int)"))
 	})
 
 	It("returns an error if value is not supported", func() {
 		var v int
-		err := db.Insert(&v)
+		_, err := db.Model(&v).Insert()
 		Expect(err).To(MatchError("pg: Model(unsupported *int)"))
 	})
 })
@@ -931,14 +931,14 @@ var _ = Describe("DB.Update", func() {
 	})
 
 	It("returns an error on nil", func() {
-		err := db.Update(nil)
+		_, err := db.Model(nil).Update()
 		Expect(err).To(MatchError("pg: Model(nil)"))
 	})
 
 	It("returns an error if there are no pks", func() {
 		type Test struct{}
 		var test Test
-		err := db.Update(&test)
+		_, err := db.Model(&test).WherePK().Update()
 		Expect(err).To(MatchError(`pg: model=Test does not have primary keys`))
 	})
 })
@@ -955,14 +955,14 @@ var _ = Describe("DB.Delete", func() {
 	})
 
 	It("returns an error on nil", func() {
-		err := db.Delete(nil)
+		_, err := db.Model(nil).Delete()
 		Expect(err).To(MatchError("pg: Model(nil)"))
 	})
 
 	It("returns an error if there are no pks", func() {
 		type Test struct{}
 		var test Test
-		err := db.Delete(&test)
+		_, err := db.Model(&test).WherePK().Delete()
 		Expect(err).To(MatchError(`pg: model=Test does not have primary keys`))
 	})
 
@@ -1118,7 +1118,7 @@ func createTestSchema(db *pg.DB) error {
 		(*Comment)(nil),
 	}
 	for _, model := range models {
-		err := db.DropTable(model, &orm.DropTableOptions{
+		err := db.Model(model).DropTable(&orm.DropTableOptions{
 			IfExists: true,
 			Cascade:  true,
 		})
@@ -1126,7 +1126,7 @@ func createTestSchema(db *pg.DB) error {
 			return err
 		}
 
-		err = db.CreateTable(model, nil)
+		err = db.Model(model).CreateTable(nil)
 		if err != nil {
 			return err
 		}
@@ -1158,7 +1158,7 @@ var _ = Describe("ORM", func() {
 			Name:     "subgenre 2",
 			ParentId: 1,
 		}}
-		err = db.Insert(&genres)
+		_, err = db.Model(&genres).Insert()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(genres).To(HaveLen(4))
 
@@ -1172,7 +1172,7 @@ var _ = Describe("ORM", func() {
 			Id:   3,
 			Path: "/path/to/3.jpg",
 		}}
-		err = db.Insert(&images)
+		_, err = db.Model(&images).Insert()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(images).To(HaveLen(3))
 
@@ -1189,7 +1189,7 @@ var _ = Describe("ORM", func() {
 			Name:     "author 3",
 			AvatarId: images[2].Id,
 		}}
-		err = db.Insert(&authors)
+		_, err = db.Model(&authors).Insert()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(authors).To(HaveLen(3))
 
@@ -1209,7 +1209,7 @@ var _ = Describe("ORM", func() {
 			AuthorID: 11,
 			EditorID: 11,
 		}}
-		err = db.Insert(&books)
+		_, err = db.Model(&books).Insert()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(books).To(HaveLen(3))
 		for _, book := range books {
@@ -1229,7 +1229,7 @@ var _ = Describe("ORM", func() {
 			GenreId:      1,
 			Genre_Rating: 99999,
 		}}
-		err = db.Insert(&bookGenres)
+		_, err = db.Model(&bookGenres).Insert()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(bookGenres).To(HaveLen(3))
 
@@ -1246,7 +1246,7 @@ var _ = Describe("ORM", func() {
 			BookId: 101,
 			Lang:   "ua",
 		}}
-		err = db.Insert(&translations)
+		_, err = db.Model(&translations).Insert()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(translations).To(HaveLen(3))
 
@@ -1263,7 +1263,7 @@ var _ = Describe("ORM", func() {
 			TrackableType: "Translation",
 			Text:          "comment3",
 		}}
-		err = db.Insert(&comments)
+		_, err = db.Model(&comments).Insert()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(comments).To(HaveLen(3))
 	})
@@ -1276,7 +1276,7 @@ var _ = Describe("ORM", func() {
 		It("does not panic", func() {
 			tr := new(Translation)
 			tr.Id = 123
-			err := db.Insert(tr)
+			_, err := db.Model(tr).Insert()
 			Expect(err).NotTo(HaveOccurred())
 
 			err = db.Model(tr).
@@ -1847,7 +1847,7 @@ var _ = Describe("ORM", func() {
 	Describe("bulk insert", func() {
 		It("returns an error if there is no data", func() {
 			var books []Book
-			err := db.Insert(&books)
+			_, err := db.Model(&books).Insert()
 			Expect(err).To(MatchError("pg: can't bulk-insert empty slice []pg_test.Book"))
 		})
 
@@ -2066,7 +2066,7 @@ var _ = Describe("ORM", func() {
 
 	It("does not create zero model for null relation", func() {
 		newBook := &Book{Title: "new"}
-		err := db.Insert(newBook)
+		_, err := db.Model(newBook).Insert()
 		Expect(err).NotTo(HaveOccurred())
 
 		book := new(Book)
@@ -2200,14 +2200,14 @@ var _ = Describe("soft delete with time column", func() {
 	BeforeEach(func() {
 		db = testDB()
 
-		err := db.CreateTable((*SoftDeleteWithTimeModel)(nil), &orm.CreateTableOptions{
+		err := db.Model((*SoftDeleteWithTimeModel)(nil)).CreateTable(&orm.CreateTableOptions{
 			Temp: true,
 		})
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		err := db.DropTable((*SoftDeleteWithTimeModel)(nil), nil)
+		err := db.Model((*SoftDeleteWithTimeModel)(nil)).DropTable(nil)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -2239,7 +2239,7 @@ var _ = Describe("soft delete with time column", func() {
 				model := &SoftDeleteWithTimeModel{
 					Id: 1,
 				}
-				err := db.ForceDelete(model)
+				_, err := db.Model(model).WherePK().ForceDelete()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -2260,7 +2260,7 @@ var _ = Describe("soft delete with time column", func() {
 			model := &SoftDeleteWithTimeModel{
 				Id: 1,
 			}
-			err := db.Insert(model)
+			_, err := db.Model(model).Insert()
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = db.Model((*SoftDeleteWithTimeModel)(nil)).Where("1 = 1").Delete()
@@ -2275,10 +2275,10 @@ var _ = Describe("soft delete with time column", func() {
 			model := &SoftDeleteWithTimeModel{
 				Id: 1,
 			}
-			err := db.Insert(model)
+			_, err := db.Model(model).Insert()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = db.Delete(model)
+			_, err = db.Model(model).WherePK().Delete()
 			Expect(err).NotTo(HaveOccurred())
 			Expect(model.DeletedAt).To(BeTemporally("~", time.Now(), time.Second))
 		})
@@ -2298,14 +2298,14 @@ var _ = Describe("soft delete with int column", func() {
 	BeforeEach(func() {
 		db = testDB()
 
-		err := db.CreateTable((*SoftDeleteWithIntModel)(nil), &orm.CreateTableOptions{
+		err := db.Model((*SoftDeleteWithIntModel)(nil)).CreateTable(&orm.CreateTableOptions{
 			Temp: true,
 		})
 		Expect(err).NotTo(HaveOccurred())
 	})
 
 	AfterEach(func() {
-		err := db.DropTable((*SoftDeleteWithIntModel)(nil), nil)
+		err := db.Model((*SoftDeleteWithIntModel)(nil)).DropTable(nil)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -2338,7 +2338,7 @@ var _ = Describe("soft delete with int column", func() {
 				model := &SoftDeleteWithIntModel{
 					Id: 1,
 				}
-				err := db.ForceDelete(model)
+				_, err := db.Model(model).WherePK().ForceDelete()
 				Expect(err).NotTo(HaveOccurred())
 			})
 
@@ -2359,7 +2359,7 @@ var _ = Describe("soft delete with int column", func() {
 			model := &SoftDeleteWithIntModel{
 				Id: 1,
 			}
-			err := db.Insert(model)
+			_, err := db.Model(model).Insert()
 			Expect(err).NotTo(HaveOccurred())
 
 			_, err = db.Model((*SoftDeleteWithIntModel)(nil)).Where("1 = 1").Delete()
@@ -2374,10 +2374,10 @@ var _ = Describe("soft delete with int column", func() {
 			model := &SoftDeleteWithIntModel{
 				Id: 1,
 			}
-			err := db.Insert(model)
+			_, err := db.Model(model).Insert()
 			Expect(err).NotTo(HaveOccurred())
 
-			err = db.Delete(model)
+			_, err = db.Model(model).WherePK().Delete()
 			Expect(err).NotTo(HaveOccurred())
 			deletedTime := time.Unix(0, *model.DeletedAt)
 			Expect(deletedTime).To(BeTemporally("~", time.Now(), time.Second))

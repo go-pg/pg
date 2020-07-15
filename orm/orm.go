@@ -35,11 +35,6 @@ type queryCommand interface {
 type DB interface {
 	Model(model ...interface{}) *Query
 	ModelContext(c context.Context, model ...interface{}) *Query
-	Select(model interface{}) error
-	Insert(model ...interface{}) error
-	Update(model interface{}) error
-	Delete(model interface{}) error
-	ForceDelete(model interface{}) error
 
 	Exec(query interface{}, params ...interface{}) (Result, error)
 	ExecContext(c context.Context, query interface{}, params ...interface{}) (Result, error)

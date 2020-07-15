@@ -524,52 +524,6 @@ func (db *baseDB) ModelContext(c context.Context, model ...interface{}) *orm.Que
 	return orm.NewQueryContext(c, db.db, model...)
 }
 
-// Select selects the model by primary key.
-func (db *baseDB) Select(model interface{}) error {
-	return orm.Select(db.db, model)
-}
-
-// Insert inserts the model updating primary keys if they are empty.
-func (db *baseDB) Insert(model ...interface{}) error {
-	return orm.Insert(db.db, model...)
-}
-
-// Update updates the model by primary key.
-func (db *baseDB) Update(model interface{}) error {
-	return orm.Update(db.db, model)
-}
-
-// Delete deletes the model by primary key.
-func (db *baseDB) Delete(model interface{}) error {
-	return orm.Delete(db.db, model)
-}
-
-// Delete forces delete of the model with deleted_at column.
-func (db *baseDB) ForceDelete(model interface{}) error {
-	return orm.ForceDelete(db.db, model)
-}
-
-// CreateTable creates table for the model. It recognizes following field tags:
-//   - notnull - sets NOT NULL constraint.
-//   - unique - sets UNIQUE constraint.
-//   - default:value - sets default value.
-func (db *baseDB) CreateTable(model interface{}, opt *orm.CreateTableOptions) error {
-	return orm.CreateTable(db.db, model, opt)
-}
-
-// DropTable drops table for the model.
-func (db *baseDB) DropTable(model interface{}, opt *orm.DropTableOptions) error {
-	return orm.DropTable(db.db, model, opt)
-}
-
-func (db *baseDB) CreateComposite(model interface{}, opt *orm.CreateCompositeOptions) error {
-	return orm.CreateComposite(db.db, model, opt)
-}
-
-func (db *baseDB) DropComposite(model interface{}, opt *orm.DropCompositeOptions) error {
-	return orm.DropComposite(db.db, model, opt)
-}
-
 func (db *baseDB) Formatter() orm.QueryFormatter {
 	return db.fmter
 }

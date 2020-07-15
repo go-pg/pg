@@ -5,10 +5,6 @@ import (
 	"strings"
 )
 
-func Select(db DB, model interface{}) error {
-	return NewQuery(db, model).WherePK().Select()
-}
-
 type selectQuery struct {
 	q     *Query
 	count string

@@ -19,10 +19,6 @@ type CreateTableOptions struct {
 	FKConstraints bool
 }
 
-func CreateTable(db DB, model interface{}, opt *CreateTableOptions) error {
-	return NewQuery(db, model).CreateTable(opt)
-}
-
 type createTableQuery struct {
 	q   *Query
 	opt *CreateTableOptions

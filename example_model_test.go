@@ -20,9 +20,9 @@ func modelDB() *pg.DB {
 		panic(err)
 	}
 
-	err = db.Insert(&Author{
+	_, err = db.Model(&Author{
 		Name: "author 1",
-	})
+	}).Insert()
 	if err != nil {
 		panic(err)
 	}
@@ -41,7 +41,7 @@ func modelDB() *pg.DB {
 		EditorID:  11,
 		CreatedAt: time.Now(),
 	}}
-	err = db.Insert(&books)
+	_, err = db.Model(&books).Insert()
 	if err != nil {
 		panic(err)
 	}
@@ -50,15 +50,15 @@ func modelDB() *pg.DB {
 		genre := Genre{
 			Name: fmt.Sprintf("genre %d", i+1),
 		}
-		err = db.Insert(&genre)
+		_, err = db.Model(&genre).Insert()
 		if err != nil {
 			panic(err)
 		}
 
-		err = db.Insert(&BookGenre{
+		_, err = db.Model(&BookGenre{
 			BookId:  1,
 			GenreId: genre.Id,
-		})
+		}).Insert()
 		if err != nil {
 			panic(err)
 		}
@@ -76,19 +76,19 @@ func modelDB() *pg.DB {
 func ExampleDB_Insert() {
 	db := modelDB()
 
-	book := Book{
+	book := &Book{
 		Title:    "new book",
 		AuthorID: 1,
 	}
 
-	err := db.Insert(&book)
+	_, err := db.Model(book).Insert()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(book)
 	// Output: Book<Id=4 Title="new book">
 
-	err = db.Delete(&book)
+	_, err = db.Model(book).WherePK().Delete()
 	if err != nil {
 		panic(err)
 	}
@@ -97,21 +97,21 @@ func ExampleDB_Insert() {
 func ExampleDB_Insert_bulkInsert() {
 	db := modelDB()
 
-	book1 := Book{
+	book1 := &Book{
 		Title: "new book 1",
 	}
-	book2 := Book{
+	book2 := &Book{
 		Title: "new book 2",
 	}
-	err := db.Insert(&book1, &book2)
+	_, err := db.Model(book1, book2).Insert()
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(book1, book2)
 	// Output: Book<Id=4 Title="new book 1"> Book<Id=5 Title="new book 2">
 
-	for _, book := range []*Book{&book1, &book2} {
-		err := db.Delete(book)
+	for _, book := range []*Book{book1, book2} {
+		_, err := db.Model(book).WherePK().Delete()
 		if err != nil {
 			panic(err)
 		}
@@ -126,7 +126,7 @@ func ExampleDB_Insert_bulkInsertSlice() {
 	}, {
 		Title: "new book 2",
 	}}
-	err := db.Insert(&books)
+	_, err := db.Model(&books).Insert()
 	if err != nil {
 		panic(err)
 	}
@@ -134,7 +134,7 @@ func ExampleDB_Insert_bulkInsertSlice() {
 	// Output: [Book<Id=4 Title="new book 1"> Book<Id=5 Title="new book 2">]
 
 	for i := range books {
-		err := db.Delete(&books[i])
+		_, err := db.Model(&books[i]).WherePK().Delete()
 		if err != nil {
 			panic(err)
 		}
@@ -144,13 +144,13 @@ func ExampleDB_Insert_bulkInsertSlice() {
 func ExampleDB_Insert_onConflictDoNothing() {
 	db := modelDB()
 
-	book := Book{
+	book := &Book{
 		Id:    100,
 		Title: "book 100",
 	}
 
 	for i := 0; i < 2; i++ {
-		res, err := db.Model(&book).OnConflict("DO NOTHING").Insert()
+		res, err := db.Model(book).OnConflict("DO NOTHING").Insert()
 		if err != nil {
 			panic(err)
 		}
@@ -161,7 +161,7 @@ func ExampleDB_Insert_onConflictDoNothing() {
 		}
 	}
 
-	err := db.Delete(&book)
+	_, err := db.Model(book).WherePK().Delete()
 	if err != nil {
 		panic(err)
 	}
@@ -187,14 +187,14 @@ func ExampleDB_Insert_onConflictDoUpdate() {
 			panic(err)
 		}
 
-		err = db.Select(book)
+		err = db.Model(book).WherePK().Select()
 		if err != nil {
 			panic(err)
 		}
 		fmt.Println(book)
 	}
 
-	err := db.Delete(book)
+	_, err := db.Model(book).WherePK().Delete()
 	if err != nil {
 		panic(err)
 	}
@@ -253,10 +253,10 @@ func ExampleDB_Insert_dynamicTableName() {
 func ExampleDB_Select() {
 	db := modelDB()
 
-	book := Book{
+	book := &Book{
 		Id: 1,
 	}
-	err := db.Select(&book)
+	err := db.Model(book).WherePK().Select()
 	if err != nil {
 		panic(err)
 	}
@@ -754,18 +754,18 @@ func ExampleDB_Update() {
 	db := modelDB()
 
 	book := &Book{Id: 1}
-	err := db.Select(book)
+	err := db.Model(book).WherePK().Select()
 	if err != nil {
 		panic(err)
 	}
 
 	book.Title = "updated book 1"
-	err = db.Update(book)
+	_, err = db.Model(book).WherePK().Update()
 	if err != nil {
 		panic(err)
 	}
 
-	err = db.Select(book)
+	err = db.Model(book).WherePK().Select()
 	if err != nil {
 		panic(err)
 	}
@@ -915,21 +915,21 @@ func ExampleDB_Update_bulkUpdateSlice() {
 func ExampleDB_Delete() {
 	db := modelDB()
 
-	book := Book{
+	book := &Book{
 		Title:    "title 1",
 		AuthorID: 1,
 	}
-	err := db.Insert(&book)
+	_, err := db.Model(book).Insert()
 	if err != nil {
 		panic(err)
 	}
 
-	err = db.Delete(&book)
+	_, err = db.Model(book).WherePK().Delete()
 	if err != nil {
 		panic(err)
 	}
 
-	err = db.Select(&book)
+	err = db.Model(book).WherePK().Select()
 	fmt.Println(err)
 	// Output: pg: no rows in result set
 }
@@ -1014,7 +1014,7 @@ func ExampleDB_jsonUseNumber() {
 	db := pg.Connect(pgOptions())
 	defer db.Close()
 
-	err := db.CreateTable((*Event)(nil), &orm.CreateTableOptions{
+	err := db.Model((*Event)(nil)).CreateTable(&orm.CreateTableOptions{
 		Temp: true,
 	})
 	if err != nil {
@@ -1026,7 +1026,7 @@ func ExampleDB_jsonUseNumber() {
 			"price": 1.23,
 		},
 	}
-	err = db.Insert(event)
+	_, err = db.Model(event).Insert()
 	if err != nil {
 		panic(err)
 	}

@@ -139,12 +139,12 @@ var _ = Describe("HookTest", func() {
 	})
 
 	It("calls BeforeInsert and AfterInsert", func() {
-		hook := HookTest{
+		hook := &HookTest{
 			Id: 1,
 		}
-		err := db.Insert(&hook)
+		_, err := db.Model(hook).Insert()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook).To(Equal(HookTest{
+		Expect(hook).To(Equal(&HookTest{
 			Id:           1,
 			beforeScan:   1,
 			afterScan:    1,
@@ -154,12 +154,12 @@ var _ = Describe("HookTest", func() {
 	})
 
 	It("calls BeforeUpdate and AfterUpdate", func() {
-		hook := HookTest{
+		hook := &HookTest{
 			Id: 1,
 		}
-		err := db.Update(&hook)
+		_, err := db.Model(hook).WherePK().Update()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook).To(Equal(HookTest{
+		Expect(hook).To(Equal(&HookTest{
 			Id:           1,
 			beforeUpdate: 1,
 			afterUpdate:  1,
@@ -175,12 +175,12 @@ var _ = Describe("HookTest", func() {
 	})
 
 	It("calls BeforeDelete and AfterDelete", func() {
-		hook := HookTest{
+		hook := &HookTest{
 			Id: 1,
 		}
-		err := db.Delete(&hook)
+		_, err := db.Model(hook).WherePK().Delete()
 		Expect(err).NotTo(HaveOccurred())
-		Expect(hook).To(Equal(HookTest{
+		Expect(hook).To(Equal(&HookTest{
 			Id:           1,
 			beforeDelete: 1,
 			afterDelete:  1,

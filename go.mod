@@ -3,6 +3,7 @@ module github.com/go-pg/pg/v10
 go 1.11
 
 require (
+	github.com/go-pg/pg v8.0.7+incompatible
 	github.com/go-pg/pg/v9 v9.1.6 // indirect
 	github.com/go-pg/urlstruct v0.4.0
 	github.com/go-pg/zerochecker v0.2.0

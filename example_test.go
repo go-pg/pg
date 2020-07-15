@@ -18,13 +18,13 @@ var pgdb *pg.DB
 func init() {
 	pgdb = connect()
 
-	err := pgdb.DropTable((*Flight)(nil), &orm.DropTableOptions{
+	err := pgdb.Model((*Flight)(nil)).DropTable(&orm.DropTableOptions{
 		IfExists: true,
 		Cascade:  true,
 	})
 	panicIf(err)
 
-	err = pgdb.CreateTable((*Flight)(nil), nil)
+	err = pgdb.Model((*Flight)(nil)).CreateTable(nil)
 	panicIf(err)
 }
 
@@ -238,7 +238,7 @@ func ExampleDB_CreateTable() {
 	}
 
 	for _, model := range []interface{}{&Model1{}, &Model2{}} {
-		err := pgdb.CreateTable(model, &orm.CreateTableOptions{
+		err := pgdb.Model(model).CreateTable(&orm.CreateTableOptions{
 			Temp:          true, // create temp table
 			FKConstraints: true,
 		})
@@ -314,10 +314,10 @@ func ExampleError() {
 	flight := &Flight{
 		Id: 123,
 	}
-	err := pgdb.Insert(flight)
+	_, err := pgdb.Model(flight).Insert()
 	panicIf(err)
 
-	err = pgdb.Insert(flight)
+	_, err = pgdb.Model(flight).Insert()
 	if err != nil {
 		pgErr, ok := err.(pg.Error)
 		if ok && pgErr.IntegrityViolation() {

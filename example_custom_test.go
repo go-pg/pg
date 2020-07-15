@@ -57,14 +57,14 @@ func ExampleDB_Model_customType() {
 	db := connect()
 	defer db.Close()
 
-	err := db.CreateTable((*Event)(nil), &orm.CreateTableOptions{
+	err := db.Model((*Event)(nil)).CreateTable(&orm.CreateTableOptions{
 		Temp: true,
 	})
 	panicIf(err)
 
-	err = db.Insert(&Event{
+	_, err = db.Model(&Event{
 		Time: Time{time.Date(0, 0, 0, 12, 00, 00, 00, time.UTC)}, // noon
-	})
+	}).Insert()
 	panicIf(err)
 
 	evt := new(Event)
