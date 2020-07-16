@@ -13,8 +13,8 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-type sqlOperation interface {
-	Operation() string
+type queryOperation interface {
+	Operation() orm.QueryOp
 }
 
 // OpenTelemetryHook is a pg.QueryHook that adds OpenTemetry instrumentation.
@@ -39,7 +39,7 @@ func (h OpenTelemetryHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) e
 	defer span.End()
 
 	var query string
-	if v, ok := evt.Query.(sqlOperation); ok && v.Operation() == orm.InsertOp {
+	if v, ok := evt.Query.(queryOperation); ok && v.Operation() == orm.InsertOp {
 		b, err := evt.UnformattedQuery()
 		if err != nil {
 			return err

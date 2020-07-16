@@ -14,12 +14,17 @@ import (
 	"github.com/go-pg/pg/v10/types"
 )
 
+type QueryOp string
+
 const (
-	SelectOp      = "SELECT"
-	InsertOp      = "INSERT"
-	UpdateOp      = "UPDATE"
-	DeleteOp      = "DELETE"
-	CreateTableOp = "CREATE TABLE"
+	SelectOp          QueryOp = "SELECT"
+	InsertOp          QueryOp = "INSERT"
+	UpdateOp          QueryOp = "UPDATE"
+	DeleteOp          QueryOp = "DELETE"
+	CreateTableOp     QueryOp = "CREATE TABLE"
+	DropTableOp       QueryOp = "DROP TABLE"
+	CreateCompositeOp QueryOp = "CREATE COMPOSITE"
+	DropCompositeOp   QueryOp = "DROP COMPOSITE"
 )
 
 type queryFlag uint8
@@ -245,19 +250,19 @@ func (q *Query) AllWithDeleted() *Query {
 
 // With adds subq as common table expression with the given name.
 func (q *Query) With(name string, subq *Query) *Query {
-	return q._with(name, newSelectQuery(subq))
+	return q._with(name, NewSelectQuery(subq))
 }
 
 func (q *Query) WithInsert(name string, subq *Query) *Query {
-	return q._with(name, newInsertQuery(subq))
+	return q._with(name, NewInsertQuery(subq))
 }
 
 func (q *Query) WithUpdate(name string, subq *Query) *Query {
-	return q._with(name, newUpdateQuery(subq, false))
+	return q._with(name, NewUpdateQuery(subq, false))
 }
 
 func (q *Query) WithDelete(name string, subq *Query) *Query {
-	return q._with(name, newDeleteQuery(subq))
+	return q._with(name, NewDeleteQuery(subq))
 }
 
 func (q *Query) _with(name string, subq QueryAppender) *Query {
@@ -781,8 +786,8 @@ func (q *Query) Count() (int, error) {
 	return count, err
 }
 
-func (q *Query) countSelectQuery(column string) *selectQuery {
-	return &selectQuery{
+func (q *Query) countSelectQuery(column string) *SelectQuery {
+	return &SelectQuery{
 		q:     q,
 		count: column,
 	}
@@ -831,7 +836,7 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
-	res, err := q.query(q.ctx, model, newSelectQuery(q))
+	res, err := q.query(q.ctx, model, NewSelectQuery(q))
 	if err != nil {
 		return err
 	}
@@ -1025,7 +1030,7 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 		}
 	}
 
-	query := newInsertQuery(q)
+	query := NewInsertQuery(q)
 	res, err := q.returningQuery(ctx, model, query)
 	if err != nil {
 		return nil, err
@@ -1137,7 +1142,7 @@ func (q *Query) update(values []interface{}, omitZero bool) (Result, error) {
 		}
 	}
 
-	query := newUpdateQuery(q, omitZero)
+	query := NewUpdateQuery(q, omitZero)
 	res, err := q.returningQuery(c, model, query)
 	if err != nil {
 		return nil, err
@@ -1213,7 +1218,7 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 		}
 	}
 
-	res, err := q.returningQuery(c, model, newDeleteQuery(q))
+	res, err := q.returningQuery(c, model, NewDeleteQuery(q))
 	if err != nil {
 		return nil, err
 	}
@@ -1229,28 +1234,22 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 }
 
 func (q *Query) CreateTable(opt *CreateTableOptions) error {
-	_, err := q.db.ExecContext(q.ctx, newCreateTableQuery(q, opt))
+	_, err := q.db.ExecContext(q.ctx, NewCreateTableQuery(q, opt))
 	return err
 }
 
 func (q *Query) DropTable(opt *DropTableOptions) error {
-	_, err := q.db.ExecContext(q.ctx, newDropTableQuery(q, opt))
+	_, err := q.db.ExecContext(q.ctx, NewDropTableQuery(q, opt))
 	return err
 }
 
 func (q *Query) CreateComposite(opt *CreateCompositeOptions) error {
-	_, err := q.db.ExecContext(q.ctx, &createCompositeQuery{
-		q:   q,
-		opt: opt,
-	})
+	_, err := q.db.ExecContext(q.ctx, NewCreateCompositeQuery(q, opt))
 	return err
 }
 
 func (q *Query) DropComposite(opt *DropCompositeOptions) error {
-	_, err := q.db.ExecContext(q.ctx, &dropCompositeQuery{
-		q:   q,
-		opt: opt,
-	})
+	_, err := q.db.ExecContext(q.ctx, NewDropCompositeQuery(q, opt))
 	return err
 }
 
@@ -1293,7 +1292,7 @@ func (q *Query) CopyTo(w io.Writer, query interface{}, params ...interface{}) (R
 var _ QueryAppender = (*Query)(nil)
 
 func (q *Query) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
-	return newSelectQuery(q).AppendQuery(fmter, b)
+	return NewSelectQuery(q).AppendQuery(fmter, b)
 }
 
 // Exists returns true or false depending if there are any rows matching the query.
@@ -1302,7 +1301,7 @@ func (q *Query) Exists() (bool, error) {
 	cp.columns = []QueryAppender{SafeQuery("1")}
 	cp.order = nil
 	cp.limit = 1
-	res, err := q.db.ExecContext(q.ctx, newSelectQuery(cp))
+	res, err := q.db.ExecContext(q.ctx, NewSelectQuery(cp))
 	if err != nil {
 		return false, err
 	}

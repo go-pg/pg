@@ -21,6 +21,6 @@ var _ = Describe("Delete", func() {
 })
 
 func deleteQueryString(q *Query) string {
-	del := newDeleteQuery(q)
+	del := NewDeleteQuery(q)
 	return queryString(del)
 }

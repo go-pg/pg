@@ -8,46 +8,54 @@ import (
 	"github.com/go-pg/pg/v10/types"
 )
 
-type insertQuery struct {
+type InsertQuery struct {
 	q               *Query
 	returningFields []*Field
 	placeholder     bool
 }
 
-var _ queryCommand = (*insertQuery)(nil)
+var _ QueryCommand = (*InsertQuery)(nil)
 
-func newInsertQuery(q *Query) *insertQuery {
-	return &insertQuery{
+func NewInsertQuery(q *Query) *InsertQuery {
+	return &InsertQuery{
 		q: q,
 	}
 }
 
-func (q *insertQuery) Operation() string {
+func (q *InsertQuery) String() string {
+	b, err := q.AppendQuery(defaultFmter, nil)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
+func (q *InsertQuery) Operation() QueryOp {
 	return InsertOp
 }
 
-func (q *insertQuery) Clone() queryCommand {
-	return &insertQuery{
+func (q *InsertQuery) Clone() QueryCommand {
+	return &InsertQuery{
 		q:           q.q.Clone(),
 		placeholder: q.placeholder,
 	}
 }
 
-func (q *insertQuery) Query() *Query {
+func (q *InsertQuery) Query() *Query {
 	return q.q
 }
 
-var _ TemplateAppender = (*insertQuery)(nil)
+var _ TemplateAppender = (*InsertQuery)(nil)
 
-func (q *insertQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Clone().(*insertQuery)
+func (q *InsertQuery) AppendTemplate(b []byte) ([]byte, error) {
+	cp := q.Clone().(*InsertQuery)
 	cp.placeholder = true
 	return cp.AppendQuery(dummyFormatter{}, b)
 }
 
-var _ QueryAppender = (*insertQuery)(nil)
+var _ QueryAppender = (*InsertQuery)(nil)
 
-func (q *insertQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+func (q *InsertQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
@@ -122,7 +130,7 @@ func (q *insertQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	return b, q.q.stickyErr
 }
 
-func (q *insertQuery) appendColumnsValues(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+func (q *InsertQuery) appendColumnsValues(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if q.q.hasMultiTables() {
 		if q.q.columns != nil {
 			b = append(b, " ("...)
@@ -183,7 +191,7 @@ func (q *insertQuery) appendColumnsValues(fmter QueryFormatter, b []byte) (_ []b
 	return b, nil
 }
 
-func (q *insertQuery) appendMapColumnsValues(b []byte, m map[string]interface{}) []byte {
+func (q *InsertQuery) appendMapColumnsValues(b []byte, m map[string]interface{}) []byte {
 	keys := make([]string, 0, len(m))
 
 	for k := range m {
@@ -218,7 +226,7 @@ func (q *insertQuery) appendMapColumnsValues(b []byte, m map[string]interface{})
 	return b
 }
 
-func (q *insertQuery) appendValues(
+func (q *InsertQuery) appendValues(
 	fmter QueryFormatter, b []byte, fields []*Field, strct reflect.Value,
 ) (_ []byte, err error) {
 	for i, f := range fields {
@@ -261,7 +269,7 @@ func (q *insertQuery) appendValues(
 	return b, nil
 }
 
-func (q *insertQuery) appendSliceValues(
+func (q *InsertQuery) appendSliceValues(
 	fmter QueryFormatter, b []byte, fields []*Field, slice reflect.Value,
 ) (_ []byte, err error) {
 	if q.placeholder {
@@ -294,7 +302,7 @@ func (q *insertQuery) appendSliceValues(
 	return b, nil
 }
 
-func (q *insertQuery) addReturningField(field *Field) {
+func (q *InsertQuery) addReturningField(field *Field) {
 	if len(q.q.returning) > 0 {
 		return
 	}
@@ -306,7 +314,7 @@ func (q *insertQuery) addReturningField(field *Field) {
 	q.returningFields = append(q.returningFields, field)
 }
 
-func (q *insertQuery) appendSetExcluded(b []byte, fields []*Field) []byte {
+func (q *InsertQuery) appendSetExcluded(b []byte, fields []*Field) []byte {
 	b = append(b, " SET "...)
 	for i, f := range fields {
 		if i > 0 {
@@ -319,7 +327,7 @@ func (q *insertQuery) appendSetExcluded(b []byte, fields []*Field) []byte {
 	return b
 }
 
-func (q *insertQuery) appendColumns(b []byte, fields []*Field) []byte {
+func (q *InsertQuery) appendColumns(b []byte, fields []*Field) []byte {
 	b = appendColumns(b, "", fields)
 	for i, v := range q.q.extraValues {
 		if i > 0 || len(fields) > 0 {

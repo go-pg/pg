@@ -1,3 +1,6 @@
+/*
+The API in this package is not stable and may change without any notice.
+*/
 package orm
 
 import (
@@ -24,10 +27,12 @@ type TemplateAppender interface {
 	AppendTemplate(b []byte) ([]byte, error)
 }
 
-type queryCommand interface {
+type QueryCommand interface {
 	QueryAppender
 	TemplateAppender
-	Clone() queryCommand
+	String() string
+	Operation() QueryOp
+	Clone() QueryCommand
 	Query() *Query
 }
 

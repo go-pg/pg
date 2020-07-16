@@ -1,43 +1,51 @@
 package orm
 
-type deleteQuery struct {
+type DeleteQuery struct {
 	q           *Query
 	placeholder bool
 }
 
 var (
-	_ QueryAppender = (*deleteQuery)(nil)
-	_ queryCommand  = (*deleteQuery)(nil)
+	_ QueryAppender = (*DeleteQuery)(nil)
+	_ QueryCommand  = (*DeleteQuery)(nil)
 )
 
-func newDeleteQuery(q *Query) *deleteQuery {
-	return &deleteQuery{
+func NewDeleteQuery(q *Query) *DeleteQuery {
+	return &DeleteQuery{
 		q: q,
 	}
 }
 
-func (q *deleteQuery) Operation() string {
+func (q *DeleteQuery) String() string {
+	b, err := q.AppendQuery(defaultFmter, nil)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
+func (q *DeleteQuery) Operation() QueryOp {
 	return DeleteOp
 }
 
-func (q *deleteQuery) Clone() queryCommand {
-	return &deleteQuery{
+func (q *DeleteQuery) Clone() QueryCommand {
+	return &DeleteQuery{
 		q:           q.q.Clone(),
 		placeholder: q.placeholder,
 	}
 }
 
-func (q *deleteQuery) Query() *Query {
+func (q *DeleteQuery) Query() *Query {
 	return q.q
 }
 
-func (q *deleteQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Clone().(*deleteQuery)
+func (q *DeleteQuery) AppendTemplate(b []byte) ([]byte, error) {
+	cp := q.Clone().(*DeleteQuery)
 	cp.placeholder = true
 	return cp.AppendQuery(dummyFormatter{}, b)
 }
 
-func (q *deleteQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+func (q *DeleteQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}

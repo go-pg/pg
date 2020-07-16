@@ -24,6 +24,6 @@ var _ = Describe("DropTable", func() {
 })
 
 func dropTableQueryString(q *Query, opt *DropTableOptions) string {
-	qq := newDropTableQuery(q, opt)
+	qq := NewDropTableQuery(q, opt)
 	return queryString(qq)
 }

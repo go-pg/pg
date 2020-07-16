@@ -8,32 +8,51 @@ type CreateCompositeOptions struct {
 	Varchar int // replaces PostgreSQL data type `text` with `varchar(n)`
 }
 
-type createCompositeQuery struct {
+type CreateCompositeQuery struct {
 	q   *Query
 	opt *CreateCompositeOptions
 }
 
 var (
-	_ QueryAppender = (*createCompositeQuery)(nil)
-	_ queryCommand  = (*createCompositeQuery)(nil)
+	_ QueryAppender = (*CreateCompositeQuery)(nil)
+	_ QueryCommand  = (*CreateCompositeQuery)(nil)
 )
 
-func (q *createCompositeQuery) Clone() queryCommand {
-	return &createCompositeQuery{
+func NewCreateCompositeQuery(q *Query, opt *CreateCompositeOptions) *CreateCompositeQuery {
+	return &CreateCompositeQuery{
+		q:   q,
+		opt: opt,
+	}
+}
+
+func (q *CreateCompositeQuery) String() string {
+	b, err := q.AppendQuery(defaultFmter, nil)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
+func (q *CreateCompositeQuery) Operation() QueryOp {
+	return CreateCompositeOp
+}
+
+func (q *CreateCompositeQuery) Clone() QueryCommand {
+	return &CreateCompositeQuery{
 		q:   q.q.Clone(),
 		opt: q.opt,
 	}
 }
 
-func (q *createCompositeQuery) Query() *Query {
+func (q *CreateCompositeQuery) Query() *Query {
 	return q.q
 }
 
-func (q *createCompositeQuery) AppendTemplate(b []byte) ([]byte, error) {
+func (q *CreateCompositeQuery) AppendTemplate(b []byte) ([]byte, error) {
 	return q.AppendQuery(dummyFormatter{}, b)
 }
 
-func (q *createCompositeQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
+func (q *CreateCompositeQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}

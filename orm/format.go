@@ -199,7 +199,7 @@ func (f *Formatter) WithModel(model interface{}) *Formatter {
 		return f.WithTableModel(model)
 	case *Query:
 		return f.WithTableModel(model.tableModel)
-	case queryCommand:
+	case QueryCommand:
 		return f.WithTableModel(model.Query().tableModel)
 	default:
 		panic(fmt.Errorf("pg: unsupported model %T", model))
