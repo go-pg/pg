@@ -5,42 +5,50 @@ import (
 	"strings"
 )
 
-type selectQuery struct {
+type SelectQuery struct {
 	q     *Query
 	count string
 }
 
 var (
-	_ QueryAppender = (*selectQuery)(nil)
-	_ queryCommand  = (*selectQuery)(nil)
+	_ QueryAppender = (*SelectQuery)(nil)
+	_ QueryCommand  = (*SelectQuery)(nil)
 )
 
-func newSelectQuery(q *Query) *selectQuery {
-	return &selectQuery{
+func NewSelectQuery(q *Query) *SelectQuery {
+	return &SelectQuery{
 		q: q,
 	}
 }
 
-func (q *selectQuery) Operation() string {
+func (q *SelectQuery) String() string {
+	b, err := q.AppendQuery(defaultFmter, nil)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
+func (q *SelectQuery) Operation() QueryOp {
 	return SelectOp
 }
 
-func (q *selectQuery) Clone() queryCommand {
-	return &selectQuery{
+func (q *SelectQuery) Clone() QueryCommand {
+	return &SelectQuery{
 		q:     q.q.Clone(),
 		count: q.count,
 	}
 }
 
-func (q *selectQuery) Query() *Query {
+func (q *SelectQuery) Query() *Query {
 	return q.q
 }
 
-func (q *selectQuery) AppendTemplate(b []byte) ([]byte, error) {
+func (q *SelectQuery) AppendTemplate(b []byte) ([]byte, error) {
 	return q.AppendQuery(dummyFormatter{}, b)
 }
 
-func (q *selectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) { //nolint:gocyclo
+func (q *SelectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) { //nolint:gocyclo
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
@@ -214,7 +222,7 @@ func (q *selectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	return b, q.q.stickyErr
 }
 
-func (q selectQuery) appendColumns(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+func (q SelectQuery) appendColumns(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	start := len(b)
 
 	switch {
@@ -251,7 +259,7 @@ func (q selectQuery) appendColumns(fmter QueryFormatter, b []byte) (_ []byte, er
 	return b, nil
 }
 
-func (q *selectQuery) isDistinct() bool {
+func (q *SelectQuery) isDistinct() bool {
 	if q.q.distinctOn != nil {
 		return true
 	}
@@ -267,7 +275,7 @@ func (q *selectQuery) isDistinct() bool {
 	return false
 }
 
-func (q *selectQuery) appendTables(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+func (q *SelectQuery) appendTables(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	tables := q.q.tables
 
 	if q.q.modelHasTableName() {

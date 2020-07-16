@@ -218,7 +218,7 @@ var _ = Describe("Insert", func() {
 		slice := make([]InsertTest, 0)
 		q := NewQuery(nil, &slice)
 
-		_, err := (&insertQuery{q: q}).AppendQuery(defaultFmter, nil)
+		_, err := (&InsertQuery{q: q}).AppendQuery(defaultFmter, nil)
 		Expect(err).To(MatchError("pg: can't bulk-insert empty slice []orm.InsertTest"))
 	})
 
@@ -282,6 +282,6 @@ var _ = Describe("Insert", func() {
 })
 
 func insertQueryString(q *Query) string {
-	ins := newInsertQuery(q)
+	ins := NewInsertQuery(q)
 	return queryString(ins)
 }

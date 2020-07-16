@@ -8,47 +8,55 @@ import (
 	"github.com/go-pg/pg/v10/types"
 )
 
-type updateQuery struct {
+type UpdateQuery struct {
 	q           *Query
 	omitZero    bool
 	placeholder bool
 }
 
 var (
-	_ QueryAppender = (*updateQuery)(nil)
-	_ queryCommand  = (*updateQuery)(nil)
+	_ QueryAppender = (*UpdateQuery)(nil)
+	_ QueryCommand  = (*UpdateQuery)(nil)
 )
 
-func newUpdateQuery(q *Query, omitZero bool) *updateQuery {
-	return &updateQuery{
+func NewUpdateQuery(q *Query, omitZero bool) *UpdateQuery {
+	return &UpdateQuery{
 		q:        q,
 		omitZero: omitZero,
 	}
 }
 
-func (q *updateQuery) Operation() string {
+func (q *UpdateQuery) String() string {
+	b, err := q.AppendQuery(defaultFmter, nil)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
+func (q *UpdateQuery) Operation() QueryOp {
 	return UpdateOp
 }
 
-func (q *updateQuery) Clone() queryCommand {
-	return &updateQuery{
+func (q *UpdateQuery) Clone() QueryCommand {
+	return &UpdateQuery{
 		q:           q.q.Clone(),
 		omitZero:    q.omitZero,
 		placeholder: q.placeholder,
 	}
 }
 
-func (q *updateQuery) Query() *Query {
+func (q *UpdateQuery) Query() *Query {
 	return q.q
 }
 
-func (q *updateQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Clone().(*updateQuery)
+func (q *UpdateQuery) AppendTemplate(b []byte) ([]byte, error) {
+	cp := q.Clone().(*UpdateQuery)
 	cp.placeholder = true
 	return cp.AppendQuery(dummyFormatter{}, b)
 }
 
-func (q *updateQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+func (q *UpdateQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}
@@ -103,7 +111,7 @@ func (q *updateQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	return b, q.q.stickyErr
 }
 
-func (q *updateQuery) mustAppendWhere(
+func (q *UpdateQuery) mustAppendWhere(
 	fmter QueryFormatter, b []byte, isSliceModelWithData bool,
 ) (_ []byte, err error) {
 	b = append(b, " WHERE "...)
@@ -126,7 +134,7 @@ func (q *updateQuery) mustAppendWhere(
 	return b, nil
 }
 
-func (q *updateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+func (q *UpdateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if len(q.q.set) > 0 {
 		return q.q.appendSet(fmter, b)
 	}
@@ -158,7 +166,7 @@ func (q *updateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, e
 	return b, nil
 }
 
-func (q *updateQuery) appendMapSet(b []byte, m map[string]interface{}) []byte {
+func (q *UpdateQuery) appendMapSet(b []byte, m map[string]interface{}) []byte {
 	keys := make([]string, 0, len(m))
 
 	for k := range m {
@@ -183,7 +191,7 @@ func (q *updateQuery) appendMapSet(b []byte, m map[string]interface{}) []byte {
 	return b
 }
 
-func (q *updateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct reflect.Value) ([]byte, error) {
+func (q *UpdateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct reflect.Value) ([]byte, error) {
 	fields, err := q.q.getFields()
 	if err != nil {
 		return nil, err
@@ -240,7 +248,7 @@ func (q *updateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct refl
 	return b, nil
 }
 
-func (q *updateQuery) appendSetSlice(b []byte) ([]byte, error) {
+func (q *UpdateQuery) appendSetSlice(b []byte) ([]byte, error) {
 	fields, err := q.q.getFields()
 	if err != nil {
 		return nil, err
@@ -281,7 +289,7 @@ func (q *updateQuery) appendSetSlice(b []byte) ([]byte, error) {
 	return b, nil
 }
 
-func (q *updateQuery) appendSliceModelData(fmter QueryFormatter, b []byte) ([]byte, error) {
+func (q *UpdateQuery) appendSliceModelData(fmter QueryFormatter, b []byte) ([]byte, error) {
 	columns, err := q.q.getDataFields()
 	if err != nil {
 		return nil, err
@@ -296,7 +304,7 @@ func (q *updateQuery) appendSliceModelData(fmter QueryFormatter, b []byte) ([]by
 	return q.appendSliceValues(fmter, b, columns, q.q.tableModel.Value())
 }
 
-func (q *updateQuery) appendSliceValues(
+func (q *UpdateQuery) appendSliceValues(
 	fmter QueryFormatter, b []byte, fields []*Field, slice reflect.Value,
 ) (_ []byte, err error) {
 	b = append(b, "(VALUES ("...)
@@ -326,7 +334,7 @@ func (q *updateQuery) appendSliceValues(
 	return b, nil
 }
 
-func (q *updateQuery) appendValues(
+func (q *UpdateQuery) appendValues(
 	fmter QueryFormatter, b []byte, fields []*Field, strct reflect.Value,
 ) (_ []byte, err error) {
 	for i, f := range fields {

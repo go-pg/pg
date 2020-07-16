@@ -5,32 +5,51 @@ type DropCompositeOptions struct {
 	Cascade  bool
 }
 
-type dropCompositeQuery struct {
+type DropCompositeQuery struct {
 	q   *Query
 	opt *DropCompositeOptions
 }
 
 var (
-	_ QueryAppender = (*dropCompositeQuery)(nil)
-	_ queryCommand  = (*dropCompositeQuery)(nil)
+	_ QueryAppender = (*DropCompositeQuery)(nil)
+	_ QueryCommand  = (*DropCompositeQuery)(nil)
 )
 
-func (q *dropCompositeQuery) Clone() queryCommand {
-	return &dropCompositeQuery{
+func NewDropCompositeQuery(q *Query, opt *DropCompositeOptions) *DropCompositeQuery {
+	return &DropCompositeQuery{
+		q:   q,
+		opt: opt,
+	}
+}
+
+func (q *DropCompositeQuery) String() string {
+	b, err := q.AppendQuery(defaultFmter, nil)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
+func (q *DropCompositeQuery) Operation() QueryOp {
+	return DropCompositeOp
+}
+
+func (q *DropCompositeQuery) Clone() QueryCommand {
+	return &DropCompositeQuery{
 		q:   q.q.Clone(),
 		opt: q.opt,
 	}
 }
 
-func (q *dropCompositeQuery) Query() *Query {
+func (q *DropCompositeQuery) Query() *Query {
 	return q.q
 }
 
-func (q *dropCompositeQuery) AppendTemplate(b []byte) ([]byte, error) {
+func (q *DropCompositeQuery) AppendTemplate(b []byte) ([]byte, error) {
 	return q.AppendQuery(dummyFormatter{}, b)
 }
 
-func (q *dropCompositeQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
+func (q *DropCompositeQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}

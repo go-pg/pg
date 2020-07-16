@@ -54,7 +54,7 @@ var _ = Describe("Update", func() {
 	It("omits zero", func() {
 		q := NewQuery(nil, &UpdateTest{}).WherePK()
 
-		s := queryString(&updateQuery{q: q, omitZero: true})
+		s := queryString(&UpdateQuery{q: q, omitZero: true})
 		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET  WHERE "update_test"."id" = NULL`))
 	})
 
@@ -111,7 +111,7 @@ var _ = Describe("Update", func() {
 		slice := make([]UpdateTest, 0)
 		q := NewQuery(nil, &slice)
 
-		_, err := newUpdateQuery(q, false).AppendQuery(defaultFmter, nil)
+		_, err := NewUpdateQuery(q, false).AppendQuery(defaultFmter, nil)
 		Expect(err).To(MatchError("pg: can't bulk-update empty slice []orm.UpdateTest"))
 	})
 
@@ -206,13 +206,13 @@ var _ = Describe("Update", func() {
 })
 
 func updateQueryString(q *Query) string {
-	upd := newUpdateQuery(q, false)
+	upd := NewUpdateQuery(q, false)
 	s := queryString(upd)
 	return s
 }
 
 func updateQueryStringOmitZero(q *Query) string {
-	upd := newUpdateQuery(q, true)
+	upd := NewUpdateQuery(q, true)
 	s := queryString(upd)
 	return s
 }

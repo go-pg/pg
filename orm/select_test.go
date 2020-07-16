@@ -469,7 +469,7 @@ var _ = Describe("union", func() {
 })
 
 func selectQueryString(q *Query) string {
-	sel := newSelectQuery(q)
+	sel := NewSelectQuery(q)
 	s := queryString(sel)
 	return s
 }
