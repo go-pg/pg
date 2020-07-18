@@ -14,11 +14,11 @@ var pool = sync.Pool{
 
 func GetWriteBuffer() *WriteBuffer {
 	wb := pool.Get().(*WriteBuffer)
-	wb.Reset()
 	return wb
 }
 
 func PutWriteBuffer(wb *WriteBuffer) {
+	wb.Reset()
 	pool.Put(wb)
 }
 
@@ -37,10 +37,6 @@ func NewWriteBuffer() *WriteBuffer {
 
 func (buf *WriteBuffer) Reset() {
 	buf.Bytes = buf.Bytes[:0]
-}
-
-func (buf *WriteBuffer) ResetBuffer(b []byte) {
-	buf.Bytes = b[:0]
 }
 
 func (buf *WriteBuffer) StartMessage(c byte) {
