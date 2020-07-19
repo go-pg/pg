@@ -19,6 +19,7 @@
   - `db.Update(model)` becomes `db.Model(model).WherePK().Update()`.
   - `db.Delete(model)` becomes `db.Model(model).WherePK().Delete()`.
 - Deprecated types and funcs are removed.
+- `WhereStruct` is deprecated and will not receive updates.
 
 ## v9
 

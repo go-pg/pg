@@ -590,6 +590,8 @@ func (q *Query) WherePK() *Query {
 	return q
 }
 
+// WhereStruct is deprecated and will not receive updates.
+//
 // WhereStruct generates conditions for the struct fields with non-zero values:
 //    - Foo int - Where("foo = ?", strct.Foo)
 //    - Foo []int - Where("foo = ANY(?)", pg.Array(strct.Foo))
