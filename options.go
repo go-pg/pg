@@ -110,6 +110,10 @@ func (opt *Options) init() {
 			opt.Addr = "/var/run/postgresql/.s.PGSQL.5432"
 		}
 	}
+
+	if opt.DialTimeout == 0 {
+		opt.DialTimeout = 5 * time.Second
+	}
 	if opt.Dialer == nil {
 		opt.Dialer = func(ctx context.Context, network, addr string) (net.Conn, error) {
 			netDialer := &net.Dialer{
@@ -138,10 +142,6 @@ func (opt *Options) init() {
 		} else {
 			opt.PoolTimeout = 30 * time.Second
 		}
-	}
-
-	if opt.DialTimeout == 0 {
-		opt.DialTimeout = 5 * time.Second
 	}
 
 	if opt.IdleTimeout == 0 {
