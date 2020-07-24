@@ -58,7 +58,3 @@ func isBadConn(err error, allowTimeout bool) bool {
 type timeoutError interface {
 	Timeout() bool
 }
-
-type temporaryError interface {
-	Temporary() bool
-}

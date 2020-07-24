@@ -198,12 +198,8 @@ func (db *baseDB) shouldRetry(err error) bool {
 		}
 	}
 
-	if v, ok := err.(timeoutError); ok {
-		return v.Timeout()
-	}
-
-	if v, ok := err.(temporaryError); ok {
-		return v.Temporary()
+	if _, ok := err.(timeoutError); ok {
+		return true
 	}
 
 	return false
