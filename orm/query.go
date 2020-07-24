@@ -865,11 +865,11 @@ func (q *Query) newModel(values []interface{}) (Model, error) {
 	return q.tableModel, nil
 }
 
-func (q *Query) query(c context.Context, model Model, query interface{}) (Result, error) {
+func (q *Query) query(ctx context.Context, model Model, query interface{}) (Result, error) {
 	if _, ok := model.(useQueryOne); ok {
-		return q.db.QueryOneContext(c, model, query, q.tableModel)
+		return q.db.QueryOneContext(ctx, model, query, q.tableModel)
 	}
-	return q.db.QueryContext(c, model, query, q.tableModel)
+	return q.db.QueryContext(ctx, model, query, q.tableModel)
 }
 
 // SelectAndCount runs Select and Count in two goroutines,
@@ -1299,11 +1299,11 @@ func (q *Query) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 
 // Exists returns true or false depending if there are any rows matching the query.
 func (q *Query) Exists() (bool, error) {
-	cp := q.Clone() // copy to not change original query
-	cp.columns = []QueryAppender{SafeQuery("1")}
-	cp.order = nil
-	cp.limit = 1
-	res, err := q.db.ExecContext(q.ctx, NewSelectQuery(cp))
+	q = q.Clone() // copy to not change original query
+	q.columns = []QueryAppender{SafeQuery("1")}
+	q.order = nil
+	q.limit = 1
+	res, err := q.db.ExecContext(q.ctx, NewSelectQuery(q))
 	if err != nil {
 		return false, err
 	}

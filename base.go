@@ -179,9 +179,12 @@ func (db *baseDB) withConn(
 
 func (db *baseDB) shouldRetry(err error) bool {
 	switch err {
+	case io.EOF, io.ErrUnexpectedEOF:
+		return true
 	case nil, context.Canceled, context.DeadlineExceeded:
 		return false
 	}
+
 	if pgerr, ok := err.(Error); ok {
 		switch pgerr.Field('C') {
 		case "40001", // serialization_failure
@@ -194,7 +197,16 @@ func (db *baseDB) shouldRetry(err error) bool {
 			return false
 		}
 	}
-	return isNetworkError(err)
+
+	if v, ok := err.(timeoutError); ok {
+		return v.Timeout()
+	}
+
+	if v, ok := err.(temporaryError); ok {
+		return v.Temporary()
+	}
+
+	return false
 }
 
 // Close closes the database client, releasing any open resources.
