@@ -1,7 +1,6 @@
 package pg
 
 import (
-	"io"
 	"net"
 
 	"github.com/go-pg/pg/v10/internal"
@@ -43,21 +42,23 @@ func isBadConn(err error, allowTimeout bool) bool {
 	if _, ok := err.(internal.Error); ok {
 		return false
 	}
-	if pgErr, ok := err.(Error); ok && pgErr.Field('S') != "FATAL" {
-		return false
+	if pgErr, ok := err.(Error); ok {
+		return pgErr.Field('S') == "FATAL"
 	}
 	if allowTimeout {
 		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-			return false
+			return !netErr.Temporary()
 		}
 	}
 	return true
 }
 
-func isNetworkError(err error) bool {
-	if err == io.EOF {
-		return true
-	}
-	_, ok := err.(net.Error)
-	return ok
+//------------------------------------------------------------------------------
+
+type timeoutError interface {
+	Timeout() bool
+}
+
+type temporaryError interface {
+	Temporary() bool
 }
