@@ -1,5 +1,11 @@
 package orm
 
+import (
+	"reflect"
+
+	"github.com/go-pg/pg/v10/types"
+)
+
 type DeleteQuery struct {
 	q           *Query
 	placeholder bool
@@ -104,4 +110,49 @@ func (q *DeleteQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	}
 
 	return b, q.q.stickyErr
+}
+
+func appendColumnAndSliceValue(
+	fmter QueryFormatter, b []byte, slice reflect.Value, alias types.Safe, fields []*Field,
+) []byte {
+	if len(fields) > 1 {
+		b = append(b, '(')
+	}
+	b = appendColumns(b, alias, fields)
+	if len(fields) > 1 {
+		b = append(b, ')')
+	}
+
+	b = append(b, " IN ("...)
+
+	isPlaceholder := isPlaceholderFormatter(fmter)
+	sliceLen := slice.Len()
+	for i := 0; i < sliceLen; i++ {
+		if i > 0 {
+			b = append(b, ", "...)
+		}
+
+		el := indirect(slice.Index(i))
+
+		if len(fields) > 1 {
+			b = append(b, '(')
+		}
+		for i, f := range fields {
+			if i > 0 {
+				b = append(b, ", "...)
+			}
+			if isPlaceholder {
+				b = append(b, '?')
+			} else {
+				b = f.AppendValue(b, el, 1)
+			}
+		}
+		if len(fields) > 1 {
+			b = append(b, ')')
+		}
+	}
+
+	b = append(b, ')')
+
+	return b
 }

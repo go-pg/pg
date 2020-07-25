@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -40,15 +41,6 @@ type withQuery struct {
 	query QueryAppender
 }
 
-type joinQuery struct {
-	join *SafeQueryAppender
-	on   []*condAppender
-}
-
-func (q *joinQuery) AppendOn(app *condAppender) {
-	q.on = append(q.on, app)
-}
-
 type columnValue struct {
 	column string
 	value  *SafeQueryAppender
@@ -80,7 +72,7 @@ type Query struct {
 	group        []QueryAppender
 	having       []*SafeQueryAppender
 	union        []*union
-	joins        []*joinQuery
+	joins        []QueryAppender
 	joinAppendOn func(app *condAppender)
 	order        []QueryAppender
 	limit        int
@@ -586,8 +578,17 @@ func (q *Query) WherePK() *Query {
 		return q
 	}
 
-	q.where = append(q.where, wherePKQuery{q})
-	return q
+	switch q.tableModel.Kind() {
+	case reflect.Struct:
+		q.where = append(q.where, wherePKStructQuery{q})
+		return q
+	case reflect.Slice:
+		q.joins = append(q.joins, wherePKSliceQuery{q})
+		q = q.OrderExpr(`"_pg_pk"."ordering" ASC`)
+		return q
+	}
+
+	panic("not reached")
 }
 
 // WhereStruct is deprecated and will not receive updates.
@@ -1557,22 +1558,19 @@ func (q *Query) isSliceModelWithData() bool {
 
 //------------------------------------------------------------------------------
 
-type wherePKQuery struct {
+type wherePKStructQuery struct {
 	q *Query
 }
 
-var _ queryWithSepAppender = (*wherePKQuery)(nil)
+var _ queryWithSepAppender = (*wherePKStructQuery)(nil)
 
-func (wherePKQuery) AppendSep(b []byte) []byte {
+func (wherePKStructQuery) AppendSep(b []byte) []byte {
 	return append(b, " AND "...)
 }
 
-func (q wherePKQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
+func (q wherePKStructQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	table := q.q.tableModel.Table()
 	value := q.q.tableModel.Value()
-	if q.q.tableModel.Kind() == reflect.Slice {
-		return appendColumnAndSliceValue(fmter, b, value, table.Alias, table.PKs), nil
-	}
 	return appendColumnAndValue(fmter, b, value, table.Alias, table.PKs), nil
 }
 
@@ -1597,20 +1595,20 @@ func appendColumnAndValue(
 	return b
 }
 
-func appendColumnAndSliceValue(
-	fmter QueryFormatter, b []byte, slice reflect.Value, alias types.Safe, fields []*Field,
-) []byte {
-	if len(fields) > 1 {
-		b = append(b, '(')
-	}
-	b = appendColumns(b, alias, fields)
-	if len(fields) > 1 {
-		b = append(b, ')')
-	}
+//------------------------------------------------------------------------------
 
-	b = append(b, " IN ("...)
+type wherePKSliceQuery struct {
+	q *Query
+}
 
-	isPlaceholder := isPlaceholderFormatter(fmter)
+var _ QueryAppender = (*wherePKSliceQuery)(nil)
+
+func (q wherePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
+	table := q.q.tableModel.Table()
+	slice := q.q.tableModel.Value()
+
+	b = append(b, " JOIN (VALUES "...)
+
 	sliceLen := slice.Len()
 	for i := 0; i < sliceLen; i++ {
 		if i > 0 {
@@ -1619,25 +1617,45 @@ func appendColumnAndSliceValue(
 
 		el := indirect(slice.Index(i))
 
-		if len(fields) > 1 {
-			b = append(b, '(')
-		}
-		for i, f := range fields {
+		b = append(b, '(')
+		for i, f := range table.PKs {
 			if i > 0 {
 				b = append(b, ", "...)
 			}
-			if isPlaceholder {
-				b = append(b, '?')
-			} else {
-				b = f.AppendValue(b, el, 1)
-			}
+			b = f.AppendValue(b, el, 1)
 		}
-		if len(fields) > 1 {
-			b = append(b, ')')
-		}
+
+		b = append(b, ", "...)
+		b = strconv.AppendInt(b, int64(i), 10)
+
+		b = append(b, ')')
 	}
 
-	b = append(b, ')')
+	b = append(b, `) AS "_pg_pk" (`...)
 
-	return b
+	for i, f := range table.PKs {
+		if i > 0 {
+			b = append(b, ",  "...)
+		}
+		b = append(b, f.Column...)
+	}
+
+	b = append(b, ", "...)
+	b = append(b, `"ordering"`...)
+
+	b = append(b, ") ON "...)
+
+	for i, f := range table.PKs {
+		if i > 0 {
+			b = append(b, " AND "...)
+		}
+		b = append(b, table.Alias...)
+		b = append(b, '.')
+		b = append(b, f.Column...)
+		b = append(b, " = "...)
+		b = append(b, `"_pg_pk."`...)
+		b = append(b, f.Column...)
+	}
+
+	return b, nil
 }

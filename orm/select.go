@@ -110,25 +110,10 @@ func (q *SelectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		return nil, err
 	}
 
-	if len(q.q.joins) > 0 {
-		for _, j := range q.q.joins {
-			b = append(b, ' ')
-			b, err = j.join.AppendQuery(fmter, b)
-			if err != nil {
-				return nil, err
-			}
-			if len(j.on) > 0 {
-				b = append(b, " ON "...)
-			}
-			for i, on := range j.on {
-				if i > 0 {
-					b = on.AppendSep(b)
-				}
-				b, err = on.AppendQuery(fmter, b)
-				if err != nil {
-					return nil, err
-				}
-			}
+	for _, j := range q.q.joins {
+		b, err = j.AppendQuery(fmter, b)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -312,6 +297,41 @@ func (q *SelectQuery) appendTables(fmter QueryFormatter, b []byte) (_ []byte, er
 		b, err = f.AppendQuery(fmter, b)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	return b, nil
+}
+
+//------------------------------------------------------------------------------
+
+type joinQuery struct {
+	join *SafeQueryAppender
+	on   []*condAppender
+}
+
+func (j *joinQuery) AppendOn(app *condAppender) {
+	j.on = append(j.on, app)
+}
+
+func (j *joinQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+	b = append(b, ' ')
+
+	b, err = j.join.AppendQuery(fmter, b)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(j.on) > 0 {
+		b = append(b, " ON "...)
+		for i, on := range j.on {
+			if i > 0 {
+				b = on.AppendSep(b)
+			}
+			b, err = on.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 
