@@ -1653,7 +1653,7 @@ func (q wherePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, 
 		b = append(b, '.')
 		b = append(b, f.Column...)
 		b = append(b, " = "...)
-		b = append(b, `"_pg_pk."`...)
+		b = append(b, `"_pg_pk".`...)
 		b = append(b, f.Column...)
 	}
 
