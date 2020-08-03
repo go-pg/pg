@@ -4,6 +4,7 @@
 
 - Docs at https://pg.uptrace.dev/ powered by https://github.com/go-pg/docs
 - `Insert` and `Update` support `Model(*map[string]interface{})`.
+- Columns that start with `_` are ignored if there is no destination field.
 - Added `pgext.OpenTemetryHook` that adds
   [PostgreSQL OpenTelemetry instrumentation](https://pg.uptrace.dev/tracing/).
 - Added `pgext.DebugHook` that logs queries and errors.
