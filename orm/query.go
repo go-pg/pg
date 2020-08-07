@@ -92,21 +92,21 @@ func NewQuery(db DB, model ...interface{}) *Query {
 	return q.DB(db).Model(model...)
 }
 
-func NewQueryContext(c context.Context, db DB, model ...interface{}) *Query {
-	return NewQuery(db, model...).Context(c)
+func NewQueryContext(ctx context.Context, db DB, model ...interface{}) *Query {
+	return NewQuery(db, model...).Context(ctx)
 }
 
 // New returns new zero Query bound to the current db.
 func (q *Query) New() *Query {
-	cp := &Query{
+	clone := &Query{
 		ctx: q.ctx,
 		db:  q.db,
 
 		model:      q.model,
-		tableModel: q.tableModel,
+		tableModel: cloneTableModelJoins(q.tableModel),
 		flags:      q.flags,
 	}
-	return cp.withFlag(implicitModelFlag)
+	return clone.withFlag(implicitModelFlag)
 }
 
 // Clone clones the Query.
@@ -119,13 +119,13 @@ func (q *Query) Clone() *Query {
 		}
 	}
 
-	copy := &Query{
+	clone := &Query{
 		ctx:       q.ctx,
 		db:        q.db,
 		stickyErr: q.stickyErr,
 
 		model:      q.model,
-		tableModel: q.tableModel,
+		tableModel: cloneTableModelJoins(q.tableModel),
 		flags:      q.flags,
 
 		with:        q.with[:len(q.with):len(q.with)],
@@ -150,7 +150,27 @@ func (q *Query) Clone() *Query {
 		returning:  q.returning[:len(q.returning):len(q.returning)],
 	}
 
-	return copy
+	return clone
+}
+
+func cloneTableModelJoins(tm TableModel) TableModel {
+	switch tm := tm.(type) {
+	case *structTableModel:
+		if len(tm.joins) == 0 {
+			return tm
+		}
+		clone := *tm
+		clone.joins = clone.joins[:len(clone.joins):len(clone.joins)]
+		return &clone
+	case *sliceTableModel:
+		if len(tm.joins) == 0 {
+			return tm
+		}
+		clone := *tm
+		clone.joins = clone.joins[:len(clone.joins):len(clone.joins)]
+		return &clone
+	}
+	return tm
 }
 
 func (q *Query) err(err error) *Query {

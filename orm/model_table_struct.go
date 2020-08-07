@@ -38,12 +38,12 @@ func newStructTableModelValue(v reflect.Value) *structTableModel {
 	}
 }
 
-func (m *structTableModel) String() string {
-	return m.table.String()
-}
-
 func (*structTableModel) useQueryOne() bool {
 	return true
+}
+
+func (m *structTableModel) String() string {
+	return m.table.String()
 }
 
 func (m *structTableModel) IsNil() bool {
@@ -320,6 +320,7 @@ func (m *structTableModel) join(
 			hasColumnName = true
 			break
 		}
+
 		currJoin.Rel = rel
 		index = append(index, rel.Field.Index...)
 
