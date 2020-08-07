@@ -1,6 +1,6 @@
 # PostgreSQL client and ORM for Golang
 
-[![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=master)](https://travis-ci.org/go-pg/pg)
+[![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=v10)](https://travis-ci.org/go-pg/pg)
 [![GoDoc](https://godoc.org/github.com/go-pg/pg?status.svg)](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
 
 - [Docs](https://pg.uptrace.dev)
