@@ -21,10 +21,10 @@ var ErrMultiRows = internal.ErrMultiRows
 type Error interface {
 	error
 
-	// Field returns a string value associated with an error code.
+	// Field returns a string value associated with an error field.
 	//
 	// https://www.postgresql.org/docs/10/static/protocol-error-fields.html
-	Field(byte) string
+	Field(field byte) string
 
 	// IntegrityViolation reports whether an error is a part of
 	// Integrity Constraint Violation class of errors.
