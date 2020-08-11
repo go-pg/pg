@@ -111,7 +111,7 @@ func (db *baseDB) initConn(c context.Context, cn *pool.Conn) error {
 	}
 
 	if db.opt.OnConnect != nil {
-		p := pool.NewSingleConnPool(nil)
+		p := pool.NewSingleConnPool(db.pool)
 		p.SetConn(cn)
 		return db.opt.OnConnect(newConn(c, db.withPool(p)))
 	}
