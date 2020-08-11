@@ -216,6 +216,28 @@ func TestBigColumn(t *testing.T) {
 	}
 }
 
+var _ = Describe("OnConnect error", func() {
+	It("does not panic", func() {
+		opt := pgOptions()
+		opt.OnConnect = func(ctx context.Context, conn *pg.Conn) error {
+			_, err := conn.Exec("SELECT pg_sleep(10)")
+			return err
+		}
+
+		db := pg.Connect(opt)
+		defer db.Close()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			time.Sleep(500 * time.Millisecond)
+			cancel()
+		}()
+
+		_, err := db.ExecContext(ctx, "SELECT 1")
+		Expect(err).To(MatchError("ERROR #57014 canceling statement due to user request"))
+	})
+})
+
 var _ = Describe("DB", func() {
 	var db *pg.DB
 	var tx *pg.Tx
