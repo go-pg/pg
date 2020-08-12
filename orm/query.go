@@ -611,30 +611,6 @@ func (q *Query) WherePK() *Query {
 	panic("not reached")
 }
 
-// WhereStruct is deprecated and will not receive updates.
-//
-// WhereStruct generates conditions for the struct fields with non-zero values:
-//    - Foo int - Where("foo = ?", strct.Foo)
-//    - Foo []int - Where("foo = ANY(?)", pg.Array(strct.Foo))
-//    - FooNEQ int - Where("foo != ?", strct.Foo)
-//    - FooExclude int - Where("foo != ?", strct.Foo)
-//    - FooGT int - Where("foo > ?", strct.Foo)
-//    - FooGTE int - Where("foo >= ?", strct.Foo)
-//    - FooLT int - Where("foo < ?", strct.Foo)
-//    - FooLTE int - Where("foo <= ?", strct.Foo)
-//
-// urlstruct.Decode can be used to decode url.Values into the struct.
-//
-// Following field tags are recognized:
-//    - pg:"-" - field is ignored.
-//    - pg:",nowhere" - field is decoded but is ignored by WhereStruct.
-//    - pg:",nodecode" - field is not decoded but is used by WhereStruct.
-//    - pg:",required" - condition is added for zero values as well.
-func (q *Query) WhereStruct(strct interface{}) *Query {
-	q.where = append(q.where, newStructFilter(strct))
-	return q
-}
-
 func (q *Query) Join(join string, params ...interface{}) *Query {
 	j := &joinQuery{
 		join: SafeQuery(join, params...),

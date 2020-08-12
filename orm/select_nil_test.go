@@ -83,13 +83,6 @@ var _ = Describe("Select - nil model", func() {
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT DISTINCT ON (expr('foo')) "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model"`))
 	})
-
-	It("supports empty WhereStruct", func() {
-		q := NewQuery(nil, (*SelectModel)(nil)).WhereStruct(struct{}{})
-
-		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" WHERE TRUE`))
-	})
 })
 
 var _ = Describe("With - nil model", func() {
