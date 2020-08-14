@@ -796,6 +796,51 @@ func ExampleDB_Update_notZero() {
 	// Output: Book<Id=1 Title="updated book 1">
 }
 
+func ExampleDB_Update_notZero_Bool() {
+	type Event struct {
+		Id     int
+		Active bool `pg:",use_zero"`
+	}
+
+	db := pg.Connect(pgOptions())
+	defer db.Close()
+
+	err := db.Model((*Event)(nil)).CreateTable(&orm.CreateTableOptions{
+		Temp: true,
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	event := &Event{
+		Id:     1,
+		Active: true,
+	}
+	_, err = db.Model(event).Insert()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(event)
+	// Output: Book<Id=1 Active="true">
+
+	event.Active = false
+
+	_, err = db.Model(event).WherePK().UpdateNotZero()
+	if err != nil {
+		panic(err)
+	}
+
+	event2 := new(Event)
+	err = db.Model(event2).Where("id = ?", 1).Select()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(event2)
+	// Output: Book<Id=1 Active="false">
+}
+
 func ExampleDB_Update_someColumns() {
 	db := modelDB()
 
