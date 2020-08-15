@@ -9,11 +9,11 @@ import (
 	"github.com/go-pg/pg/v10/internal/pool"
 )
 
-var _ = Describe("SingleConnPool", func() {
-	var p *pool.SingleConnPool
+var _ = Describe("StickyConnPool", func() {
+	var p *pool.StickyConnPool
 
 	BeforeEach(func() {
-		p = pool.NewSingleConnPool(nil)
+		p = pool.NewStickyConnPool(nil)
 	})
 
 	It("closes the pool", func() {

@@ -50,7 +50,7 @@ func (db *baseDB) Begin() (*Tx, error) {
 
 func (db *baseDB) BeginContext(ctx context.Context) (*Tx, error) {
 	tx := &Tx{
-		db:  db.withPool(pool.NewSingleConnPool(db.pool)),
+		db:  db.withPool(pool.NewStickyConnPool(db.pool)),
 		ctx: ctx,
 	}
 
@@ -129,7 +129,7 @@ func (tx *Tx) Prepare(q string) (*Stmt, error) {
 	tx.stmtsMu.Lock()
 	defer tx.stmtsMu.Unlock()
 
-	db := tx.db.withPool(pool.NewSingleConnPool(tx.db.pool))
+	db := tx.db.withPool(pool.NewStickyConnPool(tx.db.pool))
 	stmt, err := prepareStmt(db, q)
 	if err != nil {
 		return nil, err
@@ -319,7 +319,7 @@ func (tx *Tx) begin(ctx context.Context) error {
 				return err
 			}
 
-			err := tx.db.pool.(*pool.SingleConnPool).Reset()
+			err := tx.db.pool.(*pool.StickyConnPool).Reset()
 			if err != nil {
 				return err
 			}

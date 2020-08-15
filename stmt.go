@@ -45,7 +45,7 @@ func (stmt *Stmt) prepare(c context.Context, q string) error {
 				return err
 			}
 
-			err := stmt.db.pool.(*pool.SingleConnPool).Reset()
+			err := stmt.db.pool.(*pool.StickyConnPool).Reset()
 			if err != nil {
 				return err
 			}
