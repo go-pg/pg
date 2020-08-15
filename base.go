@@ -87,10 +87,10 @@ func (db *baseDB) getConn(ctx context.Context) (*pool.Conn, error) {
 		return db.initConn(ctx, cn)
 	})
 	if err != nil {
-		db.pool.Remove(cn, err)
+		db.pool.Remove(ctx, cn, err)
 		// It is safe to reset StickyConnPool if conn can't be initialized.
 		if p, ok := db.pool.(*pool.StickyConnPool); ok {
-			_ = p.Reset()
+			_ = p.Reset(ctx)
 		}
 		if err := internal.Unwrap(err); err != nil {
 			return nil, err
@@ -127,11 +127,11 @@ func (db *baseDB) initConn(ctx context.Context, cn *pool.Conn) error {
 	return nil
 }
 
-func (db *baseDB) releaseConn(cn *pool.Conn, err error) {
+func (db *baseDB) releaseConn(ctx context.Context, cn *pool.Conn, err error) {
 	if isBadConn(err, false) {
-		db.pool.Remove(cn, err)
+		db.pool.Remove(ctx, cn, err)
 	} else {
-		db.pool.Put(cn)
+		db.pool.Put(ctx, cn)
 	}
 }
 
@@ -153,7 +153,7 @@ func (db *baseDB) withConn(
 				case <-ctx.Done():
 					err := db.cancelRequest(cn.ProcessID, cn.SecretKey)
 					if err != nil {
-						internal.Logger.Printf("cancelRequest failed: %s", err)
+						internal.Logger.Printf(ctx, "cancelRequest failed: %s", err)
 					}
 					// Signal end of conn use.
 					fnDone <- struct{}{}
@@ -168,7 +168,7 @@ func (db *baseDB) withConn(
 				case fnDone <- struct{}{}: // signal fn finish, skip cancel goroutine
 				}
 			}
-			db.releaseConn(cn, err)
+			db.releaseConn(ctx, cn, err)
 		}()
 
 		err = fn(ctx, cn)

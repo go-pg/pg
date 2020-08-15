@@ -77,7 +77,7 @@ func (p *StickyConnPool) Get(ctx context.Context) (*Conn, error) {
 			if atomic.CompareAndSwapUint32(&p.state, stateDefault, stateInited) {
 				return cn, nil
 			}
-			p.pool.Remove(cn, ErrClosed)
+			p.pool.Remove(ctx, cn, ErrClosed)
 		case stateInited:
 			if err := p.badConnError(); err != nil {
 				return nil, err
@@ -96,27 +96,27 @@ func (p *StickyConnPool) Get(ctx context.Context) (*Conn, error) {
 	return nil, fmt.Errorf("pg: StickyConnPool.Get: infinite loop")
 }
 
-func (p *StickyConnPool) Put(cn *Conn) {
+func (p *StickyConnPool) Put(ctx context.Context, cn *Conn) {
 	defer func() {
 		if recover() != nil {
-			p.freeConn(cn)
+			p.freeConn(ctx, cn)
 		}
 	}()
 	p.ch <- cn
 }
 
-func (p *StickyConnPool) freeConn(cn *Conn) {
+func (p *StickyConnPool) freeConn(ctx context.Context, cn *Conn) {
 	if err := p.badConnError(); err != nil {
-		p.pool.Remove(cn, err)
+		p.pool.Remove(ctx, cn, err)
 	} else {
-		p.pool.Put(cn)
+		p.pool.Put(ctx, cn)
 	}
 }
 
-func (p *StickyConnPool) Remove(cn *Conn, reason error) {
+func (p *StickyConnPool) Remove(ctx context.Context, cn *Conn, reason error) {
 	defer func() {
 		if recover() != nil {
-			p.pool.Remove(cn, ErrClosed)
+			p.pool.Remove(ctx, cn, ErrClosed)
 		}
 	}()
 	p._badConnError.Store(BadConnError{wrapped: reason})
@@ -137,7 +137,7 @@ func (p *StickyConnPool) Close() error {
 			close(p.ch)
 			cn, ok := <-p.ch
 			if ok {
-				p.freeConn(cn)
+				p.freeConn(context.TODO(), cn)
 			}
 			return nil
 		}
@@ -146,7 +146,7 @@ func (p *StickyConnPool) Close() error {
 	return errors.New("pg: StickyConnPool.Close: infinite loop")
 }
 
-func (p *StickyConnPool) Reset() error {
+func (p *StickyConnPool) Reset(ctx context.Context) error {
 	if p.badConnError() == nil {
 		return nil
 	}
@@ -156,7 +156,7 @@ func (p *StickyConnPool) Reset() error {
 		if !ok {
 			return ErrClosed
 		}
-		p.pool.Remove(cn, ErrClosed)
+		p.pool.Remove(ctx, cn, ErrClosed)
 		p._badConnError.Store(BadConnError{wrapped: nil})
 	default:
 		return errors.New("pg: StickyConnPool does not have a Conn")

@@ -3,7 +3,6 @@ package pg
 import (
 	"context"
 	"io"
-	"log"
 	"strconv"
 
 	"github.com/go-pg/pg/v10/internal"
@@ -91,7 +90,7 @@ func Hstore(v interface{}) *types.Hstore {
 }
 
 // SetLogger sets the logger to the given one.
-func SetLogger(logger *log.Logger) {
+func SetLogger(logger internal.Logging) {
 	internal.Logger = logger
 }
 

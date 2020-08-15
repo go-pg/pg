@@ -247,7 +247,7 @@ var _ = Describe("OnConnect", func() {
 		db := pg.Connect(opt)
 		defer db.Close()
 
-		err := db.RunInTransaction(func(tx *pg.Tx) error {
+		err := db.RunInTransaction(ctx, func(tx *pg.Tx) error {
 			_, err := tx.Exec(`SELECT 1`)
 			return err
 		})

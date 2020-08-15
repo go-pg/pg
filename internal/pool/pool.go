@@ -40,8 +40,8 @@ type Pooler interface {
 	CloseConn(*Conn) error
 
 	Get(context.Context) (*Conn, error)
-	Put(*Conn)
-	Remove(*Conn, error)
+	Put(context.Context, *Conn)
+	Remove(context.Context, *Conn, error)
 
 	Len() int
 	IdleLen() int
@@ -218,12 +218,12 @@ func (p *ConnPool) getLastDialError() error {
 }
 
 // Get returns existed connection from the pool or creates a new one.
-func (p *ConnPool) Get(c context.Context) (*Conn, error) {
+func (p *ConnPool) Get(ctx context.Context) (*Conn, error) {
 	if p.closed() {
 		return nil, ErrClosed
 	}
 
-	err := p.waitTurn(c)
+	err := p.waitTurn(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func (p *ConnPool) Get(c context.Context) (*Conn, error) {
 
 	atomic.AddUint32(&p.stats.Misses, 1)
 
-	newcn, err := p.newConn(c, true)
+	newcn, err := p.newConn(ctx, true)
 	if err != nil {
 		p.freeTurn()
 		return nil, err
@@ -314,15 +314,15 @@ func (p *ConnPool) popIdle() *Conn {
 	return cn
 }
 
-func (p *ConnPool) Put(cn *Conn) {
+func (p *ConnPool) Put(ctx context.Context, cn *Conn) {
 	if cn.rd.Buffered() > 0 {
-		internal.Logger.Printf("Conn has unread data")
-		p.Remove(cn, BadConnError{})
+		internal.Logger.Printf(ctx, "Conn has unread data")
+		p.Remove(ctx, cn, BadConnError{})
 		return
 	}
 
 	if !cn.pooled {
-		p.Remove(cn, nil)
+		p.Remove(ctx, cn, nil)
 		return
 	}
 
@@ -333,7 +333,7 @@ func (p *ConnPool) Put(cn *Conn) {
 	p.freeTurn()
 }
 
-func (p *ConnPool) Remove(cn *Conn, reason error) {
+func (p *ConnPool) Remove(ctx context.Context, cn *Conn, reason error) {
 	p.removeConnWithLock(cn)
 	p.freeTurn()
 	_ = p.closeConn(cn)
@@ -448,7 +448,7 @@ func (p *ConnPool) reaper(frequency time.Duration) {
 		}
 		n, err := p.ReapStaleConns()
 		if err != nil {
-			internal.Logger.Printf("ReapStaleConns failed: %s", err)
+			internal.Logger.Printf(context.TODO(), "ReapStaleConns failed: %s", err)
 			continue
 		}
 		atomic.AddUint32(&p.stats.StaleConns, uint32(n))
