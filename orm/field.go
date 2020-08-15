@@ -70,10 +70,10 @@ func (f *Field) Value(strct reflect.Value) reflect.Value {
 }
 
 func (f *Field) HasZeroValue(strct reflect.Value) bool {
-	return f.hasZeroField(strct, f.Index)
+	return f.hasZeroValue(strct, f.Index)
 }
 
-func (f *Field) hasZeroField(v reflect.Value, index []int) bool {
+func (f *Field) hasZeroValue(v reflect.Value, index []int) bool {
 	for _, idx := range index {
 		if v.Kind() == reflect.Ptr {
 			if v.IsNil() {
@@ -83,7 +83,7 @@ func (f *Field) hasZeroField(v reflect.Value, index []int) bool {
 		}
 		v = v.Field(idx)
 	}
-	return f.isZero(v)
+	return f.NullZero() && f.isZero(v)
 }
 
 func (f *Field) NullZero() bool {

@@ -796,7 +796,7 @@ func ExampleDB_Update_notZero() {
 	// Output: Book<Id=1 Title="updated book 1">
 }
 
-func ExampleDB_Update_notZero_Bool() {
+func ExampleDB_Update_useZeroBool() {
 	type Event struct {
 		Id     int
 		Active bool `pg:",use_zero"`
@@ -822,10 +822,8 @@ func ExampleDB_Update_notZero_Bool() {
 	}
 
 	fmt.Println(event)
-	// Output: Book<Id=1 Active="true">
 
 	event.Active = false
-
 	_, err = db.Model(event).WherePK().UpdateNotZero()
 	if err != nil {
 		panic(err)
@@ -838,7 +836,8 @@ func ExampleDB_Update_notZero_Bool() {
 	}
 
 	fmt.Println(event2)
-	// Output: Book<Id=1 Active="false">
+	// Output: &{1 true}
+	// &{1 false}
 }
 
 func ExampleDB_Update_someColumns() {
