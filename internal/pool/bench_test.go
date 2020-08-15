@@ -9,7 +9,7 @@ import (
 )
 
 func benchmarkPoolGetPut(b *testing.B, poolSize int) {
-	c := context.Background()
+	ctx := context.Background()
 	connPool := pool.NewConnPool(&pool.Options{
 		Dialer:             dummyDialer,
 		PoolSize:           poolSize,
@@ -22,11 +22,11 @@ func benchmarkPoolGetPut(b *testing.B, poolSize int) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			cn, err := connPool.Get(c)
+			cn, err := connPool.Get(ctx)
 			if err != nil {
 				b.Fatal(err)
 			}
-			connPool.Put(cn)
+			connPool.Put(ctx, cn)
 		}
 	})
 }
@@ -44,7 +44,7 @@ func BenchmarkPoolGetPut1000Conns(b *testing.B) {
 }
 
 func benchmarkPoolGetRemove(b *testing.B, poolSize int) {
-	c := context.Background()
+	ctx := context.Background()
 	connPool := pool.NewConnPool(&pool.Options{
 		Dialer:             dummyDialer,
 		PoolSize:           poolSize,
@@ -57,11 +57,11 @@ func benchmarkPoolGetRemove(b *testing.B, poolSize int) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			cn, err := connPool.Get(c)
+			cn, err := connPool.Get(ctx)
 			if err != nil {
 				b.Fatal(err)
 			}
-			connPool.Remove(cn, nil)
+			connPool.Remove(ctx, cn, nil)
 		}
 	})
 }

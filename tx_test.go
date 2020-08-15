@@ -27,7 +27,7 @@ var _ = Describe("Tx", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		cn.SetNetConn(&badConn{})
-		db.Pool().Put(cn)
+		db.Pool().Put(ctx, cn)
 
 		tx, err := db.Begin()
 		Expect(err).NotTo(HaveOccurred())
@@ -149,7 +149,7 @@ var _ = Describe("Tx", func() {
 	})
 
 	It("drops bad connections", func() {
-		_ = db.RunInTransaction(func(tx *pg.Tx) error {
+		_ = db.RunInTransaction(ctx, func(tx *pg.Tx) error {
 			stmt, err := tx.Prepare("invalid statement")
 			if err != nil {
 				return err

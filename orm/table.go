@@ -316,7 +316,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		partitionBy, ok := pgTag.Options["partition_by"]
 		if !ok {
 			partitionBy, ok = pgTag.Options["partitionBy"]
-			internal.Deprecated.Printf("partitionBy is renamed to partition_by")
+			if ok {
+				internal.Deprecated.Printf("partitionBy is renamed to partition_by")
+			}
 		}
 		if ok {
 			s, _ := tagparser.Unquote(partitionBy)
@@ -610,7 +612,9 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 		joinFK, joinFKOk := pgTag.Options["join_fk"]
 		if !joinFKOk {
 			joinFK, joinFKOk = pgTag.Options["joinFK"]
-			internal.Deprecated.Printf("joinFK is renamed to join_fk")
+			if joinFKOk {
+				internal.Deprecated.Printf("joinFK is renamed to join_fk")
+			}
 		}
 		if joinFKOk {
 			joinFK = tryUnderscorePrefix(joinFK)
@@ -1098,10 +1102,14 @@ func isKnownFieldOption(name string) bool {
 		"array",
 		"hstore",
 		"composite",
+		"notnull",
 		"use_zero",
 		"default",
 		"unique",
 		"soft_delete",
+		"on_delete",
+		"on_update",
+
 		"pk",
 		"fk",
 		"join_fk",

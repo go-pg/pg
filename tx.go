@@ -66,12 +66,12 @@ func (db *baseDB) BeginContext(ctx context.Context) (*Tx, error) {
 // RunInTransaction runs a function in a transaction. If function
 // returns an error transaction is rolled back, otherwise transaction
 // is committed.
-func (db *baseDB) RunInTransaction(fn func(*Tx) error) error {
-	tx, err := db.Begin()
+func (db *baseDB) RunInTransaction(ctx context.Context, fn func(*Tx) error) error {
+	tx, err := db.BeginContext(ctx)
 	if err != nil {
 		return err
 	}
-	return tx.RunInTransaction(fn)
+	return tx.RunInTransaction(ctx, fn)
 }
 
 // Begin returns current transaction. It does not start new transaction.
@@ -82,23 +82,23 @@ func (tx *Tx) Begin() (*Tx, error) {
 // RunInTransaction runs a function in the transaction. If function
 // returns an error transaction is rolled back, otherwise transaction
 // is committed.
-func (tx *Tx) RunInTransaction(fn func(*Tx) error) error {
+func (tx *Tx) RunInTransaction(ctx context.Context, fn func(*Tx) error) error {
 	defer func() {
 		if err := recover(); err != nil {
-			if err := tx.Rollback(); err != nil {
-				internal.Logger.Printf("tx.Rollback failed: %s", err)
+			if err := tx.RollbackContext(ctx); err != nil {
+				internal.Logger.Printf(ctx, "tx.Rollback panicked: %s", err)
 			}
 			panic(err)
 		}
 	}()
 
 	if err := fn(tx); err != nil {
-		if err := tx.Rollback(); err != nil {
-			internal.Logger.Printf("tx.Rollback failed: %s", err)
+		if err := tx.RollbackContext(ctx); err != nil {
+			internal.Logger.Printf(ctx, "tx.Rollback failed: %s", err)
 		}
 		return err
 	}
-	return tx.Commit()
+	return tx.CommitContext(ctx)
 }
 
 func (tx *Tx) withConn(c context.Context, fn func(context.Context, *pool.Conn) error) error {
@@ -319,7 +319,7 @@ func (tx *Tx) begin(ctx context.Context) error {
 				return err
 			}
 
-			err := tx.db.pool.(*pool.StickyConnPool).Reset()
+			err := tx.db.pool.(*pool.StickyConnPool).Reset(ctx)
 			if err != nil {
 				return err
 			}

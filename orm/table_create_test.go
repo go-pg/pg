@@ -64,21 +64,21 @@ type CreateTableWithTablespace struct {
 }
 
 type CreateTableWithRangePartition struct {
-	tableName string `pg:"partitionBy:RANGE (time)"`
+	tableName string `pg:"partition_by:RANGE (time)"`
 
 	Time   time.Time
 	String string
 }
 
 type CreateTableWithListPartition struct {
-	tableName string `pg:"partitionBy:LIST (country)"`
+	tableName string `pg:"partition_by:LIST (country)"`
 
 	Country string
 	String  string
 }
 
 type CreateTableWithHashPartition struct {
-	tableName string `pg:"partitionBy:HASH (account_id)"`
+	tableName string `pg:"partition_by:HASH (account_id)"`
 
 	ID        int `pg:",pk,type:int,default:0"`
 	AccountID int

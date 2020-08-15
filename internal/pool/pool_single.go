@@ -32,9 +32,9 @@ func (p *SingleConnPool) Get(ctx context.Context) (*Conn, error) {
 	return p.cn, nil
 }
 
-func (p *SingleConnPool) Put(cn *Conn) {}
+func (p *SingleConnPool) Put(ctx context.Context, cn *Conn) {}
 
-func (p *SingleConnPool) Remove(cn *Conn, reason error) {
+func (p *SingleConnPool) Remove(ctx context.Context, cn *Conn, reason error) {
 	p.cn = nil
 	p.stickyErr = reason
 }

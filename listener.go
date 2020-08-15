@@ -69,7 +69,7 @@ func (ln *Listener) connWithLock(ctx context.Context) (*pool.Conn, error) {
 		_ = ln.Close()
 		return nil, errListenerClosed
 	default:
-		internal.Logger.Printf("pg: Listen failed: %s", err)
+		internal.Logger.Printf(ctx, "pg: Listen failed: %s", err)
 		return nil, err
 	}
 }
@@ -126,7 +126,7 @@ func (ln *Listener) closeTheCn(reason error) error {
 		return nil
 	}
 	if !ln.closed {
-		internal.Logger.Printf("pg: discarding bad listener connection: %s", reason)
+		internal.Logger.Printf(ln.db.ctx, "pg: discarding bad listener connection: %s", reason)
 	}
 
 	err := ln.db.pool.CloseConn(ln.cn)
@@ -313,6 +313,7 @@ func (ln *Listener) initChannel(size int) {
 					}
 				case <-timer.C:
 					internal.Logger.Printf(
+						ctx,
 						"pg: %s channel is full for %s (notification is dropped)",
 						ln, timeout)
 				}
