@@ -2,17 +2,26 @@
 
 ## v10 (unreleased)
 
-- Docs at https://pg.uptrace.dev/ powered by https://github.com/go-pg/docs
+### Features
+
+- Docs at https://pg.uptrace.dev/ powered by
+  [mkdocs](https://github.com/squidfunk/mkdocs-material)
+  ([source](https://github.com/go-pg/docs)).
 - `Insert` and `Update` support `Model(*map[string]interface{})`.
 - Columns that start with `_` are ignored if there is no destination field.
 - Added `pgext.OpenTemetryHook` that adds
   [PostgreSQL OpenTelemetry instrumentation](https://pg.uptrace.dev/tracing/).
 - Added `pgext.DebugHook` that logs queries and errors.
 - Added `db.Ping` to check if database is healthy.
+
+### Changes
+
 - Changed `pg.QueryHook` to return temp byte slice to reduce memory usage.
 - `,msgpack` struct tag marshals data in MessagePack format using
   https://github.com/vmihailenco/msgpack
-- Empty slices and maps are no longer marshaled as `NULL`.
+- Empty slices and maps are no longer marshaled as `NULL`. Nil slices and maps
+  are still marshaled as `NULL`.
+- Changed `UpdateNotZero` to include zero fields with `pg:",use_zero"` tag.
 - `joinFK` is deprecated in favor of `join_fk`.
 - ORM shortcuts are removed:
   - `db.Select(model)` becomes `db.Model(model).WherePK().Select()`.
