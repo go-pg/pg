@@ -166,19 +166,35 @@ func (m *structTableModel) AddColumnScanner(_ ColumnScanner) error {
 var _ BeforeScanHook = (*structTableModel)(nil)
 
 func (m *structTableModel) BeforeScan(ctx context.Context) error {
-	if m.table.hasFlag(beforeScanHookFlag) {
-		return callBeforeScanHook(ctx, m.strct.Addr())
+	if !m.table.hasFlag(beforeScanHookFlag) {
+		return nil
 	}
-	return nil
+	return callBeforeScanHook(ctx, m.strct.Addr())
 }
 
 var _ AfterScanHook = (*structTableModel)(nil)
 
 func (m *structTableModel) AfterScan(ctx context.Context) error {
-	if m.table.hasFlag(afterScanHookFlag) {
-		return callAfterScanHook(ctx, m.strct.Addr())
+	if !m.table.hasFlag(afterScanHookFlag) || !m.structInited {
+		return nil
 	}
-	return nil
+
+	var firstErr error
+
+	if err := callAfterScanHook(ctx, m.strct.Addr()); err != nil && firstErr == nil {
+		firstErr = err
+	}
+
+	for _, j := range m.joins {
+		switch j.Rel.Type {
+		case HasOneRelation, BelongsToRelation:
+			if err := j.JoinModel.AfterScan(ctx); err != nil && firstErr == nil {
+				firstErr = err
+			}
+		}
+	}
+
+	return firstErr
 }
 
 func (m *structTableModel) AfterSelect(ctx context.Context) error {
@@ -247,7 +263,7 @@ func (m *structTableModel) ScanColumn(
 func (m *structTableModel) scanColumn(
 	colIdx int, colName string, rd types.Reader, n int,
 ) (bool, error) {
-	// Don't init nil struct when value is NULL.
+	// Don't init nil struct if value is NULL.
 	if n == -1 &&
 		!m.structInited &&
 		m.strct.Kind() == reflect.Ptr &&
@@ -255,8 +271,7 @@ func (m *structTableModel) scanColumn(
 		return true, nil
 	}
 
-	err := m.initStruct()
-	if err != nil {
+	if err := m.initStruct(); err != nil {
 		return true, err
 	}
 
