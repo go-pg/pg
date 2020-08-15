@@ -24,6 +24,7 @@
 - Changed `UpdateNotZero` to include zero fields with `pg:",use_zero"` tag.
   Consider using `Model(*map[string]interface{})` for inserts and updates.
 - `joinFK` is deprecated in favor of `join_fk`.
+- `partitionBy` is deprecated in favor of `partition_by`.
 - ORM shortcuts are removed:
   - `db.Select(model)` becomes `db.Model(model).WherePK().Select()`.
   - `db.Insert(model)` becomes `db.Model(model).Insert()`.

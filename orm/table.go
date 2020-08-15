@@ -273,8 +273,7 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 			t.addFields(fieldType, append(index, f.Index...))
 
 			pgTag := tagparser.Parse(f.Tag.Get("pg"))
-			_, inherit := pgTag.Options["inherit"]
-			if inherit {
+			if _, inherit := pgTag.Options["inherit"]; inherit {
 				embeddedTable := _tables.get(fieldType, true)
 				t.TypeName = embeddedTable.TypeName
 				t.FullName = embeddedTable.FullName
@@ -303,15 +302,24 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			return nil
 		}
 
-		tableSpace, ok := pgTag.Options["tablespace"]
-		if ok {
+		for name := range pgTag.Options {
+			if !isKnownTableOption(name) {
+				internal.Warn.Printf("%s.%s has unknown tag option: %q", t.TypeName, f.Name, name)
+			}
+		}
+
+		if tableSpace, ok := pgTag.Options["tablespace"]; ok {
 			s, _ := tagparser.Unquote(tableSpace)
 			t.Tablespace = quoteIdent(s)
 		}
 
-		partitionType, ok := pgTag.Options["partitionBy"]
+		partitionBy, ok := pgTag.Options["partition_by"]
+		if !ok {
+			partitionBy, ok = pgTag.Options["partitionBy"]
+			internal.Deprecated.Printf("partitionBy is renamed to partition_by")
+		}
 		if ok {
-			s, _ := tagparser.Unquote(partitionType)
+			s, _ := tagparser.Unquote(partitionBy)
 			t.PartitionBy = s
 		}
 
@@ -342,6 +350,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	if f.PkgPath != "" {
 		return nil
+	}
+
+	for name := range pgTag.Options {
+		if !isKnownFieldOption(name) {
+			internal.Warn.Printf("%s.%s has unknown tag option: %q", t.TypeName, f.Name, name)
+		}
 	}
 
 	skip := pgTag.Name == "-"
@@ -593,18 +607,17 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 			}
 		}
 
-		joinFK, joinFKOk := pgTag.Options["joinFK"]
-		if joinFKOk {
+		joinFK, joinFKOk := pgTag.Options["join_fk"]
+		if !joinFKOk {
+			joinFK, joinFKOk = pgTag.Options["joinFK"]
 			internal.Deprecated.Printf("joinFK is renamed to join_fk")
-		} else {
-			joinFK, joinFKOk = pgTag.Options["join_fk"]
 		}
-
 		if joinFKOk {
 			joinFK = tryUnderscorePrefix(joinFK)
 		} else {
 			joinFK = joinTable.ModelName + "_"
 		}
+
 		var joinFKs []string
 		if m2mTable != nil {
 			keys := foreignKeys(joinTable, m2mTable, joinFK, joinFKOk)
@@ -1065,4 +1078,36 @@ func setSoftDeleteFieldFunc(typ reflect.Type) func(fv reflect.Value) {
 	}
 
 	return nil
+}
+
+func isKnownTableOption(name string) bool {
+	switch name {
+	case "alias",
+		"select",
+		"tablespace",
+		"partition_by",
+		"discard_unknown_columns":
+		return true
+	}
+	return false
+}
+
+func isKnownFieldOption(name string) bool {
+	switch name {
+	case "type",
+		"array",
+		"hstore",
+		"composite",
+		"use_zero",
+		"default",
+		"unique",
+		"soft_delete",
+		"pk",
+		"fk",
+		"join_fk",
+		"many2many",
+		"polymorphic":
+		return true
+	}
+	return false
 }
