@@ -22,6 +22,7 @@
 - Empty slices and maps are no longer marshaled as `NULL`. Nil slices and maps
   are still marshaled as `NULL`.
 - Changed `UpdateNotZero` to include zero fields with `pg:",use_zero"` tag.
+  Consider using `Model(*map[string]interface{})` for inserts and updates.
 - `joinFK` is deprecated in favor of `join_fk`.
 - ORM shortcuts are removed:
   - `db.Select(model)` becomes `db.Model(model).WherePK().Select()`.
