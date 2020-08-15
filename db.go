@@ -105,7 +105,7 @@ var _ orm.DB = (*Conn)(nil)
 // Every Conn must be returned to the database pool after use by
 // calling Conn.Close.
 func (db *DB) Conn() *Conn {
-	return newConn(db.ctx, db.baseDB.withPool(pool.NewSingleConnPool(db.pool)))
+	return newConn(db.ctx, db.baseDB.withPool(pool.NewStickyConnPool(db.pool)))
 }
 
 func newConn(ctx context.Context, baseDB *baseDB) *Conn {

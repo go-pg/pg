@@ -88,8 +88,8 @@ func (db *baseDB) getConn(ctx context.Context) (*pool.Conn, error) {
 	})
 	if err != nil {
 		db.pool.Remove(cn, err)
-		// It is safe to reset SingleConnPool if conn can't be initialized.
-		if p, ok := db.pool.(*pool.SingleConnPool); ok {
+		// It is safe to reset StickyConnPool if conn can't be initialized.
+		if p, ok := db.pool.(*pool.StickyConnPool); ok {
 			_ = p.Reset()
 		}
 		if err := internal.Unwrap(err); err != nil {
@@ -120,8 +120,7 @@ func (db *baseDB) initConn(ctx context.Context, cn *pool.Conn) error {
 	}
 
 	if db.opt.OnConnect != nil {
-		p := pool.NewSingleConnPool(db.pool)
-		p.SetConn(cn)
+		p := pool.NewSingleConnPool(db.pool, cn)
 		return db.opt.OnConnect(ctx, newConn(ctx, db.withPool(p)))
 	}
 
@@ -595,7 +594,7 @@ func (db *baseDB) simpleQueryData(
 // executions. Multiple queries or executions may be run concurrently
 // from the returned statement.
 func (db *baseDB) Prepare(q string) (*Stmt, error) {
-	return prepareStmt(db.withPool(pool.NewSingleConnPool(db.pool)), q)
+	return prepareStmt(db.withPool(pool.NewStickyConnPool(db.pool)), q)
 }
 
 func (db *baseDB) prepare(

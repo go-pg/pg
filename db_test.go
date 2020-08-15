@@ -216,8 +216,8 @@ func TestBigColumn(t *testing.T) {
 	}
 }
 
-var _ = Describe("OnConnect error", func() {
-	It("does not panic", func() {
+var _ = Describe("OnConnect", func() {
+	It("does not panic on timeout", func() {
 		opt := pgOptions()
 		opt.OnConnect = func(ctx context.Context, conn *pg.Conn) error {
 			_, err := conn.Exec("SELECT pg_sleep(10)")
@@ -235,6 +235,23 @@ var _ = Describe("OnConnect error", func() {
 
 		_, err := db.ExecContext(ctx, "SELECT 1")
 		Expect(err).To(MatchError("ERROR #57014 canceling statement due to user request"))
+	})
+
+	It("does not panic with RunInTransaction", func() {
+		opt := pgOptions()
+		opt.OnConnect = func(ctx context.Context, conn *pg.Conn) error {
+			_, err := conn.Exec("SELECT 1")
+			return err
+		}
+
+		db := pg.Connect(opt)
+		defer db.Close()
+
+		err := db.RunInTransaction(func(tx *pg.Tx) error {
+			_, err := tx.Exec(`SELECT 1`)
+			return err
+		})
+		Expect(err).NotTo(HaveOccurred())
 	})
 })
 
