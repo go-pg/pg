@@ -8,9 +8,9 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
 	"go.opentelemetry.io/otel/api/global"
-	"go.opentelemetry.io/otel/api/kv"
 	"go.opentelemetry.io/otel/api/trace"
-	"google.golang.org/grpc/codes"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/label"
 )
 
 type queryOperation interface {
@@ -60,22 +60,22 @@ func (h OpenTelemetryHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) e
 
 	fn, file, line := funcFileLine("github.com/go-pg/pg")
 
-	attrs := make([]kv.KeyValue, 0, 10)
+	attrs := make([]label.KeyValue, 0, 10)
 	attrs = append(attrs,
-		kv.String("db.system", "postgres"),
-		kv.String("db.statement", query),
+		label.String("db.system", "postgres"),
+		label.String("db.statement", query),
 
-		kv.String("frame.func", fn),
-		kv.String("frame.file", file),
-		kv.Int("frame.line", line),
+		label.String("frame.func", fn),
+		label.String("frame.file", file),
+		label.Int("frame.line", line),
 	)
 
 	if db, ok := evt.DB.(*pg.DB); ok {
 		opt := db.Options()
 		attrs = append(attrs,
-			kv.String("db.connection_string", opt.Addr),
-			kv.String("db.user", opt.User),
-			kv.String("db.name", opt.Database),
+			label.String("db.connection_string", opt.Addr),
+			label.String("db.user", opt.User),
+			label.String("db.name", opt.Database),
 		)
 	}
 
@@ -87,7 +87,7 @@ func (h OpenTelemetryHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) e
 		if numRow == 0 {
 			numRow = evt.Result.RowsReturned()
 		}
-		attrs = append(attrs, kv.Int("db.rows_affected", numRow))
+		attrs = append(attrs, label.Int("db.rows_affected", numRow))
 	}
 
 	span.SetAttributes(attrs...)
