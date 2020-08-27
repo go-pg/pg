@@ -1112,6 +1112,7 @@ func isKnownFieldOption(name string) bool {
 		"on_update",
 
 		"pk",
+		"nopk",
 		"fk",
 		"join_fk",
 		"many2many",
