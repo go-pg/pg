@@ -38,8 +38,14 @@ func (h OpenTelemetryHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) e
 	}
 	defer span.End()
 
+	var operation orm.QueryOp
+	if v, ok := evt.Query.(queryOperation); ok {
+		operation = v.Operation()
+		span.SetName(string(operation))
+	}
+
 	var query string
-	if v, ok := evt.Query.(queryOperation); ok && v.Operation() == orm.InsertOp {
+	if operation == orm.InsertOp {
 		b, err := evt.UnformattedQuery()
 		if err != nil {
 			return err
@@ -53,7 +59,7 @@ func (h OpenTelemetryHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) e
 		query = string(b)
 	}
 
-	const queryLimit = 2000
+	const queryLimit = 5000
 	if len(query) > queryLimit {
 		query = query[:queryLimit]
 	}
