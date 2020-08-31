@@ -8,9 +8,24 @@ import (
 	"bufio"
 	"bytes"
 	"io"
+	"sync"
 )
 
-const defaultBufSize = 65536
+var brPool = sync.Pool{
+	New: func() interface{} {
+		const bufSize = 1 << 20 // 1mb
+		return NewBufReader(bufSize)
+	},
+}
+
+func GetBufReader() *BufReader {
+	rd := brPool.Get().(*BufReader)
+	return rd
+}
+
+func PutBufReader(rd *BufReader) {
+	brPool.Put(rd)
+}
 
 type BufReader struct {
 	Columns [][]byte
@@ -24,13 +39,12 @@ type BufReader struct {
 	err       error
 
 	available int         // bytes available for reading
-	bytesRd   BytesReader // reusable bytes reader
+	brd       BytesReader // reusable bytes reader
 }
 
-func NewBufReader(rd io.Reader) *BufReader {
+func NewBufReader(bufSize int) *BufReader {
 	return &BufReader{
-		rd:        rd,
-		buf:       make([]byte, defaultBufSize),
+		buf:       make([]byte, bufSize),
 		available: -1,
 	}
 }
@@ -41,8 +55,8 @@ func (b *BufReader) BytesReader(n int) *BytesReader {
 	}
 	buf := b.buf[b.r : b.r+n]
 	b.r += n
-	b.bytesRd.Reset(buf)
-	return &b.bytesRd
+	b.brd.Reset(buf)
+	return &b.brd
 }
 
 func (b *BufReader) SetAvailable(n int) {

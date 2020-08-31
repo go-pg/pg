@@ -6,20 +6,22 @@ import (
 	"sync"
 )
 
-var pool = sync.Pool{
+const defaultBufSize = 65 << 10 // 65kb
+
+var wbPool = sync.Pool{
 	New: func() interface{} {
 		return NewWriteBuffer()
 	},
 }
 
 func GetWriteBuffer() *WriteBuffer {
-	wb := pool.Get().(*WriteBuffer)
+	wb := wbPool.Get().(*WriteBuffer)
 	return wb
 }
 
 func PutWriteBuffer(wb *WriteBuffer) {
 	wb.Reset()
-	pool.Put(wb)
+	wbPool.Put(wb)
 }
 
 type WriteBuffer struct {

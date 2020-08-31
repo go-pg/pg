@@ -88,11 +88,12 @@ func (ln *Listener) conn(ctx context.Context) (*pool.Conn, error) {
 		return nil, err
 	}
 
-	err = ln.db.initConn(ctx, cn)
-	if err != nil {
+	if err := ln.db.initConn(ctx, cn); err != nil {
 		_ = ln.db.pool.CloseConn(cn)
 		return nil, err
 	}
+
+	cn.LockReader()
 
 	if len(ln.channels) > 0 {
 		err := ln.listen(ctx, cn, ln.channels...)
