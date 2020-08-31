@@ -16,8 +16,7 @@ var noDeadline = time.Time{}
 
 type Conn struct {
 	netConn net.Conn
-
-	rd *BufReader
+	rd      *BufReader
 
 	ProcessID int32
 	SecretKey int32
@@ -31,8 +30,6 @@ type Conn struct {
 
 func NewConn(netConn net.Conn) *Conn {
 	cn := &Conn{
-		rd: NewBufReader(netConn),
-
 		createdAt: time.Now(),
 	}
 	cn.SetNetConn(netConn)
@@ -55,7 +52,17 @@ func (cn *Conn) RemoteAddr() net.Addr {
 
 func (cn *Conn) SetNetConn(netConn net.Conn) {
 	cn.netConn = netConn
-	cn.rd.Reset(netConn)
+	if cn.rd != nil {
+		cn.rd.Reset(netConn)
+	}
+}
+
+func (cn *Conn) LockReader() {
+	if cn.rd != nil {
+		panic("not reached")
+	}
+	cn.rd = NewBufReader(defaultBufSize)
+	cn.rd.Reset(cn.netConn)
 }
 
 func (cn *Conn) NetConn() net.Conn {
@@ -76,14 +83,22 @@ func (cn *Conn) WithReader(
 			return err
 		}
 
-		cn.rd.bytesRead = 0
+		rd := cn.rd
+		if rd == nil {
+			rd = GetBufReader()
+			defer PutBufReader(rd)
 
-		if err := fn(cn.rd); err != nil {
+			rd.Reset(cn.netConn)
+		}
+
+		rd.bytesRead = 0
+
+		if err := fn(rd); err != nil {
 			span.RecordError(ctx, err)
 			return err
 		}
 
-		span.SetAttributes(label.Int64("net.read_bytes", cn.rd.bytesRead))
+		span.SetAttributes(label.Int64("net.read_bytes", rd.bytesRead))
 
 		return nil
 	})
