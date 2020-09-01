@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"sync"
 
+	"github.com/go-pg/pg/v9/internal/urlstruct"
 	"github.com/go-pg/pg/v9/types"
-	"github.com/go-pg/urlstruct"
 )
 
 var ops = [...]string{
