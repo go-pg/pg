@@ -39,10 +39,9 @@ func (h OpenTelemetryHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) e
 	defer span.End()
 
 	var operation orm.QueryOp
-	var spanName string
+
 	if v, ok := evt.Query.(queryOperation); ok {
 		operation = v.Operation()
-		spanName = string(operation)
 	}
 
 	var query string
@@ -60,19 +59,14 @@ func (h OpenTelemetryHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) e
 		query = string(b)
 	}
 
-	if spanName == "" {
-		// ascii 32 is space
-		n := strings.IndexByte(query, byte(32))
-		if n < 0 {
-			spanName = ""
-		} else if n > 20 {
-			// avoid spanName is too long
-			spanName = query[:20]
-		} else {
-			spanName = query[:n]
+	if operation != "" {
+		span.SetName(string(operation))
+	} else if idx := strings.IndexByte(query, ' '); idx >= 0 {
+		if idx > 20 {
+			idx = 20
 		}
+		span.SetName(strings.TrimSpace(query[:idx]))
 	}
-	span.SetName(spanName)
 
 	const queryLimit = 5000
 	if len(query) > queryLimit {
