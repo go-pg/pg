@@ -3,14 +3,12 @@
 [![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=v10)](https://travis-ci.org/go-pg/pg)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/go-pg/pg/v10)](https://pkg.go.dev/github.com/go-pg/pg/v10)
 
+> :heart: [**Uptrace.dev** - distributed traces, logs, and errors](https://uptrace.dev)
+
 - [Docs](https://pg.uptrace.dev)
 - [Reference](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
 - [Examples](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#pkg-examples)
 - [RealWorld example app](https://github.com/uptrace/go-realworld-example-app)
-
-## Sponsors
-
-- [**Uptrace.dev** - distributed traces, logs, and errors](https://uptrace.dev)
 
 ## Ecosystem
 
