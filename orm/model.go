@@ -102,19 +102,26 @@ func newModel(value interface{}, scan bool) (Model, error) {
 		}
 	case reflect.Slice:
 		elemType := sliceElemType(v)
-		if elemType.Kind() == reflect.Struct && elemType != timeType {
-			return newSliceTableModel(v, elemType), nil
+		switch elemType.Kind() {
+		case reflect.Struct:
+			if elemType != timeType {
+				return newSliceTableModel(v, elemType), nil
+			}
+		case reflect.Map:
+			if err := validMap(elemType); err != nil {
+				return nil, err
+			}
+			slicePtr := v.Addr().Interface().(*[]map[string]interface{})
+			return newMapSliceModel(slicePtr), nil
 		}
 		return newSliceModel(v, elemType), nil
 	case reflect.Map:
 		typ := v.Type()
-		if typ.Key().Kind() != reflect.String || typ.Elem().Kind() != reflect.Interface {
-			err := fmt.Errorf("pg: Model(unsupported %s, expected *map[string]interface{})",
-				typ.String())
+		if err := validMap(typ); err != nil {
 			return nil, err
 		}
-		m := v.Addr().Interface().(*map[string]interface{})
-		return newMapModel(m), nil
+		mapPtr := v.Addr().Interface().(*map[string]interface{})
+		return newMapModel(mapPtr), nil
 	}
 
 	if !scan {
@@ -132,4 +139,12 @@ func newModelWithHookStubs(m HooklessModel) Model {
 	return modelWithHookStubs{
 		HooklessModel: m,
 	}
+}
+
+func validMap(typ reflect.Type) error {
+	if typ.Key().Kind() != reflect.String || typ.Elem().Kind() != reflect.Interface {
+		return fmt.Errorf("pg: Model(unsupported %s, expected *map[string]interface{})",
+			typ.String())
+	}
+	return nil
 }

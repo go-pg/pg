@@ -22,11 +22,15 @@ func newMapModel(ptr *map[string]interface{}) *mapModel {
 	return model
 }
 
-func (mapModel) Init() error {
+func (m *mapModel) Init() error {
 	return nil
 }
 
 func (m *mapModel) NextColumnScanner() ColumnScanner {
+	if m.m == nil {
+		m.m = make(map[string]interface{})
+		*m.ptr = m.m
+	}
 	return m
 }
 
@@ -38,11 +42,6 @@ func (m *mapModel) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) erro
 	val, err := types.ReadColumnValue(col, rd, n)
 	if err != nil {
 		return err
-	}
-
-	if m.m == nil {
-		m.m = make(map[string]interface{})
-		*m.ptr = m.m
 	}
 
 	m.m[col.Name] = val

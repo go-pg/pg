@@ -501,7 +501,7 @@ func readParseDescribeSync(rd *pool.BufReader) ([]types.ColumnInfo, error) {
 				return nil, err
 			}
 		case rowDescriptionMsg: // Response to the DESCRIBE message.
-			columns, err = readRowDescription(rd, nil)
+			columns, err = readRowDescription(rd)
 			if err != nil {
 				return nil, err
 			}
@@ -740,17 +740,13 @@ func readExtQuery(rd *pool.BufReader) (*result, error) {
 	}
 }
 
-func readRowDescription(rd *pool.BufReader, columns []types.ColumnInfo) ([]types.ColumnInfo, error) {
+func readRowDescription(rd *pool.BufReader) ([]types.ColumnInfo, error) {
 	numCol, err := readInt16(rd)
 	if err != nil {
 		return nil, err
 	}
 
-	if cap(columns) >= int(numCol) {
-		columns = columns[:int(numCol)]
-	} else {
-		columns = make([]types.ColumnInfo, int(numCol))
-	}
+	columns := make([]types.ColumnInfo, int(numCol))
 
 	for i := 0; i < int(numCol); i++ {
 		col := &columns[i]
@@ -760,7 +756,6 @@ func readRowDescription(rd *pool.BufReader, columns []types.ColumnInfo) ([]types
 		if err != nil {
 			return nil, err
 		}
-		// TODO: optimize
 		col.Name = string(b[:len(b)-1])
 
 		if _, err := rd.ReadN(6); err != nil {
@@ -854,9 +849,9 @@ func newModel(mod interface{}) (orm.Model, error) {
 func readSimpleQueryData(
 	ctx context.Context, rd *pool.BufReader, mod interface{},
 ) (*result, error) {
+	var columns []types.ColumnInfo
 	var res result
 	var firstErr error
-	var columns []types.ColumnInfo
 	for {
 		c, msgLen, err := readMessageType(rd)
 		if err != nil {
@@ -865,8 +860,7 @@ func readSimpleQueryData(
 
 		switch c {
 		case rowDescriptionMsg:
-			// TODO: optimize
-			columns, err = readRowDescription(rd, nil)
+			columns, err = readRowDescription(rd)
 			if err != nil {
 				return nil, err
 			}

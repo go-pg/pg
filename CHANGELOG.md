@@ -9,7 +9,8 @@
 
 ### Features
 
-- `Insert` and `Update` support `Model(*map[string]interface{})`.
+- `Select`, `Insert`, and `Update` support `Model(*map[string]interface{})`. `Select` also supports
+  `Model(*[]map[string]interface{})`.
 - Columns that start with `_` are ignored if there is no destination field.
 - Optional [faster json encoding](https://github.com/go-pg/pgext).
 - Added [pgext.OpenTemetryHook](https://github.com/go-pg/pgext) that adds
