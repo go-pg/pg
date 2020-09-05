@@ -9,13 +9,12 @@
 
 ### Features
 
-([source](https://github.com/go-pg/docs)).
-
 - `Insert` and `Update` support `Model(*map[string]interface{})`.
 - Columns that start with `_` are ignored if there is no destination field.
-- Added `pgext.OpenTemetryHook` that adds
-  [PostgreSQL OpenTelemetry instrumentation](https://pg.uptrace.dev/tracing/).
-- Added `pgext.DebugHook` that logs queries and errors.
+- Optional [faster json encoding](https://github.com/go-pg/pgext).
+- Added [pgext.OpenTemetryHook](https://github.com/go-pg/pgext) that adds
+  [OpenTelemetry instrumentation](https://pg.uptrace.dev/tracing/).
+- Added [pgext.DebugHook](https://github.com/go-pg/pgext) that logs failed queries.
 - Added `db.Ping` to check if database is healthy.
 
 ### Changes
