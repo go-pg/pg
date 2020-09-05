@@ -110,7 +110,7 @@ func ExampleListener() {
 
 	notif := <-ch
 	fmt.Println(notif)
-	// Output: &{mychan hello world}
+	// Output: {mychan hello world}
 }
 
 func txExample() *pg.DB {
