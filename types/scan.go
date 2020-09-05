@@ -137,6 +137,10 @@ func ScanInt(rd Reader, n int) (int, error) {
 }
 
 func ScanInt64(rd Reader, n int) (int64, error) {
+	return scanInt64(rd, n, 64)
+}
+
+func scanInt64(rd Reader, n int, bitSize int) (int64, error) {
 	if n <= 0 {
 		return 0, nil
 	}
@@ -146,7 +150,7 @@ func ScanInt64(rd Reader, n int) (int64, error) {
 		return 0, err
 	}
 
-	num, err := internal.ParseInt(tmp, 10, 64)
+	num, err := internal.ParseInt(tmp, 10, bitSize)
 	if err != nil {
 		return 0, err
 	}
@@ -229,4 +233,12 @@ func ScanTime(rd Reader, n int) (time.Time, error) {
 	}
 
 	return ParseTime(tmp)
+}
+
+func ScanBool(rd Reader, n int) (bool, error) {
+	tmp, err := rd.ReadFullTemp()
+	if err != nil {
+		return false, err
+	}
+	return len(tmp) == 1 && (tmp[0] == 't' || tmp[0] == '1'), nil
 }

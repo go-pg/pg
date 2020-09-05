@@ -409,13 +409,13 @@ type OptRecord struct {
 
 var _ orm.ColumnScanner = (*OptRecord)(nil)
 
-func (r *OptRecord) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
+func (r *OptRecord) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) error {
 	tmp, err := rd.ReadFullTemp()
 	if err != nil {
 		return err
 	}
 
-	switch colName {
+	switch col.Name {
 	case "num1":
 		r.Num1, err = strconv.ParseInt(string(tmp), 10, 64)
 	case "num2":
@@ -429,7 +429,7 @@ func (r *OptRecord) ScanColumn(colIdx int, colName string, rd types.Reader, n in
 	case "str3":
 		r.Str3 = string(tmp)
 	default:
-		return fmt.Errorf("unknown column: %q", colName)
+		return fmt.Errorf("unknown column: %q", col.Name)
 	}
 	return err
 }

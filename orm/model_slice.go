@@ -34,7 +34,7 @@ func (m *sliceModel) NextColumnScanner() ColumnScanner {
 	return m
 }
 
-func (m *sliceModel) ScanColumn(colIdx int, _ string, rd types.Reader, n int) error {
+func (m *sliceModel) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) error {
 	if m.nextElem == nil {
 		m.nextElem = internal.MakeSliceNextElemFunc(m.slice)
 	}

@@ -189,12 +189,12 @@ func scanBoolValue(v reflect.Value, rd Reader, n int) error {
 		return nil
 	}
 
-	tmp, err := rd.ReadFullTemp()
+	flag, err := ScanBool(rd, n)
 	if err != nil {
 		return err
 	}
 
-	v.SetBool(len(tmp) == 1 && (tmp[0] == 't' || tmp[0] == '1'))
+	v.SetBool(flag)
 	return nil
 }
 

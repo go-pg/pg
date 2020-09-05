@@ -123,7 +123,7 @@ func (Strings) AddColumnScanner(_ orm.ColumnScanner) error {
 }
 
 // ScanColumn scans the columns and appends them to `strings`.
-func (strings *Strings) ScanColumn(colIdx int, _ string, rd types.Reader, n int) error {
+func (strings *Strings) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) error {
 	b := make([]byte, n)
 	_, err := io.ReadFull(rd, b)
 	if err != nil {
@@ -177,7 +177,7 @@ func (Ints) AddColumnScanner(_ orm.ColumnScanner) error {
 }
 
 // ScanColumn scans the columns and appends them to `ints`.
-func (ints *Ints) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
+func (ints *Ints) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) error {
 	num, err := types.ScanInt64(rd, n)
 	if err != nil {
 		return err
@@ -227,7 +227,7 @@ func (IntSet) AddColumnScanner(_ orm.ColumnScanner) error {
 }
 
 // ScanColumn scans the columns and appends them to `IntSet`.
-func (set *IntSet) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
+func (set *IntSet) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) error {
 	num, err := types.ScanInt64(rd, n)
 	if err != nil {
 		return err

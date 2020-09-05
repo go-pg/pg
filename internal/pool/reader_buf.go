@@ -28,8 +28,6 @@ func PutBufReader(rd *BufReader) {
 }
 
 type BufReader struct {
-	Columns [][]byte
-
 	rd io.Reader // reader provided by the client
 
 	buf       []byte
