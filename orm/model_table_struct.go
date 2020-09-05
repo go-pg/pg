@@ -247,22 +247,20 @@ func (m *structTableModel) AfterDelete(ctx context.Context) error {
 }
 
 func (m *structTableModel) ScanColumn(
-	colIdx int, colName string, rd types.Reader, n int,
+	col types.ColumnInfo, rd types.Reader, n int,
 ) error {
-	ok, err := m.scanColumn(colIdx, colName, rd, n)
+	ok, err := m.scanColumn(col, rd, n)
 	if ok {
 		return err
 	}
-	if m.table.hasFlag(discardUnknownColumnsFlag) || colName[0] == '_' {
+	if m.table.hasFlag(discardUnknownColumnsFlag) || col.Name[0] == '_' {
 		return nil
 	}
 	return fmt.Errorf("pg: can't find column=%s in %s (try discard_unknown_columns)",
-		colName, m.table)
+		col.Name, m.table)
 }
 
-func (m *structTableModel) scanColumn(
-	colIdx int, colName string, rd types.Reader, n int,
-) (bool, error) {
+func (m *structTableModel) scanColumn(col types.ColumnInfo, rd types.Reader, n int) (bool, error) {
 	// Don't init nil struct if value is NULL.
 	if n == -1 &&
 		!m.structInited &&
@@ -275,17 +273,20 @@ func (m *structTableModel) scanColumn(
 		return true, err
 	}
 
-	joinName, fieldName := splitColumn(colName)
+	joinName, fieldName := splitColumn(col.Name)
 	if joinName != "" {
+		joinCol := col
+		joinCol.Name = fieldName
+
 		if join := m.GetJoin(joinName); join != nil {
-			return join.JoinModel.scanColumn(colIdx, fieldName, rd, n)
+			return join.JoinModel.scanColumn(joinCol, rd, n)
 		}
 		if m.table.ModelName == joinName {
-			return m.scanColumn(colIdx, fieldName, rd, n)
+			return m.scanColumn(joinCol, rd, n)
 		}
 	}
 
-	field, ok := m.table.FieldsMap[colName]
+	field, ok := m.table.FieldsMap[col.Name]
 	if !ok {
 		return false, nil
 	}

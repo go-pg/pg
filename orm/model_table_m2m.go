@@ -90,8 +90,8 @@ func (m *m2mModel) modelIDMap(b []byte) ([]byte, error) {
 	return b, nil
 }
 
-func (m *m2mModel) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
-	ok, err := m.sliceTableModel.scanColumn(colIdx, colName, rd, n)
+func (m *m2mModel) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) error {
+	ok, err := m.sliceTableModel.scanColumn(col, rd, n)
 	if ok {
 		return err
 	}
@@ -101,6 +101,6 @@ func (m *m2mModel) ScanColumn(colIdx int, colName string, rd types.Reader, n int
 		return err
 	}
 
-	m.columns[colName] = string(tmp)
+	m.columns[col.Name] = string(tmp)
 	return nil
 }

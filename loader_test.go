@@ -135,7 +135,7 @@ func (m *errLoader) AddColumnScanner(_ orm.ColumnScanner) error {
 	return nil
 }
 
-func (m *errLoader) ScanColumn(int, string, types.Reader, int) error {
+func (m *errLoader) ScanColumn(types.ColumnInfo, types.Reader, int) error {
 	return m.err
 }
 

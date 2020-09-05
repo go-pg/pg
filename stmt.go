@@ -7,6 +7,7 @@ import (
 	"github.com/go-pg/pg/v10/internal"
 	"github.com/go-pg/pg/v10/internal/pool"
 	"github.com/go-pg/pg/v10/orm"
+	"github.com/go-pg/pg/v10/types"
 )
 
 var errStmtClosed = errors.New("pg: statement is closed")
@@ -19,7 +20,7 @@ type Stmt struct {
 
 	q       string
 	name    string
-	columns [][]byte
+	columns []types.ColumnInfo
 }
 
 func prepareStmt(db *baseDB, q string) (*Stmt, error) {
@@ -252,7 +253,7 @@ func (stmt *Stmt) extQueryData(
 	cn *pool.Conn,
 	name string,
 	model interface{},
-	columns [][]byte,
+	columns []types.ColumnInfo,
 	params ...interface{},
 ) (Result, error) {
 	err := cn.WithWriter(c, stmt.db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {

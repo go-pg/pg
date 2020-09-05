@@ -113,7 +113,8 @@ func newModel(value interface{}, scan bool) (Model, error) {
 				typ.String())
 			return nil, err
 		}
-		return newMapModel(v.Interface().(map[string]interface{})), nil
+		m := v.Addr().Interface().(*map[string]interface{})
+		return newMapModel(m), nil
 	}
 
 	if !scan {

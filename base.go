@@ -11,6 +11,7 @@ import (
 	"github.com/go-pg/pg/v10/internal"
 	"github.com/go-pg/pg/v10/internal/pool"
 	"github.com/go-pg/pg/v10/orm"
+	"github.com/go-pg/pg/v10/types"
 )
 
 type baseDB struct {
@@ -599,7 +600,7 @@ func (db *baseDB) Prepare(q string) (*Stmt, error) {
 
 func (db *baseDB) prepare(
 	c context.Context, cn *pool.Conn, q string,
-) (string, [][]byte, error) {
+) (string, []types.ColumnInfo, error) {
 	name := cn.NextID()
 	err := cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writeParseDescribeSyncMsg(wb, name, q)
@@ -609,7 +610,7 @@ func (db *baseDB) prepare(
 		return "", nil, err
 	}
 
-	var columns [][]byte
+	var columns []types.ColumnInfo
 	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.BufReader) error {
 		columns, err = readParseDescribeSync(rd)
 		return err

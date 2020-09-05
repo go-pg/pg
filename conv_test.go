@@ -3,6 +3,7 @@ package pg_test
 import (
 	"database/sql"
 	"database/sql/driver"
+	"encoding/json"
 	"fmt"
 	"math"
 	"net"
@@ -14,6 +15,7 @@ import (
 	"github.com/go-pg/pg/v10/orm"
 	"github.com/go-pg/pg/v10/pgjson"
 	"github.com/go-pg/pg/v10/types"
+	"github.com/stretchr/testify/assert"
 )
 
 type JSONMap map[string]interface{}
@@ -477,4 +479,56 @@ func mustParseCIDR(s string) *net.IPNet {
 		panic(err)
 	}
 	return ipnet
+}
+
+func TestReadColumnValue(t *testing.T) {
+	db := pg.Connect(pgOptions())
+	defer db.Close()
+
+	type Test struct {
+		pgtype  string
+		value   interface{}
+		isArray bool
+	}
+
+	tests := []Test{
+		{pgtype: "boolean", value: true},
+
+		{pgtype: "int2", value: int16(math.MaxInt16)},
+		{pgtype: "int4", value: int32(math.MaxInt32)},
+		{pgtype: "int8", value: int64(math.MaxInt64)},
+
+		{pgtype: "float4", value: float32(math.MaxFloat32)},
+		{pgtype: "float8", value: float64(math.MaxFloat64)},
+
+		{pgtype: "decimal", value: "111111111111111111111111111111111111111111111"},
+		{pgtype: "numeric", value: "222222222222222222222222222222222222222222222"},
+
+		{pgtype: "text", value: "hello"},
+		{pgtype: "varchar(1000)", value: "hello"},
+		{pgtype: "bytea", value: []byte("hello")},
+		{pgtype: "json", value: json.RawMessage("[]")},
+		{pgtype: "jsonb", value: json.RawMessage("[]")},
+
+		{pgtype: "int8[]", value: []int64{1, 2, 3}, isArray: true},
+		{pgtype: "float8[]", value: []float64{math.MaxFloat32, math.MaxFloat64}, isArray: true},
+		{pgtype: "text[]", value: []string{"foo", "bar"}, isArray: true},
+
+		{pgtype: "timestamptz", value: time.Unix(0, 0)},
+		{pgtype: "timestamp", value: time.Unix(0, 0).UTC()},
+
+		{pgtype: "uuid", value: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"},
+	}
+
+	for _, test := range tests {
+		value := test.value
+		if test.isArray {
+			value = pg.Array(value)
+		}
+
+		var m map[string]interface{}
+		err := db.Model().ColumnExpr("?::? AS col", value, pg.Safe(test.pgtype)).Select(&m)
+		assert.Nil(t, err)
+		assert.Equal(t, m["col"], test.value)
+	}
 }
