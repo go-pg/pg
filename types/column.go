@@ -34,6 +34,12 @@ const (
 	pgUUID = 2950
 )
 
+type ColumnInfo struct {
+	Index    int16
+	DataType int32
+	Name     string
+}
+
 func ReadColumnValue(col ColumnInfo, rd Reader, n int) (interface{}, error) {
 	switch col.DataType {
 	case pgBool:

@@ -4,12 +4,6 @@ import (
 	"github.com/go-pg/pg/v10/internal/pool"
 )
 
-type ColumnInfo struct {
-	Index    int16
-	DataType int32
-	Name     string
-}
-
 type Reader = pool.Reader
 
 type ValueScanner interface {
