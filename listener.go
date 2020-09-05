@@ -40,7 +40,7 @@ type Listener struct {
 	closed bool
 
 	chOnce sync.Once
-	ch     chan *Notification
+	ch     chan Notification
 	pingCh chan struct{}
 }
 
@@ -245,17 +245,17 @@ func (ln *Listener) ReceiveTimeout(
 //
 // The channel is closed with Listener. Receive* APIs can not be used
 // after channel is created.
-func (ln *Listener) Channel() <-chan *Notification {
+func (ln *Listener) Channel() <-chan Notification {
 	return ln.channel(100)
 }
 
 // ChannelSize is like Channel, but creates a Go channel
 // with specified buffer size.
-func (ln *Listener) ChannelSize(size int) <-chan *Notification {
+func (ln *Listener) ChannelSize(size int) <-chan Notification {
 	return ln.channel(size)
 }
 
-func (ln *Listener) channel(size int) <-chan *Notification {
+func (ln *Listener) channel(size int) <-chan Notification {
 	ln.chOnce.Do(func() {
 		ln.initChannel(size)
 	})
@@ -273,7 +273,7 @@ func (ln *Listener) initChannel(size int) {
 	ctx := ln.db.ctx
 	_ = ln.Listen(ctx, gopgChannel)
 
-	ln.ch = make(chan *Notification, size)
+	ln.ch = make(chan Notification, size)
 	ln.pingCh = make(chan struct{}, 1)
 
 	go func() {
@@ -309,7 +309,7 @@ func (ln *Listener) initChannel(size int) {
 			default:
 				timer.Reset(chanSendTimeout)
 				select {
-				case ln.ch <- &Notification{channel, payload}:
+				case ln.ch <- Notification{channel, payload}:
 					if !timer.Stop() {
 						<-timer.C
 					}
