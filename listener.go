@@ -267,7 +267,8 @@ func (ln *Listener) channel(size int) <-chan *Notification {
 }
 
 func (ln *Listener) initChannel(size int) {
-	const timeout = 30 * time.Second
+	const pingTimeout = time.Second
+	const chanSendTimeout = time.Minute
 
 	ctx := ln.db.ctx
 	_ = ln.Listen(ctx, gopgChannel)
@@ -276,7 +277,7 @@ func (ln *Listener) initChannel(size int) {
 	ln.pingCh = make(chan struct{}, 1)
 
 	go func() {
-		timer := time.NewTimer(timeout)
+		timer := time.NewTimer(time.Minute)
 		timer.Stop()
 
 		var errCount int
@@ -306,7 +307,7 @@ func (ln *Listener) initChannel(size int) {
 			case gopgChannel:
 				// ignore
 			default:
-				timer.Reset(timeout)
+				timer.Reset(chanSendTimeout)
 				select {
 				case ln.ch <- &Notification{channel, payload}:
 					if !timer.Stop() {
@@ -316,19 +317,21 @@ func (ln *Listener) initChannel(size int) {
 					internal.Logger.Printf(
 						ctx,
 						"pg: %s channel is full for %s (notification is dropped)",
-						ln, timeout)
+						ln,
+						chanSendTimeout,
+					)
 				}
 			}
 		}
 	}()
 
 	go func() {
-		timer := time.NewTimer(timeout)
+		timer := time.NewTimer(time.Minute)
 		timer.Stop()
 
 		healthy := true
 		for {
-			timer.Reset(timeout)
+			timer.Reset(pingTimeout)
 			select {
 			case <-ln.pingCh:
 				healthy = true
