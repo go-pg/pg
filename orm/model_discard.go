@@ -22,6 +22,6 @@ func (m Discard) AddColumnScanner(ColumnScanner) error {
 	return nil
 }
 
-func (m Discard) ScanColumn(colIdx int, colName string, rd types.Reader, n int) error {
+func (m Discard) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) error {
 	return nil
 }

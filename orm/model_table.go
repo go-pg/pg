@@ -28,7 +28,7 @@ type TableModel interface {
 	Value() reflect.Value
 
 	setSoftDeleteField()
-	scanColumn(int, string, types.Reader, int) (bool, error)
+	scanColumn(types.ColumnInfo, types.Reader, int) (bool, error)
 }
 
 func newTableModelIndex(typ reflect.Type, root reflect.Value, index []int, rel *Relation) (TableModel, error) {

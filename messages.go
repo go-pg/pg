@@ -19,6 +19,7 @@ import (
 	"github.com/go-pg/pg/v10/types"
 )
 
+// https://www.postgresql.org/docs/current/protocol-message-formats.html
 const (
 	commandCompleteMsg  = 'C'
 	errorResponseMsg    = 'E'
@@ -485,8 +486,8 @@ func writeParseDescribeSyncMsg(buf *pool.WriteBuffer, name, q string) {
 	writeSyncMsg(buf)
 }
 
-func readParseDescribeSync(rd *pool.BufReader) ([][]byte, error) {
-	var columns [][]byte
+func readParseDescribeSync(rd *pool.BufReader) ([]types.ColumnInfo, error) {
+	var columns []types.ColumnInfo
 	var firstErr error
 	for {
 		c, msgLen, err := readMessageType(rd)
@@ -739,22 +740,40 @@ func readExtQuery(rd *pool.BufReader) (*result, error) {
 	}
 }
 
-func readRowDescription(rd *pool.BufReader, columns [][]byte) ([][]byte, error) {
-	colNum, err := readInt16(rd)
+func readRowDescription(rd *pool.BufReader, columns []types.ColumnInfo) ([]types.ColumnInfo, error) {
+	numCol, err := readInt16(rd)
 	if err != nil {
 		return nil, err
 	}
 
-	columns = setByteSliceLen(columns, int(colNum))
-	for i := 0; i < int(colNum); i++ {
+	if cap(columns) >= int(numCol) {
+		columns = columns[:int(numCol)]
+	} else {
+		columns = make([]types.ColumnInfo, int(numCol))
+	}
+
+	for i := 0; i < int(numCol); i++ {
+		col := &columns[i]
+		col.Index = int16(i)
+
 		b, err := rd.ReadSlice(0)
 		if err != nil {
 			return nil, err
 		}
-		columns[i] = append(columns[i][:0], b[:len(b)-1]...)
+		// TODO: optimize
+		col.Name = string(b[:len(b)-1])
 
-		_, err = rd.ReadN(18)
+		if _, err := rd.ReadN(6); err != nil {
+			return nil, err
+		}
+
+		dataType, err := readInt32(rd)
 		if err != nil {
+			return nil, err
+		}
+		col.DataType = dataType
+
+		if _, err := rd.ReadN(8); err != nil {
 			return nil, err
 		}
 	}
@@ -762,19 +781,10 @@ func readRowDescription(rd *pool.BufReader, columns [][]byte) ([][]byte, error) 
 	return columns, nil
 }
 
-func setByteSliceLen(b [][]byte, n int) [][]byte {
-	if n <= cap(b) {
-		return b[:n]
-	}
-	b = b[:cap(b)]
-	b = append(b, make([][]byte, n-cap(b))...)
-	return b
-}
-
 func readDataRow(
-	ctx context.Context, rd *pool.BufReader, scanner orm.ColumnScanner, columns [][]byte,
+	ctx context.Context, rd *pool.BufReader, scanner orm.ColumnScanner, columns []types.ColumnInfo,
 ) error {
-	colNum, err := readInt16(rd)
+	numCol, err := readInt16(rd)
 	if err != nil {
 		return err
 	}
@@ -787,13 +797,12 @@ func readDataRow(
 
 	var firstErr error
 
-	for colIdx := int16(0); colIdx < colNum; colIdx++ {
+	for colIdx := int16(0); colIdx < numCol; colIdx++ {
 		n, err := readInt32(rd)
 		if err != nil {
 			return err
 		}
 
-		column := internal.BytesToString(columns[colIdx])
 		var colRd types.Reader
 		if n >= 0 {
 			bytesRd := rd.BytesReader(int(n))
@@ -807,7 +816,9 @@ func readDataRow(
 			colRd = rd.BytesReader(0)
 		}
 
-		err = scanner.ScanColumn(int(colIdx), column, colRd, int(n))
+		column := columns[colIdx]
+
+		err = scanner.ScanColumn(column, colRd, int(n))
 		if err != nil && firstErr == nil {
 			firstErr = internal.Errorf(err.Error())
 		}
@@ -845,6 +856,7 @@ func readSimpleQueryData(
 ) (*result, error) {
 	var res result
 	var firstErr error
+	var columns []types.ColumnInfo
 	for {
 		c, msgLen, err := readMessageType(rd)
 		if err != nil {
@@ -853,7 +865,8 @@ func readSimpleQueryData(
 
 		switch c {
 		case rowDescriptionMsg:
-			rd.Columns, err = readRowDescription(rd, rd.Columns[:0])
+			// TODO: optimize
+			columns, err = readRowDescription(rd, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -870,7 +883,7 @@ func readSimpleQueryData(
 			}
 		case dataRowMsg:
 			scanner := res.model.NextColumnScanner()
-			if err := readDataRow(ctx, rd, scanner, rd.Columns); err != nil {
+			if err := readDataRow(ctx, rd, scanner, columns); err != nil {
 				if firstErr == nil {
 					firstErr = err
 				}
@@ -925,7 +938,7 @@ func readSimpleQueryData(
 }
 
 func readExtQueryData(
-	ctx context.Context, rd *pool.BufReader, mod interface{}, columns [][]byte,
+	ctx context.Context, rd *pool.BufReader, mod interface{}, columns []types.ColumnInfo,
 ) (*result, error) {
 	var res result
 	var firstErr error
