@@ -498,8 +498,8 @@ func TestReadColumnValue(t *testing.T) {
 		{pgtype: "int4", value: int32(math.MaxInt32)},
 		{pgtype: "int8", value: int64(math.MaxInt64)},
 
-		{pgtype: "float4", value: float32(math.MaxFloat32)},
-		{pgtype: "float8", value: float64(math.MaxFloat64)},
+		{pgtype: "float4", value: float32(1.2345)},
+		{pgtype: "float8", value: float64(1.2345)},
 
 		{pgtype: "decimal", value: "111111111111111111111111111111111111111111111"},
 		{pgtype: "numeric", value: "222222222222222222222222222222222222222222222"},
@@ -511,7 +511,7 @@ func TestReadColumnValue(t *testing.T) {
 		{pgtype: "jsonb", value: json.RawMessage("[]")},
 
 		{pgtype: "int8[]", value: []int64{1, 2, 3}, isArray: true},
-		{pgtype: "float8[]", value: []float64{math.MaxFloat32, math.MaxFloat64}, isArray: true},
+		{pgtype: "float8[]", value: []float64{1.23, 4.567}, isArray: true},
 		{pgtype: "text[]", value: []string{"foo", "bar"}, isArray: true},
 
 		{pgtype: "timestamptz", value: time.Unix(0, 0)},
