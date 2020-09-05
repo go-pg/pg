@@ -531,4 +531,14 @@ func TestReadColumnValue(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, m["col"], test.value)
 	}
+
+	var mm []map[string]interface{}
+	err := db.Model().ColumnExpr("1").Union(
+		db.Model().ColumnExpr("2"),
+	).Select(&mm)
+	assert.Nil(t, err)
+	assert.Equal(t, []map[string]interface{}{
+		{"?column?": int32(1)},
+		{"?column?": int32(2)},
+	}, mm)
 }
