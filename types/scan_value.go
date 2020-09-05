@@ -2,14 +2,13 @@ package types
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
 	"reflect"
 	"sync"
 	"time"
-
-	"github.com/segmentio/encoding/json"
 
 	"github.com/go-pg/pg/v10/internal"
 	"github.com/go-pg/pg/v10/pgjson"

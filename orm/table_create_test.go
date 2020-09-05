@@ -2,9 +2,8 @@ package orm
 
 import (
 	"database/sql"
+	"encoding/json"
 	"time"
-
-	"github.com/segmentio/encoding/json"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

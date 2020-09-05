@@ -2,6 +2,7 @@ package orm
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
@@ -9,8 +10,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/segmentio/encoding/json"
 
 	"github.com/jinzhu/inflection"
 	"github.com/vmihailenco/tagparser"
