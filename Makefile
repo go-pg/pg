@@ -1,7 +1,7 @@
 all:
-	go test ./...
-	go test ./... -short -race
-	go test ./... -run=NONE -bench=. -benchmem
+	TZ= go test ./...
+	TZ= go test ./... -short -race
+	TZ= go test ./... -run=NONE -bench=. -benchmem
 	env GOOS=linux GOARCH=386 go test ./...
 	golangci-lint run
 
@@ -17,4 +17,4 @@ pre-test: cleanTest
 
 .PHONY: test
 test: pre-test
-	PGSSLMODE=disable go test ./... -v
+	TZ= PGSSLMODE=disable go test ./... -v
