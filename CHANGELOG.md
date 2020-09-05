@@ -1,5 +1,7 @@
 # Changelog
 
+> :heart: [**Uptrace.dev** - distributed traces, logs, and errors in one place](https://uptrace.dev)
+
 ## v10 (unreleased)
 
 ### Resources
