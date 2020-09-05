@@ -13,6 +13,7 @@
 
 ## Ecosystem
 
+- [pgext](https://github.com/go-pg/pgext) - fast JSON encoding, OpenTelemetry hook, etc.
 - Migrations by [vmihailenco](https://github.com/go-pg/migrations) and
   [robinjoseph08](https://github.com/robinjoseph08/go-pg-migrations).
 - [Sharding](https://github.com/go-pg/sharding).
