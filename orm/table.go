@@ -543,6 +543,15 @@ func (t *Table) initRelations() {
 }
 
 func (t *Table) tryRelation(field *Field) bool {
+	pgTag := tagparser.Parse(field.Field.Tag.Get("pg"))
+
+	if rel, ok := pgTag.Options["rel"]; ok {
+		return t.tryRelationType(field, rel)
+	}
+	if _, ok := pgTag.Options["many2many"]; ok {
+		return t.tryRelationType(field, "many2many")
+	}
+
 	if field.UserSQLType != "" || isScanner(field.Type) {
 		return false
 	}
@@ -556,8 +565,229 @@ func (t *Table) tryRelation(field *Field) bool {
 	return false
 }
 
+func (t *Table) tryRelationType(field *Field, rel string) bool {
+	pgTag := tagparser.Parse(field.Field.Tag.Get("pg"))
+	switch rel {
+	case "has-one":
+		return t.mustHasOneRelation(field, pgTag)
+	case "belongs-to":
+		return t.mustBelongsToRelation(field, pgTag)
+	case "has-many":
+		return t.mustHasManyRelation(field, pgTag)
+	case "many2many":
+		return t.mustM2MRelation(field, pgTag)
+	default:
+		panic(fmt.Errorf("pg: unknown relation=%s on field=%s", rel, field.GoName))
+	}
+}
+
+func (t *Table) mustHasOneRelation(field *Field, pgTag *tagparser.Tag) bool {
+	joinTable := _tables.get(field.Type, true)
+
+	if t.tryHasOne(joinTable, field, pgTag) {
+		t.inlineFields(field, nil)
+		return true
+	}
+
+	fkPrefix, ok := pgTag.Options["fk"]
+	if !ok {
+		fkPrefix = internal.Underscore(field.GoName) + "_"
+	}
+
+	if ok && len(t.PKs) == 1 {
+		if t.getField(fkPrefix) == nil {
+			panic(fmt.Errorf(
+				"pg: %s has-one %s: %s must have column %s",
+				t.TypeName, field.GoName, joinTable.TypeName, fkPrefix,
+			))
+		}
+	}
+
+	for _, joinPK := range joinTable.PKs {
+		fkName := fkPrefix + "_" + joinPK.SQLName
+		if t.getField(fkName) == nil {
+			panic(fmt.Errorf(
+				"pg: %s has-one %s: %s must have column %s",
+				t.TypeName, field.GoName, t.TypeName, fkName,
+			))
+		}
+	}
+	panic("not reached")
+}
+
+func (t *Table) mustBelongsToRelation(field *Field, pgTag *tagparser.Tag) bool {
+	joinTable := _tables.get(field.Type, true)
+
+	if t.tryBelongsToOne(joinTable, field, pgTag) {
+		t.inlineFields(field, nil)
+		return true
+	}
+
+	fkPrefix, ok := pgTag.Options["fk"]
+	if !ok {
+		fkPrefix = internal.Underscore(t.ModelName) + "_"
+	}
+
+	if ok && len(t.PKs) == 1 {
+		if t.getField(fkPrefix) == nil {
+			panic(fmt.Errorf(
+				"pg: %s belongs-to %s: %s must have column %s",
+				t.TypeName, field.GoName, joinTable.TypeName, fkPrefix,
+			))
+		}
+	}
+
+	for _, joinPK := range t.PKs {
+		fkName := fkPrefix + joinPK.SQLName
+		if t.getField(fkName) == nil {
+			panic(fmt.Errorf(
+				"pg: %s belongs-to %s: %s must have column %s",
+				t.TypeName, field.GoName, joinTable.TypeName, fkName,
+			))
+		}
+	}
+	panic("not reached")
+}
+
+func (t *Table) mustHasManyRelation(field *Field, pgTag *tagparser.Tag) bool {
+	if field.Type.Kind() != reflect.Slice {
+		panic(fmt.Errorf(
+			"pg: %s.%s has-many relation requires slice, got %q",
+			t.TypeName, field.GoName, field.Type.Kind(),
+		))
+	}
+	joinTable := _tables.get(indirectType(field.Type.Elem()), true)
+
+	if t.tryHasManyRelation(field) {
+		return true
+	}
+
+	fkPrefix, ok := pgTag.Options["fk"]
+	if !ok {
+		fkPrefix = internal.Underscore(t.ModelName) + "_"
+	}
+
+	if ok && len(t.PKs) == 1 {
+		if t.getField(fkPrefix) == nil {
+			panic(fmt.Errorf(
+				"pg: %s has-many %s: %s must have column %s",
+				t.TypeName, field.GoName, joinTable.TypeName, fkPrefix,
+			))
+		}
+	}
+
+	for _, joinPK := range t.PKs {
+		fkName := fkPrefix + joinPK.SQLName
+		if t.getField(fkName) == nil {
+			panic(fmt.Errorf(
+				"pg: %s has-many %s: %s must have column %s "+
+					"(use fk:custom_name tag on %s field to specify custom name)",
+				t.TypeName, field.GoName, joinTable.TypeName, fkName, field.GoName,
+			))
+		}
+	}
+	panic("not reached")
+}
+
+func (t *Table) mustM2MRelation(field *Field, pgTag *tagparser.Tag) bool {
+	if field.Type.Kind() != reflect.Slice {
+		panic(fmt.Errorf(
+			"pg: %s.%s many2many relation requires slice, got %q",
+			t.TypeName, field.GoName, field.Type.Kind(),
+		))
+	}
+	joinTable := _tables.get(indirectType(field.Type.Elem()), true)
+
+	if t.tryM2MRelation(field) {
+		return true
+	}
+
+	m2mTableName, ok := pgTag.Options["many2many"]
+	if !ok {
+		panic(fmt.Errorf("pg: %s must have many2many tag option", field.GoName))
+	}
+
+	m2mTable := _tables.getByName(m2mTableName)
+	if m2mTable == nil {
+		panic(fmt.Errorf(
+			"pg: can't find %s table (use orm.RegisterTable to register the model)",
+			m2mTableName,
+		))
+	}
+
+	{
+		fkPrefix, ok := pgTag.Options["fk"]
+		if !ok {
+			fkPrefix = internal.Underscore(t.ModelName) + "_"
+		}
+
+		if ok && len(t.PKs) == 1 {
+			if m2mTable.getField(fkPrefix) == nil {
+				panic(fmt.Errorf(
+					"pg: %s many2many %s: %s must have column %s",
+					t.TypeName, field.GoName, m2mTable.TypeName, fkPrefix,
+				))
+			}
+		} else {
+			for _, joinPK := range t.PKs {
+				fkName := fkPrefix + joinPK.SQLName
+				if m2mTable.getField(fkName) == nil {
+					panic(fmt.Errorf(
+						"pg: %s many2many %s: %s must have column %s "+
+							"(use fk:custom_name tag on %s field to specify custom name)",
+						t.TypeName, field.GoName, m2mTable.TypeName, fkName, field.GoName,
+					))
+				}
+			}
+		}
+	}
+
+	{
+		joinFKPrefix, ok := pgTag.Options["join_fk"]
+		if !ok {
+			joinFKPrefix = internal.Underscore(joinTable.ModelName) + "_"
+		}
+
+		if ok && len(joinTable.PKs) == 1 {
+			if m2mTable.getField(joinFKPrefix) == nil {
+				panic(fmt.Errorf(
+					"pg: %s many2many %s: %s must have column %s",
+					joinTable.TypeName, field.GoName, m2mTable.TypeName, joinFKPrefix,
+				))
+			}
+		} else {
+			for _, joinPK := range joinTable.PKs {
+				fkName := joinFKPrefix + joinPK.SQLName
+				if m2mTable.getField(fkName) == nil {
+					panic(fmt.Errorf(
+						"pg: %s many2many %s: %s must have column %s "+
+							"(use join_fk:custom_name tag on %s field to specify custom name)",
+						t.TypeName, field.GoName, m2mTable.TypeName, fkName, field.GoName,
+					))
+				}
+			}
+		}
+	}
+
+	panic("not reached")
+}
+
 //nolint
 func (t *Table) tryRelationSlice(field *Field) bool {
+	if t.tryM2MRelation(field) {
+		internal.Deprecated.Printf(
+			`add pg:"rel:many2many" to %s.%s field tag`, t.TypeName, field.GoName)
+		return true
+	}
+	if t.tryHasManyRelation(field) {
+		internal.Deprecated.Printf(
+			`add pg:"rel:has-many" to %s.%s field tag`, t.TypeName, field.GoName)
+		return true
+	}
+	return false
+}
+
+func (t *Table) tryM2MRelation(field *Field) bool {
 	elemType := indirectType(field.Type.Elem())
 	if elemType.Kind() != reflect.Struct {
 		return false
@@ -574,82 +804,103 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 		fk = tryUnderscorePrefix(fk)
 	}
 
-	if m2mTableName := pgTag.Options["many2many"]; m2mTableName != "" {
-		m2mTable := _tables.getByName(m2mTableName)
+	m2mTableName := pgTag.Options["many2many"]
+	if m2mTableName == "" {
+		return false
+	}
 
-		var m2mTableAlias types.Safe
-		if m2mTable != nil {
-			m2mTableAlias = m2mTable.Alias
-		} else if ind := strings.IndexByte(m2mTableName, '.'); ind >= 0 {
-			m2mTableAlias = quoteIdent(m2mTableName[ind+1:])
+	m2mTable := _tables.getByName(m2mTableName)
+
+	var m2mTableAlias types.Safe
+	if m2mTable != nil {
+		m2mTableAlias = m2mTable.Alias
+	} else if ind := strings.IndexByte(m2mTableName, '.'); ind >= 0 {
+		m2mTableAlias = quoteIdent(m2mTableName[ind+1:])
+	} else {
+		m2mTableAlias = quoteIdent(m2mTableName)
+	}
+
+	var fks []string
+	if !fkOK {
+		fk = t.ModelName + "_"
+	}
+	if m2mTable != nil {
+		keys := foreignKeys(t, m2mTable, fk, fkOK)
+		if len(keys) == 0 {
+			return false
+		}
+		for _, fk := range keys {
+			fks = append(fks, fk.SQLName)
+		}
+	} else {
+		if fkOK && len(t.PKs) == 1 {
+			fks = append(fks, fk)
 		} else {
-			m2mTableAlias = quoteIdent(m2mTableName)
+			for _, pk := range t.PKs {
+				fks = append(fks, fk+pk.SQLName)
+			}
 		}
+	}
 
-		var fks []string
-		if !fkOK {
-			fk = t.ModelName + "_"
-		}
-		if m2mTable != nil {
-			keys := foreignKeys(t, m2mTable, fk, fkOK)
-			if len(keys) == 0 {
-				return false
-			}
-			for _, fk := range keys {
-				fks = append(fks, fk.SQLName)
-			}
-		} else {
-			if fkOK && len(t.PKs) == 1 {
-				fks = append(fks, fk)
-			} else {
-				for _, pk := range t.PKs {
-					fks = append(fks, fk+pk.SQLName)
-				}
-			}
-		}
-
-		joinFK, joinFKOk := pgTag.Options["join_fk"]
-		if !joinFKOk {
-			joinFK, joinFKOk = pgTag.Options["joinFK"]
-			if joinFKOk {
-				internal.Deprecated.Printf("joinFK is renamed to join_fk")
-			}
-		}
+	joinFK, joinFKOk := pgTag.Options["join_fk"]
+	if !joinFKOk {
+		joinFK, joinFKOk = pgTag.Options["joinFK"]
 		if joinFKOk {
-			joinFK = tryUnderscorePrefix(joinFK)
-		} else {
-			joinFK = joinTable.ModelName + "_"
+			internal.Deprecated.Printf("joinFK is renamed to join_fk")
 		}
+	}
+	if joinFKOk {
+		joinFK = tryUnderscorePrefix(joinFK)
+	} else {
+		joinFK = joinTable.ModelName + "_"
+	}
 
-		var joinFKs []string
-		if m2mTable != nil {
-			keys := foreignKeys(joinTable, m2mTable, joinFK, joinFKOk)
-			if len(keys) == 0 {
-				return false
-			}
-			for _, fk := range keys {
-				joinFKs = append(joinFKs, fk.SQLName)
-			}
+	var joinFKs []string
+	if m2mTable != nil {
+		keys := foreignKeys(joinTable, m2mTable, joinFK, joinFKOk)
+		if len(keys) == 0 {
+			return false
+		}
+		for _, fk := range keys {
+			joinFKs = append(joinFKs, fk.SQLName)
+		}
+	} else {
+		if joinFKOk && len(joinTable.PKs) == 1 {
+			joinFKs = append(joinFKs, joinFK)
 		} else {
-			if joinFKOk && len(joinTable.PKs) == 1 {
-				joinFKs = append(joinFKs, joinFK)
-			} else {
-				for _, pk := range joinTable.PKs {
-					joinFKs = append(joinFKs, joinFK+pk.SQLName)
-				}
+			for _, pk := range joinTable.PKs {
+				joinFKs = append(joinFKs, joinFK+pk.SQLName)
 			}
 		}
+	}
 
-		t.addRelation(&Relation{
-			Type:          Many2ManyRelation,
-			Field:         field,
-			JoinTable:     joinTable,
-			M2MTableName:  quoteIdent(m2mTableName),
-			M2MTableAlias: m2mTableAlias,
-			M2MBaseFKs:    fks,
-			M2MJoinFKs:    joinFKs,
-		})
-		return true
+	t.addRelation(&Relation{
+		Type:          Many2ManyRelation,
+		Field:         field,
+		JoinTable:     joinTable,
+		M2MTableName:  quoteIdent(m2mTableName),
+		M2MTableAlias: m2mTableAlias,
+		M2MBaseFKs:    fks,
+		M2MJoinFKs:    joinFKs,
+	})
+	return true
+}
+
+func (t *Table) tryHasManyRelation(field *Field) bool {
+	elemType := indirectType(field.Type.Elem())
+	if elemType.Kind() != reflect.Struct {
+		return false
+	}
+
+	pgTag := tagparser.Parse(field.Field.Tag.Get("pg"))
+	joinTable := _tables.get(elemType, true)
+
+	fk, fkOK := pgTag.Options["fk"]
+	if fkOK {
+		if fk == "-" {
+			return false
+		}
+		fk = tryUnderscorePrefix(fk)
 	}
 
 	s, polymorphic := pgTag.Options["polymorphic"]
@@ -708,14 +959,27 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 func (t *Table) tryRelationStruct(field *Field) bool {
 	pgTag := tagparser.Parse(field.Field.Tag.Get("pg"))
 	joinTable := _tables.get(field.Type, true)
+
 	if len(joinTable.allFields) == 0 {
 		return false
 	}
 
-	res := t.tryHasOne(joinTable, field, pgTag) ||
-		t.tryBelongsToOne(joinTable, field, pgTag)
+	if t.tryHasOne(joinTable, field, pgTag) {
+		internal.Deprecated.Printf(
+			`add pg:"rel:has-one" to %s.%s field tag`, t.TypeName, field.GoName)
+		t.inlineFields(field, nil)
+		return true
+	}
+
+	if t.tryBelongsToOne(joinTable, field, pgTag) {
+		internal.Deprecated.Printf(
+			`add pg:"rel:belongs-to" to %s.%s field tag`, t.TypeName, field.GoName)
+		t.inlineFields(field, nil)
+		return true
+	}
+
 	t.inlineFields(field, nil)
-	return res
+	return false
 }
 
 func (t *Table) inlineFields(strct *Field, path map[reflect.Type]struct{}) {
@@ -1118,7 +1382,8 @@ func isKnownFieldOption(name string) bool {
 		"fk",
 		"join_fk",
 		"many2many",
-		"polymorphic":
+		"polymorphic",
+		"rel":
 		return true
 	}
 	return false

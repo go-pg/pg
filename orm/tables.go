@@ -124,7 +124,7 @@ func (t *tables) getByName(name string) *Table {
 	var found *Table
 	t.tables.Range(func(key, value interface{}) bool {
 		t := value.(*Table)
-		if string(t.FullName) == name || t.ModelName == name {
+		if t.Name == name || string(t.FullName) == name || t.ModelName == name {
 			found = t
 			return false
 		}

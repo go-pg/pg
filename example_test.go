@@ -235,8 +235,8 @@ func ExampleDB_CreateTable() {
 		Id   int
 		Name string
 
-		Model1Id int `pg:"on_delete:RESTRICT, on_update: CASCADE"`
-		Model1   *Model1
+		Model1Id int     `pg:"on_delete:RESTRICT,on_update: CASCADE"`
+		Model1   *Model1 `pg:"rel:has-one"`
 	}
 
 	for _, model := range []interface{}{&Model1{}, &Model2{}} {
