@@ -126,7 +126,7 @@ func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 	join = append(join, " AS "...)
 	join = append(join, j.Rel.M2MTableAlias...)
 	join = append(join, " ON ("...)
-	for i, col := range j.Rel.BaseFKs {
+	for i, col := range j.Rel.M2MBaseFKs {
 		if i > 0 {
 			join = append(join, ", "...)
 		}
@@ -140,7 +140,7 @@ func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 	q = q.Join(internal.BytesToString(join))
 
 	joinTable := j.JoinModel.Table()
-	for i, col := range j.Rel.JoinFKs {
+	for i, col := range j.Rel.M2MJoinFKs {
 		if i >= len(joinTable.PKs) {
 			break
 		}
