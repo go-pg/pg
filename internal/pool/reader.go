@@ -1,5 +1,11 @@
 package pool
 
+import (
+	"sync"
+
+	"github.com/go-pg/pg/v10/internal"
+)
+
 type Reader interface {
 	Buffered() int
 
@@ -14,4 +20,68 @@ type Reader interface {
 	// ReadN(int) ([]byte, error)
 	ReadFull() ([]byte, error)
 	ReadFullTemp() ([]byte, error)
+}
+
+type ColumnInfo struct {
+	Index    int16
+	DataType int32
+	Name     string
+}
+
+type ColumnAlloc struct {
+	columns []ColumnInfo
+	name    []byte
+}
+
+func NewColumnAlloc() *ColumnAlloc {
+	return new(ColumnAlloc)
+}
+
+func (c *ColumnAlloc) Reset() {
+	c.columns = c.columns[:0]
+	c.name = c.name[:0]
+}
+
+func (c *ColumnAlloc) New(index int16, name []byte) *ColumnInfo {
+	s := len(c.name)
+	c.name = append(c.name, name...)
+
+	c.columns = append(c.columns, ColumnInfo{
+		Index: index,
+		Name:  internal.BytesToString(c.name[s:]),
+	})
+	return &c.columns[len(c.columns)-1]
+}
+
+func (c *ColumnAlloc) Columns() []ColumnInfo {
+	return c.columns
+}
+
+type ReaderContext struct {
+	*BufReader
+	ColumnAlloc *ColumnAlloc
+}
+
+func NewReaderContext() *ReaderContext {
+	const bufSize = 1 << 20 // 1mb
+	return &ReaderContext{
+		BufReader:   NewBufReader(bufSize),
+		ColumnAlloc: NewColumnAlloc(),
+	}
+}
+
+var readerPool = sync.Pool{
+	New: func() interface{} {
+		return NewReaderContext()
+	},
+}
+
+func GetReaderContext() *ReaderContext {
+	rd := readerPool.Get().(*ReaderContext)
+	return rd
+}
+
+func PutReaderContext(rd *ReaderContext) {
+	rd.ColumnAlloc.Reset()
+	readerPool.Put(rd)
 }

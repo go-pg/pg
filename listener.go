@@ -228,7 +228,7 @@ func (ln *Listener) ReceiveTimeout(
 		return "", "", err
 	}
 
-	err = cn.WithReader(ctx, timeout, func(rd *pool.BufReader) error {
+	err = cn.WithReader(ctx, timeout, func(rd *pool.ReaderContext) error {
 		channel, payload, err = readNotification(rd)
 		return err
 	})

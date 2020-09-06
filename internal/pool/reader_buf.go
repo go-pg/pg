@@ -8,24 +8,7 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"sync"
 )
-
-var brPool = sync.Pool{
-	New: func() interface{} {
-		const bufSize = 1 << 20 // 1mb
-		return NewBufReader(bufSize)
-	},
-}
-
-func GetBufReader() *BufReader {
-	rd := brPool.Get().(*BufReader)
-	return rd
-}
-
-func PutBufReader(rd *BufReader) {
-	brPool.Put(rd)
-}
 
 type BufReader struct {
 	rd io.Reader // reader provided by the client
