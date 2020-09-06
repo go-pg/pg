@@ -501,8 +501,8 @@ func TestReadColumnValue(t *testing.T) {
 		{pgtype: "float4", value: float32(1.2345)},
 		{pgtype: "float8", value: float64(1.2345)},
 
-		{pgtype: "decimal", value: "111111111111111111111111111111111111111111111"},
-		{pgtype: "numeric", value: "222222222222222222222222222222222222222222222"},
+		{pgtype: "decimal", value: types.Numeric("111111111111111111111111111111111111111111111")},
+		{pgtype: "numeric", value: types.Numeric("222222222222222222222222222222222222222222222")},
 
 		{pgtype: "text", value: "hello"},
 		{pgtype: "varchar(1000)", value: "hello"},

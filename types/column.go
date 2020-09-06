@@ -38,6 +38,8 @@ const (
 
 type ColumnInfo = pool.ColumnInfo
 
+type Numeric string
+
 func ReadColumnValue(col ColumnInfo, rd Reader, n int) (interface{}, error) {
 	switch col.DataType {
 	case pgBool:
@@ -65,8 +67,14 @@ func ReadColumnValue(col ColumnInfo, rd Reader, n int) (interface{}, error) {
 
 	case pgBytea:
 		return ScanBytes(rd, n)
-	case pgText, pgVarchar, pgNumeric, pgUUID:
+	case pgText, pgVarchar, pgUUID:
 		return ScanString(rd, n)
+	case pgNumeric:
+		s, err := ScanString(rd, n)
+		if err != nil {
+			return nil, err
+		}
+		return Numeric(s), nil
 	case pgJSON, pgJSONB:
 		s, err := ScanString(rd, n)
 		if err != nil {
