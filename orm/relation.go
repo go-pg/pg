@@ -18,9 +18,9 @@ type Relation struct {
 	Type        int
 	Field       *Field
 	JoinTable   *Table
-	FKs         []*Field // either base fk or join fk
+	BaseFKs     []*Field
+	JoinFKs     []*Field
 	Polymorphic *Field
-	FKValues    []*Field
 
 	M2MTableName  types.Safe
 	M2MTableAlias types.Safe

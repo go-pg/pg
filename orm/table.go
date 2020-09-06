@@ -695,9 +695,9 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 			Type:        HasManyRelation,
 			Field:       field,
 			JoinTable:   joinTable,
-			FKs:         fks,
+			BaseFKs:     fkValues,
+			JoinFKs:     fks,
 			Polymorphic: typeField,
-			FKValues:    fkValues,
 		})
 		return true
 	}
@@ -882,8 +882,9 @@ func (t *Table) tryHasOne(joinTable *Table, field *Field, pgTag *tagparser.Tag) 
 		t.addRelation(&Relation{
 			Type:      HasOneRelation,
 			Field:     field,
-			FKs:       fks,
 			JoinTable: joinTable,
+			BaseFKs:   fks,
+			JoinFKs:   joinTable.PKs,
 		})
 		return true
 	}
@@ -906,8 +907,9 @@ func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, pgTag *tagparser
 		t.addRelation(&Relation{
 			Type:      BelongsToRelation,
 			Field:     field,
-			FKs:       fks,
 			JoinTable: joinTable,
+			BaseFKs:   t.PKs,
+			JoinFKs:   fks,
 		})
 		return true
 	}

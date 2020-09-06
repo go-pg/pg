@@ -197,21 +197,21 @@ func (q *CreateTableQuery) appendFKConstraint(fmter QueryFormatter, b []byte, re
 	}
 
 	b = append(b, ", FOREIGN KEY ("...)
-	b = appendColumns(b, "", rel.FKs)
+	b = appendColumns(b, "", rel.BaseFKs)
 	b = append(b, ")"...)
 
 	b = append(b, " REFERENCES "...)
 	b = fmter.FormatQuery(b, string(rel.JoinTable.FullName))
 	b = append(b, " ("...)
-	b = appendColumns(b, "", rel.JoinTable.PKs)
+	b = appendColumns(b, "", rel.JoinFKs)
 	b = append(b, ")"...)
 
-	if s := onDelete(rel.FKs); s != "" {
+	if s := onDelete(rel.BaseFKs); s != "" {
 		b = append(b, " ON DELETE "...)
 		b = append(b, s...)
 	}
 
-	if s := onUpdate(rel.FKs); s != "" {
+	if s := onUpdate(rel.BaseFKs); s != "" {
 		b = append(b, " ON UPDATE "...)
 		b = append(b, s...)
 	}

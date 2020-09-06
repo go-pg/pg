@@ -19,7 +19,7 @@ var _ TableModel = (*manyModel)(nil)
 func newManyModel(j *join) *manyModel {
 	baseTable := j.BaseModel.Table()
 	joinModel := j.JoinModel.(*sliceTableModel)
-	dstValues := dstValues(joinModel, j.Rel.FKValues)
+	dstValues := dstValues(joinModel, j.Rel.BaseFKs)
 	if len(dstValues) == 0 {
 		return nil
 	}
@@ -47,7 +47,7 @@ func (m *manyModel) NextColumnScanner() ColumnScanner {
 }
 
 func (m *manyModel) AddColumnScanner(model ColumnScanner) error {
-	m.buf = modelID(m.buf[:0], m.strct, m.rel.FKs)
+	m.buf = modelID(m.buf[:0], m.strct, m.rel.JoinFKs)
 	dstValues, ok := m.dstValues[string(m.buf)]
 	if !ok {
 		return fmt.Errorf(
