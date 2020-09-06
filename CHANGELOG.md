@@ -8,6 +8,7 @@
 
 - Docs at https://pg.uptrace.dev/ powered by [mkdocs](https://github.com/squidfunk/mkdocs-material).
 - [RealWorld example application](https://github.com/uptrace/go-realworld-example-app).
+- [Discord](https://discord.gg/SKUFEz).
 
 ### Features
 
@@ -22,6 +23,10 @@
 
 ### Changes
 
+- ORM relations require `rel` tag option. Supported options:
+  - `pg:"rel:has-one"` - has one relation.
+  - `pg:"rel:belongs-to"` - belongs to relation.
+  - `pg:"rel:has-many"` - has many relation.
 - Changed `pg.QueryHook` to return temp byte slice to reduce memory usage.
 - `,msgpack` struct tag marshals data in MessagePack format using
   https://github.com/vmihailenco/msgpack
