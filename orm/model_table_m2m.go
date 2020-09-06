@@ -76,7 +76,7 @@ func (m *m2mModel) AddColumnScanner(_ ColumnScanner) error {
 }
 
 func (m *m2mModel) modelIDMap(b []byte) ([]byte, error) {
-	for i, col := range m.rel.BaseFKs {
+	for i, col := range m.rel.M2MBaseFKs {
 		if i > 0 {
 			b = append(b, ',')
 		}

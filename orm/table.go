@@ -646,8 +646,8 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 			JoinTable:     joinTable,
 			M2MTableName:  quoteIdent(m2mTableName),
 			M2MTableAlias: m2mTableAlias,
-			BaseFKs:       fks,
-			JoinFKs:       joinFKs,
+			M2MBaseFKs:    fks,
+			M2MJoinFKs:    joinFKs,
 		})
 		return true
 	}
