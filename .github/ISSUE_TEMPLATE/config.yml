@@ -1,4 +1,8 @@
+blank_issues_enabled: false
 contact_links:
   - name: Discord
     url: https://discord.gg/SKUFEz
-    about: Ask a question about go-pg
+    about: Ask a question at Discord
+  - name: stackoverflow
+    url: https://stackoverflow.com/
+    about: Ask a question at stackoverflow
