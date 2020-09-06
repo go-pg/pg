@@ -1055,7 +1055,7 @@ type Genre struct {
 	Books []Book `pg:"many2many:book_genres"` // many to many relation
 
 	ParentId  int
-	Subgenres []Genre `pg:"fk:parent_id"`
+	Subgenres []Genre `pg:"rel:has-many,fk:parent_id"`
 }
 
 func (g Genre) String() string {
@@ -1070,10 +1070,10 @@ type Image struct {
 type Author struct {
 	ID    int     // both "Id" and "ID" are detected as primary key
 	Name  string  `pg:",unique"`
-	Books []*Book // has many relation
+	Books []*Book `pg:"rel:has-many"`
 
 	AvatarId int
-	Avatar   Image
+	Avatar   Image `pg:"rel:has-one"`
 }
 
 func (a Author) String() string {
@@ -1083,10 +1083,10 @@ func (a Author) String() string {
 type BookGenre struct {
 	tableName struct{} `pg:"alias:bg"` // custom table alias
 
-	BookId  int `pg:",pk"` // pk tag is used to mark field as primary key
-	Book    *Book
-	GenreId int `pg:",pk"`
-	Genre   *Genre
+	BookId  int    `pg:",pk"` // pk tag is used to mark field as primary key
+	Book    *Book  `pg:"rel:has-one"`
+	GenreId int    `pg:",pk"`
+	Genre   *Genre `pg:"rel:has-one"`
 
 	Genre_Rating int // belongs to and is copied to Genre model
 }
@@ -1095,15 +1095,15 @@ type Book struct {
 	Id        int
 	Title     string
 	AuthorID  int
-	Author    Author // has one relation
+	Author    Author `pg:"rel:has-one"`
 	EditorID  int
-	Editor    *Author   // has one relation
+	Editor    *Author   `pg:"rel:has-one"`
 	CreatedAt time.Time `pg:"default:now()"`
 	UpdatedAt time.Time
 
 	Genres       []Genre       `pg:"many2many:book_genres"` // many to many relation
-	Translations []Translation // has many relation
-	Comments     []Comment     `pg:"polymorphic:trackable_"` // has many polymorphic relation
+	Translations []Translation `pg:"rel:has-many"`
+	Comments     []Comment     `pg:"rel:has-many,polymorphic:trackable_"`
 }
 
 var _ orm.BeforeInsertHook = (*Book)(nil)
@@ -1133,10 +1133,10 @@ type Translation struct {
 
 	Id     int
 	BookId int    `pg:"unique:book_id_lang"`
-	Book   *Book  // has one relation
+	Book   *Book  `pg:"rel:has-one"`
 	Lang   string `pg:"unique:book_id_lang"`
 
-	Comments []Comment `pg:",polymorphic:trackable_"` // has many polymorphic relation
+	Comments []Comment `pg:"rel:has-many,polymorphic:trackable_"` // has many polymorphic relation
 }
 
 type Comment struct {

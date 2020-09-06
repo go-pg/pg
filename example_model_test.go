@@ -558,7 +558,7 @@ func ExampleDB_Model_hasOne() {
 		Id        int
 		Name      string
 		ProfileId int
-		Profile   *Profile
+		Profile   *Profile `pg:"rel:has-one"`
 	}
 
 	db := connect()
@@ -615,7 +615,7 @@ func ExampleDB_Model_belongsTo() {
 	type User struct {
 		Id      int
 		Name    string
-		Profile *Profile
+		Profile *Profile `pg:"rel:belongs-to"`
 	}
 
 	db := connect()
@@ -672,7 +672,7 @@ func ExampleDB_Model_hasMany() {
 	type User struct {
 		Id       int
 		Name     string
-		Profiles []*Profile
+		Profiles []*Profile `pg:"rel:has-many"`
 	}
 
 	db := connect()
@@ -715,7 +715,7 @@ func ExampleDB_Model_hasMany() {
 func ExampleDB_Model_hasManySelf() {
 	type Item struct {
 		Id       int
-		Items    []Item `pg:"fk:parent_id"`
+		Items    []Item `pg:"rel:has-many,fk:parent_id"`
 		ParentId int
 	}
 

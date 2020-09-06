@@ -21,7 +21,7 @@ type Story struct {
 	Id       int64
 	Title    string
 	AuthorId int64
-	Author   *User
+	Author   *User `pg:"rel:has-one"`
 }
 
 func (s Story) String() string {
