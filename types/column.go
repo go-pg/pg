@@ -3,6 +3,8 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/go-pg/pg/v10/internal/pool"
 )
 
 const (
@@ -34,11 +36,7 @@ const (
 	pgUUID = 2950
 )
 
-type ColumnInfo struct {
-	Index    int16
-	DataType int32
-	Name     string
-}
+type ColumnInfo = pool.ColumnInfo
 
 func ReadColumnValue(col ColumnInfo, rd Reader, n int) (interface{}, error) {
 	switch col.DataType {

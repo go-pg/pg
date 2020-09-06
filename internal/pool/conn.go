@@ -16,7 +16,7 @@ var noDeadline = time.Time{}
 
 type Conn struct {
 	netConn net.Conn
-	rd      *BufReader
+	rd      *ReaderContext
 
 	ProcessID int32
 	SecretKey int32
@@ -61,7 +61,7 @@ func (cn *Conn) LockReader() {
 	if cn.rd != nil {
 		panic("not reached")
 	}
-	cn.rd = NewBufReader(defaultBufSize)
+	cn.rd = NewReaderContext()
 	cn.rd.Reset(cn.netConn)
 }
 
@@ -75,7 +75,7 @@ func (cn *Conn) NextID() string {
 }
 
 func (cn *Conn) WithReader(
-	ctx context.Context, timeout time.Duration, fn func(rd *BufReader) error,
+	ctx context.Context, timeout time.Duration, fn func(rd *ReaderContext) error,
 ) error {
 	return internal.WithSpan(ctx, "with_reader", func(ctx context.Context, span trace.Span) error {
 		if err := cn.netConn.SetReadDeadline(cn.deadline(ctx, timeout)); err != nil {
@@ -85,8 +85,8 @@ func (cn *Conn) WithReader(
 
 		rd := cn.rd
 		if rd == nil {
-			rd = GetBufReader()
-			defer PutBufReader(rd)
+			rd = GetReaderContext()
+			defer PutReaderContext(rd)
 
 			rd.Reset(cn.netConn)
 		}

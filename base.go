@@ -443,7 +443,7 @@ func (db *baseDB) copyFrom(
 		return nil, err
 	}
 
-	err = cn.WithReader(ctx, db.opt.ReadTimeout, func(rd *pool.BufReader) error {
+	err = cn.WithReader(ctx, db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
 		res, err = readReadyForQuery(rd)
 		return err
 	})
@@ -500,7 +500,7 @@ func (db *baseDB) copyTo(
 		return nil, err
 	}
 
-	err = cn.WithReader(ctx, db.opt.ReadTimeout, func(rd *pool.BufReader) error {
+	err = cn.WithReader(ctx, db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
 		err := readCopyOutResponse(rd)
 		if err != nil {
 			return err
@@ -561,7 +561,7 @@ func (db *baseDB) simpleQuery(
 	}
 
 	var res *result
-	if err := cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.BufReader) error {
+	if err := cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
 		var err error
 		res, err = readSimpleQuery(rd)
 		return err
@@ -580,7 +580,7 @@ func (db *baseDB) simpleQueryData(
 	}
 
 	var res *result
-	if err := cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.BufReader) error {
+	if err := cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
 		var err error
 		res, err = readSimpleQueryData(c, rd, model)
 		return err
@@ -611,7 +611,7 @@ func (db *baseDB) prepare(
 	}
 
 	var columns []types.ColumnInfo
-	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.BufReader) error {
+	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
 		columns, err = readParseDescribeSync(rd)
 		return err
 	})

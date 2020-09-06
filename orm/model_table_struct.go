@@ -275,13 +275,14 @@ func (m *structTableModel) scanColumn(col types.ColumnInfo, rd types.Reader, n i
 
 	joinName, fieldName := splitColumn(col.Name)
 	if joinName != "" {
-		joinCol := col
-		joinCol.Name = fieldName
-
 		if join := m.GetJoin(joinName); join != nil {
+			joinCol := col
+			joinCol.Name = fieldName
 			return join.JoinModel.scanColumn(joinCol, rd, n)
 		}
 		if m.table.ModelName == joinName {
+			joinCol := col
+			joinCol.Name = fieldName
 			return m.scanColumn(joinCol, rd, n)
 		}
 	}

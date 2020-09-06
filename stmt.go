@@ -237,7 +237,7 @@ func (stmt *Stmt) extQuery(
 	}
 
 	var res Result
-	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *pool.BufReader) error {
+	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
 		res, err = readExtQuery(rd)
 		return err
 	})
@@ -264,7 +264,7 @@ func (stmt *Stmt) extQueryData(
 	}
 
 	var res *result
-	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *pool.BufReader) error {
+	err = cn.WithReader(c, stmt.db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
 		res, err = readExtQueryData(c, rd, model, columns)
 		return err
 	})
