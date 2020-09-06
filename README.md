@@ -10,7 +10,8 @@
 - [Reference](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
 - [Examples](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#pkg-examples)
 - [RealWorld example app](https://github.com/uptrace/go-realworld-example-app)
-- Use [Discord](https://discord.gg/SKUFEz) or Stack Overflow to ask questions.
+- Use [Discord](https://discord.gg/SKUFEz) or [stackoverflow](https://stackoverflow.com/) to ask
+  questions.
 
 ## Ecosystem
 
