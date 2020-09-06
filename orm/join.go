@@ -255,32 +255,17 @@ func (j *join) appendHasOneJoin(fmter QueryFormatter, b []byte, q *Query) (_ []b
 	if len(j.Rel.BaseFKs) > 1 {
 		b = append(b, '(')
 	}
-	if j.Rel.Type == HasOneRelation {
-		for i, baseFK := range j.Rel.BaseFKs {
-			if i > 0 {
-				b = append(b, " AND "...)
-			}
-			b = j.appendAlias(b)
-			b = append(b, '.')
-			b = append(b, j.Rel.JoinFKs[i].Column...)
-			b = append(b, " = "...)
-			b = j.appendBaseAlias(b)
-			b = append(b, '.')
-			b = append(b, baseFK.Column...)
+	for i, baseFK := range j.Rel.BaseFKs {
+		if i > 0 {
+			b = append(b, " AND "...)
 		}
-	} else {
-		for i, baseFK := range j.Rel.BaseFKs {
-			if i > 0 {
-				b = append(b, " AND "...)
-			}
-			b = j.appendAlias(b)
-			b = append(b, '.')
-			b = append(b, j.Rel.JoinFKs[i].Column...)
-			b = append(b, " = "...)
-			b = j.appendBaseAlias(b)
-			b = append(b, '.')
-			b = append(b, baseFK.Column...)
-		}
+		b = j.appendAlias(b)
+		b = append(b, '.')
+		b = append(b, j.Rel.JoinFKs[i].Column...)
+		b = append(b, " = "...)
+		b = j.appendBaseAlias(b)
+		b = append(b, '.')
+		b = append(b, baseFK.Column...)
 	}
 	if len(j.Rel.BaseFKs) > 1 {
 		b = append(b, ')')
