@@ -55,12 +55,20 @@ func (m *manyModel) AddColumnScanner(model ColumnScanner) error {
 			m.rel.Field.GoName, m.baseTable.TypeName, m.buf)
 	}
 
-	for _, v := range dstValues {
-		if m.sliceOfPtr {
-			v.Set(reflect.Append(v, m.strct.Addr()))
-		} else {
+	for i, v := range dstValues {
+		if !m.sliceOfPtr {
 			v.Set(reflect.Append(v, m.strct))
+			continue
 		}
+
+		if i == 0 {
+			v.Set(reflect.Append(v, m.strct.Addr()))
+			continue
+		}
+
+		clone := reflect.New(m.strct.Type()).Elem()
+		clone.Set(m.strct)
+		v.Set(reflect.Append(v, clone.Addr()))
 	}
 
 	return nil
