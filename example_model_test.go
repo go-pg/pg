@@ -715,7 +715,7 @@ func ExampleDB_Model_hasMany() {
 func ExampleDB_Model_hasManySelf() {
 	type Item struct {
 		Id       int
-		Items    []Item `pg:"rel:has-many,fk:parent_id"`
+		Items    []Item `pg:"rel:has-many,join_fk:parent_id"`
 		ParentId int
 	}
 

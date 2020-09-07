@@ -23,10 +23,12 @@
 
 ### Changes
 
-- ORM relations require `rel` tag option. Supported options:
+- ORM relations are reworked and now require `rel` tag option (but existing code will continue
+  working until v11). Supported options:
   - `pg:"rel:has-one"` - has one relation.
   - `pg:"rel:belongs-to"` - belongs to relation.
   - `pg:"rel:has-many"` - has many relation.
+  - `pg:"many2many:book_genres"` - many to many relation.
 - Changed `pg.QueryHook` to return temp byte slice to reduce memory usage.
 - `,msgpack` struct tag marshals data in MessagePack format using
   https://github.com/vmihailenco/msgpack

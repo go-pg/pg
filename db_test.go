@@ -21,6 +21,10 @@ import (
 	"github.com/go-pg/pg/v10/orm"
 )
 
+func init() {
+	orm.RegisterTable((*BookGenre)(nil))
+}
+
 func TestGinkgo(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "pg")
@@ -1052,10 +1056,10 @@ type Genre struct {
 	Name   string
 	Rating int `pg:"-"` // - is used to ignore field
 
-	Books []Book `pg:"many2many:book_genres"` // many to many relation
+	Books []Book `pg:"many2many:book_genres"`
 
 	ParentId  int
-	Subgenres []Genre `pg:"rel:has-many,fk:parent_id"`
+	Subgenres []Genre `pg:"rel:has-many,join_fk:parent_id"`
 }
 
 func (g Genre) String() string {
@@ -1103,7 +1107,7 @@ type Book struct {
 
 	Genres       []Genre       `pg:"many2many:book_genres"` // many to many relation
 	Translations []Translation `pg:"rel:has-many"`
-	Comments     []Comment     `pg:"rel:has-many,polymorphic:trackable_"`
+	Comments     []Comment     `pg:"rel:has-many,join_fk:trackable_,polymorphic"`
 }
 
 var _ orm.BeforeInsertHook = (*Book)(nil)
@@ -1136,7 +1140,7 @@ type Translation struct {
 	Book   *Book  `pg:"rel:has-one"`
 	Lang   string `pg:"unique:book_id_lang"`
 
-	Comments []Comment `pg:"rel:has-many,polymorphic:trackable_"` // has many polymorphic relation
+	Comments []Comment `pg:"rel:has-many,join_fk:trackable_,polymorphic"`
 }
 
 type Comment struct {
