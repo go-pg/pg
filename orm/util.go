@@ -115,13 +115,14 @@ func visitField(v reflect.Value, index []int, fn func(reflect.Value)) {
 }
 
 func dstValues(model TableModel, fields []*Field) map[string][]reflect.Value {
-	mp := make(map[string][]reflect.Value)
+	fieldIndex := model.Relation().Field.Index
+	m := make(map[string][]reflect.Value)
 	var id []byte
 	walk(model.Root(), model.ParentIndex(), func(v reflect.Value) {
 		id = modelID(id[:0], v, fields)
-		mp[string(id)] = append(mp[string(id)], v.FieldByIndex(model.Relation().Field.Index))
+		m[string(id)] = append(m[string(id)], v.FieldByIndex(fieldIndex))
 	})
-	return mp
+	return m
 }
 
 func modelID(b []byte, v reflect.Value, fields []*Field) []byte {
