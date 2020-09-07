@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
-	"github.com/go-pg/pg/v10/types"
 )
 
 func modelDB() *pg.DB {
@@ -170,7 +169,7 @@ func ExampleDB_Insert_onConflictDoNothing() {
 	// did nothing
 }
 
-func ExampleDB_Insert_onConflictDoUpdate() {
+func ExampleDB_Model_insertOnConflictDoUpdate() {
 	db := modelDB()
 
 	var book *Book
@@ -203,7 +202,7 @@ func ExampleDB_Insert_onConflictDoUpdate() {
 	// Book<Id=100 Title="title version #1">
 }
 
-func ExampleDB_Insert_selectOrInsert() {
+func ExampleDB_Model_selectOrInsert() {
 	db := modelDB()
 
 	author := Author{
@@ -222,7 +221,7 @@ func ExampleDB_Insert_selectOrInsert() {
 	// Output: true Author<ID=2 Name="R. Scott Bakker">
 }
 
-func ExampleDB_Insert_dynamicTableName() {
+func ExampleDB_insertDynamicTableName() {
 	type NamelessModel struct {
 		tableName struct{} `pg:"_"` // "_" means no name
 		Id        int
@@ -250,7 +249,7 @@ func ExampleDB_Insert_dynamicTableName() {
 	// Output: id is 123
 }
 
-func ExampleDB_Select() {
+func ExampleDB_Model_select() {
 	db := modelDB()
 
 	book := &Book{
@@ -264,7 +263,7 @@ func ExampleDB_Select() {
 	// Output: Book<Id=1 Title="book 1">
 }
 
-func ExampleDB_Select_firstRow() {
+func ExampleDB_Model_selectFirstRow() {
 	db := modelDB()
 
 	var firstBook Book
@@ -276,7 +275,7 @@ func ExampleDB_Select_firstRow() {
 	// Output: Book<Id=1 Title="book 1">
 }
 
-func ExampleDB_Select_lastRow() {
+func ExampleDB_Model_selectLastRow() {
 	db := modelDB()
 
 	var lastBook Book
@@ -288,7 +287,7 @@ func ExampleDB_Select_lastRow() {
 	// Output: Book<Id=3 Title="book 3">
 }
 
-func ExampleDB_Select_allColumns() {
+func ExampleDB_Model_selectAllColumns() {
 	db := modelDB()
 
 	var book Book
@@ -300,7 +299,7 @@ func ExampleDB_Select_allColumns() {
 	// Output: Book<Id=1 Title="book 1"> 1
 }
 
-func ExampleDB_Select_someColumns() {
+func ExampleDB_Model_selectSomeColumns() {
 	db := modelDB()
 
 	var book Book
@@ -317,7 +316,7 @@ func ExampleDB_Select_someColumns() {
 	// Output: Book<Id=1 Title="book 1">
 }
 
-func ExampleDB_Select_someColumnsIntoVars() {
+func ExampleDB_Model_selectSomeColumnsIntoVars() {
 	db := modelDB()
 
 	var id int
@@ -335,7 +334,7 @@ func ExampleDB_Select_someColumnsIntoVars() {
 	// Output: 1 book 1
 }
 
-func ExampleDB_Select_whereIn() {
+func ExampleDB_Model_selectWhereIn() {
 	db := modelDB()
 
 	var books []Book
@@ -347,7 +346,7 @@ func ExampleDB_Select_whereIn() {
 	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
 }
 
-func ExampleDB_Select_whereGroup() {
+func ExampleDB_Model_selectWhereGroup() {
 	db := modelDB()
 
 	var books []Book
@@ -366,7 +365,7 @@ func ExampleDB_Select_whereGroup() {
 	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
 }
 
-func ExampleDB_Select_sqlExpression() {
+func ExampleDB_Model_selectSQLExpression() {
 	db := modelDB()
 
 	var ids []int
@@ -380,7 +379,7 @@ func ExampleDB_Select_sqlExpression() {
 	// Output: [1 2 3]
 }
 
-func ExampleDB_Select_groupBy() {
+func ExampleDB_Model_selectGroupBy() {
 	db := modelDB()
 
 	var res []struct {
@@ -405,7 +404,7 @@ func ExampleDB_Select_groupBy() {
 	// author 11 has 1 books
 }
 
-func ExampleDB_Select_with() {
+func ExampleDB_Model_selectWith() {
 	authorBooks := pgdb.Model(&Book{}).Where("author_id = ?", 1)
 
 	var books []Book
@@ -420,7 +419,7 @@ func ExampleDB_Select_with() {
 	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
 }
 
-func ExampleDB_Select_wrapWith() {
+func ExampleDB_Model_selectWrapWith() {
 	// WITH author_books AS (
 	//     SELECT * books WHERE author_id = 1
 	// )
@@ -438,7 +437,7 @@ func ExampleDB_Select_wrapWith() {
 	// Output: [Book<Id=1 Title="book 1"> Book<Id=2 Title="book 2">]
 }
 
-func ExampleDB_Select_applyFunc() {
+func ExampleDB_Model_selectApplyFunc() {
 	db := modelDB()
 
 	var authorId int
@@ -774,7 +773,7 @@ func ExampleDB_Update() {
 	// Output: Book<Id=1 Title="updated book 1">
 }
 
-func ExampleDB_Update_notZero() {
+func ExampleDB_Model_updateNotZero() {
 	db := modelDB()
 
 	book := &Book{
@@ -796,7 +795,7 @@ func ExampleDB_Update_notZero() {
 	// Output: Book<Id=1 Title="updated book 1">
 }
 
-func ExampleDB_Update_useZeroBool() {
+func ExampleDB_Model_updateUseZeroBool() {
 	type Event struct {
 		ID     int
 		Active bool `pg:",use_zero"`
@@ -840,7 +839,7 @@ func ExampleDB_Update_useZeroBool() {
 	// &{1 false}
 }
 
-func ExampleDB_Update_someColumns() {
+func ExampleDB_Model_updateSomeColumns() {
 	db := modelDB()
 
 	book := Book{
@@ -857,7 +856,7 @@ func ExampleDB_Update_someColumns() {
 	// Output: Book<Id=1 Title="updated book 1"> 1
 }
 
-func ExampleDB_Update_someColumns2() {
+func ExampleDB_Model_updateSomeColumns2() {
 	db := modelDB()
 
 	book := Book{
@@ -874,7 +873,7 @@ func ExampleDB_Update_someColumns2() {
 	// Output: Book<Id=1 Title="updated book 1"> 1
 }
 
-func ExampleDB_Update_setValues() {
+func ExampleDB_Model_updateSetValues() {
 	db := modelDB()
 
 	var book Book
@@ -891,7 +890,7 @@ func ExampleDB_Update_setValues() {
 	// Output: Book<Id=1 Title="prefix book 1 suffix">
 }
 
-func ExampleDB_Update_bulkUpdate() {
+func ExampleDB_Model_bulkUpdate() {
 	db := modelDB()
 
 	book1 := &Book{
@@ -924,7 +923,7 @@ func ExampleDB_Update_bulkUpdate() {
 	// Output: [Book<Id=1 Title="updated book 1"> Book<Id=2 Title="updated book 2"> Book<Id=3 Title="book 3">]
 }
 
-func ExampleDB_Update_bulkUpdateSlice() {
+func ExampleDB_Model_bulkUpdateSlice() {
 	db := modelDB()
 
 	books := []Book{{
@@ -956,7 +955,7 @@ func ExampleDB_Update_bulkUpdateSlice() {
 	// Output: [Book<Id=1 Title="updated book 1"> Book<Id=2 Title="updated book 2"> Book<Id=3 Title="book 3">]
 }
 
-func ExampleDB_Delete() {
+func ExampleDB_Model_delete() {
 	db := modelDB()
 
 	book := &Book{
@@ -978,7 +977,7 @@ func ExampleDB_Delete() {
 	// Output: pg: no rows in result set
 }
 
-func ExampleDB_Delete_multipleRows() {
+func ExampleDB_Model_deleteMultipleRows() {
 	db := modelDB()
 
 	ids := pg.In([]int{1, 2, 3})
@@ -998,7 +997,7 @@ func ExampleDB_Delete_multipleRows() {
 	// left 0
 }
 
-func ExampleDB_Delete_bulkDelete() {
+func ExampleDB_Model_bulkDelete() {
 	db := modelDB()
 
 	var books []Book
@@ -1023,13 +1022,13 @@ func ExampleDB_Delete_bulkDelete() {
 	// left 0
 }
 
-func ExampleQ() {
+func ExampleSafe() {
 	db := modelDB()
 
 	cond := fmt.Sprintf("id = %d", 1)
 
 	var book Book
-	err := db.Model(&book).Where("?", types.Safe(cond)).Select()
+	err := db.Model(&book).Where("?", pg.Safe(cond)).Select()
 	if err != nil {
 		panic(err)
 	}
@@ -1037,11 +1036,11 @@ func ExampleQ() {
 	// Output: Book<Id=1 Title="book 1">
 }
 
-func ExampleF() {
+func ExampleIdent() {
 	db := modelDB()
 
 	var book Book
-	err := db.Model(&book).Where("? = 1", types.Ident("id")).Select()
+	err := db.Model(&book).Where("? = 1", pg.Ident("id")).Select()
 	if err != nil {
 		panic(err)
 	}
@@ -1102,6 +1101,6 @@ func ExampleDB_discardUnknownColumns() {
 	_, err = pgdb.QueryOne(&model2, "SELECT 1 AS id")
 	fmt.Printf("Model2: %v\n", err)
 
-	// Output: Model1: pg: can't find column=id in model=Model1 (try discard_unknown_columns)
+	// Output: Model1: pg: can't find column=id in model=Model1 (prefix the column with underscore or use discard_unknown_columns)
 	// Model2: <nil>
 }

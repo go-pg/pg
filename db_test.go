@@ -1035,7 +1035,7 @@ var _ = Describe("errors", func() {
 
 		var test Test
 		_, err := db.QueryOne(&test, "SELECT 1 AS col1, 2 AS col2")
-		Expect(err).To(MatchError("pg: can't find column=col2 in model=Test (try discard_unknown_columns)"))
+		Expect(err).To(MatchError("pg: can't find column=col2 in model=Test (prefix the column with underscore or use discard_unknown_columns)"))
 		Expect(test.Col1).To(Equal(1))
 	})
 

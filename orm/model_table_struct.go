@@ -256,8 +256,11 @@ func (m *structTableModel) ScanColumn(
 	if m.table.hasFlag(discardUnknownColumnsFlag) || col.Name[0] == '_' {
 		return nil
 	}
-	return fmt.Errorf("pg: can't find column=%s in %s (try discard_unknown_columns)",
-		col.Name, m.table)
+	return fmt.Errorf(
+		"pg: can't find column=%s in %s "+
+			"(prefix the column with underscore or use discard_unknown_columns)",
+		col.Name, m.table,
+	)
 }
 
 func (m *structTableModel) scanColumn(col types.ColumnInfo, rd types.Reader, n int) (bool, error) {
