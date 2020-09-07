@@ -502,7 +502,7 @@ func _seedDB() error {
 
 	for i := 1; i < 100; i++ {
 		genre := &Genre{
-			Id:   i,
+			ID:   i,
 			Name: fmt.Sprintf("genre %d", i),
 		}
 		_, err = db.Model(genre).Insert()
@@ -522,7 +522,7 @@ func _seedDB() error {
 
 	for i := 1; i <= 1000; i++ {
 		book := &Book{
-			Id:        i,
+			ID:        i,
 			Title:     fmt.Sprintf("book %d", i),
 			AuthorID:  rand.Intn(99) + 1,
 			CreatedAt: time.Now(),
@@ -534,8 +534,8 @@ func _seedDB() error {
 
 		for j := 1; j <= 10; j++ {
 			bookGenre := &BookGenre{
-				BookId:  i,
-				GenreId: j,
+				BookID:  i,
+				GenreID: j,
 			}
 			_, err = db.Model(bookGenre).Insert()
 			if err != nil {
@@ -543,7 +543,7 @@ func _seedDB() error {
 			}
 
 			translation := &Translation{
-				BookId: i,
+				BookID: i,
 				Lang:   fmt.Sprintf("%d", j),
 			}
 			_, err = db.Model(translation).Insert()

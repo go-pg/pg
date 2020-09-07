@@ -56,8 +56,8 @@ func modelDB() *pg.DB {
 		}
 
 		_, err = db.Model(&BookGenre{
-			BookId:  1,
-			GenreId: genre.Id,
+			BookID:  1,
+			GenreID: genre.ID,
 		}).Insert()
 		if err != nil {
 			panic(err)
@@ -145,7 +145,7 @@ func ExampleDB_Insert_onConflictDoNothing() {
 	db := modelDB()
 
 	book := &Book{
-		Id:    100,
+		ID:    100,
 		Title: "book 100",
 	}
 
@@ -176,7 +176,7 @@ func ExampleDB_Insert_onConflictDoUpdate() {
 	var book *Book
 	for i := 0; i < 2; i++ {
 		book = &Book{
-			Id:    100,
+			ID:    100,
 			Title: fmt.Sprintf("title version #%d", i),
 		}
 		_, err := db.Model(book).
@@ -254,7 +254,7 @@ func ExampleDB_Select() {
 	db := modelDB()
 
 	book := &Book{
-		Id: 1,
+		ID: 1,
 	}
 	err := db.Model(book).WherePK().Select()
 	if err != nil {
@@ -753,7 +753,7 @@ func ExampleDB_Model_hasManySelf() {
 func ExampleDB_Update() {
 	db := modelDB()
 
-	book := &Book{Id: 1}
+	book := &Book{ID: 1}
 	err := db.Model(book).WherePK().Select()
 	if err != nil {
 		panic(err)
@@ -778,7 +778,7 @@ func ExampleDB_Update_notZero() {
 	db := modelDB()
 
 	book := &Book{
-		Id:    1,
+		ID:    1,
 		Title: "updated book 1",
 	}
 	_, err := db.Model(book).WherePK().UpdateNotZero()
@@ -798,7 +798,7 @@ func ExampleDB_Update_notZero() {
 
 func ExampleDB_Update_useZeroBool() {
 	type Event struct {
-		Id     int
+		ID     int
 		Active bool `pg:",use_zero"`
 	}
 
@@ -813,7 +813,7 @@ func ExampleDB_Update_useZeroBool() {
 	}
 
 	event := &Event{
-		Id:     1,
+		ID:     1,
 		Active: true,
 	}
 	_, err = db.Model(event).Insert()
@@ -844,7 +844,7 @@ func ExampleDB_Update_someColumns() {
 	db := modelDB()
 
 	book := Book{
-		Id:       1,
+		ID:       1,
 		Title:    "updated book 1", // only this column is going to be updated
 		AuthorID: 2,
 	}
@@ -861,7 +861,7 @@ func ExampleDB_Update_someColumns2() {
 	db := modelDB()
 
 	book := Book{
-		Id:       1,
+		ID:       1,
 		Title:    "updated book 1",
 		AuthorID: 2, // this column will not be updated
 	}
@@ -895,12 +895,12 @@ func ExampleDB_Update_bulkUpdate() {
 	db := modelDB()
 
 	book1 := &Book{
-		Id:        1,
+		ID:        1,
 		Title:     "updated book 1",
 		UpdatedAt: time.Now(),
 	}
 	book2 := &Book{
-		Id:        2,
+		ID:        2,
 		Title:     "updated book 2",
 		UpdatedAt: time.Now(),
 	}
@@ -928,11 +928,11 @@ func ExampleDB_Update_bulkUpdateSlice() {
 	db := modelDB()
 
 	books := []Book{{
-		Id:        1,
+		ID:        1,
 		Title:     "updated book 1",
 		UpdatedAt: time.Now(),
 	}, {
-		Id:        2,
+		ID:        2,
 		Title:     "updated book 2",
 		UpdatedAt: time.Now(),
 	}}
