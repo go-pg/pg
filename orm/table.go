@@ -301,6 +301,13 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 			return nil
 		}
 
+		if isKnownTableOption(pgTag.Name) {
+			internal.Warn.Printf(
+				"%s.%s tag name %q is also an option name; is it a mistake?",
+				t.TypeName, f.Name, pgTag.Name,
+			)
+		}
+
 		for name := range pgTag.Options {
 			if !isKnownTableOption(name) {
 				internal.Warn.Printf("%s.%s has unknown tag option: %q", t.TypeName, f.Name, name)
@@ -351,6 +358,13 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 	if f.PkgPath != "" {
 		return nil
+	}
+
+	if isKnownFieldOption(pgTag.Name) {
+		internal.Warn.Printf(
+			"%s.%s tag name %q is also an option name; is it a mistake?",
+			t.TypeName, f.Name, pgTag.Name,
+		)
 	}
 
 	for name := range pgTag.Options {
