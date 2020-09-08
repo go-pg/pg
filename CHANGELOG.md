@@ -8,7 +8,7 @@
 
 - Docs at https://pg.uptrace.dev/ powered by [mkdocs](https://github.com/squidfunk/mkdocs-material).
 - [RealWorld example application](https://github.com/uptrace/go-realworld-example-app).
-- [Discord](https://discord.gg/SKUFEz).
+- [Discord](https://discord.gg/rWtp5Aj).
 
 ### Features
 

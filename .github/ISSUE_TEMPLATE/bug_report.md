@@ -7,7 +7,7 @@ assignees: ''
 ---
 
 Issue tracker is used for reporting bugs and discussing new features. Please use
-[Discord](https://discord.gg/SKUFEz) or [stackoverflow](https://stackoverflow.com) for supporting
+[Discord](https://discord.gg/rWtp5Aj) or [stackoverflow](https://stackoverflow.com) for supporting
 issues.
 
 <!--- Provide a general summary of the issue in the Title above -->
