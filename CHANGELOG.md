@@ -12,8 +12,8 @@
 
 ### Features
 
-- `Select`, `Insert`, and `Update` support `Model(*map[string]interface{})`. `Select` also supports
-  `Model(*[]map[string]interface{})`.
+- `Select`, `Insert`, and `Update` support `map[string]interface{}`. `Select` also supports
+  `[]map[string]interface{}`.
 
 ```go
 var mm []map[string]interface{}
