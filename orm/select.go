@@ -265,7 +265,7 @@ func (q *SelectQuery) appendTables(fmter QueryFormatter, b []byte) (_ []byte, er
 
 	if q.q.modelHasTableName() {
 		table := q.q.tableModel.Table()
-		b = fmter.FormatQuery(b, string(table.FullNameForSelects))
+		b = fmter.FormatQuery(b, string(table.SQLNameForSelects))
 		if table.Alias != "" {
 			b = append(b, " AS "...)
 			b = append(b, table.Alias...)

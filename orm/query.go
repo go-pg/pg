@@ -1316,7 +1316,7 @@ func (q *Query) hasExplicitTableModel() bool {
 }
 
 func (q *Query) modelHasTableName() bool {
-	return q.hasExplicitTableModel() && q.tableModel.Table().FullName != ""
+	return q.hasExplicitTableModel() && q.tableModel.Table().SQLName != ""
 }
 
 func (q *Query) modelHasTableAlias() bool {
@@ -1329,7 +1329,7 @@ func (q *Query) hasTables() bool {
 
 func (q *Query) appendFirstTable(fmter QueryFormatter, b []byte) ([]byte, error) {
 	if q.modelHasTableName() {
-		return fmter.FormatQuery(b, string(q.tableModel.Table().FullName)), nil
+		return fmter.FormatQuery(b, string(q.tableModel.Table().SQLName)), nil
 	}
 	if len(q.tables) > 0 {
 		return q.tables[0].AppendQuery(fmter, b)
@@ -1340,8 +1340,8 @@ func (q *Query) appendFirstTable(fmter QueryFormatter, b []byte) ([]byte, error)
 func (q *Query) appendFirstTableWithAlias(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	if q.modelHasTableName() {
 		table := q.tableModel.Table()
-		b = fmter.FormatQuery(b, string(table.FullName))
-		if table.Alias != table.FullName {
+		b = fmter.FormatQuery(b, string(table.SQLName))
+		if table.Alias != table.SQLName {
 			b = append(b, " AS "...)
 			b = append(b, table.Alias...)
 		}
@@ -1355,7 +1355,7 @@ func (q *Query) appendFirstTableWithAlias(fmter QueryFormatter, b []byte) (_ []b
 		}
 		if q.modelHasTableAlias() {
 			table := q.tableModel.Table()
-			if table.Alias != table.FullName {
+			if table.Alias != table.SQLName {
 				b = append(b, " AS "...)
 				b = append(b, table.Alias...)
 			}

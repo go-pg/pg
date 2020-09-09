@@ -64,9 +64,8 @@ type Table struct {
 	Alias     types.Safe
 	ModelName string
 
-	Name               string
-	FullName           types.Safe
-	FullNameForSelects types.Safe
+	SQLName           types.Safe
+	SQLNameForSelects types.Safe
 
 	Tablespace types.Safe
 
@@ -97,8 +96,8 @@ func newTable(typ reflect.Type) *Table {
 	t.zeroStruct = reflect.New(t.Type).Elem()
 	t.TypeName = internal.ToExported(t.Type.Name())
 	t.ModelName = internal.Underscore(t.Type.Name())
-	t.Name = tableNameInflector(t.ModelName)
-	t.setName(quoteIdent(t.Name))
+	tableName := tableNameInflector(t.ModelName)
+	t.setName(quoteIdent(tableName))
 	t.Alias = quoteIdent(t.ModelName)
 
 	typ = reflect.PtrTo(t.Type)
@@ -145,8 +144,8 @@ func (t *Table) init2() {
 }
 
 func (t *Table) setName(name types.Safe) {
-	t.FullName = name
-	t.FullNameForSelects = name
+	t.SQLName = name
+	t.SQLNameForSelects = name
 	if t.Alias == "" {
 		t.Alias = name
 	}
@@ -275,8 +274,8 @@ func (t *Table) addFields(typ reflect.Type, baseIndex []int) {
 			if _, inherit := pgTag.Options["inherit"]; inherit {
 				embeddedTable := _tables.get(fieldType, true)
 				t.TypeName = embeddedTable.TypeName
-				t.FullName = embeddedTable.FullName
-				t.FullNameForSelects = embeddedTable.FullNameForSelects
+				t.SQLName = embeddedTable.SQLName
+				t.SQLNameForSelects = embeddedTable.SQLNameForSelects
 				t.Alias = embeddedTable.Alias
 				t.ModelName = embeddedTable.ModelName
 			}
@@ -340,7 +339,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 
 		if s, ok := pgTag.Options["select"]; ok {
 			s, _ = tagparser.Unquote(s)
-			t.FullNameForSelects = types.Safe(quoteTableName(s))
+			t.SQLNameForSelects = types.Safe(quoteTableName(s))
 		}
 
 		if v, ok := pgTag.Options["alias"]; ok {
@@ -804,10 +803,11 @@ func (t *Table) mustM2MRelation(field *Field, pgTag *tagparser.Tag) bool {
 		panic(err)
 	}
 
-	m2mTableName, ok := pgTag.Options["many2many"]
+	m2mTableNameString, ok := pgTag.Options["many2many"]
 	if !ok {
 		panic(fmt.Errorf("pg: %s must have many2many tag option", field.GoName))
 	}
+	m2mTableName := quoteIdent(m2mTableNameString)
 
 	m2mTable := _tables.getByName(m2mTableName)
 	if m2mTable == nil {
@@ -884,7 +884,7 @@ func (t *Table) mustM2MRelation(field *Field, pgTag *tagparser.Tag) bool {
 		Type:          Many2ManyRelation,
 		Field:         field,
 		JoinTable:     joinTable,
-		M2MTableName:  quoteIdent(m2mTableName),
+		M2MTableName:  m2mTableName,
 		M2MTableAlias: m2mTable.Alias,
 		M2MBaseFKs:    baseFKs,
 		M2MJoinFKs:    joinFKs,
@@ -929,7 +929,7 @@ func (t *Table) tryM2MRelation(field *Field) bool {
 		return false
 	}
 
-	m2mTable := _tables.getByName(m2mTableName)
+	m2mTable := _tables.getByName(quoteIdent(m2mTableName))
 
 	var m2mTableAlias types.Safe
 	if m2mTable != nil {

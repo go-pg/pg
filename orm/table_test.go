@@ -241,8 +241,8 @@ var _ = Describe("anonymous struct", func() {
 		}
 
 		table := orm.GetTable(reflect.TypeOf(model))
-		Expect(table.FullName).To(Equal(types.Safe(`"some_name"`)))
-		Expect(table.FullNameForSelects).To(Equal(types.Safe(`"some_name"`)))
+		Expect(table.SQLName).To(Equal(types.Safe(`"some_name"`)))
+		Expect(table.SQLNameForSelects).To(Equal(types.Safe(`"some_name"`)))
 		Expect(table.Alias).To(Equal(types.Safe(`"some_name"`)))
 	})
 })
@@ -271,7 +271,7 @@ type Nameless struct {
 var _ = Describe("_ as table name", func() {
 	It("sets empty table name", func() {
 		table := orm.GetTable(reflect.TypeOf(Nameless{}))
-		Expect(table.FullName).To(Equal(types.Safe("")))
-		Expect(table.FullNameForSelects).To(Equal(types.Safe("")))
+		Expect(table.SQLName).To(Equal(types.Safe("")))
+		Expect(table.SQLNameForSelects).To(Equal(types.Safe("")))
 	})
 })

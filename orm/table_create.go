@@ -201,7 +201,7 @@ func (q *CreateTableQuery) appendFKConstraint(fmter QueryFormatter, b []byte, re
 	b = append(b, ")"...)
 
 	b = append(b, " REFERENCES "...)
-	b = fmter.FormatQuery(b, string(rel.JoinTable.FullName))
+	b = fmter.FormatQuery(b, string(rel.JoinTable.SQLName))
 	b = append(b, " ("...)
 	b = appendColumns(b, "", rel.JoinFKs)
 	b = append(b, ")"...)

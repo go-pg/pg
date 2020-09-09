@@ -242,7 +242,7 @@ func (j *join) appendHasOneJoin(fmter QueryFormatter, b []byte, q *Query) (_ []b
 	isSoftDelete := j.JoinModel.Table().SoftDeleteField != nil && !q.hasFlag(allWithDeletedFlag)
 
 	b = append(b, "LEFT JOIN "...)
-	b = fmter.FormatQuery(b, string(j.JoinModel.Table().FullNameForSelects))
+	b = fmter.FormatQuery(b, string(j.JoinModel.Table().SQLNameForSelects))
 	b = append(b, " AS "...)
 	b = j.appendAlias(b)
 

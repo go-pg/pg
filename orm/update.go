@@ -277,7 +277,7 @@ func (q *UpdateQuery) appendSetSlice(b []byte) ([]byte, error) {
 		b = append(b, f.Column...)
 		if q.omitZero && table != nil {
 			b = append(b, ", "...)
-			if table.Alias != table.FullName {
+			if table.Alias != table.SQLName {
 				b = append(b, table.Alias...)
 				b = append(b, '.')
 			}
