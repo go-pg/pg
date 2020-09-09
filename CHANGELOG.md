@@ -2,7 +2,9 @@
 
 > :heart: [**Uptrace.dev** - distributed traces, logs, and errors in one place](https://uptrace.dev)
 
-## v10 (unreleased)
+## v11 (unreleased)
+
+## v10
 
 ### Resources
 
@@ -22,7 +24,7 @@ err := db.Model((*User)(nil)).Limit(10).Select(&mm)
 
 - Columns that start with `_` are ignored if there is no destination field.
 - Optional [faster json encoding](https://github.com/go-pg/pgext).
-- Added [pgext.OpenTemetryHook](https://github.com/go-pg/pgext) that adds
+- Added [pgext.OpenTelemetryHook](https://github.com/go-pg/pgext) that adds
   [OpenTelemetry instrumentation](https://pg.uptrace.dev/tracing/).
 - Added [pgext.DebugHook](https://github.com/go-pg/pgext) that logs failed queries.
 - Added `db.Ping` to check if database is healthy.
