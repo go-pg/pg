@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+
+	"github.com/go-pg/pg/v10/types"
 )
 
 var _tables = newTables()
@@ -120,11 +122,11 @@ func (t *tables) Get(typ reflect.Type) *Table {
 	return t.get(typ, false)
 }
 
-func (t *tables) getByName(name string) *Table {
+func (t *tables) getByName(name types.Safe) *Table {
 	var found *Table
 	t.tables.Range(func(key, value interface{}) bool {
 		t := value.(*Table)
-		if t.Name == name || string(t.FullName) == name || t.ModelName == name {
+		if t.SQLName == name {
 			found = t
 			return false
 		}
