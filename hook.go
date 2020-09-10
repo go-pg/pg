@@ -120,9 +120,9 @@ func (db *baseDB) afterQuery(
 	event.Err = err
 	event.Result = res
 
-	for _, hook := range db.queryHooks {
-		err := hook.AfterQuery(ctx, event)
-		if err != nil {
+	for i := len(db.queryHooks) - 1; i >= 0; i-- {
+		hook := db.queryHooks[i]
+		if err := hook.AfterQuery(ctx, event); err != nil {
 			return err
 		}
 	}
