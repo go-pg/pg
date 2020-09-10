@@ -96,11 +96,11 @@ func (db *baseDB) beforeQuery(
 		fmtedQuery: fmtedQuery,
 	}
 
-	for _, hook := range db.queryHooks {
+	for i, hook := range db.queryHooks {
 		var err error
 		ctx, err = hook.BeforeQuery(ctx, event)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, db.afterQueryFromIndex(ctx, event, i-1)
 		}
 	}
 
@@ -119,14 +119,15 @@ func (db *baseDB) afterQuery(
 
 	event.Err = err
 	event.Result = res
+	return db.afterQueryFromIndex(ctx, event, len(db.queryHooks)-1)
+}
 
-	for i := len(db.queryHooks) - 1; i >= 0; i-- {
-		hook := db.queryHooks[i]
-		if err := hook.AfterQuery(ctx, event); err != nil {
+func (db *baseDB) afterQueryFromIndex(ctx context.Context, event *QueryEvent, hookIndex int) error {
+	for ; hookIndex >= 0; hookIndex-- {
+		if err := db.queryHooks[hookIndex].AfterQuery(ctx, event); err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
