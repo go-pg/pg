@@ -605,7 +605,7 @@ func (t *Table) mustHasOneRelation(field *Field, pgTag *tagparser.Tag) bool {
 	}
 	fkPrefix, fkOK := pgTag.Options["fk"]
 
-	if fkOK && len(t.PKs) == 1 {
+	if fkOK && len(joinTable.PKs) == 1 {
 		fk := t.getField(fkPrefix)
 		if fk == nil {
 			panic(fmt.Errorf(
