@@ -838,14 +838,21 @@ func (t *Table) mustM2MRelation(field *Field, pgTag *tagparser.Tag) bool {
 		} else {
 			for _, pk := range t.PKs {
 				fkName := fkPrefix + pk.SQLName
-				if m2mTable.getField(fkName) == nil {
-					panic(fmt.Errorf(
-						"pg: %s many2many %s: %s must have column %s "+
-							"(use fk:custom_column tag on %s field to specify custom column)",
-						t.TypeName, field.GoName, m2mTable.TypeName, fkName, field.GoName,
-					))
+				if m2mTable.getField(fkName) != nil {
+					baseFKs = append(baseFKs, fkName)
+					continue
 				}
-				baseFKs = append(baseFKs, fkName)
+
+				if m2mTable.getField(pk.SQLName) != nil {
+					baseFKs = append(baseFKs, pk.SQLName)
+					continue
+				}
+
+				panic(fmt.Errorf(
+					"pg: %s many2many %s: %s must have column %s "+
+						"(use fk:custom_column tag on %s field to specify custom column)",
+					t.TypeName, field.GoName, m2mTable.TypeName, fkName, field.GoName,
+				))
 			}
 		}
 	}
@@ -868,14 +875,21 @@ func (t *Table) mustM2MRelation(field *Field, pgTag *tagparser.Tag) bool {
 		} else {
 			for _, joinPK := range joinTable.PKs {
 				fkName := joinFKPrefix + joinPK.SQLName
-				if m2mTable.getField(fkName) == nil {
-					panic(fmt.Errorf(
-						"pg: %s many2many %s: %s must have column %s "+
-							"(use join_fk:custom_column tag on %s field to specify custom column)",
-						t.TypeName, field.GoName, m2mTable.TypeName, fkName, field.GoName,
-					))
+				if m2mTable.getField(fkName) != nil {
+					joinFKs = append(joinFKs, fkName)
+					continue
 				}
-				joinFKs = append(joinFKs, fkName)
+
+				if m2mTable.getField(joinPK.SQLName) != nil {
+					baseFKs = append(baseFKs, joinPK.SQLName)
+					continue
+				}
+
+				panic(fmt.Errorf(
+					"pg: %s many2many %s: %s must have column %s "+
+						"(use join_fk:custom_column tag on %s field to specify custom column)",
+					t.TypeName, field.GoName, m2mTable.TypeName, fkName, field.GoName,
+				))
 			}
 		}
 	}
