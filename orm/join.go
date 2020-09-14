@@ -141,9 +141,6 @@ func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 
 	joinTable := j.JoinModel.Table()
 	for i, col := range j.Rel.M2MJoinFKs {
-		if i >= len(joinTable.PKs) {
-			break
-		}
 		pk := joinTable.PKs[i]
 		q = q.Where("?.? = ?.?",
 			joinTable.Alias, pk.Column,

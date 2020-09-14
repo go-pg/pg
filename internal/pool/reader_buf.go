@@ -31,8 +31,8 @@ func NewBufReader(bufSize int) *BufReader {
 }
 
 func (b *BufReader) BytesReader(n int) *BytesReader {
-	if b.Buffered() < n {
-		return nil
+	if n == -1 {
+		n = 0
 	}
 	buf := b.buf[b.r : b.r+n]
 	b.r += n
@@ -62,11 +62,11 @@ func (b *BufReader) Reset(rd io.Reader) {
 
 // Buffered returns the number of bytes that can be read from the current buffer.
 func (b *BufReader) Buffered() int {
-	d := b.w - b.r
-	if b.available != -1 && d > b.available {
-		return b.available
+	buffered := b.w - b.r
+	if b.available == -1 || buffered <= b.available {
+		return buffered
 	}
-	return d
+	return b.available
 }
 
 func (b *BufReader) Bytes() []byte {
