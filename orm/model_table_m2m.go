@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/go-pg/pg/v10/internal/pool"
 	"github.com/go-pg/pg/v10/types"
 )
 
@@ -60,7 +61,7 @@ func (m *m2mModel) AddColumnScanner(_ ColumnScanner) error {
 	dstValues, ok := m.dstValues[string(buf)]
 	if !ok {
 		return fmt.Errorf(
-			"pg: relation=%q has no base %s with id=%q (check join conditions)",
+			"pg: relation=%q does not have base %s with id=%q (check join conditions)",
 			m.rel.Field.GoName, m.baseTable, buf)
 	}
 
@@ -83,7 +84,7 @@ func (m *m2mModel) modelIDMap(b []byte) ([]byte, error) {
 		if s, ok := m.columns[col]; ok {
 			b = append(b, s...)
 		} else {
-			return nil, fmt.Errorf("pg: %s has no column=%q",
+			return nil, fmt.Errorf("pg: %s does not have column=%q",
 				m.sliceTableModel, col)
 		}
 	}
@@ -91,16 +92,20 @@ func (m *m2mModel) modelIDMap(b []byte) ([]byte, error) {
 }
 
 func (m *m2mModel) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) error {
-	ok, err := m.sliceTableModel.scanColumn(col, rd, n)
-	if ok {
-		return err
+	if n > 0 {
+		b, err := rd.ReadFullTemp()
+		if err != nil {
+			return err
+		}
+
+		m.columns[col.Name] = string(b)
+		rd = pool.NewBytesReader(b)
+	} else {
+		m.columns[col.Name] = ""
 	}
 
-	tmp, err := rd.ReadFullTemp()
-	if err != nil {
+	if ok, err := m.sliceTableModel.scanColumn(col, rd, n); ok {
 		return err
 	}
-
-	m.columns[col.Name] = string(tmp)
 	return nil
 }

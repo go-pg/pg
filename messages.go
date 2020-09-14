@@ -800,29 +800,21 @@ func readDataRow(
 		}
 
 		var colRd types.Reader
-		if n >= 0 {
-			bytesRd := rd.BytesReader(int(n))
-			if bytesRd != nil {
-				colRd = bytesRd
-			} else {
-				rd.SetAvailable(int(n))
-				colRd = rd
-			}
+		if int(n) <= rd.Buffered() {
+			colRd = rd.BytesReader(int(n))
 		} else {
-			colRd = rd.BytesReader(0)
+			rd.SetAvailable(int(n))
+			colRd = rd
 		}
 
 		column := columns[colIdx]
-
-		err = scanner.ScanColumn(column, colRd, int(n))
-		if err != nil && firstErr == nil {
+		if err := scanner.ScanColumn(column, colRd, int(n)); err != nil && firstErr == nil {
 			firstErr = internal.Errorf(err.Error())
 		}
 
 		if rd == colRd {
 			if rd.Available() > 0 {
-				_, err = rd.Discard(rd.Available())
-				if err != nil && firstErr == nil {
+				if _, err := rd.Discard(rd.Available()); err != nil && firstErr == nil {
 					firstErr = err
 				}
 			}

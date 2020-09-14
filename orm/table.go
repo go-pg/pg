@@ -881,7 +881,7 @@ func (t *Table) mustM2MRelation(field *Field, pgTag *tagparser.Tag) bool {
 				}
 
 				if m2mTable.getField(joinPK.SQLName) != nil {
-					baseFKs = append(baseFKs, joinPK.SQLName)
+					joinFKs = append(joinFKs, joinPK.SQLName)
 					continue
 				}
 
