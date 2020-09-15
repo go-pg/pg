@@ -100,7 +100,10 @@ func (db *baseDB) beforeQuery(
 		var err error
 		ctx, err = hook.BeforeQuery(ctx, event)
 		if err != nil {
-			return nil, nil, db.afterQueryFromIndex(ctx, event, i)
+			if err := db.afterQueryFromIndex(ctx, event, i); err != nil {
+				return ctx, nil, err
+			}
+			return ctx, nil, err
 		}
 	}
 
