@@ -15,7 +15,7 @@ require (
 	github.com/vmihailenco/tagparser v0.1.1
 	go.opentelemetry.io/otel v0.11.0
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
-	golang.org/x/exp v0.0.0-20200908183739-ae8ad444f925
+	golang.org/x/exp v0.0.0-20200915172826-20d5ce0eab31
 	golang.org/x/net v0.0.0-20200904194848-62affa334b73 // indirect
 	golang.org/x/sys v0.0.0-20200908134130-d2e65c121b96 // indirect
 	google.golang.org/appengine v1.6.6 // indirect
