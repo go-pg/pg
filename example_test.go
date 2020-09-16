@@ -226,7 +226,7 @@ func ExampleDB_Prepare() {
 	// Output: foo bar
 }
 
-func ExampleDB_CreateTable() {
+func ExampleDB_Model_CreateTable() {
 	type Model1 struct {
 		Id int
 	}

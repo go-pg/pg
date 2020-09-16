@@ -93,7 +93,7 @@ func ExampleDB_Insert() {
 	}
 }
 
-func ExampleDB_Insert_bulkInsert() {
+func ExampleDB_Model_bulkInsert() {
 	db := modelDB()
 
 	book1 := &Book{
@@ -117,7 +117,7 @@ func ExampleDB_Insert_bulkInsert() {
 	}
 }
 
-func ExampleDB_Insert_bulkInsertSlice() {
+func ExampleDB_Model_bulkInsertSlice() {
 	db := modelDB()
 
 	books := []Book{{
@@ -140,7 +140,7 @@ func ExampleDB_Insert_bulkInsertSlice() {
 	}
 }
 
-func ExampleDB_Insert_onConflictDoNothing() {
+func ExampleDB_Model_insertOnConflictDoNothing() {
 	db := modelDB()
 
 	book := &Book{
@@ -221,7 +221,7 @@ func ExampleDB_Model_selectOrInsert() {
 	// Output: true Author<ID=2 Name="R. Scott Bakker">
 }
 
-func ExampleDB_insertDynamicTableName() {
+func ExampleDB_Model_insertDynamicTableName() {
 	type NamelessModel struct {
 		tableName struct{} `pg:"_"` // "_" means no name
 		Id        int
@@ -749,7 +749,7 @@ func ExampleDB_Model_hasManySelf() {
 	// Subitems 2 3
 }
 
-func ExampleDB_Update() {
+func ExampleDB_Model_update() {
 	db := modelDB()
 
 	book := &Book{ID: 1}
@@ -1085,7 +1085,7 @@ func ExampleDB_jsonUseNumber() {
 	// Output: json.Number
 }
 
-func ExampleDB_discardUnknownColumns() {
+func ExampleDB_Model_discardUnknownColumns() {
 	type Model1 struct {
 	}
 
