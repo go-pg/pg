@@ -72,7 +72,7 @@ func modelDB() *pg.DB {
 	return db
 }
 
-func ExampleDB_Insert() {
+func ExampleDB_Model_insert() {
 	db := modelDB()
 
 	book := &Book{
