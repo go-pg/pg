@@ -89,8 +89,10 @@ func (m *sliceTableModel) AddColumnScanner(_ ColumnScanner) error {
 }
 
 // Inherit these hooks from structTableModel.
-var _ BeforeScanHook = (*sliceTableModel)(nil)
-var _ AfterScanHook = (*sliceTableModel)(nil)
+var (
+	_ BeforeScanHook = (*sliceTableModel)(nil)
+	_ AfterScanHook  = (*sliceTableModel)(nil)
+)
 
 func (m *sliceTableModel) AfterSelect(ctx context.Context) error {
 	if m.table.hasFlag(afterSelectHookFlag) {
@@ -141,11 +143,14 @@ func (m *sliceTableModel) AfterDelete(ctx context.Context) error {
 	return nil
 }
 
-func (m *sliceTableModel) setSoftDeleteField() {
+func (m *sliceTableModel) setSoftDeleteField() error {
 	sliceLen := m.slice.Len()
 	for i := 0; i < sliceLen; i++ {
 		strct := indirect(m.slice.Index(i))
 		fv := m.table.SoftDeleteField.Value(strct)
-		m.table.SetSoftDeleteField(fv)
+		if err := m.table.SetSoftDeleteField(fv); err != nil {
+			return err
+		}
 	}
+	return nil
 }

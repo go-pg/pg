@@ -385,9 +385,9 @@ func (m *structTableModel) join(
 	return lastJoin
 }
 
-func (m *structTableModel) setSoftDeleteField() {
+func (m *structTableModel) setSoftDeleteField() error {
 	fv := m.table.SoftDeleteField.Value(m.strct)
-	m.table.SetSoftDeleteField(fv)
+	return m.table.SetSoftDeleteField(fv)
 }
 
 func splitColumn(s string) (string, string) {

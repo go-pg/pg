@@ -27,7 +27,7 @@ type TableModel interface {
 	Kind() reflect.Kind
 	Value() reflect.Value
 
-	setSoftDeleteField()
+	setSoftDeleteField() error
 	scanColumn(types.ColumnInfo, types.Reader, int) (bool, error)
 }
 

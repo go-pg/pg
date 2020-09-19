@@ -15,6 +15,7 @@ import (
 	"github.com/vmihailenco/tagparser"
 
 	"github.com/go-pg/pg/v10/internal"
+	"github.com/go-pg/pg/v10/internal/pool"
 	"github.com/go-pg/pg/v10/pgjson"
 	"github.com/go-pg/pg/v10/types"
 	"github.com/go-pg/zerochecker"
@@ -85,7 +86,7 @@ type Table struct {
 	Unique    map[string][]*Field
 
 	SoftDeleteField    *Field
-	SetSoftDeleteField func(fv reflect.Value)
+	SetSoftDeleteField func(fv reflect.Value) error
 
 	flags uint16
 }
@@ -502,7 +503,7 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		t.SetSoftDeleteField = setSoftDeleteFieldFunc(f.Type)
 		if t.SetSoftDeleteField == nil {
 			err := fmt.Errorf(
-				"pg: soft_delete is only supported for time.Time, pg.NullTime, sql.NullInt64 and int64")
+				"pg: soft_delete is only supported for time.Time, pg.NullTime, sql.NullInt64, and int64 (or implement ValueScanner that scans time)")
 			panic(err)
 		}
 		t.SoftDeleteField = field
@@ -1431,56 +1432,76 @@ func quoteIdent(s string) types.Safe {
 	return types.Safe(types.AppendIdent(nil, s, 1))
 }
 
-func setSoftDeleteFieldFunc(typ reflect.Type) func(fv reflect.Value) {
+func setSoftDeleteFieldFunc(typ reflect.Type) func(fv reflect.Value) error {
 	switch typ {
 	case timeType:
-		return func(fv reflect.Value) {
+		return func(fv reflect.Value) error {
 			ptr := fv.Addr().Interface().(*time.Time)
 			*ptr = time.Now()
+			return nil
 		}
 	case nullTimeType:
-		return func(fv reflect.Value) {
+		return func(fv reflect.Value) error {
 			ptr := fv.Addr().Interface().(*types.NullTime)
 			*ptr = types.NullTime{Time: time.Now()}
+			return nil
 		}
 	case nullIntType:
-		return func(fv reflect.Value) {
+		return func(fv reflect.Value) error {
 			ptr := fv.Addr().Interface().(*sql.NullInt64)
 			*ptr = sql.NullInt64{Int64: time.Now().UnixNano()}
+			return nil
 		}
 	}
 
-	switch typ.Kind() { //nolint:gocritic
+	switch typ.Kind() {
 	case reflect.Int64:
-		return func(fv reflect.Value) {
+		return func(fv reflect.Value) error {
 			ptr := fv.Addr().Interface().(*int64)
 			*ptr = time.Now().UnixNano()
+			return nil
 		}
+	case reflect.Ptr:
+		break
+	default:
+		return setSoftDeleteFallbackFunc(typ)
 	}
 
-	if typ.Kind() != reflect.Ptr {
-		return nil
-	}
-
+	originalType := typ
 	typ = typ.Elem()
 
 	switch typ { //nolint:gocritic
 	case timeType:
-		return func(fv reflect.Value) {
+		return func(fv reflect.Value) error {
 			now := time.Now()
 			fv.Set(reflect.ValueOf(&now))
+			return nil
 		}
 	}
 
 	switch typ.Kind() { //nolint:gocritic
 	case reflect.Int64:
-		return func(fv reflect.Value) {
+		return func(fv reflect.Value) error {
 			utime := time.Now().UnixNano()
 			fv.Set(reflect.ValueOf(&utime))
+			return nil
 		}
 	}
 
-	return nil
+	return setSoftDeleteFallbackFunc(originalType)
+}
+
+func setSoftDeleteFallbackFunc(typ reflect.Type) func(fv reflect.Value) error {
+	scanner := types.Scanner(typ)
+	if scanner == nil {
+		return nil
+	}
+
+	return func(fv reflect.Value) error {
+		var flags int
+		b := types.AppendTime(nil, time.Now(), flags)
+		return scanner(fv, pool.NewBytesReader(b), flags)
+	}
 }
 
 func isKnownTableOption(name string) bool {
