@@ -17,8 +17,6 @@ const (
 	pgFloat4 = 700
 	pgFloat8 = 701
 
-	pgNumeric = 1700
-
 	pgText    = 25
 	pgVarchar = 1043
 	pgBytea   = 17
