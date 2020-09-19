@@ -563,10 +563,10 @@ func (t *Table) tryRelation(field *Field) bool {
 	pgTag := tagparser.Parse(field.Field.Tag.Get("pg"))
 
 	if rel, ok := pgTag.Options["rel"]; ok {
-		return t.tryRelationType(field, rel)
+		return t.tryRelationType(field, rel, pgTag)
 	}
 	if _, ok := pgTag.Options["many2many"]; ok {
-		return t.tryRelationType(field, "many2many")
+		return t.tryRelationType(field, "many2many", pgTag)
 	}
 
 	if field.UserSQLType != "" || isScanner(field.Type) {
@@ -575,15 +575,14 @@ func (t *Table) tryRelation(field *Field) bool {
 
 	switch field.Type.Kind() {
 	case reflect.Slice:
-		return t.tryRelationSlice(field)
+		return t.tryRelationSlice(field, pgTag)
 	case reflect.Struct:
-		return t.tryRelationStruct(field)
+		return t.tryRelationStruct(field, pgTag)
 	}
 	return false
 }
 
-func (t *Table) tryRelationType(field *Field, rel string) bool {
-	pgTag := tagparser.Parse(field.Field.Tag.Get("pg"))
+func (t *Table) tryRelationType(field *Field, rel string, pgTag *tagparser.Tag) bool {
 	switch rel {
 	case "has-one":
 		return t.mustHasOneRelation(field, pgTag)
@@ -907,13 +906,13 @@ func (t *Table) mustM2MRelation(field *Field, pgTag *tagparser.Tag) bool {
 }
 
 //nolint
-func (t *Table) tryRelationSlice(field *Field) bool {
-	if t.tryM2MRelation(field) {
+func (t *Table) tryRelationSlice(field *Field, pgTag *tagparser.Tag) bool {
+	if t.tryM2MRelation(field, pgTag) {
 		internal.Deprecated.Printf(
 			`add pg:"rel:many2many" to %s.%s field tag`, t.TypeName, field.GoName)
 		return true
 	}
-	if t.tryHasManyRelation(field) {
+	if t.tryHasManyRelation(field, pgTag) {
 		internal.Deprecated.Printf(
 			`add pg:"rel:has-many" to %s.%s field tag`, t.TypeName, field.GoName)
 		return true
@@ -921,13 +920,12 @@ func (t *Table) tryRelationSlice(field *Field) bool {
 	return false
 }
 
-func (t *Table) tryM2MRelation(field *Field) bool {
+func (t *Table) tryM2MRelation(field *Field, pgTag *tagparser.Tag) bool {
 	elemType := indirectType(field.Type.Elem())
 	if elemType.Kind() != reflect.Struct {
 		return false
 	}
 
-	pgTag := tagparser.Parse(field.Field.Tag.Get("pg"))
 	joinTable := _tables.get(elemType, true)
 
 	fk, fkOK := pgTag.Options["fk"]
@@ -1020,13 +1018,12 @@ func (t *Table) tryM2MRelation(field *Field) bool {
 	return true
 }
 
-func (t *Table) tryHasManyRelation(field *Field) bool {
+func (t *Table) tryHasManyRelation(field *Field, pgTag *tagparser.Tag) bool {
 	elemType := indirectType(field.Type.Elem())
 	if elemType.Kind() != reflect.Struct {
 		return false
 	}
 
-	pgTag := tagparser.Parse(field.Field.Tag.Get("pg"))
 	joinTable := _tables.get(elemType, true)
 
 	fk, fkOK := pgTag.Options["fk"]
@@ -1090,8 +1087,7 @@ func (t *Table) tryHasManyRelation(field *Field) bool {
 	return false
 }
 
-func (t *Table) tryRelationStruct(field *Field) bool {
-	pgTag := tagparser.Parse(field.Field.Tag.Get("pg"))
+func (t *Table) tryRelationStruct(field *Field, pgTag *tagparser.Tag) bool {
 	joinTable := _tables.get(field.Type, true)
 
 	if len(joinTable.allFields) == 0 {
