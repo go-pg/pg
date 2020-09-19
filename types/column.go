@@ -2,9 +2,9 @@ package types
 
 import (
 	"encoding/json"
-	"fmt"
 
 	"github.com/go-pg/pg/v10/internal/pool"
+	"github.com/go-pg/pg/v10/pgjson"
 )
 
 const (
@@ -38,7 +38,18 @@ const (
 
 type ColumnInfo = pool.ColumnInfo
 
-type Numeric string
+type RawValue struct {
+	Type  int32
+	Value string
+}
+
+func (v RawValue) AppendValue(b []byte, flags int) ([]byte, error) {
+	return AppendString(b, v.Value, flags), nil
+}
+
+func (v RawValue) MarshalJSON() ([]byte, error) {
+	return pgjson.Marshal(v.Value)
+}
 
 func ReadColumnValue(col ColumnInfo, rd Reader, n int) (interface{}, error) {
 	switch col.DataType {
@@ -69,12 +80,6 @@ func ReadColumnValue(col ColumnInfo, rd Reader, n int) (interface{}, error) {
 		return ScanBytes(rd, n)
 	case pgText, pgVarchar, pgUUID:
 		return ScanString(rd, n)
-	case pgNumeric:
-		s, err := ScanString(rd, n)
-		if err != nil {
-			return nil, err
-		}
-		return Numeric(s), nil
 	case pgJSON, pgJSONB:
 		s, err := ScanString(rd, n)
 		if err != nil {
@@ -95,6 +100,13 @@ func ReadColumnValue(col ColumnInfo, rd Reader, n int) (interface{}, error) {
 		return scanStringArray(rd, n)
 
 	default:
-		return nil, fmt.Errorf("unsupported data type: %d", col.DataType)
+		s, err := ScanString(rd, n)
+		if err != nil {
+			return nil, err
+		}
+		return RawValue{
+			Type:  col.DataType,
+			Value: s,
+		}, nil
 	}
 }
