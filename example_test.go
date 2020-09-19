@@ -20,13 +20,13 @@ var (
 func init() {
 	pgdb = connect()
 
-	err := pgdb.Model((*Flight)(nil)).DropTable(&orm.DropTableOptions{
+	err := pgdb.Model((*Video)(nil)).DropTable(&orm.DropTableOptions{
 		IfExists: true,
 		Cascade:  true,
 	})
 	panicIf(err)
 
-	err = pgdb.Model((*Flight)(nil)).CreateTable(nil)
+	err = pgdb.Model((*Video)(nil)).CreateTable(&orm.CreateTableOptions{})
 	panicIf(err)
 }
 
@@ -313,20 +313,20 @@ func ExampleScan() {
 }
 
 func ExampleError() {
-	flight := &Flight{
+	video := &Video{
 		Id: 123,
 	}
-	_, err := pgdb.Model(flight).Insert()
+	_, err := pgdb.Model(video).Insert()
 	panicIf(err)
 
-	_, err = pgdb.Model(flight).Insert()
+	_, err = pgdb.Model(video).Insert()
 	if err != nil {
 		pgErr, ok := err.(pg.Error)
 		if ok && pgErr.IntegrityViolation() {
-			fmt.Println("flight already exists:", err)
-		} else {
+			fmt.Println("video already exists:", err)
+		} else if pgErr.Field('S') == "PANIC" {
 			panic(err)
 		}
 	}
-	// Output: flight already exists: ERROR #23505 duplicate key value violates unique constraint "flights_pkey"
+	// Output: video already exists: ERROR #23505 duplicate key value violates unique constraint "videos_pkey"
 }

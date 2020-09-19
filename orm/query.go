@@ -1187,7 +1187,9 @@ func (q *Query) Delete(values ...interface{}) (Result, error) {
 			clone = clone.Set("? = ?", table.SoftDeleteField.Column, time.Now())
 		}
 	} else {
-		clone.tableModel.setSoftDeleteField()
+		if err := clone.tableModel.setSoftDeleteField(); err != nil {
+			return nil, err
+		}
 		clone = clone.Column(table.SoftDeleteField.SQLName)
 	}
 	return clone.Update(values...)
