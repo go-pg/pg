@@ -4,9 +4,8 @@ internal is a private internal package.
 package internal
 
 import (
+	"math/rand"
 	"time"
-
-	"golang.org/x/exp/rand"
 )
 
 func RetryBackoff(retry int, minBackoff, maxBackoff time.Duration) time.Duration {

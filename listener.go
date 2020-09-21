@@ -8,8 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/exp/rand"
-
 	"github.com/go-pg/pg/v10/internal"
 	"github.com/go-pg/pg/v10/internal/pool"
 	"github.com/go-pg/pg/v10/types"
@@ -290,11 +288,12 @@ func (ln *Listener) initChannel(size int) {
 					close(ln.ch)
 					return
 				}
+
 				if errCount > 0 {
-					n := 250 + rand.Intn(250)
-					time.Sleep(time.Duration(n) * time.Millisecond)
+					time.Sleep(500 * time.Millisecond)
 				}
 				errCount++
+
 				continue
 			}
 
