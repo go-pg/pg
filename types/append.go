@@ -172,15 +172,12 @@ func AppendBytes(b []byte, bytes []byte, flags int) []byte {
 	}
 
 	if hasFlag(flags, arrayFlag) {
-		b = append(b, '"')
+		b = append(b, `"\`...)
 	} else if hasFlag(flags, quoteFlag) {
 		b = append(b, '\'')
 	}
 
-	if hasFlag(flags, arrayFlag) {
-		b = append(b, '\\')
-	}
-	b = append(b, "\\x"...)
+	b = append(b, `\x`...)
 
 	s := len(b)
 	b = append(b, make([]byte, hex.EncodedLen(len(bytes)))...)

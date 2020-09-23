@@ -1210,23 +1210,22 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 		return nil, err
 	}
 
-	c := q.ctx
+	ctx := q.ctx
 
 	if q.tableModel != nil {
-		c, err = q.tableModel.BeforeDelete(c)
+		ctx, err = q.tableModel.BeforeDelete(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	res, err := q.returningQuery(c, model, NewDeleteQuery(q))
+	res, err := q.returningQuery(ctx, model, NewDeleteQuery(q))
 	if err != nil {
 		return nil, err
 	}
 
 	if q.tableModel != nil {
-		err = q.tableModel.AfterDelete(c)
-		if err != nil {
+		if err := q.tableModel.AfterDelete(ctx); err != nil {
 			return nil, err
 		}
 	}
