@@ -1496,7 +1496,7 @@ func setSoftDeleteFallbackFunc(typ reflect.Type) func(fv reflect.Value) error {
 	return func(fv reflect.Value) error {
 		var flags int
 		b := types.AppendTime(nil, time.Now(), flags)
-		return scanner(fv, pool.NewBytesReader(b), flags)
+		return scanner(fv, pool.NewBytesReader(b), len(b))
 	}
 }
 
