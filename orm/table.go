@@ -807,7 +807,7 @@ func (t *Table) mustM2MRelation(field *Field, pgTag *tagparser.Tag) bool {
 	if !ok {
 		panic(fmt.Errorf("pg: %s must have many2many tag option", field.GoName))
 	}
-	m2mTableName := quoteIdent(m2mTableNameString)
+	m2mTableName := quoteTableName(m2mTableNameString)
 
 	m2mTable := _tables.getByName(m2mTableName)
 	if m2mTable == nil {
