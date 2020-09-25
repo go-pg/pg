@@ -81,7 +81,7 @@ func WithSpan(
 	fn func(context.Context, trace.Span) error,
 ) error {
 	if !trace.SpanFromContext(ctx).IsRecording() {
-		return fn(ctx, trace.NoopSpan{})
+		return fn(ctx, trace.SpanFromContext(context.Background()))
 	}
 
 	ctx, span := global.Tracer("github.com/go-pg/pg").Start(ctx, name)
