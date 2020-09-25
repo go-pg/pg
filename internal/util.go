@@ -80,8 +80,8 @@ func WithSpan(
 	name string,
 	fn func(context.Context, trace.Span) error,
 ) error {
-	if !trace.SpanFromContext(ctx).IsRecording() {
-		return fn(ctx, trace.SpanFromContext(context.Background()))
+	if span := trace.SpanFromContext(ctx); !span.IsRecording() {
+		return fn(ctx, span)
 	}
 
 	ctx, span := global.Tracer("github.com/go-pg/pg").Start(ctx, name)
