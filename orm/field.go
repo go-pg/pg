@@ -83,7 +83,7 @@ func (f *Field) hasZeroValue(v reflect.Value, index []int) bool {
 		}
 		v = v.Field(idx)
 	}
-	return f.NullZero() && f.isZero(v)
+	return f.isZero(v)
 }
 
 func (f *Field) NullZero() bool {
