@@ -32,13 +32,6 @@ type InheritInsertTest struct {
 	Field2        int
 }
 
-type InsertNullTest struct {
-	F1 int
-	F2 int `pg:",use_zero"`
-	F3 int `pg:",pk"`
-	F4 int `pg:",pk,use_zero"`
-}
-
 type InsertDefaultTest struct {
 	Id    int
 	Value string `pg:"default:hello"`
@@ -172,10 +165,28 @@ var _ = Describe("Insert", func() {
 	})
 
 	It("supports use_zero tag", func() {
-		q := NewQuery(nil, &InsertNullTest{})
+		type InsertZeroTest struct {
+			F1 int
+			F2 int `pg:",use_zero"`
+			F3 int `pg:",pk"`
+			F4 int `pg:",pk,use_zero"`
+		}
+
+		q := NewQuery(nil, &InsertZeroTest{})
 
 		s := insertQueryString(q)
-		Expect(s).To(Equal(`INSERT INTO "insert_null_tests" ("f1", "f2", "f3", "f4") VALUES (DEFAULT, 0, DEFAULT, 0) RETURNING "f1", "f3"`))
+		Expect(s).To(Equal(`INSERT INTO "insert_zero_tests" ("f1", "f2", "f3", "f4") VALUES (DEFAULT, 0, DEFAULT, 0) RETURNING "f1", "f3"`))
+	})
+
+	It("supports default with use_zero tag", func() {
+		type InsertZeroTest struct {
+			F1 bool `pg:"default:true,use_zero"`
+		}
+
+		q := NewQuery(nil, &InsertZeroTest{})
+
+		s := insertQueryString(q)
+		Expect(s).To(Equal(`INSERT INTO "insert_zero_tests" ("f1") VALUES (DEFAULT) RETURNING "f1"`))
 	})
 
 	It("inserts types.Safe", func() {
