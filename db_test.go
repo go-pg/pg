@@ -23,6 +23,7 @@ import (
 
 func init() {
 	orm.RegisterTable((*BookGenre)(nil))
+	orm.RegisterTable((*IngredientRecipe)(nil))
 }
 
 func TestGinkgo(t *testing.T) {
@@ -2427,5 +2428,77 @@ var _ = Describe("soft delete with int column", func() {
 		})
 
 		assert()
+	})
+})
+
+type Recipe struct {
+	tableName   struct{} `pg:"?tenant.recipes"`
+	Id          int
+	Ingredients []*Ingredient `pg:"many2many:?tenant.ingredients_recipes"`
+}
+
+type Ingredient struct {
+	tableName struct{} `pg:"?tenant.ingredients"`
+	Id        int
+	Recipes   []*Recipe `pg:"many2many:?tenant.ingredients_recipes"`
+}
+
+type IngredientRecipe struct {
+	tableName    struct{}    `pg:"?tenant.ingredients_recipes"`
+	Recipe       *Recipe     `pg:"rel:has-one"`
+	RecipeId     int         `pg:",pk"`
+	Ingredient   *Ingredient `pg:"rel:has-one"`
+	IngredientId int         `pg:",pk"`
+}
+
+var _ = Describe("many2many multi-tenant bug", func() {
+	var db *pg.DB
+
+	BeforeEach(func() {
+		db = testDB().WithParam("tenant", pg.Safe("public"))
+		options := orm.CreateTableOptions{}
+
+		err := db.Model((*Recipe)(nil)).CreateTable(&options)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Model((*Ingredient)(nil)).CreateTable(&options)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Model((*IngredientRecipe)(nil)).CreateTable(&options)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		err := db.Model((*Recipe)(nil)).DropTable(nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Model((*Ingredient)(nil)).DropTable(nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Model((*IngredientRecipe)(nil)).DropTable(nil)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should find the many2many table", func() {
+		recipe := Recipe{Id: 1}
+		ingredient := Ingredient{Id: 1}
+		ingredientRecipe := IngredientRecipe{
+			RecipeId:     1,
+			IngredientId: 1,
+		}
+
+		_, err := db.Model(&recipe).Insert()
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = db.Model(&ingredient).Insert()
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = db.Model(&ingredientRecipe).Insert()
+		Expect(err).NotTo(HaveOccurred())
+
+		err = db.Model(&recipe).WherePK().Relation("Ingredients").Select()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(recipe.Ingredients).To(HaveLen(1))
+		Expect(recipe.Ingredients[0].Id).To(Equal(1))
 	})
 })
