@@ -360,7 +360,9 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		return nil
 	}
 
-	if isKnownFieldOption(pgTag.Name) {
+	sqlName := internal.Underscore(f.Name)
+
+	if pgTag.Name != sqlName && isKnownFieldOption(pgTag.Name) {
 		internal.Warn.Printf(
 			"%s.%s tag name %q is also an option name; is it a mistake?",
 			t.TypeName, f.Name, pgTag.Name,
@@ -374,12 +376,12 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 	}
 
 	skip := pgTag.Name == "-"
-	if skip || pgTag.Name == "" {
-		pgTag.Name = internal.Underscore(f.Name)
+	if !skip && pgTag.Name != "" {
+		sqlName = pgTag.Name
 	}
 
 	index = append(index, f.Index...)
-	if field := t.getField(pgTag.Name); field != nil {
+	if field := t.getField(sqlName); field != nil {
 		if indexEqual(field.Index, index) {
 			return field
 		}
@@ -391,8 +393,8 @@ func (t *Table) newField(f reflect.StructField, index []int) *Field {
 		Type:  indirectType(f.Type),
 
 		GoName:  f.Name,
-		SQLName: pgTag.Name,
-		Column:  quoteIdent(pgTag.Name),
+		SQLName: sqlName,
+		Column:  quoteIdent(sqlName),
 
 		Index: index,
 	}
