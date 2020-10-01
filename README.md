@@ -86,5 +86,6 @@
 
 ## See also
 
+- [Fast and flexible HTTP router](https://github.com/vmihailenco/treemux)
 - [Golang msgpack](https://github.com/vmihailenco/msgpack)
 - [Golang message task queue](https://github.com/vmihailenco/taskq)
