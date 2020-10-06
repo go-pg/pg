@@ -7,20 +7,25 @@
 
 > :heart: [**Uptrace.dev** - distributed traces, logs, and errors in one place](https://uptrace.dev)
 
+- Join [Discord](https://discord.gg/rWtp5Aj) to ask questions.
 - [Docs](https://pg.uptrace.dev)
 - [Reference](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
 - [Examples](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#pkg-examples)
-- [RealWorld example app](https://github.com/uptrace/go-realworld-example-app)
-- Join [Discord](https://discord.gg/rWtp5Aj) to ask questions.
+- Example projects:
+  - [treemux](https://github.com/uptrace/go-treemux-realworld-example-app)
+  - [gin](https://github.com/gogjango/gjango)
+  - [go-kit](https://github.com/Tsovak/rest-api-demo)
+  - [aah framework](https://github.com/kieusonlam/golamapi)
+- [GraphQL Tutorial on YouTube](https://www.youtube.com/playlist?list=PLzQWIQOqeUSNwXcneWYJHUREAIucJ5UZn).
 
 ## Ecosystem
 
 - [pgext](https://github.com/go-pg/pgext) - faster JSON encoding, OpenTelemetry hook, etc.
 - Migrations by [vmihailenco](https://github.com/go-pg/migrations) and
   [robinjoseph08](https://github.com/robinjoseph08/go-pg-migrations).
-- [Sharding](https://github.com/go-pg/sharding).
-- [Model generator from SQL tables](https://github.com/dizzyfool/genna).
+- [Genna - cli tool for generating go-pg models](https://github.com/dizzyfool/genna).
 - [urlstruct](https://github.com/go-pg/urlstruct) to decode `url.Values` into structs.
+- [Sharding](https://github.com/go-pg/sharding).
 
 ## Features
 
