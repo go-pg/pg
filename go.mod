@@ -13,7 +13,7 @@ require (
 	github.com/vmihailenco/bufpool v0.1.11
 	github.com/vmihailenco/msgpack/v5 v5.0.0-beta.1
 	github.com/vmihailenco/tagparser v0.1.2
-	go.opentelemetry.io/otel v0.12.0
+	go.opentelemetry.io/otel v0.13.0
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a // indirect
 	golang.org/x/net v0.0.0-20200925080053-05aa5d4ee321 // indirect
 	golang.org/x/sys v0.0.0-20200923182605-d9f96fdee20d // indirect
