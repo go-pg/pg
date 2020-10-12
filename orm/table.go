@@ -572,6 +572,20 @@ func (t *Table) tryRelation(field *Field) bool {
 		return t.tryRelationType(field, "many2many", pgTag)
 	}
 
+	if _, ok := pgTag.Options["fk"]; ok {
+		internal.Warn.Printf(
+			`%s.%s option "fk" requires a relation type`,
+			t.TypeName, field.GoName,
+		)
+	}
+
+	if _, ok := pgTag.Options["join_fk"]; ok {
+		internal.Warn.Printf(
+			`%s.%s option "join_fk" requires a relation type`,
+			t.TypeName, field.GoName,
+		)
+	}
+
 	if field.UserSQLType != "" || isScanner(field.Type) {
 		return false
 	}
