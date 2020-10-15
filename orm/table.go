@@ -639,6 +639,11 @@ func (t *Table) mustHasOneRelation(field *Field, pgTag *tagparser.Tag) bool {
 			continue
 		}
 
+		if fk := t.getField(joinPK.SQLName); fk != nil {
+			fks = append(fks, fk)
+			continue
+		}
+
 		panic(fmt.Errorf(
 			"pg: %s has-one %s: %s must have column %s "+
 				"(use fk:custom_column tag on %s field to specify custom column)",
@@ -691,6 +696,11 @@ func (t *Table) mustBelongsToRelation(field *Field, pgTag *tagparser.Tag) bool {
 	for _, pk := range t.PKs {
 		fkName := fkPrefix + pk.SQLName
 		if fk := joinTable.getField(fkName); fk != nil {
+			fks = append(fks, fk)
+			continue
+		}
+
+		if fk := joinTable.getField(pk.SQLName); fk != nil {
 			fks = append(fks, fk)
 			continue
 		}
@@ -759,6 +769,11 @@ func (t *Table) mustHasManyRelation(field *Field, pgTag *tagparser.Tag) bool {
 			continue
 		}
 
+		if fk := joinTable.getField(pk.SQLName); fk != nil {
+			fks = append(fks, fk)
+			continue
+		}
+
 		panic(fmt.Errorf(
 			"pg: %s has-many %s: %s must have column %s "+
 				"(use join_fk:custom_column tag on %s field to specify custom column)",
@@ -767,6 +782,7 @@ func (t *Table) mustHasManyRelation(field *Field, pgTag *tagparser.Tag) bool {
 	}
 
 	var typeField *Field
+
 	if polymorphic {
 		typeFieldName := fkPrefix + "type"
 		typeField = joinTable.getField(typeFieldName)
