@@ -3,7 +3,7 @@ package types_test
 import (
 	"testing"
 
-	"github.com/go-pg/pg/v10/types"
+	"github.com/go-pg/pg/v11/types"
 	"github.com/stretchr/testify/assert"
 )
 

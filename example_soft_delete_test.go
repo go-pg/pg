@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-pg/pg/v10/types"
+	"github.com/go-pg/pg/v11/types"
 )
 
 type CustomTime struct {

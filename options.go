@@ -15,8 +15,8 @@ import (
 
 	"go.opentelemetry.io/otel/api/trace"
 
-	"github.com/go-pg/pg/v10/internal"
-	"github.com/go-pg/pg/v10/internal/pool"
+	"github.com/go-pg/pg/v11/internal"
+	"github.com/go-pg/pg/v11/internal/pool"
 )
 
 // Options contains database connection options.

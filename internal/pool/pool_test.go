@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-pg/pg/v10/internal/pool"
+	"github.com/go-pg/pg/v11/internal/pool"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

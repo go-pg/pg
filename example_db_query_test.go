@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v11"
 )
 
 func CreateUser(ctx context.Context, db *pg.DB, user *User) error {

@@ -3,7 +3,7 @@ package orm
 import (
 	"reflect"
 
-	"github.com/go-pg/pg/v10/types"
+	"github.com/go-pg/pg/v11/types"
 )
 
 type DeleteQuery struct {

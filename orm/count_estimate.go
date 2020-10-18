@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-pg/pg/v10/internal"
+	"github.com/go-pg/pg/v11/internal"
 )
 
 // Placeholder that is replaced with count(*).

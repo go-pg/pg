@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-pg/pg/v10/internal/pool"
-	"github.com/go-pg/pg/v10/orm"
+	"github.com/go-pg/pg/v11/internal/pool"
+	"github.com/go-pg/pg/v11/orm"
 )
 
 // Connect connects to a database using provided options.

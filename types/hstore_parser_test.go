@@ -3,7 +3,7 @@ package types
 import (
 	"testing"
 
-	"github.com/go-pg/pg/v10/internal/pool"
+	"github.com/go-pg/pg/v11/internal/pool"
 )
 
 var hstoreTests = []struct {

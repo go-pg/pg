@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v11"
 )
 
 var _ = Describe("Tx", func() {

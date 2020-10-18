@@ -4,7 +4,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v11"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

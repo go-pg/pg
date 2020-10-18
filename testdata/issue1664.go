@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v11"
 )
 
 // models

@@ -14,10 +14,10 @@ import (
 	"github.com/jinzhu/inflection"
 	"github.com/vmihailenco/tagparser"
 
-	"github.com/go-pg/pg/v10/internal"
-	"github.com/go-pg/pg/v10/internal/pool"
-	"github.com/go-pg/pg/v10/pgjson"
-	"github.com/go-pg/pg/v10/types"
+	"github.com/go-pg/pg/v11/internal"
+	"github.com/go-pg/pg/v11/internal/pool"
+	"github.com/go-pg/pg/v11/pgjson"
+	"github.com/go-pg/pg/v11/types"
 	"github.com/go-pg/zerochecker"
 )
 

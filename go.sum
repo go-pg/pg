@@ -10,6 +10,7 @@ github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7
 github.com/fsnotify/fsnotify v1.4.7/go.mod h1:jwhsz4b93w/PPRr/qN1Yymfu8t87LnFCMoQvtojpjFo=
 github.com/fsnotify/fsnotify v1.4.9 h1:hsms1Qyu0jgnwNXIxa+/V/PDsU6CfLf6CNO8H7IWoS4=
 github.com/fsnotify/fsnotify v1.4.9/go.mod h1:znqG4EE+3YCdAaPaxE2ZRY/06pZUdp0tY4IgpuI1SZQ=
+github.com/go-pg/pg/v10 v10.3.2 h1:2GgewrvOE3G0eQH5V6NhAx5vzI+1If0cupnF9Ls3znY=
 github.com/go-pg/pg/v10 v10.3.2/go.mod h1:wY0cRYyO1JfUXBF2XjkbnNvhce3WyunFDhEvZXnHbP0=
 github.com/go-pg/pgext v0.2.0 h1:hN5ex/T86L2/zMXp/wTlVRqf39eGKprLeoqOM+bdbOo=
 github.com/go-pg/pgext v0.2.0/go.mod h1:0iPPtB2BIFZ2/Jzfr51HHcDEltm3tUVkXh4/su5u8kU=

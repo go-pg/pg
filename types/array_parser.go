@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/go-pg/pg/v10/internal/parser"
+	"github.com/go-pg/pg/v11/internal/parser"
 )
 
 var errEndOfArray = errors.New("pg: end of array")

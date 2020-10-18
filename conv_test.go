@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-pg/pg/v10"
-	"github.com/go-pg/pg/v10/orm"
-	"github.com/go-pg/pg/v10/pgjson"
-	"github.com/go-pg/pg/v10/types"
+	"github.com/go-pg/pg/v11"
+	"github.com/go-pg/pg/v11/orm"
+	"github.com/go-pg/pg/v11/pgjson"
+	"github.com/go-pg/pg/v11/types"
 	"github.com/stretchr/testify/assert"
 )
 

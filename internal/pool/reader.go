@@ -3,7 +3,7 @@ package pool
 import (
 	"sync"
 
-	"github.com/go-pg/pg/v10/internal"
+	"github.com/go-pg/pg/v11/internal"
 )
 
 type Reader interface {
