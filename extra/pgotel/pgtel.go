@@ -19,12 +19,12 @@ type queryOperation interface {
 	Operation() orm.QueryOp
 }
 
-// OpenTelemetryHook is a pg.QueryHook that adds OpenTelemetry instrumentation.
-type OpenTelemetryHook struct{}
+// TracingHook is a pg.QueryHook that adds OpenTelemetry instrumentation.
+type TracingHook struct{}
 
-var _ pg.QueryHook = (*OpenTelemetryHook)(nil)
+var _ pg.QueryHook = (*TracingHook)(nil)
 
-func (h OpenTelemetryHook) BeforeQuery(ctx context.Context, _ *pg.QueryEvent) (context.Context, error) {
+func (h TracingHook) BeforeQuery(ctx context.Context, _ *pg.QueryEvent) (context.Context, error) {
 	if !trace.SpanFromContext(ctx).IsRecording() {
 		return ctx, nil
 	}
@@ -33,7 +33,7 @@ func (h OpenTelemetryHook) BeforeQuery(ctx context.Context, _ *pg.QueryEvent) (c
 	return ctx, nil
 }
 
-func (h OpenTelemetryHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
+func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
 	span := trace.SpanFromContext(ctx)
 	if !span.IsRecording() {
 		return nil

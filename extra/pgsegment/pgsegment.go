@@ -7,22 +7,22 @@ import (
 	"github.com/segmentio/encoding/json"
 )
 
-var _ pgjson.Provider = (*SegmentJSONProvider)(nil)
+var _ pgjson.Provider = (*JSONProvider)(nil)
 
-type SegmentJSONProvider struct{}
+type JSONProvider struct{}
 
-func (SegmentJSONProvider) Marshal(v interface{}) ([]byte, error) {
+func (JSONProvider) Marshal(v interface{}) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-func (SegmentJSONProvider) Unmarshal(data []byte, v interface{}) error {
+func (JSONProvider) Unmarshal(data []byte, v interface{}) error {
 	return json.Unmarshal(data, v)
 }
 
-func (SegmentJSONProvider) NewEncoder(w io.Writer) pgjson.Encoder {
+func (JSONProvider) NewEncoder(w io.Writer) pgjson.Encoder {
 	return json.NewEncoder(w)
 }
 
-func (SegmentJSONProvider) NewDecoder(r io.Reader) pgjson.Decoder {
+func (JSONProvider) NewDecoder(r io.Reader) pgjson.Decoder {
 	return json.NewDecoder(r)
 }
