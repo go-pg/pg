@@ -25,7 +25,7 @@ func main() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
 	})
-	defer db.Close()
+	defer db.Close(ctx)
 
 	err := createSchema(db)
 	if err != nil {

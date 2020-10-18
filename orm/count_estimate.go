@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-pg/pg/v10/internal"
@@ -47,7 +48,7 @@ $$ LANGUAGE plpgsql;
 // returns the result.
 //
 // Based on https://wiki.postgresql.org/wiki/Count_estimate
-func (q *Query) CountEstimate(threshold int) (int, error) {
+func (q *Query) CountEstimate(ctx context.Context, threshold int) (int, error) {
 	if q.stickyErr != nil {
 		return 0, q.stickyErr
 	}
@@ -59,8 +60,8 @@ func (q *Query) CountEstimate(threshold int) (int, error) {
 
 	for i := 0; i < 3; i++ {
 		var count int
-		_, err = q.db.QueryOneContext(
-			q.ctx,
+		_, err = q.db.QueryOne(
+			ctx,
 			Scan(&count),
 			"SELECT _go_pg_count_estimate_v2(?, ?)",
 			string(query), threshold,
@@ -68,7 +69,7 @@ func (q *Query) CountEstimate(threshold int) (int, error) {
 		if err != nil {
 			if pgerr, ok := err.(internal.PGError); ok && pgerr.Field('C') == "42883" {
 				// undefined_function
-				err = q.createCountEstimateFunc()
+				err = q.createCountEstimateFunc(ctx)
 				if err != nil {
 					pgerr, ok := err.(internal.PGError)
 					if !ok || !pgerr.IntegrityViolation() {
@@ -84,7 +85,7 @@ func (q *Query) CountEstimate(threshold int) (int, error) {
 	return 0, err
 }
 
-func (q *Query) createCountEstimateFunc() error {
-	_, err := q.db.ExecContext(q.ctx, pgCountEstimateFunc)
+func (q *Query) createCountEstimateFunc(ctx context.Context) error {
+	_, err := q.db.Exec(ctx, pgCountEstimateFunc)
 	return err
 }

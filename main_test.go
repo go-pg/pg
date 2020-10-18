@@ -21,9 +21,9 @@ func TestUnixSocket(t *testing.T) {
 	opt.Addr = "/var/run/postgresql/.s.PGSQL.5432"
 	opt.TLSConfig = nil
 	db := pg.Connect(opt)
-	defer db.Close()
+	defer db.Close(ctx)
 
-	_, err := db.Exec("SELECT 'test_unix_socket'")
+	_, err := db.Exec(ctx, "SELECT 'test_unix_socket'")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,57 +42,57 @@ func (t *DBTest) SetUpTest(c *C) {
 }
 
 func (t *DBTest) TearDownTest(c *C) {
-	c.Assert(t.db.Close(), IsNil)
+	c.Assert(t.db.Close(ctx), IsNil)
 }
 
 func (t *DBTest) TestQueryOneErrMultiRows(c *C) {
-	_, err := t.db.QueryOne(pg.Discard, "SELECT generate_series(0, 1)")
+	_, err := t.db.QueryOne(ctx, pg.Discard, "SELECT generate_series(0, 1)")
 	c.Assert(err, Equals, pg.ErrMultiRows)
 }
 
 func (t *DBTest) TestExecOne(c *C) {
-	res, err := t.db.ExecOne("SELECT 'test_exec_one'")
+	res, err := t.db.ExecOne(ctx, "SELECT 'test_exec_one'")
 	c.Assert(err, IsNil)
 	c.Assert(res.RowsAffected(), Equals, 1)
 }
 
 func (t *DBTest) TestExecOneErrNoRows(c *C) {
-	_, err := t.db.ExecOne("SELECT 1 WHERE 1 != 1")
+	_, err := t.db.ExecOne(ctx, "SELECT 1 WHERE 1 != 1")
 	c.Assert(err, Equals, pg.ErrNoRows)
 }
 
 func (t *DBTest) TestExecOneErrMultiRows(c *C) {
-	_, err := t.db.ExecOne("SELECT generate_series(0, 1)")
+	_, err := t.db.ExecOne(ctx, "SELECT generate_series(0, 1)")
 	c.Assert(err, Equals, pg.ErrMultiRows)
 }
 
 func (t *DBTest) TestScan(c *C) {
 	var dst int
-	_, err := t.db.QueryOne(pg.Scan(&dst), "SELECT 1")
+	_, err := t.db.QueryOne(ctx, pg.Scan(&dst), "SELECT 1")
 	c.Assert(err, IsNil)
 	c.Assert(dst, Equals, 1)
 }
 
 func (t *DBTest) TestExec(c *C) {
-	res, err := t.db.Exec("CREATE TEMP TABLE test(id serial PRIMARY KEY)")
+	res, err := t.db.Exec(ctx, "CREATE TEMP TABLE test(id serial PRIMARY KEY)")
 	c.Assert(err, IsNil)
 	c.Assert(res.RowsAffected(), Equals, -1)
 
-	res, err = t.db.Exec("INSERT INTO test VALUES (1)")
+	res, err = t.db.Exec(ctx, "INSERT INTO test VALUES (1)")
 	c.Assert(err, IsNil)
 	c.Assert(res.RowsAffected(), Equals, 1)
 }
 
 func (t *DBTest) TestStatementExec(c *C) {
-	res, err := t.db.Exec("CREATE TEMP TABLE test(id serial PRIMARY KEY)")
+	res, err := t.db.Exec(ctx, "CREATE TEMP TABLE test(id serial PRIMARY KEY)")
 	c.Assert(err, IsNil)
 	c.Assert(res.RowsAffected(), Equals, -1)
 
-	stmt, err := t.db.Prepare("INSERT INTO test VALUES($1)")
+	stmt, err := t.db.Prepare(ctx, "INSERT INTO test VALUES($1)")
 	c.Assert(err, IsNil)
-	defer stmt.Close()
+	defer stmt.Close(ctx)
 
-	res, err = stmt.Exec(1)
+	res, err = stmt.Exec(ctx, 1)
 	c.Assert(err, IsNil)
 	c.Assert(res.RowsAffected(), Equals, 1)
 }
@@ -100,13 +100,13 @@ func (t *DBTest) TestStatementExec(c *C) {
 func (t *DBTest) TestLargeWriteRead(c *C) {
 	src := bytes.Repeat([]byte{0x1}, 1e6)
 	var dst []byte
-	_, err := t.db.QueryOne(pg.Scan(&dst), "SELECT ?", src)
+	_, err := t.db.QueryOne(ctx, pg.Scan(&dst), "SELECT ?", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst, DeepEquals, src)
 }
 
 func (t *DBTest) TestIntegrityError(c *C) {
-	_, err := t.db.Exec("DO $$BEGIN RAISE unique_violation USING MESSAGE='foo'; END$$;")
+	_, err := t.db.Exec(ctx, "DO $$BEGIN RAISE unique_violation USING MESSAGE='foo'; END$$;")
 	c.Assert(err.(pg.Error).IntegrityViolation(), Equals, true)
 }
 
@@ -136,7 +136,7 @@ func (s *customStrSlice) Scan(v interface{}) error {
 func (t *DBTest) TestScannerValueOnStruct(c *C) {
 	src := customStrSlice{"foo", "bar"}
 	dst := struct{ Dst customStrSlice }{}
-	_, err := t.db.QueryOne(&dst, "SELECT ? AS dst", src)
+	_, err := t.db.QueryOne(ctx, &dst, "SELECT ? AS dst", src)
 	c.Assert(err, IsNil)
 	c.Assert(dst.Dst, DeepEquals, src)
 }

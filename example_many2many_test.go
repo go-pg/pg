@@ -29,7 +29,7 @@ type OrderToItem struct {
 
 func ExampleDB_Model_manyToMany() {
 	db := connect()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	if err := createManyToManyTables(db); err != nil {
 		panic(err)
@@ -43,7 +43,7 @@ func ExampleDB_Model_manyToMany() {
 		&OrderToItem{OrderId: 1, ItemId: 2},
 	}
 	for _, v := range values {
-		_, err := db.Model(v).Insert()
+		_, err := db.Model(v).Insert(ctx)
 		if err != nil {
 			panic(err)
 		}
@@ -58,7 +58,7 @@ func ExampleDB_Model_manyToMany() {
 	// WHERE ("item"."id" = order_to_items."item_id")
 
 	order := new(Order)
-	err := db.Model(order).Relation("Items").First()
+	err := db.Model(order).Relation("Items").First(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -79,7 +79,7 @@ func ExampleDB_Model_manyToMany() {
 			q = q.OrderExpr("item.id DESC")
 			return q, nil
 		}).
-		First()
+		First(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -96,7 +96,7 @@ func createManyToManyTables(db *pg.DB) error {
 		(*OrderToItem)(nil),
 	}
 	for _, model := range models {
-		err := db.Model(model).CreateTable(&orm.CreateTableOptions{
+		err := db.Model(model).CreateTable(ctx, &orm.CreateTableOptions{
 			Temp: true,
 		})
 		if err != nil {

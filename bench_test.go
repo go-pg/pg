@@ -29,13 +29,13 @@ func BenchmarkQueryRowsGopgDiscard(b *testing.B) {
 	seedDB()
 
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := db.Query(pg.Discard, `SELECT * FROM records LIMIT 100`)
+			_, err := db.Query(ctx, pg.Discard, `SELECT * FROM records LIMIT 100`)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -47,14 +47,14 @@ func BenchmarkQueryRowsGopgOptimized(b *testing.B) {
 	seedDB()
 
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var rs OptRecords
-			_, err := db.Query(&rs, `SELECT * FROM records LIMIT 100`)
+			_, err := db.Query(ctx, &rs, `SELECT * FROM records LIMIT 100`)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -69,14 +69,14 @@ func BenchmarkQueryRowsGopgReflect(b *testing.B) {
 	seedDB()
 
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var rs []Record
-			_, err := db.Query(&rs, `SELECT * FROM records LIMIT 100`)
+			_, err := db.Query(ctx, &rs, `SELECT * FROM records LIMIT 100`)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -91,14 +91,14 @@ func BenchmarkQueryRowsGopgORM(b *testing.B) {
 	seedDB()
 
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var rs []Record
-			err := db.Model(&rs).Limit(100).Select()
+			err := db.Model(&rs).Limit(100).Select(ctx)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -113,14 +113,14 @@ func BenchmarkModelHasOneGopg(b *testing.B) {
 	seedDB()
 
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var books []Book
-			err := db.Model(&books).Column("book.*").Relation("Author").Limit(100).Select()
+			err := db.Model(&books).Column("book.*").Relation("Author").Limit(100).Select(ctx)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -136,13 +136,13 @@ func BenchmarkModelHasManyGopg(b *testing.B) {
 	seedDB()
 
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var books []Book
-			err := db.Model(&books).Column("book.*").Relation("Translations").Limit(100).Select()
+			err := db.Model(&books).Column("book.*").Relation("Translations").Limit(100).Select(ctx)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -163,7 +163,7 @@ func BenchmarkModelHasMany2ManyGopg(b *testing.B) {
 	seedDB()
 
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -172,7 +172,7 @@ func BenchmarkModelHasMany2ManyGopg(b *testing.B) {
 			err := db.Model(&books).
 				Column("book.*").Relation("Genres").
 				Limit(100).
-				Select()
+				Select(ctx)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -191,13 +191,13 @@ func BenchmarkModelHasMany2ManyGopg(b *testing.B) {
 
 func BenchmarkQueryRow(b *testing.B) {
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		var dst numLoader
-		_, err := db.QueryOne(&dst, `SELECT ?::bigint AS num`, 1)
+		_, err := db.QueryOne(ctx, &dst, `SELECT ?::bigint AS num`, 1)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -209,19 +209,19 @@ func BenchmarkQueryRow(b *testing.B) {
 
 func BenchmarkQueryRowStmt(b *testing.B) {
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
-	stmt, err := db.Prepare(`SELECT $1::bigint AS num`)
+	stmt, err := db.Prepare(ctx, `SELECT $1::bigint AS num`)
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer stmt.Close()
+	defer stmt.Close(ctx)
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		var dst numLoader
-		_, err := stmt.QueryOne(&dst, 1)
+		_, err := stmt.QueryOne(ctx, &dst, 1)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -233,14 +233,14 @@ func BenchmarkQueryRowStmt(b *testing.B) {
 
 func BenchmarkQueryRowScan(b *testing.B) {
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	b.ResetTimer()
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			var n int64
-			_, err := db.QueryOne(pg.Scan(&n), `SELECT ? AS num`, 1)
+			_, err := db.QueryOne(ctx, pg.Scan(&n), `SELECT ? AS num`, 1)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -253,19 +253,19 @@ func BenchmarkQueryRowScan(b *testing.B) {
 
 func BenchmarkQueryRowStmtScan(b *testing.B) {
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
-	stmt, err := db.Prepare(`SELECT $1::bigint AS num`)
+	stmt, err := db.Prepare(ctx, "SELECT $1::bigint AS num")
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer stmt.Close()
+	defer stmt.Close(ctx)
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		var n int64
-		_, err := stmt.QueryOne(pg.Scan(&n), 1)
+		_, err := stmt.QueryOne(ctx, pg.Scan(&n), 1)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -277,14 +277,14 @@ func BenchmarkQueryRowStmtScan(b *testing.B) {
 
 func BenchmarkExec(b *testing.B) {
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	qs := []string{
 		`DROP TABLE IF EXISTS exec_test`,
 		`CREATE TABLE exec_test(id bigint, name varchar(500))`,
 	}
 	for _, q := range qs {
-		_, err := db.Exec(q)
+		_, err := db.Exec(ctx, q)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -294,7 +294,7 @@ func BenchmarkExec(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := db.Exec(`INSERT INTO exec_test (id, name) VALUES (?, ?)`, 1, "hello world")
+			_, err := db.Exec(ctx, "INSERT INTO exec_test (id, name) VALUES (?, ?)", 1, "hello world")
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -304,20 +304,20 @@ func BenchmarkExec(b *testing.B) {
 
 func BenchmarkExecWithError(b *testing.B) {
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	qs := []string{
 		`DROP TABLE IF EXISTS exec_with_error_test`,
 		`CREATE TABLE exec_with_error_test(id bigint PRIMARY KEY, name varchar(500))`,
 	}
 	for _, q := range qs {
-		_, err := db.Exec(q)
+		_, err := db.Exec(ctx, q)
 		if err != nil {
 			b.Fatal(err)
 		}
 	}
 
-	_, err := db.Exec(`
+	_, err := db.Exec(ctx, `
 		INSERT INTO exec_with_error_test(id, name) VALUES(?, ?)
 	`, 1, "hello world")
 	if err != nil {
@@ -328,7 +328,7 @@ func BenchmarkExecWithError(b *testing.B) {
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			_, err := db.Exec(`INSERT INTO exec_with_error_test(id) VALUES(?)`, 1)
+			_, err := db.Exec(ctx, `INSERT INTO exec_with_error_test(id) VALUES(?)`, 1)
 			if err == nil {
 				b.Fatalf("got nil error, expected integrity violation")
 			} else if pgErr, ok := err.(pg.Error); !ok || !pgErr.IntegrityViolation() {
@@ -340,23 +340,23 @@ func BenchmarkExecWithError(b *testing.B) {
 
 func BenchmarkExecStmt(b *testing.B) {
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
-	_, err := db.Exec(`CREATE TEMP TABLE statement_exec(id bigint, name varchar(500))`)
+	_, err := db.Exec(ctx, `CREATE TEMP TABLE statement_exec(id bigint, name varchar(500))`)
 	if err != nil {
 		b.Fatal(err)
 	}
 
-	stmt, err := db.Prepare(`INSERT INTO statement_exec (id, name) VALUES ($1, $2)`)
+	stmt, err := db.Prepare(ctx, `INSERT INTO statement_exec (id, name) VALUES ($1, $2)`)
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer stmt.Close()
+	defer stmt.Close(ctx)
 
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		_, err := stmt.Exec(1, "hello world")
+		_, err := stmt.Exec(ctx, 1, "hello world")
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -465,14 +465,14 @@ func seedDB() {
 
 func _seedDB() error {
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
-	_, err := db.Exec(`DROP TABLE IF EXISTS records`)
+	_, err := db.Exec(ctx, "DROP TABLE IF EXISTS records")
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec(`
+	_, err = db.Exec(ctx, `
 		CREATE TABLE records(
 			num1 serial,
 			num2 serial,
@@ -487,7 +487,7 @@ func _seedDB() error {
 	}
 
 	for i := 0; i < 1000; i++ {
-		_, err = db.Exec(`
+		_, err = db.Exec(ctx, `
 			INSERT INTO records (str1, str2, str3) VALUES (?, ?, ?)
 		`, randSeq(100), randSeq(200), randSeq(300))
 		if err != nil {
@@ -505,7 +505,7 @@ func _seedDB() error {
 			ID:   i,
 			Name: fmt.Sprintf("genre %d", i),
 		}
-		_, err = db.Model(genre).Insert()
+		_, err = db.Model(genre).Insert(ctx)
 		if err != nil {
 			return err
 		}
@@ -514,7 +514,7 @@ func _seedDB() error {
 			ID:   i,
 			Name: fmt.Sprintf("author %d", i),
 		}
-		_, err = db.Model(author).Insert()
+		_, err = db.Model(author).Insert(ctx)
 		if err != nil {
 			return err
 		}
@@ -527,7 +527,7 @@ func _seedDB() error {
 			AuthorID:  rand.Intn(99) + 1,
 			CreatedAt: time.Now(),
 		}
-		_, err = db.Model(book).Insert()
+		_, err = db.Model(book).Insert(ctx)
 		if err != nil {
 			return err
 		}
@@ -537,7 +537,7 @@ func _seedDB() error {
 				BookID:  i,
 				GenreID: j,
 			}
-			_, err = db.Model(bookGenre).Insert()
+			_, err = db.Model(bookGenre).Insert(ctx)
 			if err != nil {
 				return err
 			}
@@ -546,7 +546,7 @@ func _seedDB() error {
 				BookID: i,
 				Lang:   fmt.Sprintf("%d", j),
 			}
-			_, err = db.Model(translation).Insert()
+			_, err = db.Model(translation).Insert(ctx)
 			if err != nil {
 				return err
 			}
@@ -565,14 +565,14 @@ func BenchmarkForEachReal(b *testing.B) {
 	}
 
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var i int
 		err := db.Model().
 			TableExpr("generate_series(1, ?) as id", N).
-			ForEach(func(m *Model) error {
+			ForEach(ctx, func(m *Model) error {
 				i++
 				return nil
 			})
@@ -594,14 +594,14 @@ func BenchmarkForEachInMemory(b *testing.B) {
 	}
 
 	db := benchmarkDB()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		var model []Model
 		err := db.Model().
 			TableExpr("generate_series(1, ?) as id", N).
-			Select(&model)
+			Select(ctx, &model)
 		if err != nil {
 			b.Fatal(err)
 		}

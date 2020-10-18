@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"context"
 	"reflect"
 
 	"github.com/go-pg/pg/v10/internal"
@@ -22,17 +23,17 @@ func (j *join) AppendOn(app *condAppender) {
 	j.on = append(j.on, app)
 }
 
-func (j *join) Select(fmter QueryFormatter, q *Query) error {
+func (j *join) Select(ctx context.Context, fmter QueryFormatter, q *Query) error {
 	switch j.Rel.Type {
 	case HasManyRelation:
-		return j.selectMany(fmter, q)
+		return j.selectMany(ctx, fmter, q)
 	case Many2ManyRelation:
-		return j.selectM2M(fmter, q)
+		return j.selectM2M(ctx, fmter, q)
 	}
 	panic("not reached")
 }
 
-func (j *join) selectMany(_ QueryFormatter, q *Query) error {
+func (j *join) selectMany(ctx context.Context, _ QueryFormatter, q *Query) error {
 	q, err := j.manyQuery(q)
 	if err != nil {
 		return err
@@ -40,7 +41,7 @@ func (j *join) selectMany(_ QueryFormatter, q *Query) error {
 	if q == nil {
 		return nil
 	}
-	return q.Select()
+	return q.Select(ctx)
 }
 
 func (j *join) manyQuery(q *Query) (*Query, error) {
@@ -86,7 +87,7 @@ func (j *join) manyQuery(q *Query) (*Query, error) {
 	return q, nil
 }
 
-func (j *join) selectM2M(fmter QueryFormatter, q *Query) error {
+func (j *join) selectM2M(ctx context.Context, fmter QueryFormatter, q *Query) error {
 	q, err := j.m2mQuery(fmter, q)
 	if err != nil {
 		return err
@@ -94,7 +95,7 @@ func (j *join) selectM2M(fmter QueryFormatter, q *Query) error {
 	if q == nil {
 		return nil
 	}
-	return q.Select()
+	return q.Select(ctx)
 }
 
 func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {

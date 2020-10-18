@@ -415,7 +415,7 @@ func conversionTests() []conversionTest {
 
 func TestConversion(t *testing.T) {
 	db := pg.Connect(pgOptions())
-	defer db.Close()
+	defer db.Close(ctx)
 
 	for i, test := range conversionTests() {
 		test.i = i
@@ -427,7 +427,7 @@ func TestConversion(t *testing.T) {
 			scanner = pg.Scan(test.dst)
 		}
 
-		_, err := db.QueryOne(scanner, "SELECT (?) AS dst", test.src)
+		_, err := db.QueryOne(ctx, scanner, "SELECT (?) AS dst", test.src)
 		test.Assert(t, err)
 	}
 
@@ -441,7 +441,7 @@ func TestConversion(t *testing.T) {
 			scanner = pg.Scan(test.dst)
 		}
 
-		err := db.Model().ColumnExpr("(?) AS dst", test.src).Select(scanner)
+		err := db.Model().ColumnExpr("(?) AS dst", test.src).Select(ctx, scanner)
 		test.Assert(t, err)
 	}
 
@@ -452,7 +452,7 @@ func TestConversion(t *testing.T) {
 			continue
 		}
 
-		stmt, err := db.Prepare(fmt.Sprintf("SELECT ($1::%s) AS dst", test.pgtype))
+		stmt, err := db.Prepare(ctx, fmt.Sprintf("SELECT ($1::%s) AS dst", test.pgtype))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -461,13 +461,13 @@ func TestConversion(t *testing.T) {
 		if v, ok := test.dst.(orm.ColumnScanner); ok {
 			scanner = v
 		} else {
-			scanner = pg.Scan(test.dst)
+			scanner = pg.Scan(ctx, test.dst)
 		}
 
-		_, err = stmt.QueryOne(scanner, test.src)
+		_, err = stmt.QueryOne(ctx, scanner, test.src)
 		test.Assert(t, err)
 
-		if err := stmt.Close(); err != nil {
+		if err := stmt.Close(ctx); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -483,7 +483,7 @@ func mustParseCIDR(s string) *net.IPNet {
 
 func TestReadColumnValue(t *testing.T) {
 	db := pg.Connect(pgOptions())
-	defer db.Close()
+	defer db.Close(ctx)
 
 	type Test struct {
 		pgtype  string
@@ -533,7 +533,7 @@ func TestReadColumnValue(t *testing.T) {
 		}
 
 		var m map[string]interface{}
-		err := db.Model().ColumnExpr("?::? AS col", value, pg.Safe(test.pgtype)).Select(&m)
+		err := db.Model().ColumnExpr("?::? AS col", value, pg.Safe(test.pgtype)).Select(ctx, &m)
 		assert.Nil(t, err)
 		assert.Equal(t, m["col"], test.value)
 	}
@@ -541,7 +541,7 @@ func TestReadColumnValue(t *testing.T) {
 	var mm []map[string]interface{}
 	err := db.Model().ColumnExpr("1").Union(
 		db.Model().ColumnExpr("2"),
-	).Select(&mm)
+	).Select(ctx, &mm)
 	assert.Nil(t, err)
 	assert.Equal(t, []map[string]interface{}{
 		{"?column?": int32(1)},

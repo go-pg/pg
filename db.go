@@ -16,7 +16,6 @@ import (
 func Connect(opt *Options) *DB {
 	opt.init()
 	return newDB(
-		context.Background(),
 		&baseDB{
 			opt:   opt,
 			pool:  newConnPool(opt),
@@ -25,10 +24,9 @@ func Connect(opt *Options) *DB {
 	)
 }
 
-func newDB(ctx context.Context, baseDB *baseDB) *DB {
+func newDB(baseDB *baseDB) *DB {
 	db := &DB{
 		baseDB: baseDB.clone(),
-		ctx:    ctx,
 	}
 	db.baseDB.db = db
 	return db
@@ -39,7 +37,6 @@ func newDB(ctx context.Context, baseDB *baseDB) *DB {
 // goroutines.
 type DB struct {
 	*baseDB
-	ctx context.Context
 }
 
 var _ orm.DB = (*DB)(nil)
@@ -53,25 +50,15 @@ func (db *DB) Options() *Options {
 	return db.opt
 }
 
-// Context returns DB context.
-func (db *DB) Context() context.Context {
-	return db.ctx
-}
-
-// WithContext returns a copy of the DB that uses the ctx.
-func (db *DB) WithContext(ctx context.Context) *DB {
-	return newDB(ctx, db.baseDB)
-}
-
 // WithTimeout returns a copy of the DB that uses d as the read/write timeout.
 func (db *DB) WithTimeout(d time.Duration) *DB {
-	return newDB(db.ctx, db.baseDB.WithTimeout(d))
+	return newDB(db.baseDB.WithTimeout(d))
 }
 
 // WithParam returns a copy of the DB that replaces the param with the value
 // in queries.
 func (db *DB) WithParam(param string, value interface{}) *DB {
-	return newDB(db.ctx, db.baseDB.WithParam(param, value))
+	return newDB(db.baseDB.WithParam(param, value))
 }
 
 // Listen listens for notifications sent with NOTIFY command.
@@ -94,7 +81,6 @@ func (db *DB) Listen(ctx context.Context, channels ...string) *Listener {
 // After a call to Close, all operations on the connection fail.
 type Conn struct {
 	*baseDB
-	ctx context.Context
 }
 
 var _ orm.DB = (*Conn)(nil)
@@ -105,38 +91,24 @@ var _ orm.DB = (*Conn)(nil)
 // Every Conn must be returned to the database pool after use by
 // calling Conn.Close.
 func (db *DB) Conn() *Conn {
-	return newConn(db.ctx, db.baseDB.withPool(pool.NewStickyConnPool(db.pool)))
+	return newConn(db.baseDB.withPool(pool.NewStickyConnPool(db.pool)))
 }
 
-func newConn(ctx context.Context, baseDB *baseDB) *Conn {
+func newConn(baseDB *baseDB) *Conn {
 	conn := &Conn{
 		baseDB: baseDB,
-		ctx:    ctx,
 	}
 	conn.baseDB.db = conn
 	return conn
 }
 
-// Context returns DB context.
-func (db *Conn) Context() context.Context {
-	if db.ctx != nil {
-		return db.ctx
-	}
-	return context.Background()
-}
-
-// WithContext returns a copy of the DB that uses the ctx.
-func (db *Conn) WithContext(ctx context.Context) *Conn {
-	return newConn(ctx, db.baseDB)
-}
-
 // WithTimeout returns a copy of the DB that uses d as the read/write timeout.
 func (db *Conn) WithTimeout(d time.Duration) *Conn {
-	return newConn(db.ctx, db.baseDB.WithTimeout(d))
+	return newConn(db.baseDB.WithTimeout(d))
 }
 
 // WithParam returns a copy of the DB that replaces the param with the value
 // in queries.
 func (db *Conn) WithParam(param string, value interface{}) *Conn {
-	return newConn(db.ctx, db.baseDB.WithParam(param, value))
+	return newConn(db.baseDB.WithParam(param, value))
 }

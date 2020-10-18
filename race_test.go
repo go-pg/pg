@@ -32,7 +32,7 @@ var _ = Describe("DB timeout race", func() {
 		Expect(pool.Len()).To(Equal(0))
 		Expect(pool.IdleLen()).To(Equal(0))
 
-		err := db.Close()
+		err := db.Close(ctx)
 		Expect(err).NotTo(HaveOccurred())
 
 		// Give Postgres some time to recover.
@@ -43,7 +43,7 @@ var _ = Describe("DB timeout race", func() {
 		It("is race free", func() {
 			perform(C, func(id int) {
 				for i := 0; i < N; i++ {
-					_, err := db.Exec("SELECT pg_sleep(1)")
+					_, err := db.Exec(ctx, "SELECT pg_sleep(1)")
 					Expect(err).To(HaveOccurred())
 				}
 			})
@@ -95,7 +95,7 @@ var _ = Describe("DB race", func() {
 	})
 
 	AfterEach(func() {
-		err := db.Close()
+		err := db.Close(ctx)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -104,10 +104,10 @@ var _ = Describe("DB race", func() {
 			for i := 0; i < N; i++ {
 				var n int
 				if i%2 == 0 {
-					_, err := db.QueryOne(pg.Scan(&n), "SELECT 1, 2")
+					_, err := db.QueryOne(ctx, pg.Scan(&n), "SELECT 1, 2")
 					Expect(err).To(HaveOccurred())
 				} else {
-					_, err := db.QueryOne(pg.Scan(&n), "SELECT 123")
+					_, err := db.QueryOne(ctx, pg.Scan(&n), "SELECT 123")
 					Expect(err).NotTo(HaveOccurred())
 					Expect(n).To(Equal(123))
 				}
@@ -127,12 +127,12 @@ var _ = Describe("DB race", func() {
 					Where("name = ?name").
 					OnConflict("DO NOTHING").
 					Returning("id").
-					SelectOrInsert(&a.ID)
+					SelectOrInsert(ctx, &a.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(a.ID).NotTo(BeZero())
 
 				if i%(N/C) == 0 {
-					_, err := db.Model(a).WherePK().Delete()
+					_, err := db.Model(a).WherePK().Delete(ctx)
 					if err != pg.ErrNoRows {
 						Expect(err).NotTo(HaveOccurred())
 					}
@@ -140,7 +140,7 @@ var _ = Describe("DB race", func() {
 			}
 		})
 
-		count, err := db.Model((*Author)(nil)).Count()
+		count, err := db.Model((*Author)(nil)).Count(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(count).To(Equal(1))
 	})
@@ -156,12 +156,12 @@ var _ = Describe("DB race", func() {
 					Column("id").
 					Where("name = ?name").
 					Returning("id").
-					SelectOrInsert(&a.ID)
+					SelectOrInsert(ctx, &a.ID)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(a.ID).NotTo(BeZero())
 
 				if i%(N/C) == 0 {
-					_, err := db.Model(a).WherePK().Delete()
+					_, err := db.Model(a).WherePK().Delete(ctx)
 					if err != pg.ErrNoRows {
 						Expect(err).NotTo(HaveOccurred())
 					}
@@ -169,16 +169,9 @@ var _ = Describe("DB race", func() {
 			}
 		})
 
-		count, err := db.Model((*Author)(nil)).Count()
+		count, err := db.Model((*Author)(nil)).Count(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(count).To(Equal(1))
-	})
-
-	It("WithContext is race free", func() {
-		perform(C, func(id int) {
-			dbWithCtx := db.WithContext(context.Background())
-			Expect(dbWithCtx).NotTo(BeNil())
-		})
 	})
 
 	It("WithTimeout is race free", func() {
@@ -194,7 +187,7 @@ var _ = Describe("DB race", func() {
 				func() {
 					ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 					defer cancel()
-					_, err := db.ExecContext(ctx, "SELECT 1")
+					_, err := db.Exec(ctx, "SELECT 1")
 					Expect(err).NotTo(HaveOccurred())
 				}()
 			}
@@ -207,7 +200,7 @@ var _ = Describe("DB race", func() {
 		}
 
 		perform(C, func(id int) {
-			n, err := db.Model((*TestTable)(nil)).Count()
+			n, err := db.Model((*TestTable)(nil)).Count(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(n).To(Equal(10))
 		})

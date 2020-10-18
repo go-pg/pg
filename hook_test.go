@@ -104,18 +104,18 @@ var _ = Describe("HookTest", func() {
 			"INSERT INTO hook_tests VALUES (1, '')",
 		}
 		for _, q := range qs {
-			_, err := db.Exec(q)
+			_, err := db.Exec(ctx, q)
 			Expect(err).NotTo(HaveOccurred())
 		}
 	})
 
 	AfterEach(func() {
-		Expect(db.Close()).NotTo(HaveOccurred())
+		Expect(db.Close(ctx)).NotTo(HaveOccurred())
 	})
 
 	It("calls AfterSelect for a struct model", func() {
 		var hook HookTest
-		err := db.Model(&hook).Select()
+		err := db.Model(&hook).Select(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(hook).To(Equal(HookTest{
 			Id:          1,
@@ -127,7 +127,7 @@ var _ = Describe("HookTest", func() {
 
 	It("calls AfterSelect for a slice model", func() {
 		var hooks []HookTest
-		err := db.Model(&hooks).Select()
+		err := db.Model(&hooks).Select(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(hooks).To(HaveLen(1))
 		Expect(hooks[0]).To(Equal(HookTest{
@@ -142,7 +142,7 @@ var _ = Describe("HookTest", func() {
 		hook := &HookTest{
 			Id: 1,
 		}
-		_, err := db.Model(hook).Insert()
+		_, err := db.Model(hook).Insert(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(hook).To(Equal(&HookTest{
 			Id:           1,
@@ -157,7 +157,7 @@ var _ = Describe("HookTest", func() {
 		hook := &HookTest{
 			Id: 1,
 		}
-		_, err := db.Model(hook).WherePK().Update()
+		_, err := db.Model(hook).WherePK().Update(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(hook).To(Equal(&HookTest{
 			Id:           1,
@@ -170,7 +170,7 @@ var _ = Describe("HookTest", func() {
 		_, err := db.Model((*HookTest)(nil)).
 			Set("value = 'new'").
 			Where("id = 123").
-			Update()
+			Update(ctx)
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -178,7 +178,7 @@ var _ = Describe("HookTest", func() {
 		hook := &HookTest{
 			Id: 1,
 		}
-		_, err := db.Model(hook).WherePK().Delete()
+		_, err := db.Model(hook).WherePK().Delete(ctx)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(hook).To(Equal(&HookTest{
 			Id:           1,
@@ -190,7 +190,7 @@ var _ = Describe("HookTest", func() {
 	It("does not call BeforeDelete and AfterDelete for nil model", func() {
 		_, err := db.Model((*HookTest)(nil)).
 			Where("id = 123").
-			Delete()
+			Delete(ctx)
 		Expect(err).NotTo(HaveOccurred())
 	})
 })
@@ -221,13 +221,13 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			"INSERT INTO hook_tests VALUES (1, '')",
 		}
 		for _, q := range qs {
-			_, err := db.Exec(q)
+			_, err := db.Exec(ctx, q)
 			Expect(err).NotTo(HaveOccurred())
 		}
 	})
 
 	AfterEach(func() {
-		Expect(db.Close()).NotTo(HaveOccurred())
+		Expect(db.Close(ctx)).NotTo(HaveOccurred())
 	})
 
 	Describe("Query/Exec", func() {
@@ -283,13 +283,13 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 		})
 
 		It("is called for Query", func() {
-			_, err := db.Query(pg.Discard, "SELECT ?", 1)
+			_, err := db.Query(ctx, pg.Discard, "SELECT ?", 1)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(count).To(Equal(1))
 		})
 
 		It("is called for Exec", func() {
-			_, err := db.Exec("SELECT ?", 1)
+			_, err := db.Exec(ctx, "SELECT ?", 1)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(count).To(Equal(1))
 		})
@@ -349,7 +349,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 
 		It("is called for Model", func() {
 			var n int
-			err := db.Model().ColumnExpr("?", 1).Select(&n)
+			err := db.Model().ColumnExpr("?", 1).Select(ctx, &n)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(count).To(Equal(1))
 		})
@@ -371,7 +371,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 		})
 
 		It("is called for Model", func() {
-			_, err := db.Model((*HookTest)(nil)).Exec("CREATE INDEX stories_author_id_idx ON ?TableName (author_id)")
+			_, err := db.Model((*HookTest)(nil)).Exec(ctx, "CREATE INDEX stories_author_id_idx ON ?TableName (author_id)")
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -422,7 +422,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			}
 			db.AddQueryHook(hookImpl)
 
-			_, err := db.Model((*HookTest)(nil)).CopyTo(ioutil.Discard, `COPY ?TableName TO STDOUT CSV`)
+			_, err := db.Model((*HookTest)(nil)).CopyTo(ctx, ioutil.Discard, `COPY ?TableName TO STDOUT CSV`)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -469,7 +469,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			}
 			db.AddQueryHook(hookImpl)
 
-			_, err := db.CopyTo(ioutil.Discard, `COPY (SELECT 1) TO STDOUT CSV`)
+			_, err := db.CopyTo(ctx, ioutil.Discard, `COPY (SELECT 1) TO STDOUT CSV`)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
@@ -521,7 +521,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			db.AddQueryHook(hookImpl)
 
 			const in = `10,test`
-			_, err := db.Model((*HookTest)(nil)).CopyFrom(strings.NewReader(in), `COPY ?TableName FROM STDIN CSV`)
+			_, err := db.Model((*HookTest)(nil)).CopyFrom(ctx, strings.NewReader(in), `COPY ?TableName FROM STDIN CSV`)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -569,7 +569,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			db.AddQueryHook(hookImpl)
 
 			const in = `10,test`
-			_, err := db.CopyFrom(strings.NewReader(in), `COPY "hook_tests" FROM STDIN CSV`)
+			_, err := db.CopyFrom(ctx, strings.NewReader(in), `COPY "hook_tests" FROM STDIN CSV`)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})

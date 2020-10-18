@@ -66,7 +66,7 @@ func (ln *Listener) connWithLock(ctx context.Context) (*pool.Conn, error) {
 	case errListenerClosed:
 		return nil, err
 	case pool.ErrClosed:
-		_ = ln.Close()
+		_ = ln.Close(ctx)
 		return nil, errListenerClosed
 	default:
 		internal.Logger.Printf(ctx, "pg: Listen failed: %s", err)
@@ -118,16 +118,16 @@ func (ln *Listener) releaseConn(ctx context.Context, cn *pool.Conn, err error, a
 }
 
 func (ln *Listener) reconnect(ctx context.Context, reason error) {
-	_ = ln.closeTheCn(reason)
+	_ = ln.closeTheCn(ctx, reason)
 	_, _ = ln.conn(ctx)
 }
 
-func (ln *Listener) closeTheCn(reason error) error {
+func (ln *Listener) closeTheCn(ctx context.Context, reason error) error {
 	if ln.cn == nil {
 		return nil
 	}
 	if !ln.closed {
-		internal.Logger.Printf(ln.db.ctx, "pg: discarding bad listener connection: %s", reason)
+		internal.Logger.Printf(ctx, "pg: discarding bad listener connection: %s", reason)
 	}
 
 	err := ln.db.pool.CloseConn(ln.cn)
@@ -136,7 +136,7 @@ func (ln *Listener) closeTheCn(reason error) error {
 }
 
 // Close closes the listener, releasing any open resources.
-func (ln *Listener) Close() error {
+func (ln *Listener) Close(ctx context.Context) error {
 	ln.mu.Lock()
 	defer ln.mu.Unlock()
 
@@ -146,7 +146,7 @@ func (ln *Listener) Close() error {
 	ln.closed = true
 	close(ln.exit)
 
-	return ln.closeTheCn(errListenerClosed)
+	return ln.closeTheCn(ctx, errListenerClosed)
 }
 
 // Listen starts listening for notifications on channels.
@@ -257,7 +257,7 @@ func (ln *Listener) ChannelSize(size int) <-chan Notification {
 
 func (ln *Listener) channel(size int) <-chan Notification {
 	ln.chOnce.Do(func() {
-		ln.initChannel(size)
+		ln.initChannel(context.Background(), size)
 	})
 	if cap(ln.ch) != size {
 		err := fmt.Errorf("pg: Listener.Channel is called with different buffer size")
@@ -266,11 +266,10 @@ func (ln *Listener) channel(size int) <-chan Notification {
 	return ln.ch
 }
 
-func (ln *Listener) initChannel(size int) {
+func (ln *Listener) initChannel(ctx context.Context, size int) {
 	const pingTimeout = time.Second
 	const chanSendTimeout = time.Minute
 
-	ctx := ln.db.ctx
 	_ = ln.Listen(ctx, gopgChannel)
 
 	ln.ch = make(chan Notification, size)
@@ -341,7 +340,7 @@ func (ln *Listener) initChannel(size int) {
 					<-timer.C
 				}
 			case <-timer.C:
-				pingErr := ln.ping()
+				pingErr := ln.ping(ctx)
 				if healthy {
 					healthy = false
 				} else {
@@ -359,8 +358,8 @@ func (ln *Listener) initChannel(size int) {
 	}()
 }
 
-func (ln *Listener) ping() error {
-	_, err := ln.db.Exec("NOTIFY ?", pgChan(gopgChannel))
+func (ln *Listener) ping(ctx context.Context) error {
+	_, err := ln.db.Exec(ctx, "NOTIFY ?", pgChan(gopgChannel))
 	return err
 }
 

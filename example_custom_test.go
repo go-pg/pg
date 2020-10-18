@@ -55,20 +55,20 @@ type Event struct {
 
 func ExampleDB_Model_customType() {
 	db := connect()
-	defer db.Close()
+	defer db.Close(ctx)
 
-	err := db.Model((*Event)(nil)).CreateTable(&orm.CreateTableOptions{
+	err := db.Model((*Event)(nil)).CreateTable(ctx, &orm.CreateTableOptions{
 		Temp: true,
 	})
 	panicIf(err)
 
 	_, err = db.Model(&Event{
 		Time: Time{time.Date(0, 0, 0, 12, 00, 00, 00, time.UTC)}, // noon
-	}).Insert()
+	}).Insert(ctx)
 	panicIf(err)
 
 	evt := new(Event)
-	err = db.Model(evt).Select()
+	err = db.Model(evt).Select(ctx)
 	panicIf(err)
 
 	fmt.Println(evt.Time)

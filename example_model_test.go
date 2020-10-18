@@ -21,7 +21,7 @@ func modelDB() *pg.DB {
 
 	_, err = db.Model(&Author{
 		Name: "author 1",
-	}).Insert()
+	}).Insert(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -40,7 +40,7 @@ func modelDB() *pg.DB {
 		EditorID:  11,
 		CreatedAt: time.Now(),
 	}}
-	_, err = db.Model(&books).Insert()
+	_, err = db.Model(&books).Insert(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -49,7 +49,7 @@ func modelDB() *pg.DB {
 		genre := Genre{
 			Name: fmt.Sprintf("genre %d", i+1),
 		}
-		_, err = db.Model(&genre).Insert()
+		_, err = db.Model(&genre).Insert(ctx)
 		if err != nil {
 			panic(err)
 		}
@@ -57,14 +57,14 @@ func modelDB() *pg.DB {
 		_, err = db.Model(&BookGenre{
 			BookID:  1,
 			GenreID: genre.ID,
-		}).Insert()
+		}).Insert(ctx)
 		if err != nil {
 			panic(err)
 		}
 	}
 
 	// For CountEstimate.
-	_, err = db.Exec("VACUUM")
+	_, err = db.Exec(ctx, "VACUUM")
 	if err != nil {
 		panic(err)
 	}
@@ -80,14 +80,14 @@ func ExampleDB_Model_insert() {
 		AuthorID: 1,
 	}
 
-	_, err := db.Model(book).Insert()
+	_, err := db.Model(book).Insert(ctx)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println(book)
 	// Output: Book<Id=4 Title="new book">
 
-	_, err = db.Model(book).WherePK().Delete()
+	_, err = db.Model(book).WherePK().Delete(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -102,7 +102,7 @@ func ExampleDB_Model_bulkInsert() {
 	book2 := &Book{
 		Title: "new book 2",
 	}
-	_, err := db.Model(book1, book2).Insert()
+	_, err := db.Model(book1, book2).Insert(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -110,7 +110,7 @@ func ExampleDB_Model_bulkInsert() {
 	// Output: Book<Id=4 Title="new book 1"> Book<Id=5 Title="new book 2">
 
 	for _, book := range []*Book{book1, book2} {
-		_, err := db.Model(book).WherePK().Delete()
+		_, err := db.Model(book).WherePK().Delete(ctx)
 		if err != nil {
 			panic(err)
 		}
@@ -125,7 +125,7 @@ func ExampleDB_Model_bulkInsertSlice() {
 	}, {
 		Title: "new book 2",
 	}}
-	_, err := db.Model(&books).Insert()
+	_, err := db.Model(&books).Insert(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -133,7 +133,7 @@ func ExampleDB_Model_bulkInsertSlice() {
 	// Output: [Book<Id=4 Title="new book 1"> Book<Id=5 Title="new book 2">]
 
 	for i := range books {
-		_, err := db.Model(&books[i]).WherePK().Delete()
+		_, err := db.Model(&books[i]).WherePK().Delete(ctx)
 		if err != nil {
 			panic(err)
 		}
@@ -149,7 +149,7 @@ func ExampleDB_Model_insertOnConflictDoNothing() {
 	}
 
 	for i := 0; i < 2; i++ {
-		res, err := db.Model(book).OnConflict("DO NOTHING").Insert()
+		res, err := db.Model(book).OnConflict("DO NOTHING").Insert(ctx)
 		if err != nil {
 			panic(err)
 		}
@@ -160,7 +160,7 @@ func ExampleDB_Model_insertOnConflictDoNothing() {
 		}
 	}
 
-	_, err := db.Model(book).WherePK().Delete()
+	_, err := db.Model(book).WherePK().Delete(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -181,19 +181,19 @@ func ExampleDB_Model_insertOnConflictDoUpdate() {
 		_, err := db.Model(book).
 			OnConflict("(id) DO UPDATE").
 			Set("title = EXCLUDED.title").
-			Insert()
+			Insert(ctx)
 		if err != nil {
 			panic(err)
 		}
 
-		err = db.Model(book).WherePK().Select()
+		err = db.Model(book).WherePK().Select(ctx)
 		if err != nil {
 			panic(err)
 		}
 		fmt.Println(book)
 	}
 
-	_, err := db.Model(book).WherePK().Delete()
+	_, err := db.Model(book).WherePK().Delete(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -213,7 +213,7 @@ func ExampleDB_Model_selectOrInsert() {
 		Where("name = ?name").
 		OnConflict("DO NOTHING"). // OnConflict is optional
 		Returning("id").
-		SelectOrInsert()
+		SelectOrInsert(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -229,21 +229,21 @@ func ExampleDB_Model_insertDynamicTableName() {
 
 	db := modelDB()
 
-	err := db.Model((*NamelessModel)(nil)).Table("dynamic_name").CreateTable(nil)
+	err := db.Model((*NamelessModel)(nil)).Table("dynamic_name").CreateTable(ctx, nil)
 	panicIf(err)
 
 	row123 := &NamelessModel{
 		Id: 123,
 	}
-	_, err = db.Model(row123).Table("dynamic_name").Insert()
+	_, err = db.Model(row123).Table("dynamic_name").Insert(ctx)
 	panicIf(err)
 
 	row := new(NamelessModel)
-	err = db.Model(row).Table("dynamic_name").First()
+	err = db.Model(row).Table("dynamic_name").First(ctx)
 	panicIf(err)
 	fmt.Println("id is", row.Id)
 
-	err = db.Model((*NamelessModel)(nil)).Table("dynamic_name").DropTable(nil)
+	err = db.Model((*NamelessModel)(nil)).Table("dynamic_name").DropTable(ctx, nil)
 	panicIf(err)
 
 	// Output: id is 123
@@ -255,7 +255,7 @@ func ExampleDB_Model_select() {
 	book := &Book{
 		ID: 1,
 	}
-	err := db.Model(book).WherePK().Select()
+	err := db.Model(book).WherePK().Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -267,7 +267,7 @@ func ExampleDB_Model_selectFirstRow() {
 	db := modelDB()
 
 	var firstBook Book
-	err := db.Model(&firstBook).First()
+	err := db.Model(&firstBook).First(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -279,7 +279,7 @@ func ExampleDB_Model_selectLastRow() {
 	db := modelDB()
 
 	var lastBook Book
-	err := db.Model(&lastBook).Last()
+	err := db.Model(&lastBook).Last(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -291,7 +291,7 @@ func ExampleDB_Model_selectAllColumns() {
 	db := modelDB()
 
 	var book Book
-	err := db.Model(&book).Column("book.*").First()
+	err := db.Model(&book).Column("book.*").First(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -307,7 +307,7 @@ func ExampleDB_Model_selectSomeColumns() {
 		Column("book.id", "book.title").
 		OrderExpr("book.id ASC").
 		Limit(1).
-		Select()
+		Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -325,7 +325,7 @@ func ExampleDB_Model_selectSomeColumnsIntoVars() {
 		Column("book.id", "book.title").
 		OrderExpr("book.id ASC").
 		Limit(1).
-		Select(&id, &title)
+		Select(ctx, &id, &title)
 	if err != nil {
 		panic(err)
 	}
@@ -338,7 +338,7 @@ func ExampleDB_Model_selectWhereIn() {
 	db := modelDB()
 
 	var books []Book
-	err := db.Model(&books).WhereIn("id IN (?)", []int{1, 2}).Select()
+	err := db.Model(&books).WhereIn("id IN (?)", []int{1, 2}).Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -357,7 +357,7 @@ func ExampleDB_Model_selectWhereGroup() {
 			return q, nil
 		}).
 		Where("title IS NOT NULL").
-		Select()
+		Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -371,7 +371,7 @@ func ExampleDB_Model_selectSQLExpression() {
 	var ids []int
 	err := db.Model(&Book{}).
 		ColumnExpr("array_agg(book.id)").
-		Select(pg.Array(&ids))
+		Select(ctx, pg.Array(&ids))
 	if err != nil {
 		panic(err)
 	}
@@ -392,7 +392,7 @@ func ExampleDB_Model_selectGroupBy() {
 		ColumnExpr("count(*) AS book_count").
 		Group("author_id").
 		OrderExpr("book_count DESC").
-		Select(&res)
+		Select(ctx, &res)
 	if err != nil {
 		panic(err)
 	}
@@ -411,7 +411,7 @@ func ExampleDB_Model_selectWith() {
 	err := pgdb.Model().
 		With("author_books", authorBooks).
 		Table("author_books").
-		Select(&books)
+		Select(ctx, &books)
 	if err != nil {
 		panic(err)
 	}
@@ -429,7 +429,7 @@ func ExampleDB_Model_selectWrapWith() {
 		Where("author_id = ?", 1).
 		WrapWith("author_books").
 		Table("author_books").
-		Select(&books)
+		Select(ctx, &books)
 	if err != nil {
 		panic(err)
 	}
@@ -457,7 +457,7 @@ func ExampleDB_Model_selectApplyFunc() {
 	authorId = 1
 	err := db.Model(&books).
 		Apply(filter).
-		Select()
+		Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -468,7 +468,7 @@ func ExampleDB_Model_selectApplyFunc() {
 func ExampleDB_Model_count() {
 	db := modelDB()
 
-	count, err := db.Model(&Book{}).Count()
+	count, err := db.Model(&Book{}).Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -480,7 +480,7 @@ func ExampleDB_Model_count() {
 func ExampleDB_Model_countEstimate() {
 	db := modelDB()
 
-	count, err := db.Model(&Book{}).CountEstimate(0)
+	count, err := db.Model(&Book{}).CountEstimate(ctx, 0)
 	if err != nil {
 		panic(err)
 	}
@@ -493,7 +493,7 @@ func ExampleDB_Model_selectAndCount() {
 	db := modelDB()
 
 	var books []Book
-	count, err := db.Model(&books).OrderExpr("id ASC").Limit(2).SelectAndCount()
+	count, err := db.Model(&books).OrderExpr("id ASC").Limit(2).SelectAndCount(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -508,7 +508,7 @@ func ExampleDB_Model_exists() {
 	db := modelDB()
 
 	var books []Book
-	exists, err := db.Model(&books).Where("author_id = ?", 1).Exists()
+	exists, err := db.Model(&books).Where("author_id = ?", 1).Exists(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -523,7 +523,7 @@ func ExampleDB_Model_nullEmptyValue() {
 	}
 
 	var str sql.NullString
-	_, err := pgdb.QueryOne(pg.Scan(&str), "SELECT ?hello", &Example{Hello: ""})
+	_, err := pgdb.QueryOne(ctx, pg.Scan(&str), "SELECT ?hello", &Example{Hello: ""})
 	if err != nil {
 		panic(err)
 	}
@@ -534,7 +534,7 @@ func ExampleDB_Model_nullEmptyValue() {
 func ExampleDB_Model_forEach() {
 	err := pgdb.Model((*Book)(nil)).
 		OrderExpr("id ASC").
-		ForEach(func(b *Book) error {
+		ForEach(ctx, func(b *Book) error {
 			fmt.Println(b)
 			return nil
 		})
@@ -561,7 +561,7 @@ func ExampleDB_Model_hasOne() {
 	}
 
 	db := connect()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	qs := []string{
 		"CREATE TEMP TABLE users (id int, name text, profile_id int)",
@@ -570,7 +570,7 @@ func ExampleDB_Model_hasOne() {
 		"INSERT INTO profiles VALUES (1, 'en'), (2, 'ru')",
 	}
 	for _, q := range qs {
-		_, err := db.Exec(q)
+		_, err := db.Exec(ctx, q)
 		if err != nil {
 			panic(err)
 		}
@@ -590,7 +590,7 @@ func ExampleDB_Model_hasOne() {
 	err := db.Model(&users).
 		Column("user.*").
 		Relation("Profile").
-		Select()
+		Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -618,7 +618,7 @@ func ExampleDB_Model_belongsTo() {
 	}
 
 	db := connect()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	qs := []string{
 		"CREATE TEMP TABLE users (id int, name text)",
@@ -627,7 +627,7 @@ func ExampleDB_Model_belongsTo() {
 		"INSERT INTO profiles VALUES (1, 'en', 1), (2, 'ru', 2)",
 	}
 	for _, q := range qs {
-		_, err := db.Exec(q)
+		_, err := db.Exec(ctx, q)
 		if err != nil {
 			panic(err)
 		}
@@ -646,7 +646,7 @@ func ExampleDB_Model_belongsTo() {
 	err := db.Model(&users).
 		Column("user.*").
 		Relation("Profile").
-		Select()
+		Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -675,7 +675,7 @@ func ExampleDB_Model_hasMany() {
 	}
 
 	db := connect()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	qs := []string{
 		"CREATE TEMP TABLE users (id int, name text)",
@@ -684,7 +684,7 @@ func ExampleDB_Model_hasMany() {
 		"INSERT INTO profiles VALUES (1, 'en', TRUE, 1), (2, 'ru', TRUE, 1), (3, 'md', FALSE, 1)",
 	}
 	for _, q := range qs {
-		_, err := db.Exec(q)
+		_, err := db.Exec(ctx, q)
 		if err != nil {
 			panic(err)
 		}
@@ -703,7 +703,7 @@ func ExampleDB_Model_hasMany() {
 		Relation("Profiles", func(q *orm.Query) (*orm.Query, error) {
 			return q.Where("active IS TRUE"), nil
 		}).
-		First()
+		First(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -719,14 +719,14 @@ func ExampleDB_Model_hasManySelf() {
 	}
 
 	db := connect()
-	defer db.Close()
+	defer db.Close(ctx)
 
 	qs := []string{
 		"CREATE TEMP TABLE items (id int, parent_id int)",
 		"INSERT INTO items VALUES (1, NULL), (2, 1), (3, 1)",
 	}
 	for _, q := range qs {
-		_, err := db.Exec(q)
+		_, err := db.Exec(ctx, q)
 		if err != nil {
 			panic(err)
 		}
@@ -739,7 +739,7 @@ func ExampleDB_Model_hasManySelf() {
 	// SELECT "item".* FROM "items" AS "item" WHERE (("item"."parent_id") IN ((1)))
 
 	var item Item
-	err := db.Model(&item).Column("item.*").Relation("Items").First()
+	err := db.Model(&item).Column("item.*").Relation("Items").First(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -753,18 +753,18 @@ func ExampleDB_Model_update() {
 	db := modelDB()
 
 	book := &Book{ID: 1}
-	err := db.Model(book).WherePK().Select()
+	err := db.Model(book).WherePK().Select(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	book.Title = "updated book 1"
-	_, err = db.Model(book).WherePK().Update()
+	_, err = db.Model(book).WherePK().Update(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	err = db.Model(book).WherePK().Select()
+	err = db.Model(book).WherePK().Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -780,13 +780,13 @@ func ExampleDB_Model_updateNotZero() {
 		ID:    1,
 		Title: "updated book 1",
 	}
-	_, err := db.Model(book).WherePK().UpdateNotZero()
+	_, err := db.Model(book).WherePK().UpdateNotZero(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	book = new(Book)
-	err = db.Model(book).Where("id = ?", 1).Select()
+	err = db.Model(book).Where("id = ?", 1).Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -802,9 +802,9 @@ func ExampleDB_Model_updateUseZeroBool() {
 	}
 
 	db := pg.Connect(pgOptions())
-	defer db.Close()
+	defer db.Close(ctx)
 
-	err := db.Model((*Event)(nil)).CreateTable(&orm.CreateTableOptions{
+	err := db.Model((*Event)(nil)).CreateTable(ctx, &orm.CreateTableOptions{
 		Temp: true,
 	})
 	if err != nil {
@@ -815,7 +815,7 @@ func ExampleDB_Model_updateUseZeroBool() {
 		ID:     1,
 		Active: true,
 	}
-	_, err = db.Model(event).Insert()
+	_, err = db.Model(event).Insert(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -823,13 +823,13 @@ func ExampleDB_Model_updateUseZeroBool() {
 	fmt.Println(event)
 
 	event.Active = false
-	_, err = db.Model(event).WherePK().UpdateNotZero()
+	_, err = db.Model(event).WherePK().UpdateNotZero(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	event2 := new(Event)
-	err = db.Model(event2).Where("id = ?", 1).Select()
+	err = db.Model(event2).Where("id = ?", 1).Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -847,7 +847,7 @@ func ExampleDB_Model_updateSomeColumns() {
 		Title:    "updated book 1", // only this column is going to be updated
 		AuthorID: 2,
 	}
-	_, err := db.Model(&book).Column("title").WherePK().Returning("*").Update()
+	_, err := db.Model(&book).Column("title").WherePK().Returning("*").Update(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -864,7 +864,7 @@ func ExampleDB_Model_updateSomeColumns2() {
 		Title:    "updated book 1",
 		AuthorID: 2, // this column will not be updated
 	}
-	_, err := db.Model(&book).Set("title = ?title").WherePK().Returning("*").Update()
+	_, err := db.Model(&book).Set("title = ?title").WherePK().Returning("*").Update(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -881,7 +881,7 @@ func ExampleDB_Model_updateSetValues() {
 		Set("title = concat(?, title, ?)", "prefix ", " suffix").
 		Where("id = ?", 1).
 		Returning("*").
-		Update()
+		Update(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -908,13 +908,13 @@ func ExampleDB_Model_bulkUpdate() {
 	// SET "title" = _data."title"
 	// FROM (VALUES ('updated book 1', 1), ('updated book 2', 2)) AS _data("title", "id")
 	// WHERE "book"."id" = _data."id"
-	_, err := db.Model(book1, book2).Column("title", "updated_at").Update()
+	_, err := db.Model(book1, book2).Column("title", "updated_at").Update(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	var books []Book
-	err = db.Model(&books).Order("id").Select()
+	err = db.Model(&books).Order("id").Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -940,13 +940,13 @@ func ExampleDB_Model_bulkUpdateSlice() {
 	// SET "title" = _data."title"
 	// FROM (VALUES ('updated book 1', 1), ('updated book 2', 2)) AS _data("title", "id")
 	// WHERE "book"."id" = _data."id"
-	_, err := db.Model(&books).Column("title", "updated_at").Update()
+	_, err := db.Model(&books).Column("title", "updated_at").Update(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	books = nil
-	err = db.Model(&books).Order("id").Select()
+	err = db.Model(&books).Order("id").Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -962,17 +962,17 @@ func ExampleDB_Model_delete() {
 		Title:    "title 1",
 		AuthorID: 1,
 	}
-	_, err := db.Model(book).Insert()
+	_, err := db.Model(book).Insert(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = db.Model(book).WherePK().Delete()
+	_, err = db.Model(book).WherePK().Delete(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	err = db.Model(book).WherePK().Select()
+	err = db.Model(book).WherePK().Select(ctx)
 	fmt.Println(err)
 	// Output: pg: no rows in result set
 }
@@ -981,13 +981,13 @@ func ExampleDB_Model_deleteMultipleRows() {
 	db := modelDB()
 
 	ids := pg.In([]int{1, 2, 3})
-	res, err := db.Model((*Book)(nil)).Where("id IN (?)", ids).Delete()
+	res, err := db.Model((*Book)(nil)).Where("id IN (?)", ids).Delete(ctx)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("deleted", res.RowsAffected())
 
-	count, err := db.Model((*Book)(nil)).Count()
+	count, err := db.Model((*Book)(nil)).Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1001,18 +1001,18 @@ func ExampleDB_Model_bulkDelete() {
 	db := modelDB()
 
 	var books []Book
-	err := db.Model(&books).Select()
+	err := db.Model(&books).Select(ctx)
 	if err != nil {
 		panic(err)
 	}
 
-	res, err := db.Model(&books).Delete()
+	res, err := db.Model(&books).Delete(ctx)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Println("deleted", res.RowsAffected())
 
-	count, err := db.Model((*Book)(nil)).Count()
+	count, err := db.Model((*Book)(nil)).Count(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1028,7 +1028,7 @@ func ExampleSafe() {
 	cond := fmt.Sprintf("id = %d", 1)
 
 	var book Book
-	err := db.Model(&book).Where("?", pg.Safe(cond)).Select()
+	err := db.Model(&book).Where("?", pg.Safe(cond)).Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1040,7 +1040,7 @@ func ExampleIdent() {
 	db := modelDB()
 
 	var book Book
-	err := db.Model(&book).Where("? = 1", pg.Ident("id")).Select()
+	err := db.Model(&book).Where("? = 1", pg.Ident("id")).Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1055,9 +1055,9 @@ func ExampleDB_jsonUseNumber() {
 	}
 
 	db := pg.Connect(pgOptions())
-	defer db.Close()
+	defer db.Close(ctx)
 
-	err := db.Model((*Event)(nil)).CreateTable(&orm.CreateTableOptions{
+	err := db.Model((*Event)(nil)).CreateTable(ctx, &orm.CreateTableOptions{
 		Temp: true,
 	})
 	if err != nil {
@@ -1069,13 +1069,13 @@ func ExampleDB_jsonUseNumber() {
 			"price": 1.23,
 		},
 	}
-	_, err = db.Model(event).Insert()
+	_, err = db.Model(event).Insert(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	event2 := new(Event)
-	err = db.Model(event2).Where("id = ?", event.Id).Select()
+	err = db.Model(event2).Where("id = ?", event.Id).Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -1090,7 +1090,7 @@ func ExampleDB_Model_discardUnknownColumns() {
 	}
 
 	var model1 Model1
-	_, err := pgdb.QueryOne(&model1, "SELECT 1 AS id")
+	_, err := pgdb.QueryOne(ctx, &model1, "SELECT 1 AS id")
 	fmt.Printf("Model1: %v\n", err)
 
 	type Model2 struct {
@@ -1098,7 +1098,7 @@ func ExampleDB_Model_discardUnknownColumns() {
 	}
 
 	var model2 Model2
-	_, err = pgdb.QueryOne(&model2, "SELECT 1 AS id")
+	_, err = pgdb.QueryOne(ctx, &model2, "SELECT 1 AS id")
 	fmt.Printf("Model2: %v\n", err)
 
 	// Output: Model1: pg: can't find column=id in model=Model1 (prefix the column with underscore or use discard_unknown_columns)
@@ -1112,7 +1112,7 @@ func ExampleDB_Model_softDelete() {
 		DeletedAt time.Time `pg:",soft_delete"`
 	}
 
-	err := pgdb.Model((*Flight)(nil)).CreateTable(&orm.CreateTableOptions{
+	err := pgdb.Model((*Flight)(nil)).CreateTable(ctx, &orm.CreateTableOptions{
 		Temp: true,
 	})
 	panicIf(err)
@@ -1120,29 +1120,29 @@ func ExampleDB_Model_softDelete() {
 	flight1 := &Flight{
 		Id: 1,
 	}
-	_, err = pgdb.Model(flight1).Insert()
+	_, err = pgdb.Model(flight1).Insert(ctx)
 	panicIf(err)
 
 	// Soft delete.
-	_, err = pgdb.Model(flight1).WherePK().Delete()
+	_, err = pgdb.Model(flight1).WherePK().Delete(ctx)
 	panicIf(err)
 
 	// Count visible flights.
-	count, err := pgdb.Model((*Flight)(nil)).Count()
+	count, err := pgdb.Model((*Flight)(nil)).Count(ctx)
 	panicIf(err)
 	fmt.Println("count", count)
 
 	// Count soft deleted flights.
-	deletedCount, err := pgdb.Model((*Flight)(nil)).Deleted().Count()
+	deletedCount, err := pgdb.Model((*Flight)(nil)).Deleted().Count(ctx)
 	panicIf(err)
 	fmt.Println("deleted count", deletedCount)
 
 	// Actually delete the flight.
-	_, err = pgdb.Model(flight1).WherePK().ForceDelete()
+	_, err = pgdb.Model(flight1).WherePK().ForceDelete(ctx)
 	panicIf(err)
 
 	// Count soft deleted flights.
-	deletedCount, err = pgdb.Model((*Flight)(nil)).Deleted().Count()
+	deletedCount, err = pgdb.Model((*Flight)(nil)).Deleted().Count(ctx)
 	panicIf(err)
 	fmt.Println("deleted count", deletedCount)
 

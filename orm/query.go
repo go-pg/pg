@@ -52,7 +52,6 @@ type union struct {
 }
 
 type Query struct {
-	ctx       context.Context
 	db        DB
 	stickyErr error
 
@@ -84,23 +83,14 @@ type Query struct {
 }
 
 func NewQuery(db DB, model ...interface{}) *Query {
-	ctx := context.Background()
-	if db != nil {
-		ctx = db.Context()
-	}
-	q := &Query{ctx: ctx}
+	q := new(Query)
 	return q.DB(db).Model(model...)
-}
-
-func NewQueryContext(ctx context.Context, db DB, model ...interface{}) *Query {
-	return NewQuery(db, model...).Context(ctx)
 }
 
 // New returns new zero Query bound to the current db.
 func (q *Query) New() *Query {
 	clone := &Query{
-		ctx: q.ctx,
-		db:  q.db,
+		db: q.db,
 
 		model:      q.model,
 		tableModel: cloneTableModelJoins(q.tableModel),
@@ -120,7 +110,6 @@ func (q *Query) Clone() *Query {
 	}
 
 	clone := &Query{
-		ctx:       q.ctx,
 		db:        q.db,
 		stickyErr: q.stickyErr,
 
@@ -195,11 +184,6 @@ func (q *Query) withFlag(flag queryFlag) *Query {
 
 func (q *Query) withoutFlag(flag queryFlag) *Query {
 	q.flags &= ^flag
-	return q
-}
-
-func (q *Query) Context(c context.Context) *Query {
-	q.ctx = c
 	return q
 }
 
@@ -774,14 +758,14 @@ func (q *Query) Apply(fn func(*Query) (*Query, error)) *Query {
 }
 
 // Count returns number of rows matching the query using count aggregate function.
-func (q *Query) Count() (int, error) {
+func (q *Query) Count(ctx context.Context) (int, error) {
 	if q.stickyErr != nil {
 		return 0, q.stickyErr
 	}
 
 	var count int
-	_, err := q.db.QueryOneContext(
-		q.ctx, Scan(&count), q.countSelectQuery("count(*)"), q.tableModel)
+	_, err := q.db.QueryOne(
+		ctx, Scan(&count), q.countSelectQuery("count(*)"), q.tableModel)
 	return count, err
 }
 
@@ -796,7 +780,7 @@ func (q *Query) countSelectQuery(column string) *SelectQuery {
 // It is a shortcut for:
 //
 //    q.OrderExpr("id ASC").Limit(1)
-func (q *Query) First() error {
+func (q *Query) First(ctx context.Context) error {
 	table := q.tableModel.Table()
 
 	if err := table.checkPKs(); err != nil {
@@ -804,14 +788,14 @@ func (q *Query) First() error {
 	}
 
 	b := appendColumns(nil, table.Alias, table.PKs)
-	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select()
+	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select(ctx)
 }
 
 // Last sorts rows by primary key and selects the last row.
 // It is a shortcut for:
 //
 //    q.OrderExpr("id DESC").Limit(1)
-func (q *Query) Last() error {
+func (q *Query) Last(ctx context.Context) error {
 	table := q.tableModel.Table()
 
 	if err := table.checkPKs(); err != nil {
@@ -821,11 +805,11 @@ func (q *Query) Last() error {
 	// TODO: fix for multi columns
 	b := appendColumns(nil, table.Alias, table.PKs)
 	b = append(b, " DESC"...)
-	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select()
+	return q.OrderExpr(internal.BytesToString(b)).Limit(1).Select(ctx)
 }
 
 // Select selects the model.
-func (q *Query) Select(values ...interface{}) error {
+func (q *Query) Select(ctx context.Context, values ...interface{}) error {
 	if q.stickyErr != nil {
 		return q.stickyErr
 	}
@@ -835,20 +819,20 @@ func (q *Query) Select(values ...interface{}) error {
 		return err
 	}
 
-	res, err := q.query(q.ctx, model, NewSelectQuery(q))
+	res, err := q.query(ctx, model, NewSelectQuery(q))
 	if err != nil {
 		return err
 	}
 
 	if res.RowsReturned() > 0 {
 		if q.tableModel != nil {
-			if err := q.selectJoins(q.tableModel.GetJoins()); err != nil {
+			if err := q.selectJoins(ctx, q.tableModel.GetJoins()); err != nil {
 				return err
 			}
 		}
 	}
 
-	if err := model.AfterSelect(q.ctx); err != nil {
+	if err := model.AfterSelect(ctx); err != nil {
 		return err
 	}
 
@@ -864,15 +848,17 @@ func (q *Query) newModel(values []interface{}) (Model, error) {
 
 func (q *Query) query(ctx context.Context, model Model, query interface{}) (Result, error) {
 	if _, ok := model.(useQueryOne); ok {
-		return q.db.QueryOneContext(ctx, model, query, q.tableModel)
+		return q.db.QueryOne(ctx, model, query, q.tableModel)
 	}
-	return q.db.QueryContext(ctx, model, query, q.tableModel)
+	return q.db.Query(ctx, model, query, q.tableModel)
 }
 
 // SelectAndCount runs Select and Count in two goroutines,
 // waits for them to finish and returns the result. If query limit is -1
 // it does not select any data and only counts the results.
-func (q *Query) SelectAndCount(values ...interface{}) (count int, firstErr error) {
+func (q *Query) SelectAndCount(
+	ctx context.Context, values ...interface{},
+) (count int, firstErr error) {
 	if q.stickyErr != nil {
 		return 0, q.stickyErr
 	}
@@ -884,7 +870,7 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, firstErr error
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := q.Select(values...)
+			err := q.Select(ctx, values...)
 			if err != nil {
 				mu.Lock()
 				if firstErr == nil {
@@ -899,7 +885,7 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, firstErr error
 	go func() {
 		defer wg.Done()
 		var err error
-		count, err = q.Count()
+		count, err = q.Count(ctx)
 		if err != nil {
 			mu.Lock()
 			if firstErr == nil {
@@ -916,7 +902,9 @@ func (q *Query) SelectAndCount(values ...interface{}) (count int, firstErr error
 // SelectAndCountEstimate runs Select and CountEstimate in two goroutines,
 // waits for them to finish and returns the result. If query limit is -1
 // it does not select any data and only counts the results.
-func (q *Query) SelectAndCountEstimate(threshold int, values ...interface{}) (count int, firstErr error) {
+func (q *Query) SelectAndCountEstimate(
+	ctx context.Context, threshold int, values ...interface{},
+) (count int, firstErr error) {
 	if q.stickyErr != nil {
 		return 0, q.stickyErr
 	}
@@ -928,7 +916,7 @@ func (q *Query) SelectAndCountEstimate(threshold int, values ...interface{}) (co
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := q.Select(values...)
+			err := q.Select(ctx, values...)
 			if err != nil {
 				mu.Lock()
 				if firstErr == nil {
@@ -943,7 +931,7 @@ func (q *Query) SelectAndCountEstimate(threshold int, values ...interface{}) (co
 	go func() {
 		defer wg.Done()
 		var err error
-		count, err = q.CountEstimate(threshold)
+		count, err = q.CountEstimate(ctx, threshold)
 		if err != nil {
 			mu.Lock()
 			if firstErr == nil {
@@ -962,9 +950,9 @@ func (q *Query) SelectAndCountEstimate(threshold int, values ...interface{}) (co
 //
 // Function can accept a struct, a pointer to a struct, an orm.Model,
 // or values for the columns in a row. Function must return an error.
-func (q *Query) ForEach(fn interface{}) error {
+func (q *Query) ForEach(ctx context.Context, fn interface{}) error {
 	m := newFuncModel(fn)
-	return q.Select(m)
+	return q.Select(ctx, m)
 }
 
 func (q *Query) forEachHasOneJoin(fn func(*join) error) error {
@@ -993,14 +981,14 @@ func (q *Query) _forEachHasOneJoin(fn func(*join) error, joins []join) error {
 	return nil
 }
 
-func (q *Query) selectJoins(joins []join) error {
+func (q *Query) selectJoins(ctx context.Context, joins []join) error {
 	var err error
 	for i := range joins {
 		j := &joins[i]
 		if j.Rel.Type == HasOneRelation || j.Rel.Type == BelongsToRelation {
-			err = q.selectJoins(j.JoinModel.GetJoins())
+			err = q.selectJoins(ctx, j.JoinModel.GetJoins())
 		} else {
-			err = j.Select(q.db.Formatter(), q.New())
+			err = j.Select(ctx, q.db.Formatter(), q.New())
 		}
 		if err != nil {
 			return err
@@ -1010,7 +998,7 @@ func (q *Query) selectJoins(joins []join) error {
 }
 
 // Insert inserts the model.
-func (q *Query) Insert(values ...interface{}) (Result, error) {
+func (q *Query) Insert(ctx context.Context, values ...interface{}) (Result, error) {
 	if q.stickyErr != nil {
 		return nil, q.stickyErr
 	}
@@ -1019,8 +1007,6 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	ctx := q.ctx
 
 	if q.tableModel != nil && q.tableModel.Table().hasFlag(beforeInsertHookFlag) {
 		ctx, err = q.tableModel.BeforeInsert(ctx)
@@ -1046,7 +1032,7 @@ func (q *Query) Insert(values ...interface{}) (Result, error) {
 
 // SelectOrInsert selects the model inserting one if it does not exist.
 // It returns true when model was inserted.
-func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
+func (q *Query) SelectOrInsert(ctx context.Context, values ...interface{}) (inserted bool, _ error) {
 	if q.stickyErr != nil {
 		return false, q.stickyErr
 	}
@@ -1056,12 +1042,12 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
 	for i := 0; i < 5; i++ {
 		if i >= 2 {
 			dur := internal.RetryBackoff(i-2, 250*time.Millisecond, 5*time.Second)
-			if err := internal.Sleep(q.ctx, dur); err != nil {
+			if err := internal.Sleep(ctx, dur); err != nil {
 				return false, err
 			}
 		}
 
-		err := q.Select(values...)
+		err := q.Select(ctx, values...)
 		if err == nil {
 			return false, nil
 		}
@@ -1077,7 +1063,7 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
 			}
 		}
 
-		res, err := insertq.Insert(values...)
+		res, err := insertq.Insert(ctx, values...)
 		if err != nil {
 			insertErr = err
 			if err == internal.ErrNoRows {
@@ -1106,8 +1092,8 @@ func (q *Query) SelectOrInsert(values ...interface{}) (inserted bool, _ error) {
 }
 
 // Update updates the model.
-func (q *Query) Update(scan ...interface{}) (Result, error) {
-	return q.update(scan, false)
+func (q *Query) Update(ctx context.Context, scan ...interface{}) (Result, error) {
+	return q.update(ctx, scan, false)
 }
 
 // Update updates the model omitting fields with zero values such as:
@@ -1118,11 +1104,11 @@ func (q *Query) Update(scan ...interface{}) (Result, error) {
 //   - byte array with all zeroes,
 //   - nil ptr,
 //   - types with method `IsZero() == true`.
-func (q *Query) UpdateNotZero(scan ...interface{}) (Result, error) {
-	return q.update(scan, true)
+func (q *Query) UpdateNotZero(ctx context.Context, scan ...interface{}) (Result, error) {
+	return q.update(ctx, scan, true)
 }
 
-func (q *Query) update(values []interface{}, omitZero bool) (Result, error) {
+func (q *Query) update(ctx context.Context, values []interface{}, omitZero bool) (Result, error) {
 	if q.stickyErr != nil {
 		return nil, q.stickyErr
 	}
@@ -1132,23 +1118,21 @@ func (q *Query) update(values []interface{}, omitZero bool) (Result, error) {
 		return nil, err
 	}
 
-	c := q.ctx
-
 	if q.tableModel != nil {
-		c, err = q.tableModel.BeforeUpdate(c)
+		ctx, err = q.tableModel.BeforeUpdate(ctx)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	query := NewUpdateQuery(q, omitZero)
-	res, err := q.returningQuery(c, model, query)
+	res, err := q.returningQuery(ctx, model, query)
 	if err != nil {
 		return nil, err
 	}
 
 	if q.tableModel != nil {
-		err = q.tableModel.AfterUpdate(c)
+		err = q.tableModel.AfterUpdate(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -1157,26 +1141,26 @@ func (q *Query) update(values []interface{}, omitZero bool) (Result, error) {
 	return res, nil
 }
 
-func (q *Query) returningQuery(c context.Context, model Model, query interface{}) (Result, error) {
+func (q *Query) returningQuery(ctx context.Context, model Model, query interface{}) (Result, error) {
 	if !q.hasReturning() {
-		return q.db.QueryContext(c, model, query, q.tableModel)
+		return q.db.Query(ctx, model, query, q.tableModel)
 	}
 	if _, ok := model.(useQueryOne); ok {
-		return q.db.QueryOneContext(c, model, query, q.tableModel)
+		return q.db.QueryOne(ctx, model, query, q.tableModel)
 	}
-	return q.db.QueryContext(c, model, query, q.tableModel)
+	return q.db.Query(ctx, model, query, q.tableModel)
 }
 
 // Delete deletes the model. When model has deleted_at column the row
 // is soft deleted instead.
-func (q *Query) Delete(values ...interface{}) (Result, error) {
+func (q *Query) Delete(ctx context.Context, values ...interface{}) (Result, error) {
 	if q.tableModel == nil {
-		return q.ForceDelete(values...)
+		return q.ForceDelete(ctx, values...)
 	}
 
 	table := q.tableModel.Table()
 	if table.SoftDeleteField == nil {
-		return q.ForceDelete(values...)
+		return q.ForceDelete(ctx, values...)
 	}
 
 	clone := q.Clone()
@@ -1192,11 +1176,11 @@ func (q *Query) Delete(values ...interface{}) (Result, error) {
 		}
 		clone = clone.Column(table.SoftDeleteField.SQLName)
 	}
-	return clone.Update(values...)
+	return clone.Update(ctx, values...)
 }
 
 // Delete forces delete of the model with deleted_at column.
-func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
+func (q *Query) ForceDelete(ctx context.Context, values ...interface{}) (Result, error) {
 	if q.stickyErr != nil {
 		return nil, q.stickyErr
 	}
@@ -1209,8 +1193,6 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	ctx := q.ctx
 
 	if q.tableModel != nil {
 		ctx, err = q.tableModel.BeforeDelete(ctx)
@@ -1233,60 +1215,72 @@ func (q *Query) ForceDelete(values ...interface{}) (Result, error) {
 	return res, nil
 }
 
-func (q *Query) CreateTable(opt *CreateTableOptions) error {
-	_, err := q.db.ExecContext(q.ctx, NewCreateTableQuery(q, opt))
+func (q *Query) CreateTable(ctx context.Context, opt *CreateTableOptions) error {
+	_, err := q.db.Exec(ctx, NewCreateTableQuery(q, opt))
 	return err
 }
 
-func (q *Query) DropTable(opt *DropTableOptions) error {
-	_, err := q.db.ExecContext(q.ctx, NewDropTableQuery(q, opt))
+func (q *Query) DropTable(ctx context.Context, opt *DropTableOptions) error {
+	_, err := q.db.Exec(ctx, NewDropTableQuery(q, opt))
 	return err
 }
 
-func (q *Query) CreateComposite(opt *CreateCompositeOptions) error {
-	_, err := q.db.ExecContext(q.ctx, NewCreateCompositeQuery(q, opt))
+func (q *Query) CreateComposite(ctx context.Context, opt *CreateCompositeOptions) error {
+	_, err := q.db.Exec(ctx, NewCreateCompositeQuery(q, opt))
 	return err
 }
 
-func (q *Query) DropComposite(opt *DropCompositeOptions) error {
-	_, err := q.db.ExecContext(q.ctx, NewDropCompositeQuery(q, opt))
+func (q *Query) DropComposite(ctx context.Context, opt *DropCompositeOptions) error {
+	_, err := q.db.Exec(ctx, NewDropCompositeQuery(q, opt))
 	return err
 }
 
 // Exec is an alias for DB.Exec.
-func (q *Query) Exec(query interface{}, params ...interface{}) (Result, error) {
+func (q *Query) Exec(
+	ctx context.Context, query interface{}, params ...interface{},
+) (Result, error) {
 	params = append(params, q.tableModel)
-	return q.db.ExecContext(q.ctx, query, params...)
+	return q.db.Exec(ctx, query, params...)
 }
 
 // ExecOne is an alias for DB.ExecOne.
-func (q *Query) ExecOne(query interface{}, params ...interface{}) (Result, error) {
+func (q *Query) ExecOne(
+	ctx context.Context, query interface{}, params ...interface{},
+) (Result, error) {
 	params = append(params, q.tableModel)
-	return q.db.ExecOneContext(q.ctx, query, params...)
+	return q.db.ExecOne(ctx, query, params...)
 }
 
 // Query is an alias for DB.Query.
-func (q *Query) Query(model, query interface{}, params ...interface{}) (Result, error) {
+func (q *Query) Query(
+	ctx context.Context, model, query interface{}, params ...interface{},
+) (Result, error) {
 	params = append(params, q.tableModel)
-	return q.db.QueryContext(q.ctx, model, query, params...)
+	return q.db.Query(ctx, model, query, params...)
 }
 
 // QueryOne is an alias for DB.QueryOne.
-func (q *Query) QueryOne(model, query interface{}, params ...interface{}) (Result, error) {
+func (q *Query) QueryOne(
+	ctx context.Context, model, query interface{}, params ...interface{},
+) (Result, error) {
 	params = append(params, q.tableModel)
-	return q.db.QueryOneContext(q.ctx, model, query, params...)
+	return q.db.QueryOne(ctx, model, query, params...)
 }
 
 // CopyFrom is an alias from DB.CopyFrom.
-func (q *Query) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (Result, error) {
+func (q *Query) CopyFrom(
+	ctx context.Context, r io.Reader, query interface{}, params ...interface{},
+) (Result, error) {
 	params = append(params, q.tableModel)
-	return q.db.CopyFrom(r, query, params...)
+	return q.db.CopyFrom(ctx, r, query, params...)
 }
 
 // CopyTo is an alias from DB.CopyTo.
-func (q *Query) CopyTo(w io.Writer, query interface{}, params ...interface{}) (Result, error) {
+func (q *Query) CopyTo(
+	ctx context.Context, w io.Writer, query interface{}, params ...interface{},
+) (Result, error) {
 	params = append(params, q.tableModel)
-	return q.db.CopyTo(w, query, params...)
+	return q.db.CopyTo(ctx, w, query, params...)
 }
 
 var _ QueryAppender = (*Query)(nil)
@@ -1296,12 +1290,12 @@ func (q *Query) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 }
 
 // Exists returns true or false depending if there are any rows matching the query.
-func (q *Query) Exists() (bool, error) {
+func (q *Query) Exists(ctx context.Context) (bool, error) {
 	q = q.Clone() // copy to not change original query
 	q.columns = []QueryAppender{SafeQuery("1")}
 	q.order = nil
 	q.limit = 1
-	res, err := q.db.ExecContext(q.ctx, NewSelectQuery(q))
+	res, err := q.db.Exec(ctx, NewSelectQuery(q))
 	if err != nil {
 		return false, err
 	}

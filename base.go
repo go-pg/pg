@@ -122,7 +122,7 @@ func (db *baseDB) initConn(ctx context.Context, cn *pool.Conn) error {
 
 	if db.opt.OnConnect != nil {
 		p := pool.NewSingleConnPool(db.pool, cn)
-		return db.opt.OnConnect(ctx, newConn(ctx, db.withPool(p)))
+		return db.opt.OnConnect(ctx, newConn(db.withPool(p)))
 	}
 
 	return nil
@@ -209,21 +209,13 @@ func (db *baseDB) shouldRetry(err error) bool {
 //
 // It is rare to Close a DB, as the DB handle is meant to be
 // long-lived and shared between many goroutines.
-func (db *baseDB) Close() error {
+func (db *baseDB) Close(ctx context.Context) error {
 	return db.pool.Close()
 }
 
 // Exec executes a query ignoring returned rows. The params are for any
 // placeholders in the query.
-func (db *baseDB) Exec(query interface{}, params ...interface{}) (res Result, err error) {
-	return db.exec(db.db.Context(), query, params...)
-}
-
-func (db *baseDB) ExecContext(c context.Context, query interface{}, params ...interface{}) (Result, error) {
-	return db.exec(c, query, params...)
-}
-
-func (db *baseDB) exec(ctx context.Context, query interface{}, params ...interface{}) (Result, error) {
+func (db *baseDB) Exec(ctx context.Context, query interface{}, params ...interface{}) (Result, error) {
 	wb := pool.GetWriteBuffer()
 	defer pool.PutWriteBuffer(wb)
 
@@ -271,16 +263,8 @@ func (db *baseDB) exec(ctx context.Context, query interface{}, params ...interfa
 // ExecOne acts like Exec, but query must affect only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (db *baseDB) ExecOne(query interface{}, params ...interface{}) (Result, error) {
-	return db.execOne(db.db.Context(), query, params...)
-}
-
-func (db *baseDB) ExecOneContext(ctx context.Context, query interface{}, params ...interface{}) (Result, error) {
-	return db.execOne(ctx, query, params...)
-}
-
-func (db *baseDB) execOne(c context.Context, query interface{}, params ...interface{}) (Result, error) {
-	res, err := db.ExecContext(c, query, params...)
+func (db *baseDB) ExecOne(ctx context.Context, query interface{}, params ...interface{}) (Result, error) {
+	res, err := db.Exec(ctx, query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -293,15 +277,7 @@ func (db *baseDB) execOne(c context.Context, query interface{}, params ...interf
 
 // Query executes a query that returns rows, typically a SELECT.
 // The params are for any placeholders in the query.
-func (db *baseDB) Query(model, query interface{}, params ...interface{}) (res Result, err error) {
-	return db.query(db.db.Context(), model, query, params...)
-}
-
-func (db *baseDB) QueryContext(c context.Context, model, query interface{}, params ...interface{}) (Result, error) {
-	return db.query(c, model, query, params...)
-}
-
-func (db *baseDB) query(ctx context.Context, model, query interface{}, params ...interface{}) (Result, error) {
+func (db *baseDB) Query(ctx context.Context, model, query interface{}, params ...interface{}) (Result, error) {
 	wb := pool.GetWriteBuffer()
 	defer pool.PutWriteBuffer(wb)
 
@@ -349,18 +325,10 @@ func (db *baseDB) query(ctx context.Context, model, query interface{}, params ..
 // QueryOne acts like Query, but query must return only one row. It
 // returns ErrNoRows error when query returns zero rows or
 // ErrMultiRows when query returns multiple rows.
-func (db *baseDB) QueryOne(model, query interface{}, params ...interface{}) (Result, error) {
-	return db.queryOne(db.db.Context(), model, query, params...)
-}
-
-func (db *baseDB) QueryOneContext(
+func (db *baseDB) QueryOne(
 	ctx context.Context, model, query interface{}, params ...interface{},
 ) (Result, error) {
-	return db.queryOne(ctx, model, query, params...)
-}
-
-func (db *baseDB) queryOne(ctx context.Context, model, query interface{}, params ...interface{}) (Result, error) {
-	res, err := db.QueryContext(ctx, model, query, params...)
+	res, err := db.Query(ctx, model, query, params...)
 	if err != nil {
 		return nil, err
 	}
@@ -372,10 +340,9 @@ func (db *baseDB) queryOne(ctx context.Context, model, query interface{}, params
 }
 
 // CopyFrom copies data from reader to a table.
-func (db *baseDB) CopyFrom(r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
-	c := db.db.Context()
-	err = db.withConn(c, func(c context.Context, cn *pool.Conn) error {
-		res, err = db.copyFrom(c, cn, r, query, params...)
+func (db *baseDB) CopyFrom(ctx context.Context, r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
+	err = db.withConn(ctx, func(ctx context.Context, cn *pool.Conn) error {
+		res, err = db.copyFrom(ctx, cn, r, query, params...)
 		return err
 	})
 	return res, err
@@ -455,10 +422,11 @@ func (db *baseDB) copyFrom(
 }
 
 // CopyTo copies data from a table to writer.
-func (db *baseDB) CopyTo(w io.Writer, query interface{}, params ...interface{}) (res Result, err error) {
-	c := db.db.Context()
-	err = db.withConn(c, func(c context.Context, cn *pool.Conn) error {
-		res, err = db.copyTo(c, cn, w, query, params...)
+func (db *baseDB) CopyTo(
+	ctx context.Context, w io.Writer, query interface{}, params ...interface{},
+) (res Result, err error) {
+	err = db.withConn(ctx, func(ctx context.Context, cn *pool.Conn) error {
+		res, err = db.copyTo(ctx, cn, w, query, params...)
 		return err
 	})
 	return res, err
@@ -519,7 +487,7 @@ func (db *baseDB) copyTo(
 // Ping verifies a connection to the database is still alive,
 // establishing a connection if necessary.
 func (db *baseDB) Ping(ctx context.Context) error {
-	_, err := db.ExecContext(ctx, "SELECT 1")
+	_, err := db.Exec(ctx, "SELECT 1")
 	return err
 }
 
@@ -528,18 +496,14 @@ func (db *baseDB) Model(model ...interface{}) *orm.Query {
 	return orm.NewQuery(db.db, model...)
 }
 
-func (db *baseDB) ModelContext(c context.Context, model ...interface{}) *orm.Query {
-	return orm.NewQueryContext(c, db.db, model...)
-}
-
 func (db *baseDB) Formatter() orm.QueryFormatter {
 	return db.fmter
 }
 
 func (db *baseDB) cancelRequest(processID, secretKey int32) error {
-	c := context.TODO()
+	ctx := context.TODO()
 
-	cn, err := db.pool.NewConn(c)
+	cn, err := db.pool.NewConn(ctx)
 	if err != nil {
 		return err
 	}
@@ -547,21 +511,21 @@ func (db *baseDB) cancelRequest(processID, secretKey int32) error {
 		_ = db.pool.CloseConn(cn)
 	}()
 
-	return cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+	return cn.WithWriter(ctx, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writeCancelRequestMsg(wb, processID, secretKey)
 		return nil
 	})
 }
 
 func (db *baseDB) simpleQuery(
-	c context.Context, cn *pool.Conn, wb *pool.WriteBuffer,
+	ctx context.Context, cn *pool.Conn, wb *pool.WriteBuffer,
 ) (*result, error) {
-	if err := cn.WriteBuffer(c, db.opt.WriteTimeout, wb); err != nil {
+	if err := cn.WriteBuffer(ctx, db.opt.WriteTimeout, wb); err != nil {
 		return nil, err
 	}
 
 	var res *result
-	if err := cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
+	if err := cn.WithReader(ctx, db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
 		var err error
 		res, err = readSimpleQuery(rd)
 		return err
@@ -573,16 +537,16 @@ func (db *baseDB) simpleQuery(
 }
 
 func (db *baseDB) simpleQueryData(
-	c context.Context, cn *pool.Conn, model interface{}, wb *pool.WriteBuffer,
+	ctx context.Context, cn *pool.Conn, model interface{}, wb *pool.WriteBuffer,
 ) (*result, error) {
-	if err := cn.WriteBuffer(c, db.opt.WriteTimeout, wb); err != nil {
+	if err := cn.WriteBuffer(ctx, db.opt.WriteTimeout, wb); err != nil {
 		return nil, err
 	}
 
 	var res *result
-	if err := cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
+	if err := cn.WithReader(ctx, db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
 		var err error
-		res, err = readSimpleQueryData(c, rd, model)
+		res, err = readSimpleQueryData(ctx, rd, model)
 		return err
 	}); err != nil {
 		return nil, err
@@ -594,15 +558,15 @@ func (db *baseDB) simpleQueryData(
 // Prepare creates a prepared statement for later queries or
 // executions. Multiple queries or executions may be run concurrently
 // from the returned statement.
-func (db *baseDB) Prepare(q string) (*Stmt, error) {
-	return prepareStmt(db.withPool(pool.NewStickyConnPool(db.pool)), q)
+func (db *baseDB) Prepare(ctx context.Context, q string) (*Stmt, error) {
+	return prepareStmt(ctx, db.withPool(pool.NewStickyConnPool(db.pool)), q)
 }
 
 func (db *baseDB) prepare(
-	c context.Context, cn *pool.Conn, q string,
+	ctx context.Context, cn *pool.Conn, q string,
 ) (string, []types.ColumnInfo, error) {
 	name := cn.NextID()
-	err := cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+	err := cn.WithWriter(ctx, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writeParseDescribeSyncMsg(wb, name, q)
 		return nil
 	})
@@ -611,7 +575,7 @@ func (db *baseDB) prepare(
 	}
 
 	var columns []types.ColumnInfo
-	err = cn.WithReader(c, db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
+	err = cn.WithReader(ctx, db.opt.ReadTimeout, func(rd *pool.ReaderContext) error {
 		columns, err = readParseDescribeSync(rd)
 		return err
 	})
@@ -622,8 +586,8 @@ func (db *baseDB) prepare(
 	return name, columns, nil
 }
 
-func (db *baseDB) closeStmt(c context.Context, cn *pool.Conn, name string) error {
-	err := cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
+func (db *baseDB) closeStmt(ctx context.Context, cn *pool.Conn, name string) error {
+	err := cn.WithWriter(ctx, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		writeCloseMsg(wb, name)
 		writeFlushMsg(wb)
 		return nil
@@ -632,6 +596,6 @@ func (db *baseDB) closeStmt(c context.Context, cn *pool.Conn, name string) error
 		return err
 	}
 
-	err = cn.WithReader(c, db.opt.ReadTimeout, readCloseCompleteMsg)
+	err = cn.WithReader(ctx, db.opt.ReadTimeout, readCloseCompleteMsg)
 	return err
 }

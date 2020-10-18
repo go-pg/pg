@@ -1,7 +1,6 @@
 package pg
 
 import (
-	"context"
 	"io"
 	"strconv"
 
@@ -20,11 +19,6 @@ type NullTime = types.NullTime
 // Model returns new query for the optional model.
 func Model(model ...interface{}) *orm.Query {
 	return orm.NewQuery(nil, model...)
-}
-
-// ModelContext returns a new query for the optional model with a context.
-func ModelContext(c context.Context, model ...interface{}) *orm.Query {
-	return orm.NewQueryContext(c, nil, model...)
 }
 
 // Scan returns ColumnScanner that copies the columns in the

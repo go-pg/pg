@@ -24,8 +24,8 @@ var _ = Context("Listener", func() {
 	})
 
 	_ = AfterEach(func() {
-		_ = ln.Close()
-		_ = db.Close()
+		_ = ln.Close(ctx)
+		_ = db.Close(ctx)
 	})
 
 	It("implements Stringer", func() {
@@ -70,7 +70,7 @@ var _ = Context("Listener", func() {
 			Fail("timeout")
 		}
 
-		_, err := db.Exec("NOTIFY test_channel")
+		_, err := db.Exec(ctx, "NOTIFY test_channel")
 		Expect(err).NotTo(HaveOccurred())
 
 		select {
@@ -112,7 +112,7 @@ var _ = Context("Listener", func() {
 			// ok
 		}
 
-		Expect(db.Close()).To(BeNil())
+		Expect(db.Close(ctx)).To(BeNil())
 
 		select {
 		case <-wait:
@@ -124,7 +124,7 @@ var _ = Context("Listener", func() {
 		_, _, err := ln.Receive(ctx)
 		Expect(err).To(MatchError("pg: listener is closed"))
 
-		err = ln.Close()
+		err = ln.Close(ctx)
 		Expect(err).To(MatchError("pg: listener is closed"))
 	})
 
@@ -182,7 +182,7 @@ var _ = Context("Listener", func() {
 			// ok
 		}
 
-		_, err = db.Exec("NOTIFY test_channel")
+		_, err = db.Exec(ctx, "NOTIFY test_channel")
 		Expect(err).NotTo(HaveOccurred())
 
 		select {
@@ -197,7 +197,7 @@ var _ = Context("Listener", func() {
 		const N = 100
 
 		wg := performAsync(N, func(_ int) {
-			_, err := db.Exec("NOTIFY test_channel")
+			_, err := db.Exec(ctx, "NOTIFY test_channel")
 			Expect(err).NotTo(HaveOccurred())
 		})
 

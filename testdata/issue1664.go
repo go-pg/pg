@@ -43,7 +43,7 @@ func main() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
 	})
-	defer db.Close()
+	defer db.Close(ctx)
 
 	var n int
 	_, err := db.QueryOne(pg.Scan(&n), "SELECT 1")

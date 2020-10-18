@@ -21,23 +21,23 @@ type OnHand struct {
 
 func ExampleDB_Model_compositeType() {
 	db := connect()
-	defer db.Close()
+	defer db.Close(ctx)
 
-	err := db.Model((*OnHand)(nil)).DropTable(&orm.DropTableOptions{
+	err := db.Model((*OnHand)(nil)).DropTable(ctx, &orm.DropTableOptions{
 		IfExists: true,
 		Cascade:  true,
 	})
 	panicIf(err)
 
-	err = db.Model((*InventoryItem)(nil)).DropComposite(&orm.DropCompositeOptions{
+	err = db.Model((*InventoryItem)(nil)).DropComposite(ctx, &orm.DropCompositeOptions{
 		IfExists: true,
 	})
 	panicIf(err)
 
-	err = db.Model((*InventoryItem)(nil)).CreateComposite(nil)
+	err = db.Model((*InventoryItem)(nil)).CreateComposite(ctx, nil)
 	panicIf(err)
 
-	err = db.Model((*OnHand)(nil)).CreateTable(nil)
+	err = db.Model((*OnHand)(nil)).CreateTable(ctx, nil)
 	panicIf(err)
 
 	_, err = db.Model(&OnHand{
@@ -47,11 +47,11 @@ func ExampleDB_Model_compositeType() {
 			Price:      1.99,
 		},
 		Count: 1000,
-	}).Insert()
+	}).Insert(ctx)
 	panicIf(err)
 
 	onHand := new(OnHand)
-	err = db.Model(onHand).Select()
+	err = db.Model(onHand).Select(ctx)
 	panicIf(err)
 
 	fmt.Println(onHand.Item.Name, onHand.Item.Price, onHand.Count)

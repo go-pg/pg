@@ -1,6 +1,7 @@
 package pg_test
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-pg/pg/v10"
@@ -32,9 +33,9 @@ func ExampleDB_Model() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
 	})
-	defer db.Close()
+	defer db.Close(ctx)
 
-	err := createSchema(db)
+	err := createSchema(ctx, db)
 	if err != nil {
 		panic(err)
 	}
@@ -43,7 +44,7 @@ func ExampleDB_Model() {
 		Name:   "admin",
 		Emails: []string{"admin1@admin", "admin2@admin"},
 	}
-	_, err = db.Model(user1).Insert()
+	_, err = db.Model(user1).Insert(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -51,7 +52,7 @@ func ExampleDB_Model() {
 	_, err = db.Model(&User{
 		Name:   "root",
 		Emails: []string{"root1@root", "root2@root"},
-	}).Insert()
+	}).Insert(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -60,21 +61,21 @@ func ExampleDB_Model() {
 		Title:    "Cool story",
 		AuthorId: user1.Id,
 	}
-	_, err = db.Model(story1).Insert()
+	_, err = db.Model(story1).Insert(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	// Select user by primary key.
 	user := &User{Id: user1.Id}
-	err = db.Model(user).WherePK().Select()
+	err = db.Model(user).WherePK().Select(ctx)
 	if err != nil {
 		panic(err)
 	}
 
 	// Select all users.
 	var users []User
-	err = db.Model(&users).Select()
+	err = db.Model(&users).Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -84,7 +85,7 @@ func ExampleDB_Model() {
 	err = db.Model(story).
 		Relation("Author").
 		Where("story.id = ?", story1.Id).
-		Select()
+		Select(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -98,14 +99,14 @@ func ExampleDB_Model() {
 }
 
 // createSchema creates database schema for User and Story models.
-func createSchema(db *pg.DB) error {
+func createSchema(ctx context.Context, db *pg.DB) error {
 	models := []interface{}{
 		(*User)(nil),
 		(*Story)(nil),
 	}
 
 	for _, model := range models {
-		err := db.Model(model).CreateTable(&orm.CreateTableOptions{
+		err := db.Model(model).CreateTable(ctx, &orm.CreateTableOptions{
 			Temp: true,
 		})
 		if err != nil {

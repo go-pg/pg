@@ -35,29 +35,29 @@ func ExampleDB_Model_softDeleteCustom() {
 	video1 := &Video{
 		Id: 1,
 	}
-	_, err := pgdb.Model(video1).Insert()
+	_, err := pgdb.Model(video1).Insert(ctx)
 	panicIf(err)
 
 	// Soft delete.
-	_, err = pgdb.Model(video1).WherePK().Delete()
+	_, err = pgdb.Model(video1).WherePK().Delete(ctx)
 	panicIf(err)
 
 	// Count visible videos.
-	count, err := pgdb.Model((*Video)(nil)).Count()
+	count, err := pgdb.Model((*Video)(nil)).Count(ctx)
 	panicIf(err)
 	fmt.Println("count", count)
 
 	// Count soft deleted videos.
-	deletedCount, err := pgdb.Model((*Video)(nil)).Deleted().Count()
+	deletedCount, err := pgdb.Model((*Video)(nil)).Deleted().Count(ctx)
 	panicIf(err)
 	fmt.Println("deleted count", deletedCount)
 
 	// Actually delete the video.
-	_, err = pgdb.Model(video1).WherePK().ForceDelete()
+	_, err = pgdb.Model(video1).WherePK().ForceDelete(ctx)
 	panicIf(err)
 
 	// Count soft deleted videos.
-	deletedCount, err = pgdb.Model((*Video)(nil)).Deleted().Count()
+	deletedCount, err = pgdb.Model((*Video)(nil)).Deleted().Count(ctx)
 	panicIf(err)
 	fmt.Println("deleted count", deletedCount)
 

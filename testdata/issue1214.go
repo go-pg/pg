@@ -27,7 +27,7 @@ func main() {
 	}
 
 	db := pg.Connect(&pgConfig)
-	defer db.Close()
+	defer db.Close(ctx)
 
 	createSchema(db)
 
