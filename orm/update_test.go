@@ -27,6 +27,13 @@ var _ = Describe("Update", func() {
 		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = NULL WHERE "update_test"."id" = NULL`))
 	})
 
+	It("supports ModelTableExpr", func() {
+		q := NewQuery(nil, &UpdateTest{}).ModelTableExpr("foo_bar").WherePK()
+
+		s := updateQueryString(q)
+		Expect(s).To(Equal(`UPDATE foo_bar SET "value" = NULL WHERE "update_test"."id" = NULL`))
+	})
+
 	It("supports Value", func() {
 		model := &UpdateTest{
 			Id:    1,

@@ -12,14 +12,14 @@ var _ = Describe("Select - nil model", func() {
 		q := NewQuery(nil, (*User)(nil))
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT  FROM "user" AS "user"`))
+		Expect(s).To(Equal(`SELECT  FROM "user"`))
 	})
 
 	It("works with User model", func() {
 		q := NewQuery(nil, (*User2)(nil))
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT  FROM "user" AS "user"`))
+		Expect(s).To(Equal(`SELECT  FROM "user"`))
 	})
 
 	It("specifies all columns", func() {

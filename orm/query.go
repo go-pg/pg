@@ -59,24 +59,25 @@ type Query struct {
 	tableModel TableModel
 	flags      queryFlag
 
-	with         []withQuery
-	tables       []QueryAppender
-	distinctOn   []*SafeQueryAppender
-	columns      []QueryAppender
-	set          []QueryAppender
-	modelValues  map[string]*SafeQueryAppender
-	extraValues  []*columnValue
-	where        []queryWithSepAppender
-	updWhere     []queryWithSepAppender
-	group        []QueryAppender
-	having       []*SafeQueryAppender
-	union        []*union
-	joins        []QueryAppender
-	joinAppendOn func(app *condAppender)
-	order        []QueryAppender
-	limit        int
-	offset       int
-	selFor       *SafeQueryAppender
+	with           []withQuery
+	modelTableExpr *SafeQueryAppender
+	tables         []QueryAppender
+	distinctOn     []*SafeQueryAppender
+	columns        []QueryAppender
+	set            []QueryAppender
+	modelValues    map[string]*SafeQueryAppender
+	extraValues    []*columnValue
+	where          []queryWithSepAppender
+	updWhere       []queryWithSepAppender
+	group          []QueryAppender
+	having         []*SafeQueryAppender
+	union          []*union
+	joins          []QueryAppender
+	joinAppendOn   func(app *condAppender)
+	order          []QueryAppender
+	limit          int
+	offset         int
+	selFor         *SafeQueryAppender
 
 	onConflict *SafeQueryAppender
 	returning  []*SafeQueryAppender
@@ -288,6 +289,11 @@ func (q *Query) Table(tables ...string) *Query {
 
 func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
 	q.tables = append(q.tables, SafeQuery(expr, params...))
+	return q
+}
+
+func (q *Query) ModelTableExpr(expr string, params ...interface{}) *Query {
+	q.modelTableExpr = SafeQuery(expr, params...)
 	return q
 }
 
@@ -1311,7 +1317,8 @@ func (q *Query) hasExplicitTableModel() bool {
 }
 
 func (q *Query) modelHasTableName() bool {
-	return q.hasExplicitTableModel() && q.tableModel.Table().SQLName != ""
+	return q.modelTableExpr != nil ||
+		q.hasExplicitTableModel() && q.tableModel.Table().SQLName != ""
 }
 
 func (q *Query) hasTables() bool {
@@ -1319,33 +1326,29 @@ func (q *Query) hasTables() bool {
 }
 
 func (q *Query) appendFirstTable(fmter QueryFormatter, b []byte) ([]byte, error) {
-	if q.modelHasTableName() {
-		return fmter.FormatQuery(b, string(q.tableModel.Table().SQLName)), nil
-	}
-	if len(q.tables) > 0 {
-		return q.tables[0].AppendQuery(fmter, b)
-	}
-	return b, nil
+	return q._appendFirstTable(fmter, b, false)
 }
 
 func (q *Query) appendFirstTableWithAlias(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+	return q._appendFirstTable(fmter, b, true)
+}
+
+func (q *Query) _appendFirstTable(fmter QueryFormatter, b []byte, withAlias bool) ([]byte, error) {
+	if q.modelTableExpr != nil {
+		return q.modelTableExpr.AppendQuery(fmter, b)
+	}
 	if q.modelHasTableName() {
 		table := q.tableModel.Table()
 		b = fmter.FormatQuery(b, string(table.SQLName))
-		if table.Alias != table.SQLName {
+		if withAlias && table.Alias != table.SQLName {
 			b = append(b, " AS "...)
 			b = append(b, table.Alias...)
 		}
 		return b, nil
 	}
-
 	if len(q.tables) > 0 {
-		b, err = q.tables[0].AppendQuery(fmter, b)
-		if err != nil {
-			return nil, err
-		}
+		return q.tables[0].AppendQuery(fmter, b)
 	}
-
 	return b, nil
 }
 

@@ -43,6 +43,16 @@ type InsertQTest struct {
 }
 
 var _ = Describe("Insert", func() {
+	It("supports ModelTableExpr", func() {
+		model := &InsertTest{
+			Id: 1,
+		}
+		q := NewQuery(nil, model).ModelTableExpr("foo_bar")
+
+		s := insertQueryString(q)
+		Expect(s).To(Equal(`INSERT INTO foo_bar ("id", "value") VALUES (1, DEFAULT) RETURNING "value"`))
+	})
+
 	It("supports Column", func() {
 		model := &InsertTest{
 			Id:    1,

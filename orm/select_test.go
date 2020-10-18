@@ -34,18 +34,25 @@ type HasManyModel struct {
 }
 
 var _ = Describe("Select", func() {
+	It("supports ModelTableExpr", func() {
+		q := NewQuery(nil, &SelectModel{}).ModelTableExpr("foo_bar")
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM foo_bar`))
+	})
+
 	It("works with User model", func() {
 		q := NewQuery(nil, &User{})
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT  FROM "user" AS "user"`))
+		Expect(s).To(Equal(`SELECT  FROM "user"`))
 	})
 
 	It("works with User model", func() {
 		q := NewQuery(nil, &User2{})
 
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT  FROM "user" AS "user"`))
+		Expect(s).To(Equal(`SELECT  FROM "user"`))
 	})
 
 	It("copies query", func() {

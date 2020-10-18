@@ -221,34 +221,6 @@ func ExampleDB_Model_selectOrInsert() {
 	// Output: true Author<ID=2 Name="R. Scott Bakker">
 }
 
-func ExampleDB_Model_insertDynamicTableName() {
-	type NamelessModel struct {
-		tableName struct{} `pg:"_"` // "_" means no name
-		Id        int
-	}
-
-	db := modelDB()
-
-	err := db.Model((*NamelessModel)(nil)).Table("dynamic_name").CreateTable(ctx, nil)
-	panicIf(err)
-
-	row123 := &NamelessModel{
-		Id: 123,
-	}
-	_, err = db.Model(row123).Table("dynamic_name").Insert(ctx)
-	panicIf(err)
-
-	row := new(NamelessModel)
-	err = db.Model(row).Table("dynamic_name").First(ctx)
-	panicIf(err)
-	fmt.Println("id is", row.Id)
-
-	err = db.Model((*NamelessModel)(nil)).Table("dynamic_name").DropTable(ctx, nil)
-	panicIf(err)
-
-	// Output: id is 123
-}
-
 func ExampleDB_Model_select() {
 	db := modelDB()
 
