@@ -64,7 +64,7 @@ func (db *baseDB) RunInTransaction(ctx context.Context, fn func(*Tx) error) erro
 }
 
 // Begin returns current transaction. It does not start new transaction.
-func (tx *Tx) Begin() (*Tx, error) {
+func (tx *Tx) Begin(ctx context.Context) (*Tx, error) {
 	return tx, nil
 }
 
@@ -90,8 +90,8 @@ func (tx *Tx) RunInTransaction(ctx context.Context, fn func(*Tx) error) error {
 	return tx.Commit(ctx)
 }
 
-func (tx *Tx) withConn(c context.Context, fn func(context.Context, *pool.Conn) error) error {
-	err := tx.db.withConn(c, fn)
+func (tx *Tx) withConn(ctx context.Context, fn func(context.Context, *pool.Conn) error) error {
+	err := tx.db.withConn(ctx, fn)
 	if tx.closed() && err == pool.ErrClosed {
 		return ErrTxDone
 	}
