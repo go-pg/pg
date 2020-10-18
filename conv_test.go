@@ -461,7 +461,7 @@ func TestConversion(t *testing.T) {
 		if v, ok := test.dst.(orm.ColumnScanner); ok {
 			scanner = v
 		} else {
-			scanner = pg.Scan(ctx, test.dst)
+			scanner = pg.Scan(test.dst)
 		}
 
 		_, err = stmt.QueryOne(ctx, scanner, test.src)
