@@ -1320,10 +1320,6 @@ func (q *Query) modelHasTableName() bool {
 	return q.hasExplicitTableModel() && q.tableModel.Table().SQLName != ""
 }
 
-func (q *Query) modelHasTableAlias() bool {
-	return q.hasExplicitTableModel() && q.tableModel.Table().Alias != ""
-}
-
 func (q *Query) hasTables() bool {
 	return q.modelHasTableName() || len(q.tables) > 0
 }
@@ -1353,13 +1349,6 @@ func (q *Query) appendFirstTableWithAlias(fmter QueryFormatter, b []byte) (_ []b
 		b, err = q.tables[0].AppendQuery(fmter, b)
 		if err != nil {
 			return nil, err
-		}
-		if q.modelHasTableAlias() {
-			table := q.tableModel.Table()
-			if table.Alias != table.SQLName {
-				b = append(b, " AS "...)
-				b = append(b, table.Alias...)
-			}
 		}
 	}
 

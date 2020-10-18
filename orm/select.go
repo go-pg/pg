@@ -261,8 +261,6 @@ func (q *SelectQuery) isDistinct() bool {
 }
 
 func (q *SelectQuery) appendTables(fmter QueryFormatter, b []byte) (_ []byte, err error) {
-	tables := q.q.tables
-
 	if q.q.modelHasTableName() {
 		table := q.q.tableModel.Table()
 		b = fmter.FormatQuery(b, string(table.SQLNameForSelects))
@@ -271,26 +269,12 @@ func (q *SelectQuery) appendTables(fmter QueryFormatter, b []byte) (_ []byte, er
 			b = append(b, table.Alias...)
 		}
 
-		if len(tables) > 0 {
-			b = append(b, ", "...)
-		}
-	} else if len(tables) > 0 {
-		b, err = tables[0].AppendQuery(fmter, b)
-		if err != nil {
-			return nil, err
-		}
-		if q.q.modelHasTableAlias() {
-			b = append(b, " AS "...)
-			b = append(b, q.q.tableModel.Table().Alias...)
-		}
-
-		tables = tables[1:]
-		if len(tables) > 0 {
+		if len(q.q.tables) > 0 {
 			b = append(b, ", "...)
 		}
 	}
 
-	for i, f := range tables {
+	for i, f := range q.q.tables {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
