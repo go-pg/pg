@@ -1532,7 +1532,8 @@ func isKnownTableOption(name string) bool {
 
 func isKnownFieldOption(name string) bool {
 	switch name {
-	case "type",
+	case "alias",
+		"type",
 		"array",
 		"hstore",
 		"composite",
