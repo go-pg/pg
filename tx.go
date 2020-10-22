@@ -74,8 +74,8 @@ func (tx *Tx) Begin(ctx context.Context) (*Tx, error) {
 func (tx *Tx) RunInTransaction(ctx context.Context, fn func(*Tx) error) error {
 	defer func() {
 		if err := recover(); err != nil {
-			if err := tx.Rollback(ctx); err != nil {
-				internal.Logger.Printf(ctx, "tx.Rollback panicked: %s", err)
+			if err := tx.Close(ctx); err != nil {
+				internal.Logger.Printf(ctx, "tx.Close failed: %s", err)
 			}
 			panic(err)
 		}
