@@ -19,13 +19,11 @@ var ErrTxDone = errors.New("pg: transaction has already been committed or rolled
 // Tx is an in-progress database transaction. It is safe for concurrent use
 // by multiple goroutines.
 //
-// A transaction must end with a call to Commit or Rollback.
-//
-// After a call to Commit or Rollback, all operations on the transaction fail
-// with ErrTxDone.
+// A transaction must end with a call to Commit, Rollback, or Close. After that,
+// all operations on the transaction fail with ErrTxDone.
 //
 // The statements prepared for a transaction by calling the transaction's
-// Prepare or Stmt methods are closed by the call to Commit or Rollback.
+// Prepare or Stmt methods are closed with the transaction.
 type Tx struct {
 	db *baseDB
 
@@ -55,7 +53,10 @@ func (db *baseDB) Begin(ctx context.Context) (*Tx, error) {
 // RunInTransaction runs a function in a transaction. If function
 // returns an error transaction is rolled back, otherwise transaction
 // is committed.
-func (db *baseDB) RunInTransaction(ctx context.Context, fn func(*Tx) error) error {
+func (db *baseDB) RunInTransaction(
+	ctx context.Context,
+	fn func(ctx context.Context, tx *Tx) error,
+) error {
 	tx, err := db.Begin(ctx)
 	if err != nil {
 		return err
@@ -71,7 +72,10 @@ func (tx *Tx) Begin(ctx context.Context) (*Tx, error) {
 // RunInTransaction runs a function in the transaction. If function
 // returns an error transaction is rolled back, otherwise transaction
 // is committed.
-func (tx *Tx) RunInTransaction(ctx context.Context, fn func(*Tx) error) error {
+func (tx *Tx) RunInTransaction(
+	ctx context.Context,
+	fn func(ctx context.Context, tx *Tx) error,
+) error {
 	defer func() {
 		if err := recover(); err != nil {
 			if err := tx.Close(ctx); err != nil {
@@ -81,7 +85,7 @@ func (tx *Tx) RunInTransaction(ctx context.Context, fn func(*Tx) error) error {
 		}
 	}()
 
-	if err := fn(tx); err != nil {
+	if err := fn(ctx, tx); err != nil {
 		if err := tx.Rollback(ctx); err != nil {
 			internal.Logger.Printf(ctx, "tx.Rollback failed: %s", err)
 		}
