@@ -120,13 +120,13 @@ var _ = Describe("struct field", func() {
 
 type f struct {
 	Id int
-	G  *g
+	G  *g `pg:"rel:belongs-to"`
 }
 
 type g struct {
 	Id  int
 	FId int
-	F   *f
+	F   *f `pg:"rel:has-one"`
 }
 
 var _ = Describe("unexported types", func() {
@@ -174,7 +174,7 @@ type J struct {
 type K struct {
 	KId  int64 `pg:",pk"`
 	MyId int64
-	My   *J
+	My   *J `pg:"rel:has-one,fk:my_id"`
 }
 
 var _ = Describe("ModelId fk", func() {

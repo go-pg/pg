@@ -52,8 +52,8 @@ type CreateTableWithoutPKModel struct {
 
 type CreateTableOnDeleteOnUpdateModel struct {
 	ID                 int
-	CreateTableModelID int `pg:"on_delete:RESTRICT, on_update:CASCADE"`
-	CreateTableModel   *CreateTableModel
+	CreateTableModelID int               `pg:"on_delete:RESTRICT, on_update:CASCADE"`
+	CreateTableModel   *CreateTableModel `pg:"rel:has-one"`
 }
 
 type CreateTableWithTablespace struct {

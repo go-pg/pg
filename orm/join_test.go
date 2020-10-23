@@ -10,10 +10,10 @@ type JoinTest struct {
 
 	Id int
 
-	HasOne   *HasOne
+	HasOne   *HasOne `pg:"rel:has-one"`
 	HasOneId int
 
-	BelongsTo *BelongsTo
+	BelongsTo *BelongsTo `pg:"rel:belongs-to"`
 }
 
 type HasOne struct {
@@ -21,7 +21,7 @@ type HasOne struct {
 
 	Id int
 
-	HasOne   *HasOne
+	HasOne   *HasOne `pg:"rel:has-one"`
 	HasOneId int
 }
 

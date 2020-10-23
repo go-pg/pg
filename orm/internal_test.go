@@ -10,13 +10,13 @@ type TableInitRace struct {
 	Id  int
 	Foo int
 
-	HasSelf   *TableInitRace
+	HasSelf   *TableInitRace `pg:"rel:has-one"`
 	HasSelfId int
 
-	HasOne1   *TableInitRace1
+	HasOne1   *TableInitRace1 `pg:"rel:has-one"`
 	HasOne1Id int
 
-	HasAnother1   *TableInitRace1
+	HasAnother1   *TableInitRace1 `pg:"rel:has-one"`
 	HasAnother1Id int
 
 	Bar int
@@ -26,7 +26,7 @@ type TableInitRace1 struct {
 	Id  int
 	Foo int
 
-	HasOne2   *TableInitRace2
+	HasOne2   *TableInitRace2 `pg:"rel:has-one"`
 	HasOne2Id int
 
 	Bar int
@@ -36,7 +36,7 @@ type TableInitRace2 struct {
 	Id  int
 	Foo int
 
-	HasOne3   *TableInitRace3
+	HasOne3   *TableInitRace3 `pg:"rel:has-one"`
 	HasOne3Id int
 
 	Bar int
@@ -79,15 +79,15 @@ type TableInlineRace struct {
 	Id  int
 	Foo int
 
-	R1   *TableInlineRace1
+	R1   *TableInlineRace1 `pg:"rel:has-one"`
 	R1Id int
 	R10  *TableInlineRace1
 
-	R2   *TableInlineRace2
+	R2   *TableInlineRace2 `pg:"rel:has-one"`
 	R2Id int
 	R20  *TableInlineRace2
 
-	R3   *TableInitRace3
+	R3   *TableInitRace3 `pg:"rel:has-one"`
 	R3Id int
 	R30  *TableInitRace3
 }
@@ -96,11 +96,11 @@ type TableInlineRace1 struct {
 	Id   int
 	Foo1 int
 
-	R2   *TableInlineRace2
+	R2   *TableInlineRace2 `pg:"rel:has-one"`
 	R2Id int
 	R20  *TableInlineRace2
 
-	R3   *TableInitRace3
+	R3   *TableInitRace3 `pg:"rel:has-one"`
 	R3Id int
 	R30  *TableInitRace3
 }
@@ -109,7 +109,7 @@ type TableInlineRace2 struct {
 	Id   int
 	Foo2 int
 
-	R3   *TableInlineRace3
+	R3   *TableInlineRace3 `pg:"rel:has-one"`
 	R3Id int
 	R30  *TableInlineRace3
 }

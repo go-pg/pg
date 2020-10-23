@@ -19,9 +19,9 @@ type User2 struct {
 type SelectModel struct {
 	Id       int
 	Name     string
-	HasOne   *HasOneModel
+	HasOne   *HasOneModel `pg:"rel:has-one"`
 	HasOneId int
-	HasMany  []HasManyModel
+	HasMany  []HasManyModel `pg:"rel:has-many"`
 }
 
 type HasOneModel struct {
@@ -379,7 +379,7 @@ type NonSoftDeleteModel struct {
 	Id                int `pg:",pk"`
 	Name              string
 	SoftDeleteModelId int
-	SoftDeleteModel   *SoftDeleteModel
+	SoftDeleteModel   *SoftDeleteModel `pg:"rel:has-one"`
 }
 
 type SoftDeleteModel struct {
@@ -392,7 +392,7 @@ type SoftDeleteParent struct {
 	Name        string
 	DateDeleted *time.Time `pg:",soft_delete"`
 
-	Children *SoftDeleteChild
+	Children *SoftDeleteChild `pg:"rel:belongs-to"`
 }
 
 type SoftDeleteChild struct {
@@ -400,7 +400,7 @@ type SoftDeleteChild struct {
 	SoftDeleteParentId uint64            `pg:"soft_delete_parent_id,on_delete:CASCADE"`
 	SoftDeleteParent   *SoftDeleteParent `pg:"-"`
 	Name               string
-	SubChildren        *SoftDeleteSubChild
+	SubChildren        *SoftDeleteSubChild `pg:"rel:belongs-to"`
 }
 
 type SoftDeleteSubChild struct {
