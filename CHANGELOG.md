@@ -2,7 +2,13 @@
 
 > :heart: [**Uptrace.dev** - distributed traces, logs, and errors in one place](https://uptrace.dev)
 
-## v11 (unreleased)
+## v11 (wip)
+
+## Changed
+
+- Most of the API requires `context.Context`. Old methods like `ExecContext` are removed.
+- `InMulti` is removed in favor of `In`. Instead of `InMulti([]int{1, 2}, []int{3, 4})` use
+  `In([][]int{{1, 2}, {3, 4}})`.
 
 ## v10
 
