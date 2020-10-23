@@ -560,11 +560,6 @@ func (q *Query) WhereIn(where string, slice interface{}) *Query {
 	return q.Where(where, types.In(slice))
 }
 
-// WhereInMulti is a shortcut for Where and pg.InMulti.
-func (q *Query) WhereInMulti(where string, values ...interface{}) *Query {
-	return q.Where(where, types.InMulti(values...))
-}
-
 func (q *Query) addWhere(f queryWithSepAppender) {
 	if q.onConflictDoUpdate() {
 		q.updWhere = append(q.updWhere, f)

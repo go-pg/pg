@@ -50,18 +50,6 @@ func In(slice interface{}) types.ValueAppender {
 	return types.In(slice)
 }
 
-// InMulti accepts multiple values and returns a wrapper that can be used
-// with PostgreSQL IN operator:
-//
-//    Where("(id1, id2) IN (?)", pg.InMulti([]int{1, 2}, []int{3, 4}))
-//
-// produces
-//
-//    WHERE (id1, id2) IN ((1, 2), (3, 4))
-func InMulti(values ...interface{}) types.ValueAppender {
-	return types.InMulti(values...)
-}
-
 // Array accepts a slice and returns a wrapper for working with PostgreSQL
 // array data type.
 //

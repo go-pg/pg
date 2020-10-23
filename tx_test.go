@@ -149,7 +149,7 @@ var _ = Describe("Tx", func() {
 	})
 
 	It("drops bad connections", func() {
-		_ = db.RunInTransaction(ctx, func(tx *pg.Tx) error {
+		_ = db.RunInTransaction(ctx, func(ctx context.Context, tx *pg.Tx) error {
 			stmt, err := tx.Prepare(ctx, "invalid statement")
 			if err != nil {
 				return err

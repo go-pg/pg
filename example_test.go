@@ -182,7 +182,7 @@ func ExampleDB_RunInTransaction() {
 
 	incrInTx := func(ctx context.Context) error {
 		// Transaction is automatically rolled back on error.
-		return db.RunInTransaction(ctx, func(tx *pg.Tx) error {
+		return db.RunInTransaction(ctx, func(ctx context.Context, tx *pg.Tx) error {
 			var counter int
 			_, err := tx.QueryOne(
 				ctx, pg.Scan(&counter), `SELECT counter FROM tx_test FOR UPDATE`)
