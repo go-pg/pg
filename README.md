@@ -9,8 +9,8 @@
 
 - Join [Discord](https://discord.gg/rWtp5Aj) to ask questions.
 - [Documentation](https://pg.uptrace.dev)
-- [Reference](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc)
-- [Examples](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#pkg-examples)
+- [Reference](https://pkg.go.dev/github.com/go-pg/pg/v11)
+- [Examples](https://pkg.go.dev/github.com/go-pg/pg/v11#pkg-examples)
 - Example projects:
   - [treemux](https://github.com/uptrace/go-treemux-realworld-example-app)
   - [gin](https://github.com/gogjango/gjango)
@@ -31,61 +31,58 @@
 
 - Basic types: integers, floats, string, bool, time.Time, net.IP, net.IPNet.
 - sql.NullBool, sql.NullString, sql.NullInt64, sql.NullFloat64 and
-  [pg.NullTime](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#NullTime).
+  [pg.NullTime](https://pkg.go.dev/github.com/go-pg/pg/v11#NullTime).
 - [sql.Scanner](http://golang.org/pkg/database/sql/#Scanner) and
   [sql/driver.Valuer](http://golang.org/pkg/database/sql/driver/#Valuer) interfaces.
 - Structs, maps and arrays are marshalled as JSON by default.
 - PostgreSQL multidimensional Arrays using
-  [array tag](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB-Model-PostgresArrayStructTag)
-  and [Array wrapper](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-Array).
+  [array tag](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB-Model-PostgresArrayStructTag)
+  and [Array wrapper](https://pkg.go.dev/github.com/go-pg/pg/v11#example-Array).
 - Hstore using
-  [hstore tag](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB-Model-HstoreStructTag)
-  and [Hstore wrapper](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-Hstore).
-- [Composite types](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB-Model-CompositeType).
+  [hstore tag](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB-Model-HstoreStructTag) and
+  [Hstore wrapper](https://pkg.go.dev/github.com/go-pg/pg/v11#example-Hstore).
+- [Composite types](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB-Model-CompositeType).
 - All struct fields are nullable by default and zero values (empty string, 0, zero time, empty map
   or slice, nil ptr) are marshalled as SQL `NULL`. `pg:",notnull"` is used to add SQL `NOT NULL`
   constraint and `pg:",use_zero"` to allow Go zero values.
-- [Transactions](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB-Begin).
-- [Prepared statements](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB-Prepare).
-- [Notifications](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-Listener) using
-  `LISTEN` and `NOTIFY`.
-- [Copying data](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB-CopyFrom) using
-  `COPY FROM` and `COPY TO`.
-- [Timeouts](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#Options) and canceling queries using
+- [Transactions](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB-Begin).
+- [Prepared statements](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB-Prepare).
+- [Notifications](https://pkg.go.dev/github.com/go-pg/pg/v11#example-Listener) using `LISTEN` and
+  `NOTIFY`.
+- [Copying data](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB-CopyFrom) using `COPY FROM`
+  and `COPY TO`.
+- [Timeouts](https://pkg.go.dev/github.com/go-pg/pg/v11#Options) and canceling queries using
   context.Context.
 - Automatic connection pooling with
   [circuit breaker](https://en.wikipedia.org/wiki/Circuit_breaker_design_pattern) support.
 - Queries retry on network errors.
-- Working with models using
-  [ORM](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model) and
-  [SQL](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Query).
+- Working with models using [ORM](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model) and
+  [SQL](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Query).
 - Scanning variables using
-  [ORM](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-SelectSomeColumnsIntoVars)
-  and [SQL](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-Scan).
-- [SelectOrInsert](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-InsertSelectOrInsert)
+  [ORM](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-SelectSomeColumnsIntoVars) and
+  [SQL](https://pkg.go.dev/github.com/go-pg/pg/v11#example-Scan).
+- [SelectOrInsert](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-InsertSelectOrInsert)
   using on-conflict.
-- [INSERT ... ON CONFLICT DO UPDATE](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-InsertOnConflictDoUpdate)
+- [INSERT ... ON CONFLICT DO UPDATE](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-InsertOnConflictDoUpdate)
   using ORM.
-- Bulk/batch
-  [inserts](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-BulkInsert),
-  [updates](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-BulkUpdate), and
-  [deletes](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-BulkDelete).
+- Bulk/batch [inserts](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-BulkInsert),
+  [updates](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-BulkUpdate), and
+  [deletes](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-BulkDelete).
 - Common table expressions using
-  [WITH](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-SelectWith) and
-  [WrapWith](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-SelectWrapWith).
-- [CountEstimate](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-CountEstimate)
-  using `EXPLAIN` to get
+  [WITH](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-SelectWith) and
+  [WrapWith](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-SelectWrapWith).
+- [CountEstimate](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-CountEstimate) using
+  `EXPLAIN` to get
   [estimated number of matching rows](https://wiki.postgresql.org/wiki/Count_estimate).
-- ORM supports
-  [has one](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-HasOne),
-  [belongs to](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-BelongsTo),
-  [has many](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-HasMany), and
-  [many to many](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-ManyToMany)
-  with composite/multi-column primary keys.
-- [Soft deletes](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-SoftDelete).
-- [Creating tables from structs](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-CreateTable).
-- [ForEach](https://pkg.go.dev/github.com/go-pg/pg/v11?tab=doc#example-DB.Model-ForEach) that calls
-  a function for each row returned by the query without loading all rows into the memory.
+- ORM supports [has one](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-HasOne),
+  [belongs to](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-BelongsTo),
+  [has many](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-HasMany), and
+  [many to many](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-ManyToMany) with
+  composite/multi-column primary keys.
+- [Soft deletes](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-SoftDelete).
+- [Creating tables from structs](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-CreateTable).
+- [ForEach](https://pkg.go.dev/github.com/go-pg/pg/v11#example-DB.Model-ForEach) that calls a
+  function for each row returned by the query without loading all rows into the memory.
 - Works with PgBouncer in transaction pooling mode.
 
 ## Installation
