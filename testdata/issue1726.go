@@ -3,7 +3,6 @@ package main
 import (
 	pg "github.com/go-pg/pg/v11"
 	"github.com/go-pg/pg/v11/orm"
-	"github.com/go-pg/pgext"
 )
 
 func init() {
@@ -14,7 +13,6 @@ func main() {
 	db := pg.Connect(&pg.Options{
 		User: "postgres",
 	})
-	db.AddQueryHook(&pgext.DebugHook{Verbose: true})
 
 	// if _, err := db.Model(&Project{
 	// 	ID:        "bsvt22v0cr8rnl249230",
