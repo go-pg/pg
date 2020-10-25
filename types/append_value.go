@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"database/sql/driver"
 	"fmt"
 	"net"
@@ -8,8 +9,6 @@ import (
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/vmihailenco/bufpool"
 
 	"github.com/go-pg/pg/v11/internal"
 	"github.com/go-pg/pg/v11/pgjson"
@@ -172,14 +171,9 @@ func appendArrayBytesValue(b []byte, v reflect.Value, flags int) []byte {
 		return AppendBytes(b, v.Slice(0, v.Len()).Bytes(), flags)
 	}
 
-	buf := bufpool.Get(v.Len())
-
-	tmp := buf.Bytes()
+	tmp := make([]byte, v.Len())
 	reflect.Copy(reflect.ValueOf(tmp), v)
 	b = AppendBytes(b, tmp, flags)
-
-	bufpool.Put(buf)
-
 	return b
 }
 
@@ -194,13 +188,9 @@ func appendStructValue(b []byte, v reflect.Value, flags int) []byte {
 	return appendJSONValue(b, v, flags)
 }
 
-var jsonPool bufpool.Pool
-
 func appendJSONValue(b []byte, v reflect.Value, flags int) []byte {
-	buf := jsonPool.Get()
-	defer jsonPool.Put(buf)
-
-	if err := pgjson.NewEncoder(buf).Encode(v.Interface()); err != nil {
+	var buf bytes.Buffer
+	if err := pgjson.NewEncoder(&buf).Encode(v.Interface()); err != nil {
 		return AppendError(b, err)
 	}
 
