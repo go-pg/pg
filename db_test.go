@@ -2120,6 +2120,14 @@ var _ = Describe("ORM", func() {
 			Select()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(book.Editor).To(BeNil())
+
+		book = new(Book)
+		err = db.Model(book).
+			Relation("Editor").
+			Where("book.id = ?", newBook.ID).
+			Select(book)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(book.Editor).To(BeNil())
 	})
 
 	Describe("ForEach", func() {
