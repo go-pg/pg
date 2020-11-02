@@ -44,7 +44,7 @@ func (m *mapModel) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) erro
 		return err
 	}
 
-	m.m[col.Name] = val
+	m.m[string(col.Name)] = val
 	return nil
 }
 

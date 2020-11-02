@@ -2,8 +2,6 @@ package pool
 
 import (
 	"sync"
-
-	"github.com/go-pg/pg/v11/internal"
 )
 
 type Reader interface {
@@ -25,7 +23,7 @@ type Reader interface {
 type ColumnInfo struct {
 	Index    int16
 	DataType int32
-	Name     string
+	Name     []byte
 }
 
 type ColumnAlloc struct {
@@ -34,7 +32,10 @@ type ColumnAlloc struct {
 }
 
 func NewColumnAlloc() *ColumnAlloc {
-	return new(ColumnAlloc)
+	return &ColumnAlloc{
+		columns: make([]ColumnInfo, 0, 16),
+		name:    make([]byte, 0, 64),
+	}
 }
 
 func (c *ColumnAlloc) Reset() {
@@ -48,7 +49,7 @@ func (c *ColumnAlloc) New(index int16, name []byte) *ColumnInfo {
 
 	c.columns = append(c.columns, ColumnInfo{
 		Index: index,
-		Name:  internal.BytesToString(c.name[s:]),
+		Name:  c.name[s:],
 	})
 	return &c.columns[len(c.columns)-1]
 }

@@ -415,7 +415,7 @@ func (r *OptRecord) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) err
 		return err
 	}
 
-	switch col.Name {
+	switch string(col.Name) {
 	case "num1":
 		r.Num1, err = strconv.ParseInt(string(tmp), 10, 64)
 	case "num2":

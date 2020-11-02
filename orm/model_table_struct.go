@@ -1,11 +1,13 @@
 package orm
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"reflect"
 	"strings"
 
+	"github.com/go-pg/pg/v11/internal"
 	"github.com/go-pg/pg/v11/types"
 )
 
@@ -277,20 +279,20 @@ func (m *structTableModel) scanColumn(col types.ColumnInfo, rd types.Reader, n i
 	}
 
 	joinName, fieldName := splitColumn(col.Name)
-	if joinName != "" {
-		if join := m.GetJoin(joinName); join != nil {
+	if joinName != nil {
+		if join := m.GetJoin(internal.BytesToString(joinName)); join != nil {
 			joinCol := col
 			joinCol.Name = fieldName
 			return join.JoinModel.scanColumn(joinCol, rd, n)
 		}
-		if m.table.ModelName == joinName {
+		if m.table.ModelName == string(joinName) {
 			joinCol := col
 			joinCol.Name = fieldName
 			return m.scanColumn(joinCol, rd, n)
 		}
 	}
 
-	field, ok := m.table.FieldsMap[col.Name]
+	field, ok := m.table.FieldsMap[string(col.Name)]
 	if !ok {
 		return false, nil
 	}
@@ -390,10 +392,10 @@ func (m *structTableModel) setSoftDeleteField() error {
 	return m.table.SetSoftDeleteField(fv)
 }
 
-func splitColumn(s string) (string, string) {
-	ind := strings.Index(s, "__")
-	if ind == -1 {
-		return "", s
+func splitColumn(b []byte) ([]byte, []byte) {
+	i := bytes.Index(b, []byte("__"))
+	if i == -1 {
+		return nil, b
 	}
-	return s[:ind], s[ind+2:]
+	return b[:i], b[i+2:]
 }

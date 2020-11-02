@@ -98,10 +98,10 @@ func (m *m2mModel) ScanColumn(col types.ColumnInfo, rd types.Reader, n int) erro
 			return err
 		}
 
-		m.columns[col.Name] = string(b)
+		m.columns[string(col.Name)] = string(b)
 		rd = pool.NewBytesReader(b)
 	} else {
-		m.columns[col.Name] = ""
+		m.columns[string(col.Name)] = ""
 	}
 
 	if ok, err := m.sliceTableModel.scanColumn(col, rd, n); ok {
