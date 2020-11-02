@@ -39,7 +39,7 @@ func NewColumnAlloc() *ColumnAlloc {
 
 func (c *ColumnAlloc) Reset() {
 	c.columns = c.columns[:0]
-	c.name = c.name[:0]
+	c.name = nil
 }
 
 func (c *ColumnAlloc) New(index int16, name []byte) *ColumnInfo {
