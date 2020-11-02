@@ -572,23 +572,39 @@ func (q *Query) addWhere(f queryWithSepAppender) {
 // Usually it is the same as:
 //
 //    Where("id = ?id")
-func (q *Query) WherePK() *Query {
+func (q *Query) WherePK(cols ...string) *Query {
 	if !q.hasTableModel() {
 		q.err(errModelNil)
 		return q
 	}
 
-	if err := q.tableModel.Table().checkPKs(); err != nil {
-		q.err(err)
-		return q
+	table := q.tableModel.Table()
+	var pks []*Field
+
+	if len(cols) > 0 {
+		pks = make([]*Field, len(cols))
+		for i, col := range cols {
+			f, ok := table.FieldsMap[col]
+			if !ok {
+				q.err(fmt.Errorf("pg: %s does not have field=%q", table, col))
+				return q
+			}
+			pks[i] = f
+		}
+	} else {
+		if err := table.checkPKs(); err != nil {
+			q.err(err)
+			return q
+		}
+		pks = table.PKs
 	}
 
 	switch q.tableModel.Kind() {
 	case reflect.Struct:
-		q.where = append(q.where, wherePKStructQuery{q})
+		q.where = append(q.where, wherePKStructQuery{q: q, pks: pks})
 		return q
 	case reflect.Slice:
-		q.joins = append(q.joins, wherePKSliceQuery{q})
+		q.joins = append(q.joins, wherePKSliceQuery{q: q, pks: pks})
 		q = q.OrderExpr(`"_pg_pk"."ordering" ASC`)
 		return q
 	}
@@ -1537,7 +1553,8 @@ func (q *Query) isSliceModelWithData() bool {
 //------------------------------------------------------------------------------
 
 type wherePKStructQuery struct {
-	q *Query
+	q   *Query
+	pks []*Field
 }
 
 var _ queryWithSepAppender = (*wherePKStructQuery)(nil)
@@ -1549,7 +1566,7 @@ func (wherePKStructQuery) AppendSep(b []byte) []byte {
 func (q wherePKStructQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	table := q.q.tableModel.Table()
 	value := q.q.tableModel.Value()
-	return appendColumnAndValue(fmter, b, value, table.Alias, table.PKs), nil
+	return appendColumnAndValue(fmter, b, value, table.Alias, q.pks), nil
 }
 
 func appendColumnAndValue(
@@ -1576,7 +1593,8 @@ func appendColumnAndValue(
 //------------------------------------------------------------------------------
 
 type wherePKSliceQuery struct {
-	q *Query
+	q   *Query
+	pks []*Field
 }
 
 var _ QueryAppender = (*wherePKSliceQuery)(nil)
@@ -1596,7 +1614,7 @@ func (q wherePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, 
 		el := indirect(slice.Index(i))
 
 		b = append(b, '(')
-		for i, f := range table.PKs {
+		for i, f := range q.pks {
 			if i > 0 {
 				b = append(b, ", "...)
 			}
@@ -1611,7 +1629,7 @@ func (q wherePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, 
 
 	b = append(b, `) AS "_pg_pk" (`...)
 
-	for i, f := range table.PKs {
+	for i, f := range q.pks {
 		if i > 0 {
 			b = append(b, ",  "...)
 		}
@@ -1623,7 +1641,7 @@ func (q wherePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, 
 
 	b = append(b, ") ON "...)
 
-	for i, f := range table.PKs {
+	for i, f := range q.pks {
 		if i > 0 {
 			b = append(b, " AND "...)
 		}
