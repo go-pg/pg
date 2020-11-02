@@ -16,6 +16,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
@@ -2510,3 +2511,55 @@ var _ = Describe("many2many multi-tenant bug", func() {
 		Expect(recipe.Ingredients[0].Id).To(Equal(1))
 	})
 })
+
+func TestColumnReuse(t *testing.T) {
+	db := testDB()
+
+	err := createSchema(db)
+	panicIf(err)
+
+	user1 := &User{
+		Name:   "admin",
+		Emails: []string{"admin1@admin", "admin2@admin"},
+	}
+	err = CreateUser(db, user1)
+	panicIf(err)
+
+	err = CreateUser(db, &User{
+		Name:   "root",
+		Emails: []string{"root1@root", "root2@root"},
+	})
+	panicIf(err)
+
+	story1 := &Story{
+		Title:    "Cool story",
+		AuthorId: user1.Id,
+	}
+	err = CreateStory(db, story1)
+	panicIf(err)
+
+	users := []map[string]interface{}{}
+	stories := []map[string]interface{}{}
+
+	ctx := context.Background()
+	_, err = db.QueryContext(ctx, &users, `SELECT * FROM users`)
+	panicIf(err)
+
+	_, err = db.QueryContext(ctx, &stories, `SELECT * FROM stories`)
+	panicIf(err)
+
+	for _, user := range users {
+		ks := []string{}
+		for k, _ := range user {
+			ks = append(ks, k)
+		}
+		require.ElementsMatch(t, []string{"name", "id", "emails"}, ks)
+	}
+	for _, story := range stories {
+		ks := []string{}
+		for k, _ := range story {
+			ks = append(ks, k)
+		}
+		require.ElementsMatch(t, []string{"id", "title", "author_id"}, ks)
+	}
+}
