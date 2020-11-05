@@ -28,7 +28,6 @@ type ColumnInfo struct {
 
 type ColumnAlloc struct {
 	columns []ColumnInfo
-	name    []byte
 }
 
 func NewColumnAlloc() *ColumnAlloc {
