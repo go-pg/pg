@@ -2,8 +2,6 @@ package pool
 
 import (
 	"sync"
-
-	"github.com/go-pg/pg/v10/internal"
 )
 
 type Reader interface {
@@ -39,16 +37,12 @@ func NewColumnAlloc() *ColumnAlloc {
 
 func (c *ColumnAlloc) Reset() {
 	c.columns = c.columns[:0]
-	c.name = nil
 }
 
 func (c *ColumnAlloc) New(index int16, name []byte) *ColumnInfo {
-	s := len(c.name)
-	c.name = append(c.name, name...)
-
 	c.columns = append(c.columns, ColumnInfo{
 		Index: index,
-		Name:  internal.BytesToString(c.name[s:]),
+		Name:  string(name),
 	})
 	return &c.columns[len(c.columns)-1]
 }
