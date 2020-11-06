@@ -14,6 +14,7 @@ import (
 type DebugHook struct {
 	// Verbose causes hook to print all queries (even those without an error).
 	Verbose bool
+	EmptyLine bool
 }
 
 var _ pg.QueryHook = (*DebugHook)(nil)
@@ -27,6 +28,9 @@ func (h DebugHook) BeforeQuery(ctx context.Context, evt *pg.QueryEvent) (context
 	if evt.Err != nil {
 		fmt.Printf("%s executing a query:\n%s\n", evt.Err, q)
 	} else if h.Verbose {
+		if h.EmptyLine {
+			fmt.Println()
+		}
 		fmt.Println(string(q))
 	}
 
