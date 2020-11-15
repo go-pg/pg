@@ -271,7 +271,7 @@ func (opt *Options) getDialer() func(context.Context) (net.Conn, error) {
 			var err error
 			conn, err = opt.Dialer(ctx, opt.Network, opt.Addr)
 			if err != nil {
-				_ = internal.RecordError(ctx, err)
+				span.RecordError(ctx, err)
 			}
 			return err
 		})

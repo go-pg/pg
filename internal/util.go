@@ -7,6 +7,7 @@ import (
 
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/trace"
+	"go.opentelemetry.io/otel/codes"
 )
 
 func Sleep(ctx context.Context, dur time.Duration) error {
@@ -88,4 +89,13 @@ func WithSpan(
 	defer span.End()
 
 	return fn(ctx, span)
+}
+
+func RecordError(ctx context.Context, span trace.Span, err error) error {
+	switch err {
+	case ErrNoRows, ErrMultiRows:
+	default:
+		span.RecordError(ctx, err, trace.WithErrorStatus(codes.Error))
+	}
+	return err
 }
