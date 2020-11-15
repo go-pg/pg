@@ -77,7 +77,7 @@ func (cn *Conn) NextID() string {
 func (cn *Conn) WithReader(
 	ctx context.Context, timeout time.Duration, fn func(rd *ReaderContext) error,
 ) error {
-	return internal.WithSpan(ctx, "with_reader", func(ctx context.Context, span trace.Span) error {
+	return internal.WithSpan(ctx, "pg.with_reader", func(ctx context.Context, span trace.Span) error {
 		if err := cn.netConn.SetReadDeadline(cn.deadline(ctx, timeout)); err != nil {
 			span.RecordError(ctx, err)
 			return err
@@ -107,7 +107,7 @@ func (cn *Conn) WithReader(
 func (cn *Conn) WithWriter(
 	ctx context.Context, timeout time.Duration, fn func(wb *WriteBuffer) error,
 ) error {
-	return internal.WithSpan(ctx, "with_writer", func(ctx context.Context, span trace.Span) error {
+	return internal.WithSpan(ctx, "pg.with_writer", func(ctx context.Context, span trace.Span) error {
 		wb := GetWriteBuffer()
 		defer PutWriteBuffer(wb)
 
@@ -121,7 +121,7 @@ func (cn *Conn) WithWriter(
 }
 
 func (cn *Conn) WriteBuffer(ctx context.Context, timeout time.Duration, wb *WriteBuffer) error {
-	return internal.WithSpan(ctx, "with_writer", func(ctx context.Context, span trace.Span) error {
+	return internal.WithSpan(ctx, "pg.with_writer", func(ctx context.Context, span trace.Span) error {
 		return cn.writeBuffer(ctx, span, timeout, wb)
 	})
 }

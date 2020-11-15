@@ -84,7 +84,7 @@ func (db *baseDB) getConn(ctx context.Context) (*pool.Conn, error) {
 		return cn, nil
 	}
 
-	err = internal.WithSpan(ctx, "init_conn", func(ctx context.Context, span trace.Span) error {
+	err = internal.WithSpan(ctx, "pg.init_conn", func(ctx context.Context, span trace.Span) error {
 		return db.initConn(ctx, cn)
 	})
 	if err != nil {
@@ -139,7 +139,7 @@ func (db *baseDB) releaseConn(ctx context.Context, cn *pool.Conn, err error) {
 func (db *baseDB) withConn(
 	ctx context.Context, fn func(context.Context, *pool.Conn) error,
 ) error {
-	return internal.WithSpan(ctx, "with_conn", func(ctx context.Context, span trace.Span) error {
+	return internal.WithSpan(ctx, "pg.with_conn", func(ctx context.Context, span trace.Span) error {
 		cn, err := db.getConn(ctx)
 		if err != nil {
 			return err
@@ -241,7 +241,7 @@ func (db *baseDB) exec(ctx context.Context, query interface{}, params ...interfa
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		attempt := attempt
 
-		lastErr = internal.WithSpan(ctx, "exec", func(ctx context.Context, span trace.Span) error {
+		lastErr = internal.WithSpan(ctx, "pg.exec", func(ctx context.Context, span trace.Span) error {
 			if attempt > 0 {
 				span.SetAttributes(label.Int("retry", attempt))
 
@@ -319,7 +319,7 @@ func (db *baseDB) query(ctx context.Context, model, query interface{}, params ..
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
 		attempt := attempt
 
-		lastErr = internal.WithSpan(ctx, "query", func(ctx context.Context, span trace.Span) error {
+		lastErr = internal.WithSpan(ctx, "pg.query", func(ctx context.Context, span trace.Span) error {
 			if attempt > 0 {
 				span.SetAttributes(label.Int("retry", attempt))
 
