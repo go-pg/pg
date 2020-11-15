@@ -9,7 +9,6 @@ import (
 	"github.com/go-pg/pg/v11/orm"
 	"go.opentelemetry.io/otel/api/global"
 	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/label"
 )
 
@@ -101,12 +100,7 @@ func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
 	}
 
 	if evt.Err != nil {
-		switch evt.Err {
-		case pg.ErrNoRows, pg.ErrMultiRows:
-			// nothing
-		default:
-			span.RecordError(ctx, evt.Err, trace.WithErrorStatus(codes.Error))
-		}
+		internal.RecordError(ctx, span, evt.Err)
 	} else if evt.Result != nil {
 		numRow := evt.Result.RowsAffected()
 		if numRow == 0 {
