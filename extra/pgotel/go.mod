@@ -1,5 +1,8 @@
-module github.com/go-pg/pg/extra/pgotel
+module github.com/go-pg/pg/extra/pgotel/v11
 
 go 1.15
 
-require go.opentelemetry.io/otel v0.13.0
+require (
+	github.com/go-pg/pg/v11 v11.0.0-alpha.0
+	go.opentelemetry.io/otel v0.13.0
+)

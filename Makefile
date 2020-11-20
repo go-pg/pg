@@ -19,3 +19,9 @@ pre-test: cleanTest
 .PHONY: test
 test: pre-test
 	TZ= PGSSLMODE=disable go test ./... -v
+
+tag:
+	git tag $(VERSION)
+	git tag extra/pgdebug/$(VERSION)
+	git tag extra/pgotel/$(VERSION)
+	git tag extra/pgsegment/$(VERSION)
