@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/go-pg/pg/v11/internal"
-	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var noDeadline = time.Time{}
@@ -79,7 +79,7 @@ func (cn *Conn) WithReader(
 ) error {
 	return internal.WithSpan(ctx, "pg.with_reader", func(ctx context.Context, span trace.Span) error {
 		if err := cn.netConn.SetReadDeadline(cn.deadline(ctx, timeout)); err != nil {
-			span.RecordError(ctx, err)
+			span.RecordError(err)
 			return err
 		}
 
@@ -94,7 +94,7 @@ func (cn *Conn) WithReader(
 		rd.bytesRead = 0
 
 		if err := fn(rd); err != nil {
-			span.RecordError(ctx, err)
+			span.RecordError(err)
 			return err
 		}
 
@@ -112,7 +112,7 @@ func (cn *Conn) WithWriter(
 		defer PutWriteBuffer(wb)
 
 		if err := fn(wb); err != nil {
-			span.RecordError(ctx, err)
+			span.RecordError(err)
 			return err
 		}
 
@@ -133,14 +133,14 @@ func (cn *Conn) writeBuffer(
 	wb *WriteBuffer,
 ) error {
 	if err := cn.netConn.SetWriteDeadline(cn.deadline(ctx, timeout)); err != nil {
-		span.RecordError(ctx, err)
+		span.RecordError(err)
 		return err
 	}
 
 	span.SetAttributes(label.Int("net.wrote_bytes", len(wb.Bytes)))
 
 	if _, err := cn.netConn.Write(wb.Bytes); err != nil {
-		span.RecordError(ctx, err)
+		span.RecordError(err)
 		return err
 	}
 

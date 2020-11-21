@@ -5,9 +5,8 @@ import (
 	"reflect"
 	"time"
 
-	"go.opentelemetry.io/otel/api/global"
-	"go.opentelemetry.io/otel/api/trace"
-	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 )
 
 func Sleep(ctx context.Context, dur time.Duration) error {
@@ -76,6 +75,10 @@ func Unwrap(err error) error {
 	return u.Unwrap()
 }
 
+//------------------------------------------------------------------------------
+
+var tracer = otel.Tracer("github.com/go-pg/pg")
+
 func WithSpan(
 	ctx context.Context,
 	name string,
@@ -85,17 +88,8 @@ func WithSpan(
 		return fn(ctx, span)
 	}
 
-	ctx, span := global.Tracer("github.com/go-pg/pg").Start(ctx, name)
+	ctx, span := tracer.Start(ctx, name)
 	defer span.End()
 
 	return fn(ctx, span)
-}
-
-func RecordError(ctx context.Context, span trace.Span, err error) error {
-	switch err {
-	case ErrNoRows, ErrMultiRows:
-	default:
-		span.RecordError(ctx, err, trace.WithErrorStatus(codes.Error))
-	}
-	return err
 }

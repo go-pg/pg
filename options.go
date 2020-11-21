@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel/api/trace"
 	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-pg/pg/v11/internal"
 	"github.com/go-pg/pg/v11/internal/pool"
@@ -271,7 +271,7 @@ func (opt *Options) getDialer() func(context.Context) (net.Conn, error) {
 			var err error
 			conn, err = opt.Dialer(ctx, opt.Network, opt.Addr)
 			if err != nil {
-				span.RecordError(ctx, err)
+				span.RecordError(err)
 			}
 			return err
 		})
