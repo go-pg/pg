@@ -1618,7 +1618,13 @@ func (q wherePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, 
 			if i > 0 {
 				b = append(b, ", "...)
 			}
+
 			b = f.AppendValue(b, el, 1)
+
+			if f.UserSQLType != "" {
+				b = append(b, "::"...)
+				b = append(b, f.SQLType...)
+			}
 		}
 
 		b = append(b, ", "...)

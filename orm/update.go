@@ -356,6 +356,7 @@ func (q *UpdateQuery) appendValues(
 		} else {
 			b = f.AppendValue(b, indirect(strct), 1)
 		}
+
 		b = append(b, "::"...)
 		b = append(b, f.SQLType...)
 	}
