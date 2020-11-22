@@ -243,6 +243,21 @@ var _ = Describe("Select", func() {
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT * WHERE (id IN ('foo','bar'))`))
 	})
+
+	It("supports WherePK", func() {
+		type Item struct {
+			ID   uint64 `pg:"type:bigint"`
+			Text string
+		}
+		items := []Item{
+			{2, "two"},
+			{1, "one"},
+		}
+
+		q := NewQuery(nil, &items).WherePK()
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "item"."id", "item"."text" FROM "items" AS "item" JOIN (VALUES (2::bigint, 0), (1::bigint, 1)) AS "_pg_pk" ("id", "ordering") ON "item"."id" = "_pg_pk"."id" ORDER BY "_pg_pk"."ordering" ASC`))
+	})
 })
 
 var _ = Describe("Count", func() {
