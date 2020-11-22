@@ -604,8 +604,9 @@ func (q *Query) WherePK(cols ...string) *Query {
 		q.where = append(q.where, wherePKStructQuery{q: q, pks: pks})
 		return q
 	case reflect.Slice:
-		q.joins = append(q.joins, wherePKSliceQuery{q: q, pks: pks})
-		q = q.OrderExpr(`"_pg_pk"."ordering" ASC`)
+		q.joins = append(q.joins, joinPKSliceQuery{q: q, pks: pks})
+		q.where = append(q.where, wherePKSliceQuery{q: q, pks: pks})
+		q = q.OrderExpr(`"_data"."ordering" ASC`)
 		return q
 	}
 
@@ -1597,14 +1598,41 @@ type wherePKSliceQuery struct {
 	pks []*Field
 }
 
-var _ QueryAppender = (*wherePKSliceQuery)(nil)
+var _ queryWithSepAppender = (*wherePKSliceQuery)(nil)
+
+func (wherePKSliceQuery) AppendSep(b []byte) []byte {
+	return append(b, " AND "...)
+}
 
 func (q wherePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	table := q.q.tableModel.Table()
-	slice := q.q.tableModel.Value()
 
+	for i, f := range q.pks {
+		if i > 0 {
+			b = append(b, " AND "...)
+		}
+		b = append(b, table.Alias...)
+		b = append(b, '.')
+		b = append(b, f.Column...)
+		b = append(b, " = "...)
+		b = append(b, `"_data".`...)
+		b = append(b, f.Column...)
+	}
+
+	return b, nil
+}
+
+type joinPKSliceQuery struct {
+	q   *Query
+	pks []*Field
+}
+
+var _ QueryAppender = (*joinPKSliceQuery)(nil)
+
+func (q joinPKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	b = append(b, " JOIN (VALUES "...)
 
+	slice := q.q.tableModel.Value()
 	sliceLen := slice.Len()
 	for i := 0; i < sliceLen; i++ {
 		if i > 0 {
@@ -1633,11 +1661,11 @@ func (q wherePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, 
 		b = append(b, ')')
 	}
 
-	b = append(b, `) AS "_pg_pk" (`...)
+	b = append(b, `) AS "_data" (`...)
 
 	for i, f := range q.pks {
 		if i > 0 {
-			b = append(b, ",  "...)
+			b = append(b, ", "...)
 		}
 		b = append(b, f.Column...)
 	}
@@ -1645,19 +1673,7 @@ func (q wherePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, 
 	b = append(b, ", "...)
 	b = append(b, `"ordering"`...)
 
-	b = append(b, ") ON "...)
-
-	for i, f := range q.pks {
-		if i > 0 {
-			b = append(b, " AND "...)
-		}
-		b = append(b, table.Alias...)
-		b = append(b, '.')
-		b = append(b, f.Column...)
-		b = append(b, " = "...)
-		b = append(b, `"_pg_pk".`...)
-		b = append(b, f.Column...)
-	}
+	b = append(b, ")"...)
 
 	return b, nil
 }
