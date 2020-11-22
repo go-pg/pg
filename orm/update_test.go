@@ -203,6 +203,21 @@ var _ = Describe("Update", func() {
 		s := updateQueryString(q)
 		Expect(s).To(Equal(`UPDATE my_table SET "bar" = '1970-01-01 00:00:00+00:00:00', "foo" = 123, "hello" = 'world', "nil" = NULL WHERE (id = 1)`))
 	})
+
+	It("supports WherePK", func() {
+		type Item struct {
+			ID   uint64 `pg:"type:bigint"`
+			Text string
+		}
+		items := []Item{
+			{2, "two"},
+			{1, "one"},
+		}
+
+		q := NewQuery(nil, &items).WherePK()
+		s := updateQueryString(q)
+		Expect(s).To(Equal(`UPDATE "items" AS "item" SET "text" = _data."text" FROM (VALUES (2::bigint, 'two'::text), (1::bigint, 'one'::text)) AS _data("id", "text") WHERE "item"."id" = "_data"."id"`))
+	})
 })
 
 func updateQueryString(q *Query) string {
