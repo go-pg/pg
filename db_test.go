@@ -1820,6 +1820,19 @@ var _ = Describe("ORM", func() {
 				CommentCount: 0,
 			}}))
 		})
+
+		It("supports WherePK", func() {
+			books := []Book{
+				{ID: 101},
+				{ID: 100},
+			}
+			err := db.Model(&books).Column("title").WherePK().Select()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(books).To(Equal([]Book{
+				{ID: 101, Title: "book 2"},
+				{ID: 100, Title: "book 1"},
+			}))
+		})
 	})
 
 	Describe("fetches Book relations", func() {
