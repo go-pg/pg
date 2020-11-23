@@ -256,7 +256,7 @@ var _ = Describe("Select", func() {
 
 		q := NewQuery(nil, &items).WherePK()
 		s := selectQueryString(q)
-		Expect(s).To(Equal(`SELECT "item"."id", "item"."text" FROM "items" AS "item" JOIN (VALUES (2::bigint, 0), (1::bigint, 1)) AS "_data" ("id", "ordering") WHERE "item"."id" = "_data"."id" ORDER BY "_data"."ordering" ASC`))
+		Expect(s).To(Equal(`SELECT "item"."id", "item"."text" FROM "items" AS "item" JOIN (VALUES (2::bigint, 0), (1::bigint, 1)) AS "_data" ("id", "ordering") ON TRUE WHERE "item"."id" = "_data"."id" ORDER BY "_data"."ordering" ASC`))
 	})
 })
 
