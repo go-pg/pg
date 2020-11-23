@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"bytes"
 	"strconv"
 	"strings"
 )
@@ -230,16 +231,13 @@ func (q SelectQuery) appendColumns(fmter QueryFormatter, b []byte) (_ []byte, er
 		}
 
 		b = j.appendHasOneColumns(b)
-
-		if len(b) == start {
-			b = b[:len(b)-2]
-		}
-
 		return nil
 	})
 	if err != nil {
 		return nil, err
 	}
+
+	b = bytes.TrimSuffix(b, []byte(", "))
 
 	return b, nil
 }
