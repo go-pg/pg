@@ -1674,7 +1674,7 @@ func (q joinPKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, e
 
 	b = append(b, ", "...)
 	b = append(b, `"ordering"`...)
-	b = append(b, ")"...)
+	b = append(b, ") ON TRUE"...)
 
 	return b, nil
 }
