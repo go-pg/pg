@@ -258,6 +258,21 @@ var _ = Describe("Select", func() {
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT "item"."id", "item"."text" FROM "items" AS "item" JOIN (VALUES (2::bigint, 0), (1::bigint, 1)) AS "_data" ("id", "ordering") ON TRUE WHERE "item"."id" = "_data"."id" ORDER BY "_data"."ordering" ASC`))
 	})
+
+	It("omits columns", func() {
+		var members []struct {
+			ID    uint64
+			Group struct{ ID uint64 } `pg:"rel:has-one"`
+			User  struct{ ID uint64 } `pg:"rel:has-one"`
+		}
+
+		q := NewQuery(nil, &members).
+			Relation("User._").
+			Relation("Group.id").
+			Column("_")
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT "group"."id" AS "group__id" LEFT JOIN  AS "user" ON "user"."id" = ."id" LEFT JOIN  AS "group" ON "group"."id" = ."id"`))
+	})
 })
 
 var _ = Describe("Count", func() {
