@@ -133,7 +133,7 @@ func rangeParseValue(buf io.RuneScanner) (string, error) {
 				return "", err
 			}
 		case ',', '[', ']', '(', ')':
-			buf.UnreadRune()
+			_ = buf.UnreadRune()
 			return s.String(), nil
 		}
 

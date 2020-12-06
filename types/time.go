@@ -81,10 +81,9 @@ func ParseTimeString(s string) (time.Time, TimeSpecialValue, error) {
 		if s[2] == ':' {
 			t, err = time.ParseInLocation(timeFormat, s, time.UTC)
 			return t, tsv, err
-		} else {
-			t, err = time.ParseInLocation(dateFormat, s, time.UTC)
-			return t, tsv, err
 		}
+		t, err = time.ParseInLocation(dateFormat, s, time.UTC)
+		return t, tsv, err
 	default:
 		if s[10] == 'T' {
 			t, err = time.Parse(time.RFC3339Nano, s)
