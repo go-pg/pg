@@ -23,7 +23,7 @@ func TestParseTimeString(t *testing.T) {
 		time.Now().UTC().Format(time.RFC3339),
 	}
 	for _, s := range ss {
-		_, err := types.ParseTimeString(s)
+		_, _, err := types.ParseTimeString(s)
 		if err != nil {
 			t.Fatal(err)
 		}
