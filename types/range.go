@@ -10,7 +10,7 @@ import (
 
 // -----------------------------------------------------------------------------------------------------
 // The code in this file is taken from github.com/jackc/pgtype and was slightly modified.
-// Modifications were aimed at only taking the code neccessary to fulfill the tstzrange requirements.
+// Modifications were aimed at only taking the code necessary to fulfill the tstzrange requirements.
 // -----------------------------------------------------------------------------------------------------
 
 type UntypedTextRange struct {
@@ -49,7 +49,9 @@ func parseUntypedTextRange(src string) (*UntypedTextRange, error) {
 	if err != nil {
 		return nil, errors.Errorf("invalid Lower value: %v", err)
 	}
-	buf.UnreadRune()
+	if err = buf.UnreadRune(); err != nil {
+		return nil, err
+	}
 
 	if r == ',' {
 		utr.LowerType = RBoundUnbounded
@@ -76,7 +78,9 @@ func parseUntypedTextRange(src string) (*UntypedTextRange, error) {
 	if r == ')' || r == ']' {
 		utr.UpperType = RBoundUnbounded
 	} else {
-		buf.UnreadRune()
+		if err = buf.UnreadRune(); err != nil {
+			return nil, err
+		}
 		utr.Upper, err = rangeParseValue(buf)
 		if err != nil {
 			return nil, errors.Errorf("invalid Upper value: %v", err)
@@ -115,7 +119,9 @@ func rangeParseValue(buf *bytes.Buffer) (string, error) {
 	if r == '"' {
 		return rangeParseQuotedValue(buf)
 	}
-	buf.UnreadRune()
+	if err = buf.UnreadRune(); err != nil {
+		return "", err
+	}
 
 	s := &bytes.Buffer{}
 
@@ -140,7 +146,7 @@ func rangeParseValue(buf *bytes.Buffer) (string, error) {
 	}
 }
 
-func rangeParseQuotedValue(buf *bytes.Buffer) (string, error) {
+func rangeParseQuotedValue(buf io.RuneScanner) (string, error) {
 	s := &bytes.Buffer{}
 
 	for {
@@ -169,7 +175,7 @@ func rangeParseQuotedValue(buf *bytes.Buffer) (string, error) {
 	}
 }
 
-func skipWhitespace(buf *bytes.Buffer) {
+func skipWhitespace(buf io.RuneScanner) {
 	var r rune
 	var err error
 	for r, _, _ = buf.ReadRune(); unicode.IsSpace(r); r, _, _ = buf.ReadRune() {

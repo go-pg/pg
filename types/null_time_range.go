@@ -31,7 +31,7 @@ type NullTimeRange struct {
 
 func (r *NullTimeRange) Scan(src interface{}) (err error) {
 	if src == nil {
-		r.decodeText(nil)
+		err = r.decodeText(nil)
 		return
 	}
 
@@ -105,7 +105,6 @@ func (r *NullTimeRange) decodeText(src []byte) error {
 }
 
 func (r NullTimeRange) encodeText(buf []byte) ([]byte, error) {
-
 	if (r.Lower.IsZero() && r.Lower.Special == TSVNone) || (r.Upper.IsZero() && r.Upper.Special == TSVNone) {
 		return nil, nil
 	}

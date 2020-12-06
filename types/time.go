@@ -17,7 +17,7 @@ const (
 
 type TimeSpecialValue int8
 
-// named awkwardly to avoid collisions without checking
+// named awkwardly to avoid collisions without checking.
 const (
 	TSVNegativeInfinity TimeSpecialValue = iota - 1
 	TSVNone
@@ -98,7 +98,6 @@ func ParseTimeString(s string) (t time.Time, tsv TimeSpecialValue, err error) {
 			return
 		}
 		t, err = time.ParseInLocation(timestampFormat, s, time.UTC)
-		return
 	}
 	return
 }

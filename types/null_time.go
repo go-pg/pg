@@ -36,6 +36,7 @@ func (tm NullTime) MarshalJSON() (b []byte, err error) {
 	}
 	if tm.IsZero() {
 		b = jsonNull
+		return
 	}
 	b, err = tm.Time.MarshalJSON()
 	return
