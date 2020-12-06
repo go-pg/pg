@@ -61,7 +61,7 @@ func (im TimeSpecialValue) String() string {
 
 func ParseTime(b []byte) (time.Time, TimeSpecialValue, error) {
 	s := internal.BytesToString(b)
-	return ParseTimeString(string(s))
+	return ParseTimeString(s)
 }
 
 func ParseTimeString(s string) (t time.Time, tsv TimeSpecialValue, err error) {
