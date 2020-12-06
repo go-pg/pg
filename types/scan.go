@@ -232,7 +232,8 @@ func ScanTime(rd Reader, n int) (time.Time, error) {
 		return time.Time{}, err
 	}
 
-	return ParseTime(tmp)
+	t, _, err := ParseTime(tmp)
+	return t, err
 }
 
 func ScanBool(rd Reader, n int) (bool, error) {
