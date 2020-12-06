@@ -64,42 +64,47 @@ func ParseTime(b []byte) (time.Time, TimeSpecialValue, error) {
 	return ParseTimeString(s)
 }
 
-func ParseTimeString(s string) (t time.Time, tsv TimeSpecialValue, err error) {
+func ParseTimeString(s string) (time.Time, TimeSpecialValue, error) {
+	var tsv TimeSpecialValue
+	var t time.Time
+	var err error
 	if s == "-infinity" {
 		tsv = TSVNegativeInfinity
-		return
+		return time.Time{}, tsv, nil
 	}
 	if s == "infinity" {
 		tsv = TSVInfinity
-		return
+		return time.Time{}, tsv, nil
 	}
 	switch l := len(s); {
 	case l <= len(timeFormat):
 		if s[2] == ':' {
 			t, err = time.ParseInLocation(timeFormat, s, time.UTC)
+			return t, tsv, err
 		} else {
 			t, err = time.ParseInLocation(dateFormat, s, time.UTC)
+			return t, tsv, err
 		}
 	default:
 		if s[10] == 'T' {
 			t, err = time.Parse(time.RFC3339Nano, s)
-			return
+			return t, tsv, err
 		}
 		if c := s[l-9]; c == '+' || c == '-' {
 			t, err = time.Parse(timestamptzFormat, s)
-			return
+			return t, tsv, err
 		}
 		if c := s[l-6]; c == '+' || c == '-' {
 			t, err = time.Parse(timestamptzFormat2, s)
-			return
+			return t, tsv, err
 		}
 		if c := s[l-3]; c == '+' || c == '-' {
 			t, err = time.Parse(timestamptzFormat3, s)
-			return
+			return t, tsv, err
 		}
 		t, err = time.ParseInLocation(timestampFormat, s, time.UTC)
 	}
-	return
+	return t, tsv, err
 }
 
 func AppendTime(b []byte, tm time.Time, flags int) []byte {

@@ -49,9 +49,7 @@ func parseUntypedTextRange(src string) (*UntypedTextRange, error) {
 	if err != nil {
 		return nil, errors.Errorf("invalid Lower value: %v", err)
 	}
-	if err = buf.UnreadRune(); err != nil {
-		return nil, err
-	}
+	_ = buf.UnreadRune()
 
 	if r == ',' {
 		utr.LowerType = RBoundUnbounded
@@ -78,9 +76,8 @@ func parseUntypedTextRange(src string) (*UntypedTextRange, error) {
 	if r == ')' || r == ']' {
 		utr.UpperType = RBoundUnbounded
 	} else {
-		if err = buf.UnreadRune(); err != nil {
-			return nil, err
-		}
+		_ = buf.UnreadRune()
+
 		utr.Upper, err = rangeParseValue(buf)
 		if err != nil {
 			return nil, errors.Errorf("invalid Upper value: %v", err)
@@ -111,7 +108,7 @@ func parseUntypedTextRange(src string) (*UntypedTextRange, error) {
 
 // -----------------------------------------------------------------------------------------------------
 
-func rangeParseValue(buf *bytes.Buffer) (string, error) {
+func rangeParseValue(buf io.RuneScanner) (string, error) {
 	r, _, err := buf.ReadRune()
 	if err != nil {
 		return "", err
@@ -119,9 +116,7 @@ func rangeParseValue(buf *bytes.Buffer) (string, error) {
 	if r == '"' {
 		return rangeParseQuotedValue(buf)
 	}
-	if err = buf.UnreadRune(); err != nil {
-		return "", err
-	}
+	_ = buf.UnreadRune()
 
 	s := &bytes.Buffer{}
 
@@ -167,7 +162,7 @@ func rangeParseQuotedValue(buf io.RuneScanner) (string, error) {
 				return "", err
 			}
 			if r != '"' {
-				buf.UnreadRune()
+				_ = buf.UnreadRune()
 				return s.String(), nil
 			}
 		}
@@ -182,6 +177,6 @@ func skipWhitespace(buf io.RuneScanner) {
 	}
 
 	if err != io.EOF {
-		buf.UnreadRune()
+		_ = buf.UnreadRune()
 	}
 }
