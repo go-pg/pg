@@ -15,7 +15,7 @@ require (
 	github.com/vmihailenco/msgpack/v4 v4.3.11 // indirect
 	github.com/vmihailenco/msgpack/v5 v5.0.0
 	github.com/vmihailenco/tagparser v0.1.2
-	go.opentelemetry.io/otel v0.14.0
+	go.opentelemetry.io/otel v0.15.0
 	golang.org/x/crypto v0.0.0-20201117144127-c1f2f97bffc9 // indirect
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
 	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68 // indirect
