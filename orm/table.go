@@ -1076,60 +1076,6 @@ func normalizeSQLType(s string) string {
 	return s
 }
 
-func sqlTypeEqual(a, b string) bool {
-	return a == b
-}
-
-func (t *Table) tryHasOne(joinTable *Table, field *Field, pgTag *tagparser.Tag) bool {
-	fk, fkOK := pgTag.Options["fk"]
-	if fkOK {
-		if fk == "-" {
-			return false
-		}
-		fk = tryUnderscorePrefix(fk)
-	} else {
-		fk = internal.Underscore(field.GoName) + "_"
-	}
-
-	fks := foreignKeys(joinTable, t, fk, fkOK)
-	if len(fks) > 0 {
-		t.addRelation(&Relation{
-			Type:      HasOneRelation,
-			Field:     field,
-			JoinTable: joinTable,
-			BaseFKs:   fks,
-			JoinFKs:   joinTable.PKs,
-		})
-		return true
-	}
-	return false
-}
-
-func (t *Table) tryBelongsToOne(joinTable *Table, field *Field, pgTag *tagparser.Tag) bool {
-	fk, fkOK := pgTag.Options["fk"]
-	if fkOK {
-		if fk == "-" {
-			return false
-		}
-		fk = tryUnderscorePrefix(fk)
-	} else {
-		fk = internal.Underscore(t.TypeName) + "_"
-	}
-
-	fks := foreignKeys(t, joinTable, fk, fkOK)
-	if len(fks) > 0 {
-		t.addRelation(&Relation{
-			Type:      BelongsToRelation,
-			Field:     field,
-			JoinTable: joinTable,
-			BaseFKs:   t.PKs,
-			JoinFKs:   fks,
-		})
-		return true
-	}
-	return false
-}
-
 func (t *Table) addRelation(rel *Relation) {
 	if t.Relations == nil {
 		t.Relations = make(map[string]*Relation)
@@ -1139,67 +1085,6 @@ func (t *Table) addRelation(rel *Relation) {
 		panic(fmt.Errorf("%s already has %s", t, rel))
 	}
 	t.Relations[rel.Field.GoName] = rel
-}
-
-func foreignKeys(base, join *Table, fk string, tryFK bool) []*Field {
-	var fks []*Field
-
-	for _, pk := range base.PKs {
-		fkName := fk + pk.SQLName
-		f := join.getField(fkName)
-		if f != nil && sqlTypeEqual(pk.SQLType, f.SQLType) {
-			fks = append(fks, f)
-			continue
-		}
-
-		if strings.IndexByte(pk.SQLName, '_') == -1 {
-			continue
-		}
-
-		f = join.getField(pk.SQLName)
-		if f != nil && sqlTypeEqual(pk.SQLType, f.SQLType) {
-			fks = append(fks, f)
-			continue
-		}
-	}
-	if len(fks) > 0 && len(fks) == len(base.PKs) {
-		return fks
-	}
-
-	fks = nil
-	for _, pk := range base.PKs {
-		if !strings.HasPrefix(pk.SQLName, "pk_") {
-			continue
-		}
-		fkName := "fk_" + pk.SQLName[3:]
-		f := join.getField(fkName)
-		if f != nil && sqlTypeEqual(pk.SQLType, f.SQLType) {
-			fks = append(fks, f)
-		}
-	}
-	if len(fks) > 0 && len(fks) == len(base.PKs) {
-		return fks
-	}
-
-	if fk == "" || len(base.PKs) != 1 {
-		return nil
-	}
-
-	if tryFK {
-		f := join.getField(fk)
-		if f != nil && sqlTypeEqual(base.PKs[0].SQLType, f.SQLType) {
-			return []*Field{f}
-		}
-	}
-
-	for _, suffix := range []string{"id", "uuid"} {
-		f := join.getField(fk + suffix)
-		if f != nil && sqlTypeEqual(base.PKs[0].SQLType, f.SQLType) {
-			return []*Field{f}
-		}
-	}
-
-	return nil
 }
 
 func scanJSONValue(v reflect.Value, rd types.Reader, n int) error {
@@ -1222,16 +1107,6 @@ func appendUintAsInt(b []byte, v reflect.Value, _ int) []byte {
 
 func appendUintPtrAsInt(b []byte, v reflect.Value, _ int) []byte {
 	return strconv.AppendInt(b, int64(v.Elem().Uint()), 10)
-}
-
-func tryUnderscorePrefix(s string) string {
-	if s == "" {
-		return s
-	}
-	if c := s[0]; internal.IsUpper(c) {
-		return internal.Underscore(s) + "_"
-	}
-	return s
 }
 
 func quoteTableName(s string) types.Safe {

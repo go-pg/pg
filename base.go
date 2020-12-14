@@ -340,7 +340,9 @@ func (db *baseDB) QueryOne(
 }
 
 // CopyFrom copies data from reader to a table.
-func (db *baseDB) CopyFrom(ctx context.Context, r io.Reader, query interface{}, params ...interface{}) (res Result, err error) {
+func (db *baseDB) CopyFrom(
+	ctx context.Context, r io.Reader, query interface{}, params ...interface{},
+) (res Result, err error) {
 	err = db.withConn(ctx, func(ctx context.Context, cn *pool.Conn) error {
 		res, err = db.copyFrom(ctx, cn, r, query, params...)
 		return err
