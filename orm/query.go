@@ -163,7 +163,7 @@ func cloneTableModelJoins(tm TableModel) TableModel {
 	return tm
 }
 
-func (q *Query) err(err error) *Query {
+func (q *Query) Err(err error) *Query {
 	if q.stickyErr == nil {
 		q.stickyErr = err
 	}
@@ -206,7 +206,7 @@ func (q *Query) Model(model ...interface{}) *Query {
 		panic("not reached")
 	}
 	if err != nil {
-		q = q.err(err)
+		q = q.Err(err)
 	}
 
 	q.tableModel, _ = q.model.(TableModel)
@@ -229,7 +229,7 @@ func (q *Query) isSoftDelete() bool {
 func (q *Query) Deleted() *Query {
 	if q.tableModel != nil {
 		if err := q.tableModel.Table().mustSoftDelete(); err != nil {
-			return q.err(err)
+			return q.Err(err)
 		}
 	}
 	return q.withFlag(deletedFlag).withoutFlag(allWithDeletedFlag)
@@ -239,7 +239,7 @@ func (q *Query) Deleted() *Query {
 func (q *Query) AllWithDeleted() *Query {
 	if q.tableModel != nil {
 		if err := q.tableModel.Table().mustSoftDelete(); err != nil {
-			return q.err(err)
+			return q.Err(err)
 		}
 	}
 	return q.withFlag(allWithDeletedFlag).withoutFlag(deletedFlag)
@@ -344,7 +344,7 @@ func (q *Query) ExcludeColumn(columns ...string) *Query {
 
 	for _, col := range columns {
 		if !q.excludeColumn(col) {
-			return q.err(fmt.Errorf("pg: can't find column=%q", col))
+			return q.Err(fmt.Errorf("pg: can't find column=%q", col))
 		}
 	}
 	return q
@@ -396,8 +396,9 @@ func (q *Query) _getFields(omitPKs bool) ([]*Field, error) {
 //   - RelationName to select all columns,
 //   - RelationName.column_name,
 //   - RelationName._ to join relation without selecting relation columns.
-func (q *Query) Relation(name string, apply ...func(*Query) (*Query, error)) *Query {
-	var fn func(*Query) (*Query, error)
+func (q *Query) Relation(name string, apply ...func(*Query) *Query) *Query {
+	var fn func(*Query) *Query
+
 	if len(apply) == 1 {
 		fn = apply[0]
 	} else if len(apply) > 1 {
@@ -406,7 +407,7 @@ func (q *Query) Relation(name string, apply ...func(*Query) (*Query, error)) *Qu
 
 	join := q.tableModel.Join(name, fn)
 	if join == nil {
-		return q.err(fmt.Errorf("%s does not have relation=%q",
+		return q.Err(fmt.Errorf("%s does not have relation=%q",
 			q.tableModel.Table(), name))
 	}
 
@@ -432,7 +433,7 @@ func (q *Query) Set(set string, params ...interface{}) *Query {
 // Value overwrites model value for the column in INSERT and UPDATE queries.
 func (q *Query) Value(column string, value string, params ...interface{}) *Query {
 	if !q.hasTableModel() {
-		q.err(errModelNil)
+		q.Err(errModelNil)
 		return q
 	}
 
@@ -473,30 +474,28 @@ func (q *Query) WhereOr(condition string, params ...interface{}) *Query {
 // WhereGroup encloses conditions added in the function in parentheses.
 //
 //    q.Where("TRUE").
-//    	WhereGroup(func(q *orm.Query) (*orm.Query, error) {
-//    		q = q.WhereOr("FALSE").WhereOr("TRUE").
-//    		return q, nil
+//    	WhereGroup(func(q *orm.Query) *orm.Query {
+//    		return q.WhereOr("FALSE").WhereOr("TRUE").
 //    	})
 //
 // generates
 //
 //    WHERE TRUE AND (FALSE OR TRUE)
-func (q *Query) WhereGroup(fn func(*Query) (*Query, error)) *Query {
+func (q *Query) WhereGroup(fn func(*Query) *Query) *Query {
 	return q.whereGroup(" AND ", fn)
 }
 
 // WhereGroup encloses conditions added in the function in parentheses.
 //
 //    q.Where("TRUE").
-//    	WhereNotGroup(func(q *orm.Query) (*orm.Query, error) {
-//    		q = q.WhereOr("FALSE").WhereOr("TRUE").
-//    		return q, nil
+//    	WhereNotGroup(func(q *orm.Query) *orm.Query {
+//    		return q.WhereOr("FALSE").WhereOr("TRUE").
 //    	})
 //
 // generates
 //
 //    WHERE TRUE AND NOT (FALSE OR TRUE)
-func (q *Query) WhereNotGroup(fn func(*Query) (*Query, error)) *Query {
+func (q *Query) WhereNotGroup(fn func(*Query) *Query) *Query {
 	return q.whereGroup(" AND NOT ", fn)
 }
 
@@ -511,7 +510,7 @@ func (q *Query) WhereNotGroup(fn func(*Query) (*Query, error)) *Query {
 // generates
 //
 //    WHERE TRUE OR (FALSE AND TRUE)
-func (q *Query) WhereOrGroup(fn func(*Query) (*Query, error)) *Query {
+func (q *Query) WhereOrGroup(fn func(*Query) *Query) *Query {
 	return q.whereGroup(" OR ", fn)
 }
 
@@ -526,19 +525,15 @@ func (q *Query) WhereOrGroup(fn func(*Query) (*Query, error)) *Query {
 // generates
 //
 //    WHERE TRUE OR NOT (FALSE AND TRUE)
-func (q *Query) WhereOrNotGroup(fn func(*Query) (*Query, error)) *Query {
+func (q *Query) WhereOrNotGroup(fn func(*Query) *Query) *Query {
 	return q.whereGroup(" OR NOT ", fn)
 }
 
-func (q *Query) whereGroup(conj string, fn func(*Query) (*Query, error)) *Query {
+func (q *Query) whereGroup(conj string, fn func(*Query) *Query) *Query {
 	saved := q.where
 	q.where = nil
 
-	newq, err := fn(q)
-	if err != nil {
-		q.err(err)
-		return q
-	}
+	newq := fn(q)
 
 	if len(newq.where) == 0 {
 		newq.where = saved
@@ -574,7 +569,7 @@ func (q *Query) addWhere(f queryWithSepAppender) {
 //    Where("id = ?id")
 func (q *Query) WherePK(cols ...string) *Query {
 	if !q.hasTableModel() {
-		q.err(errModelNil)
+		q.Err(errModelNil)
 		return q
 	}
 
@@ -586,14 +581,14 @@ func (q *Query) WherePK(cols ...string) *Query {
 		for i, col := range cols {
 			f, ok := table.FieldsMap[col]
 			if !ok {
-				q.err(fmt.Errorf("pg: %s does not have field=%q", table, col))
+				q.Err(fmt.Errorf("pg: %s does not have field=%q", table, col))
 				return q
 			}
 			pks[i] = f
 		}
 	} else {
 		if err := table.checkPKs(); err != nil {
-			q.err(err)
+			q.Err(err)
 			return q
 		}
 		pks = table.PKs
@@ -625,7 +620,7 @@ func (q *Query) Join(join string, params ...interface{}) *Query {
 // JoinOn appends join condition to the last join.
 func (q *Query) JoinOn(condition string, params ...interface{}) *Query {
 	if q.joinAppendOn == nil {
-		q.err(errors.New("pg: no joins to apply JoinOn"))
+		q.Err(errors.New("pg: no joins to apply JoinOn"))
 		return q
 	}
 	q.joinAppendOn(&condAppender{
@@ -638,7 +633,7 @@ func (q *Query) JoinOn(condition string, params ...interface{}) *Query {
 
 func (q *Query) JoinOnOr(condition string, params ...interface{}) *Query {
 	if q.joinAppendOn == nil {
-		q.err(errors.New("pg: no joins to apply JoinOn"))
+		q.Err(errors.New("pg: no joins to apply JoinOn"))
 		return q
 	}
 	q.joinAppendOn(&condAppender{
@@ -766,13 +761,8 @@ func (q *Query) For(s string, params ...interface{}) *Query {
 }
 
 // Apply calls the fn passing the Query as an argument.
-func (q *Query) Apply(fn func(*Query) (*Query, error)) *Query {
-	qq, err := fn(q)
-	if err != nil {
-		q.err(err)
-		return q
-	}
-	return qq
+func (q *Query) Apply(fn func(*Query) *Query) *Query {
+	return fn(q)
 }
 
 // Count returns number of rows matching the query using count aggregate function.

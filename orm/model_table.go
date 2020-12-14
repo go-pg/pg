@@ -15,7 +15,7 @@ type TableModel interface {
 	Relation() *Relation
 	AppendParam(QueryFormatter, []byte, string) ([]byte, bool)
 
-	Join(string, func(*Query) (*Query, error)) *join
+	Join(string, func(*Query) *Query) *join
 	GetJoin(string) *join
 	GetJoins() []join
 	AddJoin(join) *join

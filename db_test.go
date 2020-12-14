@@ -1382,11 +1382,11 @@ var _ = Describe("ORM", func() {
 				Relation("Editor.Avatar").
 				Relation("Genres").
 				Relation("Comments").
-				Relation("Translations", func(q *orm.Query) (*orm.Query, error) {
-					return q.Order("id"), nil
+				Relation("Translations", func(q *orm.Query) *orm.Query {
+					return q.Order("id")
 				}).
-				Relation("Translations.Comments", func(q *orm.Query) (*orm.Query, error) {
-					return q.Order("text"), nil
+				Relation("Translations.Comments", func(q *orm.Query) *orm.Query {
+					return q.Order("text")
 				}).
 				First(ctx)
 			Expect(err).NotTo(HaveOccurred())
@@ -1826,7 +1826,7 @@ var _ = Describe("ORM", func() {
 				{ID: 101},
 				{ID: 100},
 			}
-			err := db.Model(&books).Column("title").WherePK().Select()
+			err := db.Model(&books).Column("title").WherePK().Select(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(books).To(Equal([]Book{
 				{ID: 101, Title: "book 2"},
@@ -2062,8 +2062,8 @@ var _ = Describe("ORM", func() {
 		var book Book
 		err := db.Model(&book).
 			Column("book.id").
-			Relation("Translations", func(q *orm.Query) (*orm.Query, error) {
-				return q.Where("lang = 'ru'"), nil
+			Relation("Translations", func(q *orm.Query) *orm.Query {
+				return q.Where("lang = 'ru'")
 			}).
 			First(ctx)
 		Expect(err).NotTo(HaveOccurred())
@@ -2079,8 +2079,8 @@ var _ = Describe("ORM", func() {
 		var book Book
 		err := db.Model(&book).
 			Column("book.id").
-			Relation("Genres", func(q *orm.Query) (*orm.Query, error) {
-				return q.Where("genre__rating > 999"), nil
+			Relation("Genres", func(q *orm.Query) *orm.Query {
+				return q.Where("genre__rating > 999")
 			}).
 			First(ctx)
 		Expect(err).NotTo(HaveOccurred())

@@ -75,9 +75,9 @@ func ExampleDB_Model_manyToMany() {
 
 	order = new(Order)
 	err = db.Model(order).
-		Relation("Items", func(q *orm.Query) (*orm.Query, error) {
+		Relation("Items", func(q *orm.Query) *orm.Query {
 			q = q.OrderExpr("item.id DESC")
-			return q, nil
+			return q
 		}).
 		First(ctx)
 	if err != nil {

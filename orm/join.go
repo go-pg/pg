@@ -14,7 +14,7 @@ type join struct {
 	JoinModel TableModel
 	Rel       *Relation
 
-	ApplyQuery func(*Query) (*Query, error)
+	ApplyQuery func(*Query) *Query
 	Columns    []string
 	on         []*condAppender
 }
@@ -34,29 +34,22 @@ func (j *join) Select(ctx context.Context, fmter QueryFormatter, q *Query) error
 }
 
 func (j *join) selectMany(ctx context.Context, _ QueryFormatter, q *Query) error {
-	q, err := j.manyQuery(q)
-	if err != nil {
-		return err
-	}
+	q = j.manyQuery(q)
 	if q == nil {
 		return nil
 	}
 	return q.Select(ctx)
 }
 
-func (j *join) manyQuery(q *Query) (*Query, error) {
+func (j *join) manyQuery(q *Query) *Query {
 	manyModel := newManyModel(j)
 	if manyModel == nil {
-		return nil, nil
+		return nil
 	}
 
 	q = q.Model(manyModel)
 	if j.ApplyQuery != nil {
-		var err error
-		q, err = j.ApplyQuery(q)
-		if err != nil {
-			return nil, err
-		}
+		q = j.ApplyQuery(q)
 	}
 
 	if len(q.columns) == 0 {
@@ -84,33 +77,26 @@ func (j *join) manyQuery(q *Query) (*Query, error) {
 			baseTable.ModelName, baseTable.TypeName)
 	}
 
-	return q, nil
+	return q
 }
 
 func (j *join) selectM2M(ctx context.Context, fmter QueryFormatter, q *Query) error {
-	q, err := j.m2mQuery(fmter, q)
-	if err != nil {
-		return err
-	}
+	q = j.m2mQuery(fmter, q)
 	if q == nil {
 		return nil
 	}
 	return q.Select(ctx)
 }
 
-func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
+func (j *join) m2mQuery(fmter QueryFormatter, q *Query) *Query {
 	m2mModel := newM2MModel(j)
 	if m2mModel == nil {
-		return nil, nil
+		return nil
 	}
 
 	q = q.Model(m2mModel)
 	if j.ApplyQuery != nil {
-		var err error
-		q, err = j.ApplyQuery(q)
-		if err != nil {
-			return nil, err
-		}
+		q = j.ApplyQuery(q)
 	}
 
 	if len(q.columns) == 0 {
@@ -148,7 +134,7 @@ func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 			j.Rel.M2MTableAlias, types.Ident(col))
 	}
 
-	return q, nil
+	return q
 }
 
 func (j *join) hasParent() bool {

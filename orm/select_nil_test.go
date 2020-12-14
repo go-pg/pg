@@ -38,9 +38,8 @@ var _ = Describe("Select - nil model", func() {
 
 	It("adds JoinOn", func() {
 		q := NewQuery(nil, (*SelectModel)(nil)).
-			Relation("HasOne", func(q *Query) (*Query, error) {
-				q = q.JoinOn("1 = 2")
-				return q, nil
+			Relation("HasOne", func(q *Query) *Query {
+				return q.JoinOn("1 = 2")
 			})
 
 		s := selectQueryString(q)

@@ -80,9 +80,8 @@ var _ = Describe("Select", func() {
 
 	It("adds JoinOn", func() {
 		q := NewQuery(nil, &SelectModel{}).
-			Relation("HasOne", func(q *Query) (*Query, error) {
-				q = q.JoinOn("1 = 2")
-				return q, nil
+			Relation("HasOne", func(q *Query) *Query {
+				return q.JoinOn("1 = 2")
 			})
 
 		s := selectQueryString(q)
@@ -106,8 +105,7 @@ var _ = Describe("Select", func() {
 	It("specifies all columns for has many", func() {
 		q := NewQuery(nil, &SelectModel{Id: 1}).Relation("HasMany")
 
-		q, err := q.tableModel.GetJoin("HasMany").manyQuery(q.New())
-		Expect(err).NotTo(HaveOccurred())
+		q = q.tableModel.GetJoin("HasMany").manyQuery(q.New())
 
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT "has_many_model"."id", "has_many_model"."select_model_id" FROM "has_many_models" AS "has_many_model" WHERE ("has_many_model"."select_model_id" IN (1))`))
@@ -115,13 +113,11 @@ var _ = Describe("Select", func() {
 
 	It("overwrites columns for has many", func() {
 		q := NewQuery(nil, &SelectModel{Id: 1}).
-			Relation("HasMany", func(q *Query) (*Query, error) {
-				q = q.ColumnExpr("expr")
-				return q, nil
+			Relation("HasMany", func(q *Query) *Query {
+				return q.ColumnExpr("expr")
 			})
 
-		q, err := q.tableModel.GetJoin("HasMany").manyQuery(q.New())
-		Expect(err).NotTo(HaveOccurred())
+		q = q.tableModel.GetJoin("HasMany").manyQuery(q.New())
 
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT expr FROM "has_many_models" AS "has_many_model" WHERE ("has_many_model"."select_model_id" IN (1))`))
@@ -185,9 +181,8 @@ var _ = Describe("Select", func() {
 	})
 
 	It("supports WhereGroup", func() {
-		q := NewQuery(nil).Where("TRUE").WhereGroup(func(q *Query) (*Query, error) {
-			q = q.Where("FALSE").WhereOr("TRUE")
-			return q, nil
+		q := NewQuery(nil).Where("TRUE").WhereGroup(func(q *Query) *Query {
+			return q.Where("FALSE").WhereOr("TRUE")
 		})
 
 		s := selectQueryString(q)
@@ -195,9 +190,8 @@ var _ = Describe("Select", func() {
 	})
 
 	It("supports WhereOrGroup", func() {
-		q := NewQuery(nil).Where("TRUE").WhereOrGroup(func(q *Query) (*Query, error) {
-			q = q.Where("FALSE").Where("TRUE")
-			return q, nil
+		q := NewQuery(nil).Where("TRUE").WhereOrGroup(func(q *Query) *Query {
+			return q.Where("FALSE").Where("TRUE")
 		})
 
 		s := selectQueryString(q)
@@ -205,8 +199,8 @@ var _ = Describe("Select", func() {
 	})
 
 	It("supports empty WhereGroup", func() {
-		q := NewQuery(nil).Where("TRUE").WhereGroup(func(q *Query) (*Query, error) {
-			return q, nil
+		q := NewQuery(nil).Where("TRUE").WhereGroup(func(q *Query) *Query {
+			return q
 		})
 
 		s := selectQueryString(q)

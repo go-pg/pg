@@ -323,10 +323,10 @@ func ExampleDB_Model_selectWhereGroup() {
 
 	var books []Book
 	err := db.Model(&books).
-		WhereGroup(func(q *orm.Query) (*orm.Query, error) {
+		WhereGroup(func(q *orm.Query) *orm.Query {
 			q = q.WhereOr("id = 1").
 				WhereOr("id = 2")
-			return q, nil
+			return q
 		}).
 		Where("title IS NOT NULL").
 		Select(ctx)
@@ -415,14 +415,14 @@ func ExampleDB_Model_selectApplyFunc() {
 	var authorId int
 	var editorId int
 
-	filter := func(q *orm.Query) (*orm.Query, error) {
+	filter := func(q *orm.Query) *orm.Query {
 		if authorId != 0 {
 			q = q.Where("author_id = ?", authorId)
 		}
 		if editorId != 0 {
 			q = q.Where("editor_id = ?", editorId)
 		}
-		return q, nil
+		return q
 	}
 
 	var books []Book
@@ -672,8 +672,8 @@ func ExampleDB_Model_hasMany() {
 	var user User
 	err := db.Model(&user).
 		Column("user.*").
-		Relation("Profiles", func(q *orm.Query) (*orm.Query, error) {
-			return q.Where("active IS TRUE"), nil
+		Relation("Profiles", func(q *orm.Query) *orm.Query {
+			return q.Where("active IS TRUE")
 		}).
 		First(ctx)
 	if err != nil {
