@@ -25,6 +25,7 @@
 - [Genna - cli tool for generating go-pg models](https://github.com/dizzyfool/genna).
 - [urlstruct](https://github.com/go-pg/urlstruct) to decode `url.Values` into structs.
 - [Sharding](https://github.com/go-pg/sharding).
+- [go-pg-monitor](https://github.com/hypnoglow/go-pg-monitor) - Prometheus metrics based on go-pg client stats.
 
 ## Features
 
