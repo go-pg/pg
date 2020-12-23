@@ -178,16 +178,19 @@ func appendUniqueConstraints(b []byte, table *Table) []byte {
 	sort.Strings(keys)
 
 	for _, key := range keys {
-		b = appendUnique(b, table.Unique[key])
+		b = appendUnique(b, key, table.Unique[key])
 	}
 
 	return b
 }
 
-func appendUnique(b []byte, fields []*Field) []byte {
-	b = append(b, ", UNIQUE ("...)
+func appendUnique(b []byte, name string, fields []*Field) []byte {
+	b = append(b, ", CONSTRAINT "...)
+	b = types.AppendIdent(b, name, 0)
+	b = append(b, " UNIQUE ("...)
 	b = appendColumns(b, "", fields)
 	b = append(b, ")"...)
+
 	return b
 }
 
