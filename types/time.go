@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-pg/pg/v11/internal"
@@ -22,6 +23,8 @@ func ParseTime(b []byte) (time.Time, error) {
 
 func ParseTimeString(s string) (time.Time, error) {
 	switch l := len(s); {
+	case l < len(dateFormat):
+		return time.Time{}, fmt.Errorf("pg: can't parse time=%q", s)
 	case l <= len(timeFormat):
 		if s[2] == ':' {
 			return time.ParseInLocation(timeFormat, s, time.UTC)

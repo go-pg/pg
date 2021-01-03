@@ -1192,9 +1192,6 @@ func (q *Query) ForceDelete(ctx context.Context, values ...interface{}) (Result,
 	if q.stickyErr != nil {
 		return nil, q.stickyErr
 	}
-	if q.tableModel == nil {
-		return nil, errModelNil
-	}
 	q = q.withFlag(deletedFlag)
 
 	model, err := q.newModel(values)
