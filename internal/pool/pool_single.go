@@ -53,6 +53,6 @@ func (p *SingleConnPool) IdleLen() int {
 	return 0
 }
 
-func (p *SingleConnPool) Stats() *Stats {
-	return &Stats{}
+func (p *SingleConnPool) Stats() Stats {
+	return Stats{}
 }

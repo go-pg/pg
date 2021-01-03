@@ -3,6 +3,7 @@ package pg
 import (
 	"context"
 	"io"
+	"sync/atomic"
 	"time"
 
 	"go.opentelemetry.io/otel/label"
@@ -14,6 +15,11 @@ import (
 	"github.com/go-pg/pg/v11/types"
 )
 
+type DBStats struct {
+	Queries uint64
+	Errors  uint64
+}
+
 type baseDB struct {
 	db   orm.DB
 	opt  *Options
@@ -21,15 +27,24 @@ type baseDB struct {
 
 	fmter      *orm.Formatter
 	queryHooks []QueryHook
+
+	stats DBStats
 }
 
-// PoolStats contains the stats of a connection pool.
+func (db *baseDB) Stats() DBStats {
+	return DBStats{
+		Queries: atomic.LoadUint64(&db.stats.Queries),
+		Errors:  atomic.LoadUint64(&db.stats.Errors),
+	}
+}
+
+// PoolStats contains the stats of the connection pool.
 type PoolStats pool.Stats
 
 // PoolStats returns connection pool stats.
-func (db *baseDB) PoolStats() *PoolStats {
+func (db *baseDB) PoolStats() PoolStats {
 	stats := db.pool.Stats()
-	return (*PoolStats)(stats)
+	return (PoolStats)(stats)
 }
 
 func (db *baseDB) clone() *baseDB {
@@ -145,34 +160,41 @@ func (db *baseDB) withConn(
 			return err
 		}
 
-		var fnDone chan struct{}
-		if ctx != nil && ctx.Done() != nil {
-			fnDone = make(chan struct{})
+		var done chan struct{}
+
+		if ctxDone := ctx.Done(); ctxDone != nil {
+			done = make(chan struct{})
 			go func() {
 				select {
-				case <-fnDone: // fn has finished, skip cancel
-				case <-ctx.Done():
+				case <-done: // fn has finished, skip cancel
+				case <-ctxDone:
 					err := db.cancelRequest(cn.ProcessID, cn.SecretKey)
 					if err != nil {
 						internal.Logger.Printf(ctx, "cancelRequest failed: %s", err)
 					}
 					// Signal end of conn use.
-					fnDone <- struct{}{}
+					done <- struct{}{}
 				}
 			}()
 		}
 
 		defer func() {
-			if fnDone != nil {
+			if done != nil {
 				select {
-				case <-fnDone: // wait for cancel to finish request
-				case fnDone <- struct{}{}: // signal fn finish, skip cancel goroutine
+				case <-done: // wait for cancel to finish request
+				case done <- struct{}{}: // signal fn finish, skip cancel goroutine
 				}
 			}
 			db.releaseConn(ctx, cn, err)
 		}()
 
 		err = fn(ctx, cn)
+
+		atomic.AddUint64(&db.stats.Queries, 1)
+		if err != nil {
+			atomic.AddUint64(&db.stats.Errors, 1)
+		}
+
 		return err
 	})
 }

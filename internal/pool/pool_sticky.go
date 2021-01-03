@@ -197,6 +197,6 @@ func (p *StickyConnPool) IdleLen() int {
 	return len(p.ch)
 }
 
-func (p *StickyConnPool) Stats() *Stats {
-	return &Stats{}
+func (p *StickyConnPool) Stats() Stats {
+	return Stats{}
 }

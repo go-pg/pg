@@ -45,7 +45,7 @@ type Pooler interface {
 
 	Len() int
 	IdleLen() int
-	Stats() *Stats
+	Stats() Stats
 
 	Close() error
 }
@@ -380,9 +380,9 @@ func (p *ConnPool) IdleLen() int {
 	return n
 }
 
-func (p *ConnPool) Stats() *Stats {
+func (p *ConnPool) Stats() Stats {
 	idleLen := p.IdleLen()
-	return &Stats{
+	return Stats{
 		Hits:     atomic.LoadUint32(&p.stats.Hits),
 		Misses:   atomic.LoadUint32(&p.stats.Misses),
 		Timeouts: atomic.LoadUint32(&p.stats.Timeouts),
