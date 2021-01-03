@@ -185,8 +185,12 @@ func appendUniqueConstraints(b []byte, table *Table) []byte {
 }
 
 func appendUnique(b []byte, name string, fields []*Field) []byte {
-	b = append(b, ", CONSTRAINT "...)
-	b = types.AppendIdent(b, name, 0)
+	if name != "" {
+		b = append(b, ", CONSTRAINT "...)
+		b = types.AppendIdent(b, name, 0)
+	} else {
+		b = append(b, ","...)
+	}
 	b = append(b, " UNIQUE ("...)
 	b = appendColumns(b, "", fields)
 	b = append(b, ")"...)
