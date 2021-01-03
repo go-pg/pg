@@ -13,7 +13,7 @@ require (
 	github.com/tmthrgd/go-hex v0.0.0-20190904060850-447a3041c3bc
 	github.com/vmihailenco/bufpool v0.1.11
 	github.com/vmihailenco/msgpack/v4 v4.3.11 // indirect
-	github.com/vmihailenco/msgpack/v5 v5.0.0
+	github.com/vmihailenco/msgpack/v5 v5.1.4
 	github.com/vmihailenco/tagparser v0.1.2
 	go.opentelemetry.io/otel v0.15.0
 	golang.org/x/crypto v0.0.0-20201117144127-c1f2f97bffc9 // indirect
