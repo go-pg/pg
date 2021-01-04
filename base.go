@@ -28,7 +28,7 @@ type baseDB struct {
 	fmter      *orm.Formatter
 	queryHooks []QueryHook
 
-	stats DBStats
+	stats *DBStats
 }
 
 func (db *baseDB) Stats() DBStats {
@@ -55,6 +55,8 @@ func (db *baseDB) clone() *baseDB {
 
 		fmter:      db.fmter,
 		queryHooks: copyQueryHooks(db.queryHooks),
+
+		stats: db.stats,
 	}
 }
 
@@ -71,6 +73,7 @@ func (db *baseDB) WithTimeout(d time.Duration) *baseDB {
 
 	cp := db.clone()
 	cp.opt = &newopt
+
 	return cp
 }
 
@@ -154,7 +157,7 @@ func (db *baseDB) releaseConn(ctx context.Context, cn *pool.Conn, err error) {
 func (db *baseDB) withConn(
 	ctx context.Context, fn func(context.Context, *pool.Conn) error,
 ) error {
-	return internal.WithSpan(ctx, "pg.with_conn", func(ctx context.Context, span trace.Span) error {
+	err := internal.WithSpan(ctx, "pg.with_conn", func(ctx context.Context, span trace.Span) error {
 		cn, err := db.getConn(ctx)
 		if err != nil {
 			return err
@@ -189,14 +192,15 @@ func (db *baseDB) withConn(
 		}()
 
 		err = fn(ctx, cn)
-
-		atomic.AddUint64(&db.stats.Queries, 1)
-		if err != nil {
-			atomic.AddUint64(&db.stats.Errors, 1)
-		}
-
 		return err
 	})
+
+	atomic.AddUint64(&db.stats.Queries, 1)
+	if err != nil {
+		atomic.AddUint64(&db.stats.Errors, 1)
+	}
+
+	return err
 }
 
 func (db *baseDB) shouldRetry(err error) bool {

@@ -20,6 +20,7 @@ func Connect(opt *Options) *DB {
 			opt:   opt,
 			pool:  newConnPool(opt),
 			fmter: orm.NewFormatter(),
+			stats: new(DBStats),
 		},
 	)
 }

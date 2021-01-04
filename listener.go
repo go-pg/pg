@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-pg/pg/v11/internal"
@@ -83,6 +84,19 @@ func (ln *Listener) conn(ctx context.Context) (*pool.Conn, error) {
 		return ln.cn, nil
 	}
 
+	atomic.AddUint64(&ln.db.stats.Queries, 1)
+
+	cn, err := ln._conn(ctx)
+	if err != nil {
+		atomic.AddUint64(&ln.db.stats.Errors, 1)
+		return nil, err
+	}
+
+	ln.cn = cn
+	return cn, nil
+}
+
+func (ln *Listener) _conn(ctx context.Context) (*pool.Conn, error) {
 	cn, err := ln.db.pool.NewConn(ctx)
 	if err != nil {
 		return nil, err
@@ -103,7 +117,6 @@ func (ln *Listener) conn(ctx context.Context) (*pool.Conn, error) {
 		}
 	}
 
-	ln.cn = cn
 	return cn, nil
 }
 
