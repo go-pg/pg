@@ -381,7 +381,7 @@ func ExampleDB_Model_selectWith() {
 
 	var books []Book
 	err := pgdb.Model().
-		With("author_books", authorBooks).
+		WithSelect("author_books", authorBooks).
 		Table("author_books").
 		Select(ctx, &books)
 	if err != nil {

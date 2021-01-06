@@ -163,9 +163,6 @@ func (q *InsertQuery) appendColumnsValues(fmter QueryFormatter, b []byte) (_ []b
 		return nil, err
 	}
 
-	if len(fields) == 0 {
-		fields = q.q.tableModel.Table().Fields
-	}
 	value := q.q.tableModel.Value()
 
 	b = append(b, " ("...)

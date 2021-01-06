@@ -26,6 +26,7 @@ const (
 	DropTableOp       QueryOp = "DROP TABLE"
 	CreateCompositeOp QueryOp = "CREATE COMPOSITE"
 	DropCompositeOp   QueryOp = "DROP COMPOSITE"
+	ValuesOp          QueryOp = "VALUES"
 )
 
 type queryFlag uint8
@@ -246,7 +247,7 @@ func (q *Query) AllWithDeleted() *Query {
 }
 
 // With adds subq as common table expression with the given name.
-func (q *Query) With(name string, subq *Query) *Query {
+func (q *Query) WithSelect(name string, subq *Query) *Query {
 	return q._with(name, NewSelectQuery(subq))
 }
 
@@ -260,6 +261,10 @@ func (q *Query) WithUpdate(name string, subq *Query) *Query {
 
 func (q *Query) WithDelete(name string, subq *Query) *Query {
 	return q._with(name, NewDeleteQuery(subq))
+}
+
+func (q *Query) WithValues(name string, subq *Query) *Query {
+	return q._with(name, NewValuesQuery(subq))
 }
 
 func (q *Query) _with(name string, subq QueryAppender) *Query {
@@ -276,7 +281,7 @@ func (q *Query) WrapWith(name string) *Query {
 	wrapper := q.New()
 	wrapper.with = q.with
 	q.with = nil
-	wrapper = wrapper.With(name, q)
+	wrapper = wrapper.WithSelect(name, q)
 	return wrapper
 }
 
@@ -362,15 +367,32 @@ func (q *Query) excludeColumn(column string) bool {
 }
 
 func (q *Query) getFields() ([]*Field, error) {
-	return q._getFields(false)
+	table := q.tableModel.Table()
+
+	if len(q.columns) == 0 {
+		return table.Fields, nil
+	}
+
+	fields, err := q._getFields(table)
+	if err != nil {
+		return nil, err
+	}
+
+	fields = append(fields, table.PKs...)
+	return fields, nil
 }
 
 func (q *Query) getDataFields() ([]*Field, error) {
-	return q._getFields(true)
+	table := q.tableModel.Table()
+
+	if len(q.columns) == 0 {
+		return table.DataFields, nil
+	}
+
+	return q._getFields(table)
 }
 
-func (q *Query) _getFields(omitPKs bool) ([]*Field, error) {
-	table := q.tableModel.Table()
+func (q *Query) _getFields(table *Table) ([]*Field, error) {
 	columns := make([]*Field, 0, len(q.columns))
 	for _, col := range q.columns {
 		f, ok := col.(fieldAppender)
@@ -383,7 +405,7 @@ func (q *Query) _getFields(omitPKs bool) ([]*Field, error) {
 			return nil, err
 		}
 
-		if omitPKs && field.hasFlag(PrimaryKeyFlag) {
+		if field.hasFlag(PrimaryKeyFlag) {
 			continue
 		}
 
@@ -1516,7 +1538,17 @@ func (q *Query) appendWith(fmter QueryFormatter, b []byte) (_ []byte, err error)
 		if i > 0 {
 			b = append(b, ", "...)
 		}
+
 		b = types.AppendIdent(b, with.name, 1)
+		if q, ok := with.query.(ColumnsAppender); ok {
+			b = append(b, " ("...)
+			b, err = q.AppendColumns(fmter, b)
+			if err != nil {
+				return nil, err
+			}
+			b = append(b, ")"...)
+		}
+
 		b = append(b, " AS ("...)
 
 		b, err = with.query.AppendQuery(fmter, b)

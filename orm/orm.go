@@ -27,6 +27,10 @@ type TemplateAppender interface {
 	AppendTemplate(b []byte) ([]byte, error)
 }
 
+type ColumnsAppender interface {
+	AppendColumns(fmter QueryFormatter, b []byte) ([]byte, error)
+}
+
 type QueryCommand interface {
 	QueryAppender
 	TemplateAppender

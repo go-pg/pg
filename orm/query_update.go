@@ -192,13 +192,9 @@ func (q *UpdateQuery) appendMapSet(b []byte, m map[string]interface{}) []byte {
 }
 
 func (q *UpdateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct reflect.Value) ([]byte, error) {
-	fields, err := q.q.getFields()
+	fields, err := q.q.getDataFields()
 	if err != nil {
 		return nil, err
-	}
-
-	if len(fields) == 0 {
-		fields = q.q.tableModel.Table().DataFields
 	}
 
 	pos := len(b)
@@ -249,13 +245,9 @@ func (q *UpdateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct refl
 }
 
 func (q *UpdateQuery) appendSetSlice(b []byte) ([]byte, error) {
-	fields, err := q.q.getFields()
+	fields, err := q.q.getDataFields()
 	if err != nil {
 		return nil, err
-	}
-
-	if len(fields) == 0 {
-		fields = q.q.tableModel.Table().DataFields
 	}
 
 	var table *Table
@@ -289,77 +281,27 @@ func (q *UpdateQuery) appendSetSlice(b []byte) ([]byte, error) {
 	return b, nil
 }
 
-func (q *UpdateQuery) appendSliceModelData(fmter QueryFormatter, b []byte) ([]byte, error) {
-	columns, err := q.q.getDataFields()
+func (q *UpdateQuery) appendSliceModelData(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+	fields, err := q.q.getFields()
 	if err != nil {
 		return nil, err
 	}
 
-	if len(columns) > 0 {
-		columns = append(columns, q.q.tableModel.Table().PKs...)
-	} else {
-		columns = q.q.tableModel.Table().Fields
+	b = append(b, "("...)
+
+	vq := ValuesQuery{
+		q:           q.q,
+		placeholder: q.placeholder,
+	}
+	b, err = vq.appendQuery(fmter, b, fields)
+	if err != nil {
+		return nil, err
 	}
 
-	return q.appendSliceValues(fmter, b, columns, q.q.tableModel.Value())
-}
-
-func (q *UpdateQuery) appendSliceValues(
-	fmter QueryFormatter, b []byte, fields []*Field, slice reflect.Value,
-) (_ []byte, err error) {
-	b = append(b, "(VALUES ("...)
-
-	if q.placeholder {
-		b, err = q.appendValues(fmter, b, fields, reflect.Value{})
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		sliceLen := slice.Len()
-		for i := 0; i < sliceLen; i++ {
-			if i > 0 {
-				b = append(b, "), ("...)
-			}
-			b, err = q.appendValues(fmter, b, fields, slice.Index(i))
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	b = append(b, ")) AS _data("...)
+	b = append(b, ") AS _data("...)
 	b = appendColumns(b, "", fields)
 	b = append(b, ")"...)
 
-	return b, nil
-}
-
-func (q *UpdateQuery) appendValues(
-	fmter QueryFormatter, b []byte, fields []*Field, strct reflect.Value,
-) (_ []byte, err error) {
-	for i, f := range fields {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-
-		app, ok := q.q.modelValues[f.SQLName]
-		if ok {
-			b, err = app.AppendQuery(fmter, b)
-			if err != nil {
-				return nil, err
-			}
-			continue
-		}
-
-		if q.placeholder {
-			b = append(b, '?')
-		} else {
-			b = f.AppendValue(b, indirect(strct), 1)
-		}
-
-		b = append(b, "::"...)
-		b = append(b, f.SQLType...)
-	}
 	return b, nil
 }
 

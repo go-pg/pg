@@ -250,6 +250,7 @@ var _ = Describe("Select", func() {
 			ID   uint64 `pg:"type:bigint"`
 			Text string
 		}
+
 		items := []Item{
 			{2, "two"},
 			{1, "one"},
@@ -273,6 +274,25 @@ var _ = Describe("Select", func() {
 			Column("_")
 		s := selectQueryString(q)
 		Expect(s).To(Equal(`SELECT "group"."id" AS "group__id" LEFT JOIN  AS "user" ON "user"."id" = ."id" LEFT JOIN  AS "group" ON "group"."id" = ."id"`))
+	})
+
+	It("with values", func() {
+		type Item struct {
+			ID   uint64 `pg:"type:bigint"`
+			Text string
+		}
+
+		items := []Item{
+			{2, "two"},
+			{1, "one"},
+		}
+
+		subq := NewQuery(nil, &items)
+		q := NewQuery(nil).
+			WithValues("items", subq).
+			TableExpr("items")
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`WITH "items" ("id", "text") AS (VALUES (2::bigint, 'two'::text), (1::bigint, 'one'::text)) SELECT * FROM items`))
 	})
 })
 
@@ -336,8 +356,8 @@ var _ = Describe("With", func() {
 
 	It("generates nested CTE", func() {
 		q1 := NewQuery(nil).Table("q1")
-		q2 := NewQuery(nil).With("q1", q1).Table("q2", "q1")
-		q3 := NewQuery(nil).With("q2", q2).Table("q3", "q2")
+		q2 := NewQuery(nil).WithSelect("q1", q1).Table("q2", "q1")
+		q3 := NewQuery(nil).WithSelect("q2", q2).Table("q3", "q2")
 
 		s := selectQueryString(q3)
 		Expect(s).To(Equal(`WITH "q2" AS (WITH "q1" AS (SELECT * FROM "q1") SELECT * FROM "q2", "q1") SELECT * FROM "q3", "q2"`))
