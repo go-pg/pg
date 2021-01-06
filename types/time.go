@@ -23,7 +23,7 @@ func ParseTime(b []byte) (time.Time, error) {
 
 func ParseTimeString(s string) (time.Time, error) {
 	switch l := len(s); {
-	case l < len(dateFormat):
+	case l < len("15:04:05"):
 		return time.Time{}, fmt.Errorf("pg: can't parse time=%q", s)
 	case l <= len(timeFormat):
 		if s[2] == ':' {
