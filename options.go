@@ -53,9 +53,11 @@ type Options struct {
 
 	// Timeout for socket reads. If reached, commands will fail
 	// with a timeout instead of blocking.
+	// Default is 10 seconds.
 	ReadTimeout time.Duration
 	// Timeout for socket writes. If reached, commands will fail
 	// with a timeout instead of blocking.
+	// Default is 10 seconds.
 	WriteTimeout time.Duration
 
 	// Maximum number of retries before giving up.
@@ -82,8 +84,7 @@ type Options struct {
 	MaxConnAge time.Duration
 	// Time for which client waits for free connection if all
 	// connections are busy before returning an error.
-	// Default is 30 seconds if ReadTimeOut is not defined, otherwise,
-	// ReadTimeout + 1 second.
+	// Default is ReadTimeout + 1 second.
 	PoolTimeout time.Duration
 	// Amount of time after which client closes idle connections.
 	// Should be less than server's timeout.
@@ -123,6 +124,12 @@ func (opt *Options) init() {
 			}
 			return netDialer.DialContext(ctx, network, addr)
 		}
+	}
+	if opt.ReadTimeout == 0 {
+		opt.ReadTimeout = 10 * time.Second
+	}
+	if opt.WriteTimeout == 0 {
+		opt.WriteTimeout = 10 * time.Second
 	}
 
 	if opt.User == "" {
