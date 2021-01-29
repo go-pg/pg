@@ -6,10 +6,12 @@ import (
 	"io"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/go-pg/pg/v10/internal"
 	"github.com/go-pg/pg/v10/internal/pool"
 	"github.com/go-pg/pg/v10/orm"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // ErrTxDone is returned by any operation that is performed on a transaction
@@ -85,16 +87,22 @@ func (tx *Tx) Begin() (*Tx, error) {
 func (tx *Tx) RunInTransaction(ctx context.Context, fn func(*Tx) error) error {
 	defer func() {
 		if err := recover(); err != nil {
-			if err := tx.RollbackContext(ctx); err != nil {
-				internal.Logger.Printf(ctx, "tx.Rollback panicked: %s", err)
+			safeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			safeCtx = trace.ContextWithRemoteSpanContext(safeCtx, trace.SpanContextFromContext(ctx))
+			if err := tx.RollbackContext(safeCtx); err != nil {
+				internal.Logger.Printf(safeCtx, "tx.Rollback panicked: %s", err)
 			}
 			panic(err)
 		}
 	}()
 
 	if err := fn(tx); err != nil {
-		if err := tx.RollbackContext(ctx); err != nil {
-			internal.Logger.Printf(ctx, "tx.Rollback failed: %s", err)
+		safeCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		safeCtx = trace.ContextWithRemoteSpanContext(safeCtx, trace.SpanContextFromContext(ctx))
+		if err := tx.RollbackContext(safeCtx); err != nil {
+			internal.Logger.Printf(safeCtx, "tx.Rollback failed: %s", err)
 		}
 		return err
 	}
