@@ -78,9 +78,6 @@ func (tx *Tx) RunInTransaction(
 ) error {
 	defer func() {
 		if err := recover(); err != nil {
-			if err, ok := err.(error); ok {
-				ctx = healthyContext(ctx, err)
-			}
 			if err := tx.Close(ctx); err != nil {
 				internal.Logger.Printf(ctx, "tx.Close failed: %s", err)
 			}
@@ -89,7 +86,7 @@ func (tx *Tx) RunInTransaction(
 	}()
 
 	if err := fn(ctx, tx); err != nil {
-		if err := tx.Rollback(healthyContext(ctx, err)); err != nil {
+		if err := tx.Rollback(ctx); err != nil {
 			internal.Logger.Printf(ctx, "tx.Rollback failed: %s", err)
 		}
 		return err
@@ -286,14 +283,14 @@ func (tx *Tx) begin(ctx context.Context) error {
 
 // Commit commits the transaction.
 func (tx *Tx) Commit(ctx context.Context) error {
-	_, err := tx.Exec(ctx, "COMMIT")
+	_, err := tx.Exec(internal.UndoContext(ctx), "COMMIT")
 	tx.close(ctx)
 	return err
 }
 
 // Rollback aborts the transaction.
 func (tx *Tx) Rollback(ctx context.Context) error {
-	_, err := tx.Exec(ctx, "ROLLBACK")
+	_, err := tx.Exec(internal.UndoContext(ctx), "ROLLBACK")
 	tx.close(ctx)
 	return err
 }
@@ -324,12 +321,4 @@ func (tx *Tx) close(ctx context.Context) {
 
 func (tx *Tx) closed() bool {
 	return atomic.LoadInt32(&tx._closed) == 1
-}
-
-func healthyContext(ctx context.Context, err error) context.Context {
-	switch err {
-	case context.Canceled, context.DeadlineExceeded:
-		return context.Background()
-	}
-	return ctx
 }
