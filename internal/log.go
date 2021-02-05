@@ -24,5 +24,5 @@ func (l *logger) Printf(ctx context.Context, format string, v ...interface{}) {
 }
 
 var Logger Logging = &logger{
-	log: log.New(os.Stderr, "redis: ", log.LstdFlags|log.Lshortfile),
+	log: log.New(os.Stderr, "pg: ", log.LstdFlags|log.Lshortfile),
 }
