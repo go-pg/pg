@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"mellium.im/sasl"
 
@@ -116,6 +117,15 @@ func (db *baseDB) startup(
 			case readyForQueryMsg:
 				_, err := rd.ReadN(msgLen)
 				return err
+			case noticeResponseMsg:
+				// If we encounter a notice message from the server then we want to try to log it as it might be
+				// important for the client. If something goes wrong with this we want to fail. At the time of writing
+				// this the client will fail just encountering a notice during startup. So failing if a bad notice is
+				// sent is probably better than not failing, especially if we can try to log at least some data from the
+				// notice.
+				if err := db.logStartupNotice(rd); err != nil {
+					return err
+				}
 			case errorResponseMsg:
 				e, err := readError(rd)
 				if err != nil {
@@ -176,6 +186,51 @@ func (db *baseDB) auth(
 	default:
 		return fmt.Errorf("pg: unknown authentication message response: %q", num)
 	}
+}
+
+// logStartupNotice will handle notice messages during the startup process. It will parse them and log them for the
+// client. Notices are not common and only happen if there is something the client should be aware of. So logging should
+// not be a problem.
+// Notice messages can be seen in startup: https://www.postgresql.org/docs/13/protocol-flow.html
+// Information on the notice message format: https://www.postgresql.org/docs/13/protocol-message-formats.html
+// Note: This is true for earlier versions of PostgreSQL as well, I've just included the latest versions of the docs.
+func (db *baseDB) logStartupNotice(
+	rd *pool.ReaderContext,
+) error {
+	message := make([]string, 0)
+	// Notice messages are null byte delimited key-value pairs. Where the keys are one byte.
+	for {
+		// Read the key byte.
+		fieldType, err := rd.ReadByte()
+		if err != nil {
+			return err
+		}
+
+		// If they key byte (the type of field this data is) is 0 then that means we have reached the end of the notice.
+		// We can break our loop here and throw our message data into the logger.
+		if fieldType == 0 {
+			break
+		}
+
+		// Read until the next null byte to get the data for this field. This does include the null byte at the end of
+		// fieldValue so we will trim it off down below.
+		fieldValue, err := readString(rd)
+		if err != nil {
+			return err
+		}
+
+		// Just throw the field type as a string and its value into an array.
+		// Field types can be seen here: https://www.postgresql.org/docs/13/protocol-error-fields.html
+		// TODO This is a rare occurrence as is, would it be worth adding something to indicate what the field names
+		//  are? Or is PostgreSQL documentation enough for a user at this point?
+		message = append(message, fmt.Sprintf("%s: %s", string(fieldType), fieldValue))
+	}
+
+	// Tell the client what PostgreSQL told us. Warning because its probably something the client should at the very
+	// least adjust.
+	internal.Warn.Printf("notice during startup: %s", strings.Join(message, ", "))
+
+	return nil
 }
 
 func (db *baseDB) authCleartext(
