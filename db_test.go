@@ -101,7 +101,7 @@ func TestDBConnectWithStartupNotice(t *testing.T) {
 	// Set our application name to be too long.
 	options.ApplicationName = "i am just a really really super long application name so that i make a notice during startup"
 	db := pg.Connect(options)
-	defer db.Close()
+	defer db.Close(ctx)
 
 	// Upon hitting PostgreSQL we would normally receive an error if we don't handle the notice response, this will
 	// now succeed.
