@@ -5,7 +5,8 @@
 [![Documentation](https://img.shields.io/badge/pg-documentation-informational)](https://pg.uptrace.dev/)
 [![Chat](https://discordapp.com/api/guilds/752070105847955518/widget.png)](https://discord.gg/rWtp5Aj)
 
-> :heart: [**Uptrace.dev** - distributed traces, logs, and errors in one place](https://uptrace.dev)
+> :heart:
+> [**Uptrace.dev** - distributed traces, logs, and errors in one place](https://uptrace.dev/?utm_source=gh-pg&utm_campaign=gh-pg-var1)
 
 - Join [Discord](https://discord.gg/rWtp5Aj) to ask questions.
 - [Documentation](https://pg.uptrace.dev)
