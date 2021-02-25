@@ -5,7 +5,8 @@
 [![Documentation](https://img.shields.io/badge/pg-documentation-informational)](https://pg.uptrace.dev/)
 [![Chat](https://discordapp.com/api/guilds/752070105847955518/widget.png)](https://discord.gg/rWtp5Aj)
 
-> :heart: [**Uptrace.dev** - distributed traces, logs, and errors in one place](https://uptrace.dev)
+> :heart:
+> [**Uptrace.dev** - distributed traces, logs, and errors in one place](https://uptrace.dev/?utm_source=gh-pg&utm_campaign=gh-pg-var1)
 
 - Join [Discord](https://discord.gg/rWtp5Aj) to ask questions.
 - [Documentation](https://pg.uptrace.dev)
@@ -25,7 +26,8 @@
 - [Genna - cli tool for generating go-pg models](https://github.com/dizzyfool/genna).
 - [urlstruct](https://github.com/go-pg/urlstruct) to decode `url.Values` into structs.
 - [Sharding](https://github.com/go-pg/sharding).
-- [go-pg-monitor](https://github.com/hypnoglow/go-pg-monitor) - Prometheus metrics based on go-pg client stats.
+- [go-pg-monitor](https://github.com/hypnoglow/go-pg-monitor) - Prometheus metrics based on go-pg
+  client stats.
 
 ## Features
 
