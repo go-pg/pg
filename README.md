@@ -1,12 +1,15 @@
+<p align="center">
+  <a href="https://uptrace.dev/?utm_source=gh-pg&utm_campaign=gh-pg-banner1">
+    <img src="https://raw.githubusercontent.com/uptrace/roadmap/master/banner1.png">
+  </a>
+</p>
+
 # PostgreSQL client and ORM for Golang
 
 [![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=v10)](https://travis-ci.org/go-pg/pg)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/go-pg/pg/v10)](https://pkg.go.dev/github.com/go-pg/pg/v10)
 [![Documentation](https://img.shields.io/badge/pg-documentation-informational)](https://pg.uptrace.dev/)
 [![Chat](https://discordapp.com/api/guilds/752070105847955518/widget.png)](https://discord.gg/rWtp5Aj)
-
-> :heart:
-> [**Uptrace.dev** - distributed traces, logs, and errors in one place](https://uptrace.dev/?utm_source=gh-pg&utm_campaign=gh-pg-var1)
 
 - Join [Discord](https://discord.gg/rWtp5Aj) to ask questions.
 - [Documentation](https://pg.uptrace.dev)
