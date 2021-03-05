@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/go-pg/pg/v11/internal"
@@ -272,7 +272,7 @@ func (opt *Options) getDialer() func(context.Context) (net.Conn, error) {
 		var conn net.Conn
 		err := internal.WithSpan(ctx, "pg.dial", func(ctx context.Context, span trace.Span) error {
 			span.SetAttributes(
-				label.String("db.connection_string", opt.Addr),
+				attribute.String("db.connection_string", opt.Addr),
 			)
 
 			var err error
