@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/go-pg/pg/v10/internal"
-	"go.opentelemetry.io/otel/label"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -98,7 +98,7 @@ func (cn *Conn) WithReader(
 			return err
 		}
 
-		span.SetAttributes(label.Int64("net.read_bytes", rd.bytesRead))
+		span.SetAttributes(attribute.Int64("net.read_bytes", rd.bytesRead))
 
 		return nil
 	})
@@ -137,7 +137,7 @@ func (cn *Conn) writeBuffer(
 		return err
 	}
 
-	span.SetAttributes(label.Int("net.wrote_bytes", len(wb.Bytes)))
+	span.SetAttributes(attribute.Int("net.wrote_bytes", len(wb.Bytes)))
 
 	if _, err := cn.netConn.Write(wb.Bytes); err != nil {
 		span.RecordError(err)

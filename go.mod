@@ -15,11 +15,11 @@ require (
 	github.com/vmihailenco/bufpool v0.1.11
 	github.com/vmihailenco/msgpack/v5 v5.2.0
 	github.com/vmihailenco/tagparser v0.1.2
-	go.opentelemetry.io/otel v0.17.0
-	go.opentelemetry.io/otel/trace v0.17.0
-	golang.org/x/crypto v0.0.0-20210218145215-b8e89b74b9df // indirect
+	go.opentelemetry.io/otel v0.18.0
+	go.opentelemetry.io/otel/trace v0.18.0
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83 // indirect
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
-	golang.org/x/sys v0.0.0-20210218155724-8ebf48af031b // indirect
+	golang.org/x/sys v0.0.0-20210305034016-7844c3c200c3 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 	mellium.im/sasl v0.2.1

@@ -8,8 +8,8 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
-	"go.opentelemetry.io/otel/label"
 	"go.opentelemetry.io/otel/trace"
 )
 
@@ -81,22 +81,22 @@ func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
 
 	fn, file, line := funcFileLine("github.com/go-pg/pg")
 
-	attrs := make([]label.KeyValue, 0, 10)
+	attrs := make([]attribute.KeyValue, 0, 10)
 	attrs = append(attrs,
-		label.String("db.system", "postgres"),
-		label.String("db.statement", query),
+		attribute.String("db.system", "postgres"),
+		attribute.String("db.statement", query),
 
-		label.String("code.function", fn),
-		label.String("code.filepath", file),
-		label.Int("code.lineno", line),
+		attribute.String("code.function", fn),
+		attribute.String("code.filepath", file),
+		attribute.Int("code.lineno", line),
 	)
 
 	if db, ok := evt.DB.(*pg.DB); ok {
 		opt := db.Options()
 		attrs = append(attrs,
-			label.String("db.connection_string", opt.Addr),
-			label.String("db.user", opt.User),
-			label.String("db.name", opt.Database),
+			attribute.String("db.connection_string", opt.Addr),
+			attribute.String("db.user", opt.User),
+			attribute.String("db.name", opt.Database),
 		)
 	}
 
@@ -112,7 +112,7 @@ func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
 		if numRow == 0 {
 			numRow = evt.Result.RowsReturned()
 		}
-		attrs = append(attrs, label.Int("db.rows_affected", numRow))
+		attrs = append(attrs, attribute.Int("db.rows_affected", numRow))
 	}
 
 	span.SetAttributes(attrs...)
