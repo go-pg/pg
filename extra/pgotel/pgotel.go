@@ -83,7 +83,7 @@ func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
 
 	attrs := make([]attribute.KeyValue, 0, 10)
 	attrs = append(attrs,
-		attribute.String("db.system", "postgres"),
+		attribute.String("db.system", "postgresql"),
 		attribute.String("db.statement", query),
 
 		attribute.String("code.function", fn),
