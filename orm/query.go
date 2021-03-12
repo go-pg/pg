@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -709,9 +710,8 @@ loop:
 		if ind != -1 {
 			field := order[:ind]
 			sort := order[ind+1:]
-			switch internal.UpperString(sort) {
-			case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
-				"ASC NULLS LAST", "DESC NULLS LAST":
+			reg := regexp.MustCompile(`(?i)^((ASC|DESC)( NULLS FIRST| NULLS LAST)?)|(COLLATE [a-zA-Z1-9_]+ (ASC|DESC))$`)
+			if reg.MatchString(sort) {
 				q = q.OrderExpr("? ?", types.Ident(field), types.Safe(sort))
 				continue loop
 			}

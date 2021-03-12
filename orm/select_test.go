@@ -383,9 +383,22 @@ var _ = Describe("Select Order", func() {
 		{"id", `"id"`},
 		{"id asc", `"id" asc`},
 		{"id desc", `"id" desc`},
+        {"id asc nulls first", `"id" asc nulls first`},
+		{"id desc nulls first", `"id" desc nulls first`},
+		{"id asc nulls last", `"id" asc nulls last`},
+		{"id desc nulls last", `"id" desc nulls last`},
+		{"id collate icu asc", `"id" collate icu asc`},
+		{"id collate icu desc", `"id" collate icu desc`},
+
 		{"id ASC", `"id" ASC`},
 		{"id DESC", `"id" DESC`},
 		{"id ASC NULLS FIRST", `"id" ASC NULLS FIRST`},
+		{"id DESC NULLS FIRST", `"id" DESC NULLS FIRST`},
+		{"id ASC NULLS LAST", `"id" ASC NULLS LAST`},
+		{"id DESC NULLS LAST", `"id" DESC NULLS LAST`},
+		{"id COLLATE icu ASC", `"id" COLLATE icu ASC`},
+		{"id COLLATE icu DESC", `"id" COLLATE icu DESC`},
+
 	}
 
 	It("sets order", func() {
