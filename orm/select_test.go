@@ -383,7 +383,7 @@ var _ = Describe("Select Order", func() {
 		{"id", `"id"`},
 		{"id asc", `"id" asc`},
 		{"id desc", `"id" desc`},
-        {"id asc nulls first", `"id" asc nulls first`},
+        	{"id asc nulls first", `"id" asc nulls first`},
 		{"id desc nulls first", `"id" desc nulls first`},
 		{"id asc nulls last", `"id" asc nulls last`},
 		{"id desc nulls last", `"id" desc nulls last`},
