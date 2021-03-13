@@ -710,9 +710,24 @@ loop:
 		if ind != -1 {
 			field := order[:ind]
 			sort := order[ind+1:]
-			reg := regexp.MustCompile(`(?i)^((ASC|DESC)( NULLS FIRST| NULLS LAST)?)|(COLLATE [a-zA-Z1-9_]+ (ASC|DESC))$`)
-			if reg.MatchString(sort) {
-				q = q.OrderExpr("? ?", types.Ident(field), types.Safe(sort))
+			reg := regexp.MustCompile(`(?i)^((?P<collate>COLLATE)[ ](?P<collator>[a-zA-Z1-9_]+))?[ ]?(?P<sort>ASC|DESC)[ ]?(?P<nulls>NULLS FIRST|NULLS LAST)?$`)
+			matches := reg.FindStringSubmatch(sort)
+			var i int
+			var name string
+			order := []string{"?"}
+			params := []interface{}{types.Ident(field)}
+			if len(matches) > 0 {
+				for i, name = range reg.SubexpNames() {
+					if i != 0 && name != "" && matches[i] != "" {
+						order = append(order, "?")
+						if name == "collator" {
+							params = append(params, types.Ident(matches[i]))
+						} else {
+							params = append(params, types.Safe(matches[i]))
+						}
+					}
+				}
+				q = q.OrderExpr(strings.Join(order, " "), params...)
 				continue loop
 			}
 		}
