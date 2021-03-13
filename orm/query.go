@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -698,6 +697,25 @@ func (q *Query) addUnion(expr string, other *Query) *Query {
 	return q
 }
 
+func extractCollate(sort string) (sortOut, collate, collator string, err error) {
+	ind := strings.Index(sort, " ")
+	if ind != -1 && internal.UpperString(sort[:ind]) == "COLLATE" {
+		collate = sort[:ind]
+		// chomp "COLLATE "
+		sortOut = sort[ind+1:]
+		ind = strings.Index(sortOut, " ")
+		if ind != -1 {
+			collator = sortOut[:ind]
+			sortOut = sortOut[ind+1:]
+			return sortOut, collate, collator,nil
+		} else {
+			// Failure to get the collation
+			return "", "", "",errors.New("invalid collate")
+		}
+	}
+	return sort, "", "",nil
+}
+
 // Order adds sort order to the Query quoting column name. Does not expand params like ?TableAlias etc.
 // OrderExpr can be used to bypass quoting restriction or for params expansion.
 func (q *Query) Order(orders ...string) *Query {
@@ -706,28 +724,23 @@ loop:
 		if order == "" {
 			continue
 		}
+
 		ind := strings.Index(order, " ")
 		if ind != -1 {
 			field := order[:ind]
-			sort := order[ind+1:]
-			reg := regexp.MustCompile(`(?i)^((?P<collate>COLLATE)[ ](?P<collator>[a-zA-Z1-9_]+))?[ ]?(?P<sort>ASC|DESC)[ ]?(?P<nulls>NULLS FIRST|NULLS LAST)?$`)
-			matches := reg.FindStringSubmatch(sort)
-			var i int
-			var name string
-			order := []string{"?"}
-			params := []interface{}{types.Ident(field)}
-			if len(matches) > 0 {
-				for i, name = range reg.SubexpNames() {
-					if i != 0 && name != "" && matches[i] != "" {
-						order = append(order, "?")
-						if name == "collator" {
-							params = append(params, types.Ident(matches[i]))
-						} else {
-							params = append(params, types.Safe(matches[i]))
-						}
-					}
+			sort, collate, collator, err := extractCollate(order[ind+1:])
+			if err != nil {
+				continue
+			}
+
+			switch internal.UpperString(sort) {
+			case "ASC", "DESC", "ASC NULLS FIRST", "DESC NULLS FIRST",
+				"ASC NULLS LAST", "DESC NULLS LAST":
+				if collate != "" {
+					q = q.OrderExpr("? ? ? ?", types.Ident(field), types.Safe(collate), types.Ident(collator),  types.Safe(sort))
+				} else {
+					q = q.OrderExpr("? ?", types.Ident(field), types.Safe(sort))
 				}
-				q = q.OrderExpr(strings.Join(order, " "), params...)
 				continue loop
 			}
 		}
