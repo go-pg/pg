@@ -1,7 +1,7 @@
 blank_issues_enabled: true
 contact_links:
   - name: Discussions
-    url: https://github.com/go-redis/redis/discussions
+    url: https://github.com/go-pg/pg/discussions
     about: Ask a question via GitHub Discussions
   - name: Discord
     url: https://discord.gg/rWtp5Aj
