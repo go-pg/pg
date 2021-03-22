@@ -34,6 +34,8 @@ func (h TracingHook) BeforeQuery(ctx context.Context, _ *pg.QueryEvent) (context
 }
 
 func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
+	const queryLimit = 5000
+
 	span := trace.SpanFromContext(ctx)
 	if !span.IsRecording() {
 		return nil
@@ -58,6 +60,14 @@ func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
 		if err != nil {
 			return err
 		}
+
+		if len(b) > queryLimit {
+			b, err = evt.UnformattedQuery()
+			if err != nil {
+				return err
+			}
+		}
+
 		query = string(b)
 	}
 
@@ -74,7 +84,6 @@ func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
 		span.SetName(strings.TrimSpace(name))
 	}
 
-	const queryLimit = 5000
 	if len(query) > queryLimit {
 		query = query[:queryLimit]
 	}
