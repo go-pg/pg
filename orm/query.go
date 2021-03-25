@@ -285,6 +285,9 @@ func (q *Query) WrapWith(name string) *Query {
 	return wrapper
 }
 
+// Table adds a column name to the Query quoting it according to the PostgreSQL rules.
+// The table name usually comes from a user and can't be trusted. If a table name
+// is safe or you want to add an arbitrary SQL expression, use TableExpr.
 func (q *Query) Table(tables ...string) *Query {
 	for _, table := range tables {
 		q.tables = append(q.tables, fieldAppender{table})
@@ -292,6 +295,7 @@ func (q *Query) Table(tables ...string) *Query {
 	return q
 }
 
+// TableExpr adds an arbitrary table expression to the Query.
 func (q *Query) TableExpr(expr string, params ...interface{}) *Query {
 	q.tables = append(q.tables, SafeQuery(expr, params...))
 	return q
@@ -312,10 +316,11 @@ func (q *Query) DistinctOn(expr string, params ...interface{}) *Query {
 	return q
 }
 
-// Column adds a column to the Query quoting it according to PostgreSQL rules.
-// Does not expand params like ?TableAlias etc.
-// ColumnExpr can be used to bypass quoting restriction or for params expansion.
-// Column name can be:
+// Column adds a column name to the Query quoting it according to the PostgreSQL rules.
+// The column name usually comes from a user and can't be trusted. If a column name
+// is safe or you want to add an arbitrary SQL expression, use ColumnExpr.
+//
+// go-pg recongnizes the following patterns:
 //   - column_name,
 //   - table_alias.column_name,
 //   - table_alias.*.
@@ -333,7 +338,7 @@ func (q *Query) Column(columns ...string) *Query {
 	return q
 }
 
-// ColumnExpr adds column expression to the Query.
+// ColumnExpr adds an arbitrary column expression to the Query.
 func (q *Query) ColumnExpr(expr string, params ...interface{}) *Query {
 	q.columns = append(q.columns, SafeQuery(expr, params...))
 	return q
@@ -715,8 +720,14 @@ func (q *Query) addUnion(expr string, other *Query) *Query {
 	return q
 }
 
-// Order adds sort order to the Query quoting column name. Does not expand params like ?TableAlias etc.
-// OrderExpr can be used to bypass quoting restriction or for params expansion.
+// Order adds a sorting order to the Query quoting it according to the PostgreSQL rules.
+// The sorting order usually comes from a user and can't be trusted. If a sorting order
+// is safe or you want to add an arbitrary SQL expression, use OrderExpr.
+//
+// Order recognizes the following patterns:
+//   - column_name;
+//   - column_name ASC;
+//   - column_name DESC NULLS FIRST.
 func (q *Query) Order(orders ...string) *Query {
 loop:
 	for _, order := range orders {
@@ -740,7 +751,7 @@ loop:
 	return q
 }
 
-// Order adds sort order to the Query.
+// Order adds an arbitrary sorting order to the Query.
 func (q *Query) OrderExpr(order string, params ...interface{}) *Query {
 	if order != "" {
 		q.order = append(q.order, SafeQuery(order, params...))
