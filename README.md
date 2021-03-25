@@ -91,7 +91,6 @@
 - [Creating tables from structs](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB.Model-CreateTable).
 - [ForEach](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#example-DB.Model-ForEach) that calls
   a function for each row returned by the query without loading all rows into the memory.
-- Works with PgBouncer in transaction pooling mode.
 
 ## Installation
 
