@@ -1,6 +1,7 @@
 package pg
 
 import (
+	"context"
 	"io"
 	"strconv"
 
@@ -15,11 +16,6 @@ var Discard orm.Discard
 // NullTime is a time.Time wrapper that marshals zero time as JSON null and
 // PostgreSQL NULL.
 type NullTime = types.NullTime
-
-// Model returns new query for the optional model.
-func Model(model ...interface{}) *orm.Query {
-	return orm.NewQuery(nil, model...)
-}
 
 // Scan returns ColumnScanner that copies the columns in the
 // row into the values.
@@ -75,6 +71,36 @@ func Hstore(v interface{}) *types.Hstore {
 func SetLogger(logger internal.Logging) {
 	internal.Logger = logger
 }
+
+//------------------------------------------------------------------------------
+
+type Query = orm.Query
+
+// Model returns a new query for the optional model.
+func Model(model ...interface{}) *Query {
+	return orm.NewQuery(nil, model...)
+}
+
+// DBI is a DB interface implemented by *DB and *Tx.
+type DBI interface {
+	Model(model ...interface{}) *Query
+
+	Exec(ctx context.Context, query interface{}, params ...interface{}) (Result, error)
+	ExecOne(ctx context.Context, query interface{}, params ...interface{}) (Result, error)
+	Query(ctx context.Context, model, query interface{}, params ...interface{}) (Result, error)
+	QueryOne(ctx context.Context, model, query interface{}, params ...interface{}) (Result, error)
+
+	Begin(ctx context.Context) (*Tx, error)
+	RunInTransaction(ctx context.Context, fn func(ctx context.Context, tx *Tx) error) error
+
+	CopyFrom(ctx context.Context, r io.Reader, query interface{}, params ...interface{}) (Result, error)
+	CopyTo(ctx context.Context, w io.Writer, query interface{}, params ...interface{}) (Result, error)
+}
+
+var (
+	_ DBI = (*DB)(nil)
+	_ DBI = (*Tx)(nil)
+)
 
 //------------------------------------------------------------------------------
 
