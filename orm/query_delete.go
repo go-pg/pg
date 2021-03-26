@@ -124,7 +124,7 @@ func appendColumnAndSliceValue(
 
 	b = append(b, " IN ("...)
 
-	isPlaceholder := isPlaceholderFormatter(fmter)
+	isPlaceholder := isTemplateFormatter(fmter)
 	sliceLen := slice.Len()
 	for i := 0; i < sliceLen; i++ {
 		if i > 0 {

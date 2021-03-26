@@ -127,12 +127,9 @@ func (f dummyFormatter) FormatQuery(b []byte, query string, params ...interface{
 	return append(b, query...)
 }
 
-func isPlaceholderFormatter(fmter QueryFormatter) bool {
-	if fmter == nil {
-		return false
-	}
-	b := fmter.FormatQuery(nil, "?", 0)
-	return bytes.Equal(b, []byte("?"))
+func isTemplateFormatter(fmter QueryFormatter) bool {
+	_, ok := fmter.(dummyFormatter)
+	return ok
 }
 
 //------------------------------------------------------------------------------

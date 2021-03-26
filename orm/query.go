@@ -1603,7 +1603,7 @@ func (q wherePKStructQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte,
 func appendColumnAndValue(
 	fmter QueryFormatter, b []byte, v reflect.Value, alias types.Safe, fields []*Field,
 ) []byte {
-	isPlaceholder := isPlaceholderFormatter(fmter)
+	isPlaceholder := isTemplateFormatter(fmter)
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, " AND "...)

@@ -2,8 +2,11 @@ package orm
 
 import (
 	"bytes"
+	"fmt"
 	"strconv"
 	"strings"
+
+	"github.com/go-pg/pg/v11/types"
 )
 
 type SelectQuery struct {
@@ -219,7 +222,13 @@ func (q SelectQuery) appendColumns(fmter QueryFormatter, b []byte) (_ []byte, er
 		}
 	case q.q.hasExplicitTableModel():
 		table := q.q.tableModel.Table()
-		b = appendColumns(b, table.Alias, table.Fields)
+		if len(table.Fields) > 10 && isTemplateFormatter(fmter) {
+			b = append(b, table.Alias...)
+			b = append(b, '.')
+			b = types.AppendString(b, fmt.Sprintf("%d columns", len(table.Fields)), 2)
+		} else {
+			b = appendColumns(b, table.Alias, table.Fields)
+		}
 	default:
 		b = append(b, '*')
 	}
