@@ -351,7 +351,7 @@ func ExampleDB_Model_selectWhereGroup() {
 
 	var books []Book
 	err := db.Model(&books).
-		WhereGroup(func(q *orm.Query) (*orm.Query, error) {
+		WhereGroup(func(q *pg.Query) (*pg.Query, error) {
 			q = q.WhereOr("id = 1").
 				WhereOr("id = 2")
 			return q, nil
@@ -443,7 +443,7 @@ func ExampleDB_Model_selectApplyFunc() {
 	var authorId int
 	var editorId int
 
-	filter := func(q *orm.Query) (*orm.Query, error) {
+	filter := func(q *pg.Query) (*pg.Query, error) {
 		if authorId != 0 {
 			q = q.Where("author_id = ?", authorId)
 		}
@@ -700,7 +700,7 @@ func ExampleDB_Model_hasMany() {
 	var user User
 	err := db.Model(&user).
 		Column("user.*").
-		Relation("Profiles", func(q *orm.Query) (*orm.Query, error) {
+		Relation("Profiles", func(q *pg.Query) (*pg.Query, error) {
 			return q.Where("active IS TRUE"), nil
 		}).
 		First()

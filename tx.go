@@ -279,12 +279,12 @@ func (tx *Tx) queryOne(
 }
 
 // Model is an alias for DB.Model.
-func (tx *Tx) Model(model ...interface{}) *orm.Query {
+func (tx *Tx) Model(model ...interface{}) *Query {
 	return orm.NewQuery(tx, model...)
 }
 
 // ModelContext acts like Model but additionally receives a context.
-func (tx *Tx) ModelContext(c context.Context, model ...interface{}) *orm.Query {
+func (tx *Tx) ModelContext(c context.Context, model ...interface{}) *Query {
 	return orm.NewQueryContext(c, tx, model...)
 }
 
