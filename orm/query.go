@@ -483,7 +483,7 @@ func (q *Query) WhereOr(condition string, params ...interface{}) *Query {
 // WhereGroup encloses conditions added in the function in parentheses.
 //
 //    q.Where("TRUE").
-//    	WhereGroup(func(q *orm.Query) (*orm.Query, error) {
+//    	WhereGroup(func(q *pg.Query) (*pg.Query, error) {
 //    		q = q.WhereOr("FALSE").WhereOr("TRUE").
 //    		return q, nil
 //    	})
@@ -498,7 +498,7 @@ func (q *Query) WhereGroup(fn func(*Query) (*Query, error)) *Query {
 // WhereGroup encloses conditions added in the function in parentheses.
 //
 //    q.Where("TRUE").
-//    	WhereNotGroup(func(q *orm.Query) (*orm.Query, error) {
+//    	WhereNotGroup(func(q *pg.Query) (*pg.Query, error) {
 //    		q = q.WhereOr("FALSE").WhereOr("TRUE").
 //    		return q, nil
 //    	})
@@ -513,7 +513,7 @@ func (q *Query) WhereNotGroup(fn func(*Query) (*Query, error)) *Query {
 // WhereOrGroup encloses conditions added in the function in parentheses.
 //
 //    q.Where("TRUE").
-//    	WhereOrGroup(func(q *orm.Query) (*orm.Query, error) {
+//    	WhereOrGroup(func(q *pg.Query) (*pg.Query, error) {
 //    		q = q.Where("FALSE").Where("TRUE").
 //    		return q, nil
 //    	})
@@ -528,7 +528,7 @@ func (q *Query) WhereOrGroup(fn func(*Query) (*Query, error)) *Query {
 // WhereOrGroup encloses conditions added in the function in parentheses.
 //
 //    q.Where("TRUE").
-//    	WhereOrGroup(func(q *orm.Query) (*orm.Query, error) {
+//    	WhereOrGroup(func(q *pg.Query) (*pg.Query, error) {
 //    		q = q.Where("FALSE").Where("TRUE").
 //    		return q, nil
 //    	})

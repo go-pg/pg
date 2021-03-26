@@ -1394,10 +1394,10 @@ var _ = Describe("ORM", func() {
 				Relation("Editor.Avatar").
 				Relation("Genres").
 				Relation("Comments").
-				Relation("Translations", func(q *orm.Query) (*orm.Query, error) {
+				Relation("Translations", func(q *pg.Query) (*pg.Query, error) {
 					return q.Order("id"), nil
 				}).
-				Relation("Translations.Comments", func(q *orm.Query) (*orm.Query, error) {
+				Relation("Translations.Comments", func(q *pg.Query) (*pg.Query, error) {
 					return q.Order("text"), nil
 				}).
 				First()
@@ -2074,7 +2074,7 @@ var _ = Describe("ORM", func() {
 		var book Book
 		err := db.Model(&book).
 			Column("book.id").
-			Relation("Translations", func(q *orm.Query) (*orm.Query, error) {
+			Relation("Translations", func(q *pg.Query) (*pg.Query, error) {
 				return q.Where("lang = 'ru'"), nil
 			}).
 			First()
@@ -2091,7 +2091,7 @@ var _ = Describe("ORM", func() {
 		var book Book
 		err := db.Model(&book).
 			Column("book.id").
-			Relation("Genres", func(q *orm.Query) (*orm.Query, error) {
+			Relation("Genres", func(q *pg.Query) (*pg.Query, error) {
 				return q.Where("genre__rating > 999"), nil
 			}).
 			First()

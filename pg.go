@@ -17,16 +17,6 @@ var Discard orm.Discard
 // PostgreSQL NULL.
 type NullTime = types.NullTime
 
-// Model returns new query for the optional model.
-func Model(model ...interface{}) *orm.Query {
-	return orm.NewQuery(nil, model...)
-}
-
-// ModelContext returns a new query for the optional model with a context.
-func ModelContext(c context.Context, model ...interface{}) *orm.Query {
-	return orm.NewQueryContext(c, nil, model...)
-}
-
 // Scan returns ColumnScanner that copies the columns in the
 // row into the values.
 func Scan(values ...interface{}) orm.ColumnScanner {
@@ -93,6 +83,46 @@ func Hstore(v interface{}) *types.Hstore {
 func SetLogger(logger internal.Logging) {
 	internal.Logger = logger
 }
+
+//------------------------------------------------------------------------------
+
+type Query = orm.Query
+
+// Model returns a new query for the optional model.
+func Model(model ...interface{}) *Query {
+	return orm.NewQuery(nil, model...)
+}
+
+// ModelContext returns a new query for the optional model with a context.
+func ModelContext(c context.Context, model ...interface{}) *Query {
+	return orm.NewQueryContext(c, nil, model...)
+}
+
+// DBI is a DB interface implemented by *DB and *Tx.
+type DBI interface {
+	Model(model ...interface{}) *Query
+	ModelContext(c context.Context, model ...interface{}) *Query
+
+	Exec(query interface{}, params ...interface{}) (Result, error)
+	ExecContext(c context.Context, query interface{}, params ...interface{}) (Result, error)
+	ExecOne(query interface{}, params ...interface{}) (Result, error)
+	ExecOneContext(c context.Context, query interface{}, params ...interface{}) (Result, error)
+	Query(model, query interface{}, params ...interface{}) (Result, error)
+	QueryContext(c context.Context, model, query interface{}, params ...interface{}) (Result, error)
+	QueryOne(model, query interface{}, params ...interface{}) (Result, error)
+	QueryOneContext(c context.Context, model, query interface{}, params ...interface{}) (Result, error)
+
+	Begin() (*Tx, error)
+	RunInTransaction(ctx context.Context, fn func(*Tx) error) error
+
+	CopyFrom(r io.Reader, query interface{}, params ...interface{}) (Result, error)
+	CopyTo(w io.Writer, query interface{}, params ...interface{}) (Result, error)
+}
+
+var (
+	_ DBI = (*DB)(nil)
+	_ DBI = (*Tx)(nil)
+)
 
 //------------------------------------------------------------------------------
 
