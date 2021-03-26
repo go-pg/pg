@@ -7,8 +7,7 @@ import (
 )
 
 type DeleteQuery struct {
-	q           *Query
-	placeholder bool
+	q *Query
 }
 
 var (
@@ -36,8 +35,7 @@ func (q *DeleteQuery) Operation() QueryOp {
 
 func (q *DeleteQuery) Clone() QueryCommand {
 	return &DeleteQuery{
-		q:           q.q.Clone(),
-		placeholder: q.placeholder,
+		q: q.q.Clone(),
 	}
 }
 
@@ -46,9 +44,7 @@ func (q *DeleteQuery) Query() *Query {
 }
 
 func (q *DeleteQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Clone().(*DeleteQuery)
-	cp.placeholder = true
-	return cp.AppendQuery(dummyFormatter{}, b)
+	return q.AppendQuery(dummyFormatter{}, b)
 }
 
 func (q *DeleteQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {

@@ -3,8 +3,7 @@ package orm
 import "reflect"
 
 type ValuesQuery struct {
-	q           *Query
-	placeholder bool
+	q *Query
 }
 
 var (
@@ -32,8 +31,7 @@ func (q *ValuesQuery) Operation() QueryOp {
 
 func (q *ValuesQuery) Clone() QueryCommand {
 	return &ValuesQuery{
-		q:           q.q.Clone(),
-		placeholder: q.placeholder,
+		q: q.q.Clone(),
 	}
 }
 
@@ -42,9 +40,7 @@ func (q *ValuesQuery) Query() *Query {
 }
 
 func (q *ValuesQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Clone().(*ValuesQuery)
-	cp.placeholder = true
-	return cp.AppendQuery(dummyFormatter{}, b)
+	return q.AppendQuery(dummyFormatter{}, b)
 }
 
 func (q *ValuesQuery) AppendColumns(fmter QueryFormatter, b []byte) (_ []byte, err error) {
@@ -94,6 +90,7 @@ func (q *ValuesQuery) appendQuery(
 func (q *ValuesQuery) appendValues(
 	fmter QueryFormatter, b []byte, fields []*Field, strct reflect.Value,
 ) (_ []byte, err error) {
+	isTemplate := isTemplateFormatter(fmter)
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)
@@ -108,7 +105,7 @@ func (q *ValuesQuery) appendValues(
 			continue
 		}
 
-		if q.placeholder {
+		if isTemplate {
 			b = append(b, '?')
 		} else {
 			b = f.AppendValue(b, indirect(strct), 1)

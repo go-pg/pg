@@ -11,7 +11,6 @@ import (
 type InsertQuery struct {
 	q               *Query
 	returningFields []*Field
-	placeholder     bool
 }
 
 var _ QueryCommand = (*InsertQuery)(nil)
@@ -36,8 +35,7 @@ func (q *InsertQuery) Operation() QueryOp {
 
 func (q *InsertQuery) Clone() QueryCommand {
 	return &InsertQuery{
-		q:           q.q.Clone(),
-		placeholder: q.placeholder,
+		q: q.q.Clone(),
 	}
 }
 
@@ -48,9 +46,7 @@ func (q *InsertQuery) Query() *Query {
 var _ TemplateAppender = (*InsertQuery)(nil)
 
 func (q *InsertQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Clone().(*InsertQuery)
-	cp.placeholder = true
-	return cp.AppendQuery(dummyFormatter{}, b)
+	return q.AppendQuery(dummyFormatter{}, b)
 }
 
 var _ QueryAppender = (*InsertQuery)(nil)
@@ -151,7 +147,7 @@ func (q *InsertQuery) appendColumnsValues(fmter QueryFormatter, b []byte) (_ []b
 	}
 
 	if m, ok := q.q.model.(*mapModel); ok {
-		return q.appendMapColumnsValues(b, m.m), nil
+		return q.appendMapColumnsValues(fmter, b, m.m), nil
 	}
 
 	if !q.q.hasTableModel() {
@@ -188,7 +184,9 @@ func (q *InsertQuery) appendColumnsValues(fmter QueryFormatter, b []byte) (_ []b
 	return b, nil
 }
 
-func (q *InsertQuery) appendMapColumnsValues(b []byte, m map[string]interface{}) []byte {
+func (q *InsertQuery) appendMapColumnsValues(
+	fmter QueryFormatter, b []byte, m map[string]interface{},
+) []byte {
 	keys := make([]string, 0, len(m))
 
 	for k := range m {
@@ -207,11 +205,12 @@ func (q *InsertQuery) appendMapColumnsValues(b []byte, m map[string]interface{})
 
 	b = append(b, ") VALUES ("...)
 
+	isTemplate := isTemplateFormatter(fmter)
 	for i, k := range keys {
 		if i > 0 {
 			b = append(b, ", "...)
 		}
-		if q.placeholder {
+		if isTemplate {
 			b = append(b, '?')
 		} else {
 			b = types.Append(b, m[k], 1)
@@ -226,6 +225,7 @@ func (q *InsertQuery) appendMapColumnsValues(b []byte, m map[string]interface{})
 func (q *InsertQuery) appendValues(
 	fmter QueryFormatter, b []byte, fields []*Field, strct reflect.Value,
 ) (_ []byte, err error) {
+	isTemplate := isTemplateFormatter(fmter)
 	for i, f := range fields {
 		if i > 0 {
 			b = append(b, ", "...)
@@ -242,7 +242,7 @@ func (q *InsertQuery) appendValues(
 		}
 
 		switch {
-		case q.placeholder:
+		case isTemplate:
 			b = append(b, '?')
 		case (f.Default != "" || f.NullZero()) && f.HasZeroValue(strct):
 			b = append(b, "DEFAULT"...)
@@ -269,7 +269,7 @@ func (q *InsertQuery) appendValues(
 func (q *InsertQuery) appendSliceValues(
 	fmter QueryFormatter, b []byte, fields []*Field, slice reflect.Value,
 ) (_ []byte, err error) {
-	if q.placeholder {
+	if isTemplateFormatter(fmter) {
 		return q.appendValues(fmter, b, fields, reflect.Value{})
 	}
 

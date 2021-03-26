@@ -9,9 +9,8 @@ import (
 )
 
 type UpdateQuery struct {
-	q           *Query
-	omitZero    bool
-	placeholder bool
+	q        *Query
+	omitZero bool
 }
 
 var (
@@ -40,9 +39,8 @@ func (q *UpdateQuery) Operation() QueryOp {
 
 func (q *UpdateQuery) Clone() QueryCommand {
 	return &UpdateQuery{
-		q:           q.q.Clone(),
-		omitZero:    q.omitZero,
-		placeholder: q.placeholder,
+		q:        q.q.Clone(),
+		omitZero: q.omitZero,
 	}
 }
 
@@ -51,9 +49,7 @@ func (q *UpdateQuery) Query() *Query {
 }
 
 func (q *UpdateQuery) AppendTemplate(b []byte) ([]byte, error) {
-	cp := q.Clone().(*UpdateQuery)
-	cp.placeholder = true
-	return cp.AppendQuery(dummyFormatter{}, b)
+	return q.AppendQuery(dummyFormatter{}, b)
 }
 
 func (q *UpdateQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err error) {
@@ -142,7 +138,7 @@ func (q *UpdateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, e
 	b = append(b, " SET "...)
 
 	if m, ok := q.q.model.(*mapModel); ok {
-		return q.appendMapSet(b, m.m), nil
+		return q.appendMapSet(fmter, b, m.m), nil
 	}
 
 	if !q.q.hasTableModel() {
@@ -166,7 +162,7 @@ func (q *UpdateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, e
 	return b, nil
 }
 
-func (q *UpdateQuery) appendMapSet(b []byte, m map[string]interface{}) []byte {
+func (q *UpdateQuery) appendMapSet(fmter QueryFormatter, b []byte, m map[string]interface{}) []byte {
 	keys := make([]string, 0, len(m))
 
 	for k := range m {
@@ -174,6 +170,7 @@ func (q *UpdateQuery) appendMapSet(b []byte, m map[string]interface{}) []byte {
 	}
 	sort.Strings(keys)
 
+	isTemplate := isTemplateFormatter(fmter)
 	for i, k := range keys {
 		if i > 0 {
 			b = append(b, ", "...)
@@ -181,7 +178,7 @@ func (q *UpdateQuery) appendMapSet(b []byte, m map[string]interface{}) []byte {
 
 		b = types.AppendIdent(b, k, 1)
 		b = append(b, " = "...)
-		if q.placeholder {
+		if isTemplate {
 			b = append(b, '?')
 		} else {
 			b = types.Append(b, m[k], 1)
@@ -197,6 +194,7 @@ func (q *UpdateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct refl
 		return nil, err
 	}
 
+	isTemplate := isTemplateFormatter(fmter)
 	pos := len(b)
 	for _, f := range fields {
 		if q.omitZero && f.NullZero() && f.HasZeroValue(strct) {
@@ -211,7 +209,7 @@ func (q *UpdateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct refl
 		b = append(b, f.Column...)
 		b = append(b, " = "...)
 
-		if q.placeholder {
+		if isTemplate {
 			b = append(b, '?')
 			continue
 		}
@@ -290,8 +288,7 @@ func (q *UpdateQuery) appendSliceModelData(fmter QueryFormatter, b []byte) (_ []
 	b = append(b, "("...)
 
 	vq := ValuesQuery{
-		q:           q.q,
-		placeholder: q.placeholder,
+		q: q.q,
 	}
 	b, err = vq.appendQuery(fmter, b, fields)
 	if err != nil {
