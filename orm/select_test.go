@@ -1,11 +1,13 @@
 package orm
 
 import (
+	"testing"
 	"time"
 
 	"github.com/go-pg/pg/v10/types"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/require"
 )
 
 type User struct {
@@ -497,9 +499,32 @@ func selectQueryString(q *Query) string {
 	return s
 }
 
-func queryString(f QueryAppender) string {
-	fmter := NewFormatter().WithModel(f)
-	b, err := f.AppendQuery(fmter, nil)
+func queryString(model QueryAppender) string {
+	fmter := NewFormatter().WithModel(model)
+	b, err := model.AppendQuery(fmter, nil)
 	Expect(err).NotTo(HaveOccurred())
 	return string(b)
+}
+
+func TestLongSelectFormatter(t *testing.T) {
+	type Model struct {
+		A1  int
+		A2  int
+		A3  int
+		A4  int
+		A5  int
+		A6  int
+		A7  int
+		A8  int
+		A9  int
+		A10 int
+		A11 int
+	}
+
+	q := NewQuery(nil, &Model{})
+	sel := NewSelectQuery(q)
+
+	b, err := sel.AppendTemplate(nil)
+	require.NoError(t, err)
+	require.Equal(t, `SELECT "model"."11 columns" FROM "models" AS "model"`, string(b))
 }
