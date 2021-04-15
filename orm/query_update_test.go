@@ -71,10 +71,10 @@ var _ = Describe("Update", func() {
 			Value: "hello",
 		}, &UpdateTest{
 			Id: 2,
-		})
+		}).WherePK()
 
 		s := updateQueryString(q)
-		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (1::bigint, 'hello'::mytype), (2::bigint, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
+		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (1::bigint, 'hello'::mytype), (2::bigint, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = "_data"."id"`))
 	})
 
 	It("bulk updates overriding column value", func() {
@@ -84,10 +84,10 @@ var _ = Describe("Update", func() {
 		}, {
 			Id: 2,
 		}}
-		q := NewQuery(nil, &slice).Value("id", "123")
+		q := NewQuery(nil, &slice).Value("id", "123").WherePK()
 
 		s := updateQueryString(q)
-		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (123, 'hello'::mytype), (123, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
+		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = _data."value" FROM (VALUES (123, 'hello'::mytype), (123, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = "_data"."id"`))
 	})
 
 	It("bulk updates with zero values", func() {
@@ -97,10 +97,10 @@ var _ = Describe("Update", func() {
 		}, {
 			Id: 2,
 		}}
-		q := NewQuery(nil, &slice)
+		q := NewQuery(nil, &slice).WherePK()
 
 		s := updateQueryStringOmitZero(q)
-		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = COALESCE(_data."value", "update_test"."value") FROM (VALUES (1::bigint, 'hello'::mytype), (2::bigint, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = _data."id"`))
+		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = COALESCE(_data."value", "update_test"."value") FROM (VALUES (1::bigint, 'hello'::mytype), (2::bigint, NULL::mytype)) AS _data("id", "value") WHERE "update_test"."id" = "_data"."id"`))
 	})
 
 	It("bulk updates with serial id", func() {
@@ -108,10 +108,10 @@ var _ = Describe("Update", func() {
 			Id:    1,
 			Value: "hello",
 		}}
-		q := NewQuery(nil, &slice)
+		q := NewQuery(nil, &slice).WherePK()
 
 		s := updateQueryString(q)
-		Expect(s).To(Equal(`UPDATE "serial_update_tests" AS "serial_update_test" SET "value" = _data."value" FROM (VALUES (1::bigint, 'hello'::text)) AS _data("id", "value") WHERE "serial_update_test"."id" = _data."id"`))
+		Expect(s).To(Equal(`UPDATE "serial_update_tests" AS "serial_update_test" SET "value" = _data."value" FROM (VALUES (1::bigint, 'hello'::text)) AS _data("id", "value") WHERE "serial_update_test"."id" = "_data"."id"`))
 	})
 
 	It("returns an error for empty bulk update", func() {
@@ -191,10 +191,10 @@ var _ = Describe("Update", func() {
 			ID:        1,
 			CreatedAt: types.NullTime{time.Unix(0, 0)},
 			DeletedAt: sql.NullTime{Time: time.Unix(0, 0), Valid: true},
-		}})
+		}}).WherePK()
 
 		s := updateQueryString(q)
-		Expect(s).To(Equal(`UPDATE "models" AS "model" SET "created_at" = _data."created_at", "deleted_at" = _data."deleted_at" FROM (VALUES (1::bigint, '1970-01-01 00:00:00+00:00:00'::timestamptz, '1970-01-01 00:00:00+00:00:00'::timestamptz)) AS _data("id", "created_at", "deleted_at") WHERE "model"."id" = _data."id"`))
+		Expect(s).To(Equal(`UPDATE "models" AS "model" SET "created_at" = _data."created_at", "deleted_at" = _data."deleted_at" FROM (VALUES (1::bigint, '1970-01-01 00:00:00+00:00:00'::timestamptz, '1970-01-01 00:00:00+00:00:00'::timestamptz)) AS _data("id", "created_at", "deleted_at") WHERE "model"."id" = "_data"."id"`))
 	})
 
 	It("updates map[string]interface{}", func() {

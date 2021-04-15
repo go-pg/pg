@@ -3,6 +3,7 @@ package orm
 import (
 	"bytes"
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -98,7 +99,6 @@ func (q *SelectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	}
 
 	if q.q.hasTables() {
-		b = append(b, " FROM "...)
 		b, err = q.appendTables(fmter, b)
 		if err != nil {
 			return nil, err
@@ -121,12 +121,9 @@ func (q *SelectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		}
 	}
 
-	if len(q.q.where) > 0 || q.q.isSoftDelete() {
-		b = append(b, " WHERE "...)
-		b, err = q.q.appendWhere(fmter, b)
-		if err != nil {
-			return nil, err
-		}
+	b, err = q.q.appendWhere(fmter, b)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(q.q.group) > 0 {
@@ -158,17 +155,9 @@ func (q *SelectQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	}
 
 	if q.count == "" {
-		if len(q.q.order) > 0 {
-			b = append(b, " ORDER BY "...)
-			for i, f := range q.q.order {
-				if i > 0 {
-					b = append(b, ", "...)
-				}
-				b, err = f.AppendQuery(fmter, b)
-				if err != nil {
-					return nil, err
-				}
-			}
+		b, err = q.appendOrder(fmter, b)
+		if err != nil {
+			return nil, err
 		}
 
 		if q.q.limit != 0 {
@@ -268,6 +257,9 @@ func (q *SelectQuery) isDistinct() bool {
 }
 
 func (q *SelectQuery) appendTables(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+	b = append(b, " FROM "...)
+	startLen := len(b)
+
 	if q.q.modelHasTableName() {
 		if q.q.modelTableExpr != nil {
 			b, err = q.q.modelTableExpr.AppendQuery(fmter, b)
@@ -288,14 +280,47 @@ func (q *SelectQuery) appendTables(fmter QueryFormatter, b []byte) (_ []byte, er
 		}
 	}
 
-	for i, f := range q.q.tables {
-		if i > 0 {
+	for _, f := range q.q.tables {
+		if len(b) > startLen {
 			b = append(b, ", "...)
 		}
 		b, err = f.AppendQuery(fmter, b)
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	if q.q.hasFlag(wherePKFlag) && q.q.tableModel.Kind() == reflect.Slice {
+		if len(b) > startLen {
+			b = append(b, ", "...)
+		}
+
+		b, err = q.q.mustAppendSliceValues(fmter, b, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return b, nil
+}
+
+func (q *SelectQuery) appendOrder(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+	if len(q.q.order) > 0 {
+		b = append(b, " ORDER BY "...)
+		for i, f := range q.q.order {
+			if i > 0 {
+				b = append(b, ", "...)
+			}
+			b, err = f.AppendQuery(fmter, b)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return b, nil
+	}
+
+	if q.q.hasFlag(wherePKFlag) && q.q.tableModel.Kind() == reflect.Slice {
+		b = append(b, ` ORDER BY _data._ordering ASC`...)
 	}
 
 	return b, nil

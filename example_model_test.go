@@ -880,7 +880,7 @@ func ExampleDB_Model_bulkUpdate() {
 	// SET "title" = _data."title"
 	// FROM (VALUES ('updated book 1', 1), ('updated book 2', 2)) AS _data("title", "id")
 	// WHERE "book"."id" = _data."id"
-	_, err := db.Model(book1, book2).Column("title", "updated_at").Update(ctx)
+	_, err := db.Model(book1, book2).Column("title", "updated_at").WherePK().Update(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -912,7 +912,7 @@ func ExampleDB_Model_bulkUpdateSlice() {
 	// SET "title" = _data."title"
 	// FROM (VALUES ('updated book 1', 1), ('updated book 2', 2)) AS _data("title", "id")
 	// WHERE "book"."id" = _data."id"
-	_, err := db.Model(&books).Column("title", "updated_at").Update(ctx)
+	_, err := db.Model(&books).Column("title", "updated_at").WherePK().Update(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -978,7 +978,7 @@ func ExampleDB_Model_bulkDelete() {
 		panic(err)
 	}
 
-	res, err := db.Model(&books).Delete(ctx)
+	res, err := db.Model(&books).WherePK().Delete(ctx)
 	if err != nil {
 		panic(err)
 	}

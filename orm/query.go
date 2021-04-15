@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,6 +32,7 @@ type queryFlag uint8
 
 const (
 	implicitModelFlag queryFlag = 1 << iota
+	wherePKFlag
 	deletedFlag
 	allWithDeletedFlag
 )
@@ -68,17 +68,19 @@ type Query struct {
 	set            []QueryAppender
 	modelValues    map[string]*SafeQueryAppender
 	extraValues    []*columnValue
-	where          []queryWithSepAppender
-	updWhere       []queryWithSepAppender
-	group          []QueryAppender
-	having         []*SafeQueryAppender
-	union          []*union
-	joins          []QueryAppender
-	joinAppendOn   func(app *condAppender)
-	order          []QueryAppender
-	limit          int
-	offset         int
-	selFor         *SafeQueryAppender
+
+	where    []queryWithSepAppender
+	updWhere []queryWithSepAppender
+
+	group        []QueryAppender
+	having       []*SafeQueryAppender
+	union        []*union
+	joins        []QueryAppender
+	joinAppendOn func(app *condAppender)
+	order        []QueryAppender
+	limit        int
+	offset       int
+	selFor       *SafeQueryAppender
 
 	onConflict *SafeQueryAppender
 	returning  []*SafeQueryAppender
@@ -96,7 +98,6 @@ func (q *Query) New() *Query {
 
 		model:      q.model,
 		tableModel: cloneTableModelJoins(q.tableModel),
-		flags:      q.flags,
 	}
 	return clone.withFlag(implicitModelFlag)
 }
@@ -590,49 +591,13 @@ func (q *Query) addWhere(f queryWithSepAppender) {
 	}
 }
 
-// WherePK adds condition based on the model primary keys.
+// WherePK adds conditions based on the model primary keys.
 // Usually it is the same as:
 //
 //    Where("id = ?id")
-func (q *Query) WherePK(cols ...string) *Query {
-	if !q.hasTableModel() {
-		q.Err(errModelNil)
-		return q
-	}
-
-	table := q.tableModel.Table()
-	var pks []*Field
-
-	if len(cols) > 0 {
-		pks = make([]*Field, len(cols))
-		for i, col := range cols {
-			f, ok := table.FieldsMap[col]
-			if !ok {
-				q.Err(fmt.Errorf("pg: %s does not have field=%q", table, col))
-				return q
-			}
-			pks[i] = f
-		}
-	} else {
-		if err := table.checkPKs(); err != nil {
-			q.Err(err)
-			return q
-		}
-		pks = table.PKs
-	}
-
-	switch q.tableModel.Kind() {
-	case reflect.Struct:
-		q.where = append(q.where, wherePKStructQuery{q: q, pks: pks})
-		return q
-	case reflect.Slice:
-		q.joins = append(q.joins, joinPKSliceQuery{q: q, pks: pks})
-		q.where = append(q.where, wherePKSliceQuery{q: q, pks: pks})
-		q = q.OrderExpr(`"_data"."ordering" ASC`)
-		return q
-	}
-
-	panic("not reached")
+func (q *Query) WherePK() *Query {
+	q.withFlag(wherePKFlag)
+	return q
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
@@ -1421,8 +1386,37 @@ func (q *Query) appendColumns(fmter QueryFormatter, b []byte) (_ []byte, err err
 	return b, nil
 }
 
+func (q *Query) mustAppendSliceValues(
+	fmter QueryFormatter, b []byte, ordering bool,
+) (_ []byte, err error) {
+	b = append(b, "("...)
+
+	vq := ValuesQuery{
+		q:        q,
+		ordering: ordering,
+	}
+	fields := q.tableModel.Table().Fields
+	if err != nil {
+		return nil, err
+	}
+
+	b, err = vq.appendQuery(fmter, b, fields)
+	if err != nil {
+		return nil, err
+	}
+
+	b = append(b, ") AS _data("...)
+	b = appendColumns(b, "", fields)
+	if ordering {
+		b = append(b, `, _ordering`...)
+	}
+	b = append(b, ')')
+
+	return b, nil
+}
+
 func (q *Query) mustAppendWhere(fmter QueryFormatter, b []byte) ([]byte, error) {
-	if len(q.where) == 0 {
+	if len(q.where) == 0 && !q.hasFlag(wherePKFlag) {
 		err := errors.New(
 			"pg: Update and Delete queries require Where clause (try WherePK)")
 		return nil, err
@@ -1431,35 +1425,42 @@ func (q *Query) mustAppendWhere(fmter QueryFormatter, b []byte) ([]byte, error) 
 }
 
 func (q *Query) appendWhere(fmter QueryFormatter, b []byte) (_ []byte, err error) {
-	isSoftDelete := q.isSoftDelete()
+	if len(q.where) == 0 && !q.isSoftDelete() && !q.hasFlag(wherePKFlag) {
+		return b, nil
+	}
+
+	b = append(b, " WHERE "...)
+	startLen := len(b)
 
 	if len(q.where) > 0 {
-		if isSoftDelete {
-			b = append(b, '(')
-		}
-
 		b, err = q._appendWhere(fmter, b, q.where)
 		if err != nil {
 			return nil, err
 		}
-
-		if isSoftDelete {
-			b = append(b, ')')
-		}
 	}
 
-	if isSoftDelete {
-		if len(q.where) > 0 {
+	if q.isSoftDelete() {
+		if len(b) > startLen {
 			b = append(b, " AND "...)
 		}
 		b = append(b, q.tableModel.Table().Alias...)
-		b = q.appendSoftDelete(b)
+		b = q.appendWhereSoftDelete(b)
+	}
+
+	if q.hasFlag(wherePKFlag) {
+		if len(b) > startLen {
+			b = append(b, " AND "...)
+		}
+		b, err = q.appendWherePK(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return b, nil
 }
 
-func (q *Query) appendSoftDelete(b []byte) []byte {
+func (q *Query) appendWhereSoftDelete(b []byte) []byte {
 	b = append(b, '.')
 	b = append(b, q.tableModel.Table().SoftDeleteField.Column...)
 	if q.hasFlag(deletedFlag) {
@@ -1468,6 +1469,46 @@ func (q *Query) appendSoftDelete(b []byte) []byte {
 		b = append(b, " IS NULL"...)
 	}
 	return b
+}
+
+func (q *Query) appendWherePK(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+	table := q.tableModel.Table()
+	if err := table.checkPKs(); err != nil {
+		return nil, err
+	}
+
+	if q.tableModel.Kind() == reflect.Struct {
+		value := q.tableModel.Value()
+		isPlaceholder := isTemplateFormatter(fmter)
+		for i, f := range table.PKs {
+			if i > 0 {
+				b = append(b, " AND "...)
+			}
+			b = append(b, table.Alias...)
+			b = append(b, '.')
+			b = append(b, f.Column...)
+			b = append(b, " = "...)
+			if isPlaceholder {
+				b = append(b, '?')
+			} else {
+				b = f.AppendValue(b, value, 1)
+			}
+		}
+		return b, nil
+	}
+
+	for i, f := range table.PKs {
+		if i > 0 {
+			b = append(b, " AND "...)
+		}
+		b = append(b, table.Alias...)
+		b = append(b, '.')
+		b = append(b, f.Column...)
+		b = append(b, " = "...)
+		b = append(b, `"_data".`...)
+		b = append(b, f.Column...)
+	}
+	return b, nil
 }
 
 func (q *Query) appendUpdWhere(fmter QueryFormatter, b []byte) ([]byte, error) {
@@ -1570,139 +1611,5 @@ func (q *Query) appendWith(fmter QueryFormatter, b []byte) (_ []byte, err error)
 		b = append(b, ')')
 	}
 	b = append(b, ' ')
-	return b, nil
-}
-
-func (q *Query) isSliceModelWithData() bool {
-	if !q.hasTableModel() {
-		return false
-	}
-	m, ok := q.tableModel.(*sliceTableModel)
-	return ok && m.sliceLen > 0
-}
-
-//------------------------------------------------------------------------------
-
-type wherePKStructQuery struct {
-	q   *Query
-	pks []*Field
-}
-
-var _ queryWithSepAppender = (*wherePKStructQuery)(nil)
-
-func (wherePKStructQuery) AppendSep(b []byte) []byte {
-	return append(b, " AND "...)
-}
-
-func (q wherePKStructQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
-	table := q.q.tableModel.Table()
-	value := q.q.tableModel.Value()
-	return appendColumnAndValue(fmter, b, value, table.Alias, q.pks), nil
-}
-
-func appendColumnAndValue(
-	fmter QueryFormatter, b []byte, v reflect.Value, alias types.Safe, fields []*Field,
-) []byte {
-	isPlaceholder := isTemplateFormatter(fmter)
-	for i, f := range fields {
-		if i > 0 {
-			b = append(b, " AND "...)
-		}
-		b = append(b, alias...)
-		b = append(b, '.')
-		b = append(b, f.Column...)
-		b = append(b, " = "...)
-		if isPlaceholder {
-			b = append(b, '?')
-		} else {
-			b = f.AppendValue(b, v, 1)
-		}
-	}
-	return b
-}
-
-//------------------------------------------------------------------------------
-
-type wherePKSliceQuery struct {
-	q   *Query
-	pks []*Field
-}
-
-var _ queryWithSepAppender = (*wherePKSliceQuery)(nil)
-
-func (wherePKSliceQuery) AppendSep(b []byte) []byte {
-	return append(b, " AND "...)
-}
-
-func (q wherePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
-	table := q.q.tableModel.Table()
-
-	for i, f := range q.pks {
-		if i > 0 {
-			b = append(b, " AND "...)
-		}
-		b = append(b, table.Alias...)
-		b = append(b, '.')
-		b = append(b, f.Column...)
-		b = append(b, " = "...)
-		b = append(b, `"_data".`...)
-		b = append(b, f.Column...)
-	}
-
-	return b, nil
-}
-
-type joinPKSliceQuery struct {
-	q   *Query
-	pks []*Field
-}
-
-var _ QueryAppender = (*joinPKSliceQuery)(nil)
-
-func (q joinPKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
-	b = append(b, " JOIN (VALUES "...)
-
-	slice := q.q.tableModel.Value()
-	sliceLen := slice.Len()
-	for i := 0; i < sliceLen; i++ {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-
-		el := indirect(slice.Index(i))
-
-		b = append(b, '(')
-		for i, f := range q.pks {
-			if i > 0 {
-				b = append(b, ", "...)
-			}
-
-			b = f.AppendValue(b, el, 1)
-
-			if f.UserSQLType != "" {
-				b = append(b, "::"...)
-				b = append(b, f.SQLType...)
-			}
-		}
-
-		b = append(b, ", "...)
-		b = strconv.AppendInt(b, int64(i), 10)
-
-		b = append(b, ')')
-	}
-
-	b = append(b, `) AS "_data" (`...)
-
-	for i, f := range q.pks {
-		if i > 0 {
-			b = append(b, ", "...)
-		}
-		b = append(b, f.Column...)
-	}
-
-	b = append(b, ", "...)
-	b = append(b, `"ordering"`...)
-	b = append(b, ") ON TRUE"...)
-
 	return b, nil
 }
