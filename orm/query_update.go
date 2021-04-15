@@ -76,23 +76,12 @@ func (q *UpdateQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		return nil, err
 	}
 
-	isSliceModelWithData := q.q.isSliceModelWithData()
-	if isSliceModelWithData || q.q.hasMultiTables() {
-		b = append(b, " FROM "...)
-		b, err = q.q.appendOtherTables(fmter, b)
-		if err != nil {
-			return nil, err
-		}
-
-		if isSliceModelWithData {
-			b, err = q.appendSliceModelData(fmter, b)
-			if err != nil {
-				return nil, err
-			}
-		}
+	b, err = q.appendOtherTables(fmter, b)
+	if err != nil {
+		return nil, err
 	}
 
-	b, err = q.mustAppendWhere(fmter, b, isSliceModelWithData)
+	b, err = q.q.mustAppendWhere(fmter, b)
 	if err != nil {
 		return nil, err
 	}
@@ -105,29 +94,6 @@ func (q *UpdateQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 	}
 
 	return b, q.q.stickyErr
-}
-
-func (q *UpdateQuery) mustAppendWhere(
-	fmter QueryFormatter, b []byte, isSliceModelWithData bool,
-) (_ []byte, err error) {
-	b = append(b, " WHERE "...)
-
-	if !isSliceModelWithData {
-		return q.q.mustAppendWhere(fmter, b)
-	}
-
-	if len(q.q.where) > 0 {
-		return q.q.appendWhere(fmter, b)
-	}
-
-	table := q.q.tableModel.Table()
-	err = table.checkPKs()
-	if err != nil {
-		return nil, err
-	}
-
-	b = appendWhereColumnAndColumn(b, table.Alias, table.PKs)
-	return b, nil
 }
 
 func (q *UpdateQuery) mustAppendSet(fmter QueryFormatter, b []byte) (_ []byte, err error) {
@@ -279,39 +245,34 @@ func (q *UpdateQuery) appendSetSlice(b []byte) ([]byte, error) {
 	return b, nil
 }
 
-func (q *UpdateQuery) appendSliceModelData(fmter QueryFormatter, b []byte) (_ []byte, err error) {
-	fields, err := q.q.getFields()
-	if err != nil {
-		return nil, err
+func (q *UpdateQuery) appendOtherTables(fmter QueryFormatter, b []byte) (_ []byte, err error) {
+	hasMultiTables := q.q.hasMultiTables()
+	wherePKSlice := q.q.hasFlag(wherePKFlag) && q.q.tableModel.Kind() == reflect.Slice
+
+	if !hasMultiTables && !wherePKSlice {
+		return b, nil
 	}
 
-	b = append(b, "("...)
+	b = append(b, " FROM "...)
+	startLen := len(b)
 
-	vq := ValuesQuery{
-		q: q.q,
-	}
-	b, err = vq.appendQuery(fmter, b, fields)
-	if err != nil {
-		return nil, err
+	if hasMultiTables {
+		b, err = q.q.appendOtherTables(fmter, b)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	b = append(b, ") AS _data("...)
-	b = appendColumns(b, "", fields)
-	b = append(b, ")"...)
+	if wherePKSlice {
+		if len(b) > startLen {
+			b = append(b, ", "...)
+		}
+
+		b, err = q.q.mustAppendSliceValues(fmter, b, false)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	return b, nil
-}
-
-func appendWhereColumnAndColumn(b []byte, alias types.Safe, fields []*Field) []byte {
-	for i, f := range fields {
-		if i > 0 {
-			b = append(b, " AND "...)
-		}
-		b = append(b, alias...)
-		b = append(b, '.')
-		b = append(b, f.Column...)
-		b = append(b, " = _data."...)
-		b = append(b, f.Column...)
-	}
-	return b
 }

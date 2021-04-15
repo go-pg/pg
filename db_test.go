@@ -1838,7 +1838,7 @@ var _ = Describe("ORM", func() {
 				{ID: 101},
 				{ID: 100},
 			}
-			err := db.Model(&books).Column("title").WherePK().Select(ctx)
+			err := db.Model(&books).Column("book.title").WherePK().Select(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(books).To(Equal([]Book{
 				{ID: 101, Title: "book 2"},
@@ -1951,7 +1951,7 @@ var _ = Describe("ORM", func() {
 				books[i].Title = fmt.Sprintf("censored %d", i)
 			}
 
-			_, err = db.Model(&books).Set("title = ?title").Update(ctx)
+			_, err = db.Model(&books).Set("title = ?title").WherePK().Update(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(books)).NotTo(BeZero())
 
@@ -1973,6 +1973,7 @@ var _ = Describe("ORM", func() {
 			}}
 			res, err := db.Model(&books).
 				Set("title = book.title || COALESCE(_data.title, '')").
+				WherePK().
 				Update(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.RowsAffected()).To(Equal(2))
@@ -2002,7 +2003,7 @@ var _ = Describe("ORM", func() {
 				books[i].Title = fmt.Sprintf("censored %d", i)
 			}
 
-			_, err = db.Model(&books).Column("title").Update(ctx)
+			_, err = db.Model(&books).Column("title").WherePK().Update(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(books)).NotTo(BeZero())
 
@@ -2028,7 +2029,7 @@ var _ = Describe("ORM", func() {
 			err := db.Model(&books).Order("id").Select(ctx)
 			Expect(err).NotTo(HaveOccurred())
 
-			res, err := db.Model(&books).Delete(ctx)
+			res, err := db.Model(&books).WherePK().Delete(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.RowsAffected()).To(Equal(3))
 
@@ -2043,7 +2044,7 @@ var _ = Describe("ORM", func() {
 			err := db.Model(&books).Order("id").Select(ctx)
 			Expect(err).NotTo(HaveOccurred())
 
-			res, err := db.Model(&books).Delete(ctx)
+			res, err := db.Model(&books).WherePK().Delete(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(res.RowsAffected()).To(Equal(3))
 
@@ -2051,6 +2052,18 @@ var _ = Describe("ORM", func() {
 			n, err := db.Model(&books).Count(ctx)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(n).To(Equal(0))
+		})
+
+		It("deletes returning", func() {
+			var books []Book
+			err := db.Model(&books).Order("id").Select(ctx)
+			Expect(err).NotTo(HaveOccurred())
+
+			var titles []string
+			res, err := db.Model(&books).WherePK().Returning("book.title").Delete(ctx, &titles)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.RowsAffected()).To(Equal(3))
+			Expect(titles).To(Equal([]string{"book 1", "book 2", "book 3"}))
 		})
 	})
 
