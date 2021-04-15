@@ -2052,6 +2052,18 @@ var _ = Describe("ORM", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(n).To(Equal(0))
 		})
+
+		It("deletes returning", func() {
+			var books []Book
+			err := db.Model(&books).Order("id").Select()
+			Expect(err).NotTo(HaveOccurred())
+
+			var titles []string
+			res, err := db.Model(&books).WherePK().Returning("title").Delete(&titles)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res.RowsAffected()).To(Equal(3))
+			Expect(titles).To(Equal([]string{"book 1", "book 2", "book 3"}))
+		})
 	})
 
 	It("filters by HasOne", func() {

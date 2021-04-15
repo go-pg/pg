@@ -603,7 +603,7 @@ func (q *Query) WherePK() *Query {
 		q.where = append(q.where, wherePKStructQuery{q})
 		return q
 	case reflect.Slice:
-		q.joins = append(q.joins, joinPKSliceQuery{q: q})
+		q.tables = append(q.tables, tablePKSliceQuery{q: q})
 		q.where = append(q.where, wherePKSliceQuery{q: q})
 		q = q.OrderExpr(`"_data"."ordering" ASC`)
 		return q
@@ -1623,17 +1623,17 @@ func (q wherePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, 
 	return b, nil
 }
 
-type joinPKSliceQuery struct {
+type tablePKSliceQuery struct {
 	q *Query
 }
 
-var _ QueryAppender = (*joinPKSliceQuery)(nil)
+var _ QueryAppender = (*tablePKSliceQuery)(nil)
 
-func (q joinPKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
+func (q tablePKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
 	table := q.q.tableModel.Table()
 	slice := q.q.tableModel.Value()
 
-	b = append(b, " JOIN (VALUES "...)
+	b = append(b, "(VALUES "...)
 
 	sliceLen := slice.Len()
 	for i := 0; i < sliceLen; i++ {
@@ -1672,9 +1672,7 @@ func (q joinPKSliceQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, e
 		b = append(b, f.Column...)
 	}
 
-	b = append(b, ", "...)
-	b = append(b, `"ordering"`...)
-	b = append(b, ") ON TRUE"...)
+	b = append(b, `, "ordering")`...)
 
 	return b, nil
 }
