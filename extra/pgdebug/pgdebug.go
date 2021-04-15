@@ -13,13 +13,17 @@ import (
 //   db.AddQueryHook(pgdebug.DebugHook{})
 type DebugHook struct {
 	// Verbose causes hook to print all queries (even those without an error).
-	Verbose bool
+	Verbose   bool
 	EmptyLine bool
+}
+
+func NewDebugHook() *DebugHook {
+	return new(DebugHook)
 }
 
 var _ pg.QueryHook = (*DebugHook)(nil)
 
-func (h DebugHook) BeforeQuery(ctx context.Context, evt *pg.QueryEvent) (context.Context, error) {
+func (h *DebugHook) BeforeQuery(ctx context.Context, evt *pg.QueryEvent) (context.Context, error) {
 	q, err := evt.FormattedQuery()
 	if err != nil {
 		return nil, err
