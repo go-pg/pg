@@ -22,9 +22,13 @@ type queryOperation interface {
 // TracingHook is a pg.QueryHook that adds OpenTelemetry instrumentation.
 type TracingHook struct{}
 
+func NewTracingHook() *TracingHook {
+	return new(TracingHook)
+}
+
 var _ pg.QueryHook = (*TracingHook)(nil)
 
-func (h TracingHook) BeforeQuery(ctx context.Context, _ *pg.QueryEvent) (context.Context, error) {
+func (h *TracingHook) BeforeQuery(ctx context.Context, _ *pg.QueryEvent) (context.Context, error) {
 	if !trace.SpanFromContext(ctx).IsRecording() {
 		return ctx, nil
 	}
@@ -33,8 +37,11 @@ func (h TracingHook) BeforeQuery(ctx context.Context, _ *pg.QueryEvent) (context
 	return ctx, nil
 }
 
-func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
-	const queryLimit = 5000
+func (h *TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
+	const (
+		softQueryLimit = 5000
+		hardQueryLimit = 10000
+	)
 
 	span := trace.SpanFromContext(ctx)
 	if !span.IsRecording() {
@@ -49,6 +56,7 @@ func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
 	}
 
 	var query string
+
 	if operation == orm.InsertOp {
 		b, err := evt.UnformattedQuery()
 		if err != nil {
@@ -61,7 +69,7 @@ func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
 			return err
 		}
 
-		if len(b) > queryLimit {
+		if len(b) > softQueryLimit {
 			b, err = evt.UnformattedQuery()
 			if err != nil {
 				return err
@@ -84,8 +92,8 @@ func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
 		span.SetName(strings.TrimSpace(name))
 	}
 
-	if len(query) > queryLimit {
-		query = query[:queryLimit]
+	if len(query) > hardQueryLimit {
+		query = query[:hardQueryLimit]
 	}
 
 	fn, file, line := funcFileLine("github.com/go-pg/pg")
