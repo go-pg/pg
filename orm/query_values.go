@@ -1,9 +1,13 @@
 package orm
 
-import "reflect"
+import (
+	"reflect"
+	"strconv"
+)
 
 type ValuesQuery struct {
-	q *Query
+	q        *Query
+	ordering bool
 }
 
 var (
@@ -76,9 +80,15 @@ func (q *ValuesQuery) appendQuery(
 		if i > 0 {
 			b = append(b, "), ("...)
 		}
+
 		b, err = q.appendValues(fmter, b, fields, slice.Index(i))
 		if err != nil {
 			return nil, err
+		}
+
+		if q.ordering {
+			b = append(b, ", "...)
+			b = strconv.AppendInt(b, int64(i), 10)
 		}
 	}
 
