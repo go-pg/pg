@@ -11,6 +11,10 @@ var _ pgjson.Provider = (*JSONProvider)(nil)
 
 type JSONProvider struct{}
 
+func NewJSONProvider() JSONProvider {
+	return JSONProvider{}
+}
+
 func (JSONProvider) Marshal(v interface{}) ([]byte, error) {
 	return json.Marshal(v)
 }
