@@ -5,7 +5,15 @@
 
 ## v10.9
 
-- To make updating easier, extra modules now have the same version as go-pg does.
+- To make updating easier, extra modules now have the same version as go-pg does. That means that
+  you need to update your imports:
+
+```
+github.com/go-pg/pg/extra/pgdebug -> github.com/go-pg/pg/extra/pgdebug/v10
+github.com/go-pg/pg/extra/pgotel -> github.com/go-pg/pg/extra/pgotel/v10
+github.com/go-pg/pg/extra/pgsegment -> github.com/go-pg/pg/extra/pgsegment/v10
+```
+
 - Exported `pg.Query` which should be used instead of `orm.Query`.
 - Added `pg.DBI` which is a DB interface implemented by `pg.DB` and `pg.Tx`.
 
