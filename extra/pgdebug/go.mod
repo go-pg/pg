@@ -1,4 +1,4 @@
-module github.com/go-pg/pg/extra/pgdebug
+module github.com/go-pg/pg/extra/pgdebug/v10
 
 go 1.15
 

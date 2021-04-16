@@ -5,6 +5,7 @@
 
 ## v10.9
 
+- To make updating easier, extra modules now have the same version as go-pg does.
 - Exported `pg.Query` which should be used instead of `orm.Query`.
 - Added `pg.DBI` which is a DB interface implemented by `pg.DB` and `pg.Tx`.
 

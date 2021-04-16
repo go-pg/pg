@@ -1,4 +1,4 @@
-module github.com/go-pg/pg/extra/pgotel
+module github.com/go-pg/pg/extra/pgotel/v10
 
 go 1.15
 
