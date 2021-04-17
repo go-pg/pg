@@ -240,52 +240,6 @@ func (b *BufReader) ReadSlice(delim byte) (line []byte, err error) {
 	return line, err
 }
 
-func (b *BufReader) ReadBytes(fn func(byte) bool) (line []byte, err error) {
-	for {
-		for i, c := range b.Bytes() {
-			if !fn(c) {
-				i--
-				line = b.buf[b.r : b.r+i] //nolint
-				b.r += i
-				b.changeAvailable(-i)
-				break
-			}
-		}
-
-		// Pending error?
-		if b.err != nil {
-			line = b.flush()
-			err = b.readErr()
-			break
-		}
-
-		buffered := b.Buffered()
-
-		// Out of available.
-		if b.available != -1 && buffered >= b.available {
-			line = b.flush()
-			err = io.EOF
-			break
-		}
-
-		// Buffer full?
-		if buffered >= len(b.buf) {
-			line = b.flush()
-			err = bufio.ErrBufferFull
-			break
-		}
-
-		b.fill() // buffer is not full
-	}
-
-	// Handle last byte, if any.
-	if i := len(line) - 1; i >= 0 {
-		b.lastByte = int(line[i])
-	}
-
-	return line, err
-}
-
 func (b *BufReader) ReadByte() (byte, error) {
 	if b.available == 0 {
 		return 0, io.EOF
