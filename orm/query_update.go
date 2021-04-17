@@ -247,9 +247,9 @@ func (q *UpdateQuery) appendSetSlice(b []byte) ([]byte, error) {
 
 func (q *UpdateQuery) appendOtherTables(fmter QueryFormatter, b []byte) (_ []byte, err error) {
 	hasMultiTables := q.q.hasMultiTables()
-	wherePKSlice := q.q.hasFlag(wherePKFlag) && q.q.tableModel.Kind() == reflect.Slice
+	isSlice := q.q.isSliceModelWithData()
 
-	if !hasMultiTables && !wherePKSlice {
+	if !hasMultiTables && !isSlice {
 		return b, nil
 	}
 
@@ -263,7 +263,7 @@ func (q *UpdateQuery) appendOtherTables(fmter QueryFormatter, b []byte) (_ []byt
 		}
 	}
 
-	if wherePKSlice {
+	if isSlice {
 		if len(b) > startLen {
 			b = append(b, ", "...)
 		}

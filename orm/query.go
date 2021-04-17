@@ -1613,3 +1613,11 @@ func (q *Query) appendWith(fmter QueryFormatter, b []byte) (_ []byte, err error)
 	b = append(b, ' ')
 	return b, nil
 }
+
+func (q *Query) isSliceModelWithData() bool {
+	if !q.hasTableModel() {
+		return false
+	}
+	m, ok := q.tableModel.(*sliceTableModel)
+	return ok && m.sliceLen > 0
+}

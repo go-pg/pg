@@ -1,7 +1,5 @@
 package orm
 
-import "reflect"
-
 type DeleteQuery struct {
 	q *Query
 }
@@ -69,7 +67,7 @@ func (q *DeleteQuery) AppendQuery(fmter QueryFormatter, b []byte) (_ []byte, err
 		}
 	}
 
-	if q.q.hasFlag(wherePKFlag) && q.q.tableModel.Kind() == reflect.Slice {
+	if q.q.isSliceModelWithData() {
 		b = append(b, " USING "...)
 		b, err = q.q.mustAppendSliceValues(fmter, b, false)
 		if err != nil {

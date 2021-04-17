@@ -290,7 +290,7 @@ func (q *SelectQuery) appendTables(fmter QueryFormatter, b []byte) (_ []byte, er
 		}
 	}
 
-	if q.q.hasFlag(wherePKFlag) && q.q.tableModel.Kind() == reflect.Slice {
+	if q.q.isSliceModelWithData() {
 		if len(b) > startLen {
 			b = append(b, ", "...)
 		}
