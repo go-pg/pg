@@ -1,4 +1,4 @@
-# OpenTelemetry integration for go-pg
+# OpenTelemetry instrumentation for go-pg
 
 ## Installation
 
