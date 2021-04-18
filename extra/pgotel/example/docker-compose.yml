@@ -1,0 +1,10 @@
+version: '3.7'
+services:
+  postgresql-server:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: example
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - 5432:5432
