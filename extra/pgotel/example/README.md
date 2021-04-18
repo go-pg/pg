@@ -1,4 +1,4 @@
-# OpenTelemetry integration for go-pg
+# OpenTelemetry instrumentation for go-pg
 
 To run this example you need a PostgreSQL server. You can start one with Docker:
 
