@@ -32,6 +32,10 @@ type Options struct {
 	// Network and Addr options.
 	Dialer func(ctx context.Context, network, addr string) (net.Conn, error)
 
+	// BeforeConnect is a hook which is called before a new connection is
+	// established. Useful for scenarios where dynamic passwords are used
+	BeforeConnect func(ctx context.Context, opts *Options) error
+
 	// Hook that is called after new connection is established
 	// and user is authenticated.
 	OnConnect func(ctx context.Context, cn *Conn) error

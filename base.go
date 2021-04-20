@@ -115,6 +115,12 @@ func (db *baseDB) initConn(ctx context.Context, cn *pool.Conn) error {
 		}
 	}
 
+	if db.opt.BeforeConnect != nil {
+		if err := db.opt.BeforeConnect(ctx, db.opt); err != nil {
+			return err
+		}
+	}
+
 	err := db.startup(ctx, cn, db.opt.User, db.opt.Password, db.opt.Database, db.opt.ApplicationName)
 	if err != nil {
 		return err
