@@ -50,17 +50,6 @@ func (j *join) manyQuery(q *Query) (*Query, error) {
 	}
 
 	q = q.Model(manyModel)
-	if j.ApplyQuery != nil {
-		var err error
-		q, err = j.ApplyQuery(q)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if len(q.columns) == 0 {
-		q.columns = append(q.columns, &hasManyColumnsAppender{j})
-	}
 
 	baseTable := j.BaseModel.Table()
 	var where []byte
@@ -81,6 +70,18 @@ func (j *join) manyQuery(q *Query) (*Query, error) {
 		q = q.Where(`? IN (?, ?)`,
 			j.Rel.Polymorphic.Column,
 			baseTable.ModelName, baseTable.TypeName)
+	}
+
+	if j.ApplyQuery != nil {
+		var err error
+		q, err = j.ApplyQuery(q)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(q.columns) == 0 {
+		q.columns = append(q.columns, &hasManyColumnsAppender{j})
 	}
 
 	return q, nil
@@ -104,17 +105,6 @@ func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 	}
 
 	q = q.Model(m2mModel)
-	if j.ApplyQuery != nil {
-		var err error
-		q, err = j.ApplyQuery(q)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if len(q.columns) == 0 {
-		q.columns = append(q.columns, &hasManyColumnsAppender{j})
-	}
 
 	index := j.JoinModel.ParentIndex()
 	baseTable := j.BaseModel.Table()
@@ -148,6 +138,18 @@ func (j *join) m2mQuery(fmter QueryFormatter, q *Query) (*Query, error) {
 		q = q.Where("?.? = ?.?",
 			joinTable.Alias, pk.Column,
 			j.Rel.M2MTableAlias, types.Ident(col))
+	}
+
+	if j.ApplyQuery != nil {
+		var err error
+		q, err = j.ApplyQuery(q)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if len(q.columns) == 0 {
+		q.columns = append(q.columns, &hasManyColumnsAppender{j})
 	}
 
 	return q, nil
