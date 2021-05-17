@@ -11,6 +11,9 @@
 [![Documentation](https://img.shields.io/badge/pg-documentation-informational)](https://pg.uptrace.dev/)
 [![Chat](https://discordapp.com/api/guilds/752070105847955518/widget.png)](https://discord.gg/rWtp5Aj)
 
+**Important**. Please check [Bun](https://bun.uptrace.dev/guide/pg-migration.html) - the next
+iteration of go-pg built on top of `sql.DB`.
+
 - Join [Discord](https://discord.gg/rWtp5Aj) to ask questions.
 - [Documentation](https://pg.uptrace.dev)
 - [Reference](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
