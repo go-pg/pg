@@ -43,7 +43,16 @@ func isBadConn(err error, allowTimeout bool) bool {
 		return false
 	}
 	if pgErr, ok := err.(Error); ok {
-		return pgErr.Field('S') == "FATAL"
+		switch pgErr.Field('V') {
+		case "FATAL", "PANIC":
+			return true
+		}
+		switch pgErr.Field('C') {
+		case "25P02", // current transaction is aborted
+			"57014": // canceling statement due to user request
+			return true
+		}
+		return false
 	}
 	if allowTimeout {
 		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
