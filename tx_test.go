@@ -135,7 +135,7 @@ var _ = Describe("Tx", func() {
 		Expect(count).To(Equal(1))
 
 		err = tx1.Commit()
-		Expect(err).NotTo(HaveOccurred()) // actually ROLLBACK happens here
+		Expect(err).To(HaveOccurred()) // actually ROLLBACK happens here
 
 		_, err = tx2.QueryOne(pg.Scan(&count), "SELECT COUNT(*) FROM test_copy_from")
 		Expect(err).NotTo(HaveOccurred())
