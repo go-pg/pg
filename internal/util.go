@@ -4,25 +4,18 @@ import (
 	"context"
 	"reflect"
 	"time"
-
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/trace"
 )
 
-var tracer = otel.Tracer("github.com/go-pg/pg")
-
 func Sleep(ctx context.Context, dur time.Duration) error {
-	return WithSpan(ctx, "time.Sleep", func(ctx context.Context, span trace.Span) error {
-		t := time.NewTimer(dur)
-		defer t.Stop()
+	t := time.NewTimer(dur)
+	defer t.Stop()
 
-		select {
-		case <-t.C:
-			return nil
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	})
+	select {
+	case <-t.C:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func MakeSliceNextElemFunc(v reflect.Value) func() reflect.Value {
@@ -75,19 +68,4 @@ func Unwrap(err error) error {
 		return nil
 	}
 	return u.Unwrap()
-}
-
-func WithSpan(
-	ctx context.Context,
-	name string,
-	fn func(context.Context, trace.Span) error,
-) error {
-	if span := trace.SpanFromContext(ctx); !span.IsRecording() {
-		return fn(ctx, span)
-	}
-
-	ctx, span := tracer.Start(ctx, name)
-	defer span.End()
-
-	return fn(ctx, span)
 }

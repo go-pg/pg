@@ -5,9 +5,6 @@ import (
 	"io"
 	"time"
 
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
-
 	"github.com/go-pg/pg/v10/internal"
 	"github.com/go-pg/pg/v10/internal/pool"
 	"github.com/go-pg/pg/v10/orm"
@@ -84,10 +81,7 @@ func (db *baseDB) getConn(ctx context.Context) (*pool.Conn, error) {
 		return cn, nil
 	}
 
-	err = internal.WithSpan(ctx, "pg.init_conn", func(ctx context.Context, span trace.Span) error {
-		return db.initConn(ctx, cn)
-	})
-	if err != nil {
+	if err := db.initConn(ctx, cn); err != nil {
 		db.pool.Remove(ctx, cn, err)
 		// It is safe to reset StickyConnPool if conn can't be initialized.
 		if p, ok := db.pool.(*pool.StickyConnPool); ok {
@@ -139,42 +133,40 @@ func (db *baseDB) releaseConn(ctx context.Context, cn *pool.Conn, err error) {
 func (db *baseDB) withConn(
 	ctx context.Context, fn func(context.Context, *pool.Conn) error,
 ) error {
-	return internal.WithSpan(ctx, "pg.with_conn", func(ctx context.Context, span trace.Span) error {
-		cn, err := db.getConn(ctx)
-		if err != nil {
-			return err
-		}
-
-		var fnDone chan struct{}
-		if ctx != nil && ctx.Done() != nil {
-			fnDone = make(chan struct{})
-			go func() {
-				select {
-				case <-fnDone: // fn has finished, skip cancel
-				case <-ctx.Done():
-					err := db.cancelRequest(cn.ProcessID, cn.SecretKey)
-					if err != nil {
-						internal.Logger.Printf(ctx, "cancelRequest failed: %s", err)
-					}
-					// Signal end of conn use.
-					fnDone <- struct{}{}
-				}
-			}()
-		}
-
-		defer func() {
-			if fnDone != nil {
-				select {
-				case <-fnDone: // wait for cancel to finish request
-				case fnDone <- struct{}{}: // signal fn finish, skip cancel goroutine
-				}
-			}
-			db.releaseConn(ctx, cn, err)
-		}()
-
-		err = fn(ctx, cn)
+	cn, err := db.getConn(ctx)
+	if err != nil {
 		return err
-	})
+	}
+
+	var fnDone chan struct{}
+	if ctx != nil && ctx.Done() != nil {
+		fnDone = make(chan struct{})
+		go func() {
+			select {
+			case <-fnDone: // fn has finished, skip cancel
+			case <-ctx.Done():
+				err := db.cancelRequest(cn.ProcessID, cn.SecretKey)
+				if err != nil {
+					internal.Logger.Printf(ctx, "cancelRequest failed: %s", err)
+				}
+				// Signal end of conn use.
+				fnDone <- struct{}{}
+			}
+		}()
+	}
+
+	defer func() {
+		if fnDone != nil {
+			select {
+			case <-fnDone: // wait for cancel to finish request
+			case fnDone <- struct{}{}: // signal fn finish, skip cancel goroutine
+			}
+		}
+		db.releaseConn(ctx, cn, err)
+	}()
+
+	err = fn(ctx, cn)
+	return err
 }
 
 func (db *baseDB) shouldRetry(err error) bool {
@@ -239,25 +231,17 @@ func (db *baseDB) exec(ctx context.Context, query interface{}, params ...interfa
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
-		attempt := attempt
-
-		lastErr = internal.WithSpan(ctx, "pg.exec", func(ctx context.Context, span trace.Span) error {
-			if attempt > 0 {
-				span.SetAttributes(attribute.Int("retry", attempt))
-
-				if err := internal.Sleep(ctx, db.retryBackoff(attempt-1)); err != nil {
-					return err
-				}
+		if attempt > 0 {
+			if err := internal.Sleep(ctx, db.retryBackoff(attempt-1)); err != nil {
+				return nil, err
 			}
+		}
 
-			err = db.withConn(ctx, func(ctx context.Context, cn *pool.Conn) error {
-				res, err = db.simpleQuery(ctx, cn, wb)
-				return err
-			})
-
+		lastErr = db.withConn(ctx, func(ctx context.Context, cn *pool.Conn) error {
+			res, err = db.simpleQuery(ctx, cn, wb)
 			return err
 		})
-		if !db.shouldRetry(err) {
+		if !db.shouldRetry(lastErr) {
 			break
 		}
 	}
@@ -317,22 +301,14 @@ func (db *baseDB) query(ctx context.Context, model, query interface{}, params ..
 	var res Result
 	var lastErr error
 	for attempt := 0; attempt <= db.opt.MaxRetries; attempt++ {
-		attempt := attempt
-
-		lastErr = internal.WithSpan(ctx, "pg.query", func(ctx context.Context, span trace.Span) error {
-			if attempt > 0 {
-				span.SetAttributes(attribute.Int("retry", attempt))
-
-				if err := internal.Sleep(ctx, db.retryBackoff(attempt-1)); err != nil {
-					return err
-				}
+		if attempt > 0 {
+			if err := internal.Sleep(ctx, db.retryBackoff(attempt-1)); err != nil {
+				return nil, err
 			}
+		}
 
-			err = db.withConn(ctx, func(ctx context.Context, cn *pool.Conn) error {
-				res, err = db.simpleQueryData(ctx, cn, model, wb)
-				return err
-			})
-
+		lastErr = db.withConn(ctx, func(ctx context.Context, cn *pool.Conn) error {
+			res, err = db.simpleQueryData(ctx, cn, model, wb)
 			return err
 		})
 		if !db.shouldRetry(lastErr) {
