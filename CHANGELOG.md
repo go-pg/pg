@@ -3,6 +3,22 @@
 > :heart:
 > [**Uptrace.dev** - All-in-one tool to optimize performance and monitor errors & logs](https://uptrace.dev)
 
+**Important**. Please check [Bun](https://bun.uptrace.dev/guide/pg-migration.html) - the next
+iteration of go-pg built on top of `sql.DB`.
+
+## v10.10
+
+- Removed extra OpenTelemetry spans from go-pg core. Now go-pg instrumentation only adds a single
+  span with a SQL query (instead of 4 spans). There are multiple reasons behind this decision:
+
+  - Traces become smaller and less noisy.
+  - [Bun](https://github.com/uptrace/bun) can't support the same level of instrumentation and it is
+    nice to keep the projects synced.
+  - It may be costly to process those 3 extra spans for each query.
+
+  Eventually we hope to replace the information that we no longer collect with OpenTelemetry
+  Metrics.
+
 ## v10.9
 
 - To make updating easier, extra modules now have the same version as go-pg does. That means that
