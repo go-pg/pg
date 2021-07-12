@@ -156,13 +156,18 @@ func (db *baseDB) withConn(
 	}
 
 	defer func() {
-		if fnDone != nil {
-			select {
-			case <-fnDone: // wait for cancel to finish request
-			case fnDone <- struct{}{}: // signal fn finish, skip cancel goroutine
-			}
+		if fnDone == nil {
+			db.releaseConn(ctx, cn, err)
+			return
 		}
-		db.releaseConn(ctx, cn, err)
+
+		select {
+		case <-fnDone: // wait for cancel to finish request
+			// Looks like the canceled connection must be always removed from the pool.
+			db.pool.Remove(ctx, cn, err)
+		case fnDone <- struct{}{}: // signal fn finish, skip cancel goroutine
+			db.releaseConn(ctx, cn, err)
+		}
 	}()
 
 	err = fn(ctx, cn)
