@@ -108,6 +108,30 @@ func TestDBConnectWithStartupNotice(t *testing.T) {
 	require.NoError(t, db.Ping(context.Background()), "must successfully ping database with long application name")
 }
 
+func TestBeforeConnect(t *testing.T) {
+	pwd := "dynamic-passwords-from-xkcd"
+	opt := pgOptions()
+	opt.BeforeConnect = func(ctx context.Context, o *pg.Options) error {
+		o.Password = pwd
+		return nil
+	}
+
+	db := pg.Connect(opt)
+	defer db.Close()
+
+	var val int
+	_, err := db.QueryOne(pg.Scan(&val), "SELECT 1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if val != 1 {
+		t.Fatalf(`got %q, wanted 1`, val)
+	}
+	if pwd != opt.Password {
+		t.Fatalf(`got %s, wanted %s`, opt.Password, pwd)
+	}
+}
+
 func TestOnConnect(t *testing.T) {
 	opt := pgOptions()
 	opt.OnConnect = func(ctx context.Context, db *pg.Conn) error {
