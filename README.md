@@ -30,6 +30,7 @@ iteration of go-pg built on top of `sql.DB`.
 - Migrations by [vmihailenco](https://github.com/go-pg/migrations) and
   [robinjoseph08](https://github.com/robinjoseph08/go-pg-migrations).
 - [Genna - cli tool for generating go-pg models](https://github.com/dizzyfool/genna).
+- [bigint](https://github.com/d-fal/bigint) - big.Int type for go-pg.
 - [urlstruct](https://github.com/go-pg/urlstruct) to decode `url.Values` into structs.
 - [Sharding](https://github.com/go-pg/sharding).
 - [go-pg-monitor](https://github.com/hypnoglow/go-pg-monitor) - Prometheus metrics based on go-pg
