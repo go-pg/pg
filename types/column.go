@@ -27,6 +27,7 @@ const (
 	pgTimestamptz = 1184
 
 	// pgInt2Array = 1005
+	pgInt32Array  = 1007
 	pgInt8Array   = 1016
 	pgFloat8Array = 1022
 	pgStringArray = 1009
@@ -90,6 +91,8 @@ func ReadColumnValue(col ColumnInfo, rd Reader, n int) (interface{}, error) {
 	case pgTimestamptz:
 		return ScanTime(rd, n)
 
+	case pgInt32Array:
+		return scanInt64Array(rd, n)
 	case pgInt8Array:
 		return scanInt64Array(rd, n)
 	case pgFloat8Array:
