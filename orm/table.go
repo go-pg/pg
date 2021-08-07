@@ -602,12 +602,31 @@ func (t *Table) tryRelationType(field *Field, rel string, pgTag *tagparser.Tag) 
 
 func (t *Table) mustHasOneRelation(field *Field, pgTag *tagparser.Tag) bool {
 	joinTable := _tables.get(field.Type, true)
-	if err := joinTable.checkPKs(); err != nil {
+	joinPKs := joinTable.PKs
+
+	joinFKPrefix, joinFKOK := pgTag.Options["join_fk"]
+
+	if err := joinTable.checkPKs(); err != nil && !joinFKOK {
+		// join performed by primary key if join_fk not specified
+		// so join table must have primary key
 		panic(err)
 	}
+
+	if joinFKOK {
+		joinField := joinTable.getField(joinFKPrefix)
+		if joinField == nil {
+			panic(fmt.Errorf(
+				"pg: %s has-one %s: field %s specified by join_fk doesn't exist on %s",
+				t.TypeName, field.GoName, joinFKPrefix, joinTable.TypeName,
+			))
+		}
+
+		joinPKs = []*Field{joinField}
+	}
+
 	fkPrefix, fkOK := pgTag.Options["fk"]
 
-	if fkOK && len(joinTable.PKs) == 1 {
+	if fkOK && len(joinPKs) == 1 {
 		fk := t.getField(fkPrefix)
 		if fk == nil {
 			panic(fmt.Errorf(
@@ -622,7 +641,7 @@ func (t *Table) mustHasOneRelation(field *Field, pgTag *tagparser.Tag) bool {
 			Field:     field,
 			JoinTable: joinTable,
 			BaseFKs:   []*Field{fk},
-			JoinFKs:   joinTable.PKs,
+			JoinFKs:   joinPKs,
 		})
 		return true
 	}
@@ -630,9 +649,9 @@ func (t *Table) mustHasOneRelation(field *Field, pgTag *tagparser.Tag) bool {
 	if !fkOK {
 		fkPrefix = internal.Underscore(field.GoName) + "_"
 	}
-	fks := make([]*Field, 0, len(joinTable.PKs))
+	fks := make([]*Field, 0, len(joinPKs))
 
-	for _, joinPK := range joinTable.PKs {
+	for _, joinPK := range joinPKs {
 		fkName := fkPrefix + joinPK.SQLName
 		if fk := t.getField(fkName); fk != nil {
 			fks = append(fks, fk)
@@ -656,7 +675,7 @@ func (t *Table) mustHasOneRelation(field *Field, pgTag *tagparser.Tag) bool {
 		Field:     field,
 		JoinTable: joinTable,
 		BaseFKs:   fks,
-		JoinFKs:   joinTable.PKs,
+		JoinFKs:   joinPKs,
 	})
 	return true
 }
