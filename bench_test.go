@@ -16,6 +16,7 @@ import (
 func benchmarkDB() *pg.DB {
 	return pg.Connect(&pg.Options{
 		User:         "postgres",
+		Password:     "postgres",
 		Database:     "postgres",
 		DialTimeout:  30 * time.Second,
 		ReadTimeout:  10 * time.Second,

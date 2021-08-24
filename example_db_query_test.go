@@ -54,7 +54,8 @@ func GetStory(db *pg.DB, id int64) (*Story, error) {
 
 func ExampleDB_Query() {
 	db := pg.Connect(&pg.Options{
-		User: "postgres",
+		User:     "postgres",
+		Password: "postgres",
 	})
 
 	err := createSchema(db)

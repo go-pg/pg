@@ -26,6 +26,7 @@ func main() {
 	db := pg.Connect(&pg.Options{
 		Addr:     ":5432",
 		User:     "postgres",
+		Password: "postgres",
 		Database: "example",
 	})
 	defer db.Close()
