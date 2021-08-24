@@ -11,7 +11,8 @@ import (
 
 func modelDB() *pg.DB {
 	db := pg.Connect(&pg.Options{
-		User: "postgres",
+		User:     "postgres",
+		Password: "postgres",
 	})
 
 	err := createTestSchema(db)
