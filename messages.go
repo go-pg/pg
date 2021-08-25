@@ -300,8 +300,16 @@ func (db *baseDB) authSASL(
 	if err != nil {
 		return err
 	}
-	if s != "SCRAM-SHA-256" {
-		return fmt.Errorf("pg: SASL: got %q, wanted %q", s, "SCRAM-SHA-256")
+
+	var saslMech sasl.Mechanism
+
+	switch s {
+	case sasl.ScramSha256.Name:
+		saslMech = sasl.ScramSha256
+	case sasl.ScramSha256Plus.Name:
+		saslMech = sasl.ScramSha256Plus
+	default:
+		return fmt.Errorf("got %q, wanted %q", s, sasl.ScramSha256.Name)
 	}
 
 	c0, err := rd.ReadByte()
@@ -315,7 +323,7 @@ func (db *baseDB) authSASL(
 	creds := sasl.Credentials(func() (Username, Password, Identity []byte) {
 		return []byte(user), []byte(password), nil
 	})
-	client := sasl.NewClient(sasl.ScramSha256, creds)
+	client := sasl.NewClient(saslMech, creds)
 
 	_, resp, err := client.Step(nil)
 	if err != nil {
@@ -324,7 +332,7 @@ func (db *baseDB) authSASL(
 
 	err = cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		wb.StartMessage(saslInitialResponseMsg)
-		wb.WriteString("SCRAM-SHA-256")
+		wb.WriteString(saslMech.Name)
 		wb.WriteInt32(int32(len(resp)))
 		_, err := wb.Write(resp)
 		if err != nil {
