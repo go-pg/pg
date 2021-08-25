@@ -45,7 +45,7 @@ type NonPKJoinTest struct {
 
 	Id int
 
-	CustomHasOneKey string  `pg:"custom_has_one_key"`
+	CustomHasOneKey string       `pg:"custom_has_one_key"`
 	CustomHasOne    *HasOneNonPK `pg:"rel:has-one,fk:custom_has_one_key,join_fk:custom_key"`
 }
 

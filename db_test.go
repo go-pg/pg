@@ -2577,14 +2577,14 @@ func TestColumnReuse(t *testing.T) {
 
 	for _, user := range users {
 		ks := []string{}
-		for k, _ := range user {
+		for k := range user {
 			ks = append(ks, k)
 		}
 		require.ElementsMatch(t, []string{"name", "id", "emails"}, ks)
 	}
 	for _, story := range stories {
 		ks := []string{}
-		for k, _ := range story {
+		for k := range story {
 			ks = append(ks, k)
 		}
 		require.ElementsMatch(t, []string{"id", "title", "author_id"}, ks)
