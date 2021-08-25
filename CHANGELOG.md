@@ -1,10 +1,12 @@
+# Maintenance mode
+
+go-pg is in a maintenance mode and only critical issues are addressed. New development happens in
+[**Bun**](https://bun.uptrace.dev/guide/pg-migration.html) repo which offers similar functionality
+but works with PostgreSQL, MySQL, and SQLite.
+
+---
+
 # Changelog
-
-> :heart:
-> [**Uptrace.dev** - All-in-one tool to optimize performance and monitor errors & logs](https://uptrace.dev)
-
-**Important**. Please check [Bun](https://bun.uptrace.dev/guide/pg-migration.html) - the next
-iteration of go-pg built on top of `sql.DB`.
 
 ## v10.10
 
@@ -13,7 +15,7 @@ iteration of go-pg built on top of `sql.DB`.
 
   - Traces become smaller and less noisy.
   - [Bun](https://github.com/uptrace/bun) can't support the same level of instrumentation and it is
-    nice to keep the projects synced.
+    nice to keep projects synced.
   - It may be costly to process those 3 extra spans for each query.
 
   Eventually we hope to replace the information that we no longer collect with OpenTelemetry
