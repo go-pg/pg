@@ -5,7 +5,7 @@ go 1.15
 replace github.com/go-pg/pg/v10 => ../..
 
 require (
-	github.com/go-pg/pg/v10 v10.10.4
+	github.com/go-pg/pg/v10 v10.10.5
 	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
 	go.opentelemetry.io/otel v1.0.0-RC1
 	go.opentelemetry.io/otel/trace v1.0.0-RC1
