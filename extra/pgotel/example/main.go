@@ -14,7 +14,7 @@ import (
 var tracer = otel.Tracer("app_or_package_name")
 
 func main() {
-	exporter, err := stdouttrace.NewExporter(stdouttrace.WithPrettyPrint())
+	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
 	if err != nil {
 		panic(err)
 	}
