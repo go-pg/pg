@@ -8,6 +8,10 @@ but works with PostgreSQL, MySQL, and SQLite.
 
 # Changelog
 
+## v10.10.6
+
+- Updated OpenTelemetry to v1.0.0.
+
 ## v10.10
 
 - Removed extra OpenTelemetry spans from go-pg core. Now go-pg instrumentation only adds a single
