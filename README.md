@@ -1,17 +1,23 @@
+# Maintenance mode
+
+go-pg is in a maintenance mode and only critical issues are addressed. New development happens in
+[**Bun**](https://bun.uptrace.dev/guide/pg-migration.html) repo which offers similar functionality
+but works with PostgreSQL, MySQL, MariaDB, and SQLite.
+
+## [https://github.com/uptrace/bun](https://github.com/uptrace/bun)
+
+---
+
+---
+
+---
+
 # PostgreSQL client and ORM for Golang
 
 [![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=v10)](https://travis-ci.org/go-pg/pg)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/go-pg/pg/v10)](https://pkg.go.dev/github.com/go-pg/pg/v10)
 [![Documentation](https://img.shields.io/badge/pg-documentation-informational)](https://pg.uptrace.dev/)
 [![Chat](https://discordapp.com/api/guilds/752070105847955518/widget.png)](https://discord.gg/rWtp5Aj)
-
-# Maintenance mode
-
-go-pg is in a maintenance mode and only critical issues are addressed. New development happens in
-[**Bun**](https://bun.uptrace.dev/guide/pg-migration.html) repo which offers similar functionality
-but works with PostgreSQL, MySQL, and SQLite.
-
----
 
 - Join [Discord](https://discord.gg/rWtp5Aj) to ask questions.
 - [Documentation](https://pg.uptrace.dev)
