@@ -3,8 +3,9 @@ package pgsegment
 import (
 	"io"
 
-	"github.com/go-pg/pg/v10/pgjson"
 	"github.com/segmentio/encoding/json"
+
+	"github.com/go-pg/pg/v10/pgjson"
 )
 
 var _ pgjson.Provider = (*JSONProvider)(nil)

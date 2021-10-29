@@ -1,3 +1,5 @@
+PACKAGE_DIRS := $(shell find . -mindepth 2 -type f -name 'go.mod' -exec dirname {} \; | sort)
+
 all:
 	TZ= go test ./...
 	TZ= go test ./... -short -race
@@ -6,18 +8,8 @@ all:
 	go vet
 	golangci-lint run
 
-.PHONY: cleanTest
-cleanTest:
-	docker rm -fv pg || true
-
-.PHONY: pre-test
-pre-test: cleanTest
-	docker run -d --name pg -p 5432:5432 -e POSTGRES_HOST_AUTH_METHOD=trust postgres:9.6
-	sleep 10
-	docker exec pg psql -U postgres -c "CREATE EXTENSION hstore"
-
 .PHONY: test
-test: pre-test
+test:
 	TZ= PGSSLMODE=disable go test ./... -v
 
 tag:
@@ -25,3 +17,16 @@ tag:
 	git tag extra/pgdebug/$(VERSION)
 	git tag extra/pgotel/$(VERSION)
 	git tag extra/pgsegment/$(VERSION)
+
+fmt:
+	gofmt -w -s ./
+	goimports -w  -local github.com/go-pg/pg ./
+
+go_mod_tidy:
+	go get -u && go mod tidy
+	set -e; for dir in $(PACKAGE_DIRS); do \
+	  echo "go mod tidy in $${dir}"; \
+	  (cd "$${dir}" && \
+	    go get -u && \
+	    go mod tidy); \
+	done

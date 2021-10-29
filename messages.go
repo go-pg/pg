@@ -296,26 +296,31 @@ func readAuthOK(rd *pool.ReaderContext) error {
 func (db *baseDB) authSASL(
 	c context.Context, cn *pool.Conn, rd *pool.ReaderContext, user, password string,
 ) error {
-	s, err := readString(rd)
-	if err != nil {
-		return err
-	}
-	if s != "SCRAM-SHA-256" {
-		return fmt.Errorf("pg: SASL: got %q, wanted %q", s, "SCRAM-SHA-256")
-	}
+	var saslMech sasl.Mechanism
 
-	c0, err := rd.ReadByte()
-	if err != nil {
-		return err
-	}
-	if c0 != 0 {
-		return fmt.Errorf("pg: SASL: got %q, wanted %q", c0, 0)
+loop:
+	for {
+		s, err := readString(rd)
+		if err != nil {
+			return err
+		}
+
+		switch s {
+		case "":
+			break loop
+		case sasl.ScramSha256.Name:
+			saslMech = sasl.ScramSha256
+		case sasl.ScramSha256Plus.Name:
+			// ignore
+		default:
+			return fmt.Errorf("got %q, wanted %q", s, sasl.ScramSha256.Name)
+		}
 	}
 
 	creds := sasl.Credentials(func() (Username, Password, Identity []byte) {
 		return []byte(user), []byte(password), nil
 	})
-	client := sasl.NewClient(sasl.ScramSha256, creds)
+	client := sasl.NewClient(saslMech, creds)
 
 	_, resp, err := client.Step(nil)
 	if err != nil {
@@ -324,7 +329,7 @@ func (db *baseDB) authSASL(
 
 	err = cn.WithWriter(c, db.opt.WriteTimeout, func(wb *pool.WriteBuffer) error {
 		wb.StartMessage(saslInitialResponseMsg)
-		wb.WriteString("SCRAM-SHA-256")
+		wb.WriteString(saslMech.Name)
 		wb.WriteInt32(int32(len(resp)))
 		_, err := wb.Write(resp)
 		if err != nil {

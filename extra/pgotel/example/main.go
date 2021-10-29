@@ -3,17 +3,18 @@ package main
 import (
 	"context"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
 	"github.com/go-pg/pg/extra/pgotel/v10"
 	"github.com/go-pg/pg/v10"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/exporters/stdout"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 )
 
 var tracer = otel.Tracer("app_or_package_name")
 
 func main() {
-	exporter, err := stdout.NewExporter(stdout.WithPrettyPrint())
+	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
 	if err != nil {
 		panic(err)
 	}
@@ -26,6 +27,7 @@ func main() {
 	db := pg.Connect(&pg.Options{
 		Addr:     ":5432",
 		User:     "postgres",
+		Password: "postgres",
 		Database: "example",
 	})
 	defer db.Close()
