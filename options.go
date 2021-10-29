@@ -11,6 +11,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -19,6 +20,14 @@ import (
 	"github.com/go-pg/pg/v10/internal"
 	"github.com/go-pg/pg/v10/internal/pool"
 )
+
+type BeforeConnectOptions struct {
+	User string
+	Password string
+
+	// TLS config for secure connections.
+	TLSConfig *tls.Config
+}
 
 // Options contains database connection options.
 type Options struct {
@@ -33,8 +42,9 @@ type Options struct {
 	Dialer func(ctx context.Context, network, addr string) (net.Conn, error)
 
 	// BeforeConnect is a hook which is called before a new connection is
-	// established. Useful for scenarios where dynamic passwords are used
-	BeforeConnect func(ctx context.Context, opts *Options) error
+	// established. Useful for scenarios where dynamic passwords are used.
+	// Timeout & Retry values set in this hook are not ignored
+	BeforeConnect func(ctx context.Context, o *Options) error
 
 	// Hook that is called after new connection is established
 	// and user is authenticated.
@@ -98,6 +108,36 @@ type Options struct {
 	// but idle connections are still discarded by the client
 	// if IdleTimeout is set.
 	IdleCheckFrequency time.Duration
+
+	mux sync.Mutex
+}
+
+func (opt *Options) clone() *Options {
+	return &Options{
+		Network: opt.Network,
+		Addr: opt.Addr,
+		Dialer: opt.Dialer,
+		BeforeConnect: opt.BeforeConnect,
+		OnConnect: opt.OnConnect,
+		User: opt.User,
+		Password: opt.Password,
+		Database: opt.Database,
+		ApplicationName: opt.ApplicationName,
+		TLSConfig: opt.TLSConfig.Clone(),
+		DialTimeout: opt.DialTimeout,
+		ReadTimeout: opt.ReadTimeout,
+		WriteTimeout: opt.WriteTimeout,
+		MaxRetries: opt.MaxRetries,
+		RetryStatementTimeout: opt.RetryStatementTimeout,
+		MinRetryBackoff: opt.MinRetryBackoff,
+		MaxRetryBackoff: opt.MaxRetryBackoff,
+		PoolSize: opt.PoolSize,
+		MinIdleConns: opt.MinIdleConns,
+		MaxConnAge: opt.MaxConnAge,
+		PoolTimeout: opt.PoolTimeout,
+		IdleTimeout: opt.IdleTimeout,
+		IdleCheckFrequency: opt.IdleCheckFrequency,
+	}
 }
 
 func (opt *Options) init() {
