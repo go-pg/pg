@@ -43,7 +43,7 @@ func panicIf(err error) {
 func ExampleConnect() {
 	db := pg.Connect(&pg.Options{
 		User:     "postgres",
-		Password: "",
+		Password: "postgres",
 		Database: "postgres",
 	})
 	defer db.Close()
@@ -115,7 +115,8 @@ func ExampleListener() {
 
 func txExample() *pg.DB {
 	db := pg.Connect(&pg.Options{
-		User: "postgres",
+		User:     "postgres",
+		Password: "postgres",
 	})
 
 	queries := []string{

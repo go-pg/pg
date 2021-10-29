@@ -149,6 +149,7 @@ func (p *ConnPool) newConn(c context.Context, pooled bool) (*Conn, error) {
 	}
 
 	p.connsMu.Lock()
+
 	p.conns = append(p.conns, cn)
 	if pooled {
 		// If pool is full remove the cn on next Put.
@@ -158,6 +159,7 @@ func (p *ConnPool) newConn(c context.Context, pooled bool) (*Conn, error) {
 			p.poolSize++
 		}
 	}
+
 	p.connsMu.Unlock()
 	return cn, nil
 }

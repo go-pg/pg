@@ -30,7 +30,8 @@ func (s Story) String() string {
 
 func ExampleDB_Model() {
 	db := pg.Connect(&pg.Options{
-		User: "postgres",
+		User:     "postgres",
+		Password: "postgres",
 	})
 	defer db.Close()
 

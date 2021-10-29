@@ -1,8 +1,16 @@
-<p align="center">
-  <a href="https://uptrace.dev/?utm_source=gh-pg&utm_campaign=gh-pg-banner1">
-    <img src="https://raw.githubusercontent.com/uptrace/roadmap/master/banner1.png">
-  </a>
-</p>
+# Maintenance mode
+
+go-pg is in a maintenance mode and only critical issues are addressed. New development happens in
+[**Bun**](https://bun.uptrace.dev/guide/pg-migration.html) repo which offers similar functionality
+but works with PostgreSQL, MySQL, MariaDB, and SQLite.
+
+## [https://github.com/uptrace/bun](https://github.com/uptrace/bun)
+
+---
+
+---
+
+---
 
 # PostgreSQL client and ORM for Golang
 
@@ -27,6 +35,7 @@
 - Migrations by [vmihailenco](https://github.com/go-pg/migrations) and
   [robinjoseph08](https://github.com/robinjoseph08/go-pg-migrations).
 - [Genna - cli tool for generating go-pg models](https://github.com/dizzyfool/genna).
+- [bigint](https://github.com/d-fal/bigint) - big.Int type for go-pg.
 - [urlstruct](https://github.com/go-pg/urlstruct) to decode `url.Values` into structs.
 - [Sharding](https://github.com/go-pg/sharding).
 - [go-pg-monitor](https://github.com/hypnoglow/go-pg-monitor) - Prometheus metrics based on go-pg

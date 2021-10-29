@@ -1,0 +1,17 @@
+name: Releases
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: ncipollo/release-action@v1
+        with:
+          body:
+            Please refer to [CHANGELOG.md](https://github.com/go-pg/pg/blob/v10/CHANGELOG.md) for
+            details
