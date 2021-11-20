@@ -132,8 +132,14 @@ func ptrAppenderFunc(typ reflect.Type) AppenderFunc {
 }
 
 func appendValue(b []byte, v reflect.Value, flags int) []byte {
-	if v.Kind() == reflect.Ptr && v.IsNil() {
-		return AppendNull(b, flags)
+	switch v.Kind() {
+	case reflect.Ptr, reflect.Slice, reflect.Map:
+		// When the value is a pointer, slice or map; then we can assert if the value provided is nil.
+		// When the value is properly nil; then we can append NULL instead of a string representation of the provided
+		// value.
+		if v.IsNil() {
+			return AppendNull(b, flags)
+		}
 	}
 	appender := Appender(v.Type())
 	return appender(b, v, flags)
