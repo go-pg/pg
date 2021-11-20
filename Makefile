@@ -10,7 +10,7 @@ all:
 
 .PHONY: test
 test:
-	TZ= PGSSLMODE=disable go test ./... -v
+	TZ= PGSSLMODE=disable go test ./... -v -race
 
 tag:
 	git tag $(VERSION)
