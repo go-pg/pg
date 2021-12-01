@@ -256,6 +256,53 @@ func ParseURL(sURL string) (*Options, error) {
 	return options, nil
 }
 
+func (opts *Options) ToURL() string {
+	dsn := "postgres://"
+
+	if len(opts.User) > 0 {
+		dsn += opts.User
+
+		if len(opts.Password) > 0 {
+			dsn += ":" + opts.Password
+		}
+
+		dsn += "@"
+	}
+
+	if len(opts.Addr) > 0 {
+		dsn += opts.Addr
+	} else {
+		dsn += "localhost:5432"
+	}
+
+	dsn += "/" + opts.Database
+
+	values := url.Values{}
+
+	if opts.DialTimeout > 0 {
+		values.Add("connect_timeout", strconv.Itoa(int(opts.DialTimeout)/int(time.Second)))
+	}
+
+	if len(opts.ApplicationName) > 0 {
+		values.Add("application_name", opts.ApplicationName)
+	}
+
+	if opts.TLSConfig == nil {
+		values.Add("sslmode", "disable")
+	} else if opts.TLSConfig.InsecureSkipVerify {
+		values.Add("sslmode", "allow")
+	} else if !opts.TLSConfig.InsecureSkipVerify {
+		values.Add("sslmode", "verify-ca")
+	}
+
+	encoded := values.Encode()
+	if len(encoded) > 0 {
+		dsn += "?" + encoded
+	}
+
+	return dsn
+}
+
 func (opt *Options) getDialer() func(context.Context) (net.Conn, error) {
 	return func(ctx context.Context) (net.Conn, error) {
 		return opt.Dialer(ctx, opt.Network, opt.Addr)

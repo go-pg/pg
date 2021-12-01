@@ -7,6 +7,8 @@ import (
 	"errors"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestParseURL(t *testing.T) {
@@ -260,4 +262,55 @@ func TestParseURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestOptions_ToURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		opts     *Options
+		expected string
+	}{
+		{"Empty", &Options{Database: "postgres"}, "postgres://localhost:5432/postgres?sslmode=disable"},
+		{"User", &Options{Database: "postgres", User: "postgres"}, "postgres://postgres@localhost:5432/postgres?sslmode=disable"},
+		{"UserPass", &Options{Database: "postgres", User: "postgres", Password: "password"}, "postgres://postgres:password@localhost:5432/postgres?sslmode=disable"},
+		{"UserPassAddr", &Options{Database: "postgres", User: "postgres", Password: "password", Addr: "somewhere:1234"}, "postgres://postgres:password@somewhere:1234/postgres?sslmode=disable"},
+		{"UserPassAddrAppl", &Options{Database: "postgres", User: "postgres", Password: "password", Addr: "somewhere:1234", ApplicationName: "test"}, "postgres://postgres:password@somewhere:1234/postgres?application_name=test&sslmode=disable"},
+		{"UserPassAddrApplTimeout", &Options{Database: "postgres", User: "postgres", Password: "password", Addr: "somewhere:1234", ApplicationName: "test", DialTimeout: time.Second}, "postgres://postgres:password@somewhere:1234/postgres?application_name=test&connect_timeout=1&sslmode=disable"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert := assert.New(t)
+
+			actual := tt.opts.ToURL()
+			assert.Equal(tt.expected, actual)
+
+			_, err := ParseURL(actual)
+			assert.NoError(err)
+		})
+	}
+}
+
+func TestOptions_ToURL_reparsable(t *testing.T) {
+	assert := assert.New(t)
+
+	opts := &Options{
+		Database:        "postgres",
+		User:            "postgres",
+		Password:        "password",
+		Addr:            "somewhere:1234",
+		ApplicationName: "test",
+		DialTimeout:     time.Second,
+	}
+
+	url := opts.ToURL()
+
+	actual, err := ParseURL(url)
+	assert.NoError(err)
+
+	assert.Equal(opts.Database, actual.Database)
+	assert.Equal(opts.User, actual.User)
+	assert.Equal(opts.Password, actual.Password)
+	assert.Equal(opts.Addr, actual.Addr)
+	assert.Equal(opts.ApplicationName, actual.ApplicationName)
+	assert.Equal(opts.DialTimeout, actual.DialTimeout)
 }
