@@ -2,6 +2,7 @@ package orm
 
 import (
 	"fmt"
+	"github.com/go-pg/pg/v10/internal"
 	"reflect"
 	"sort"
 
@@ -202,10 +203,12 @@ func (q *UpdateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct refl
 	}
 
 	pos := len(b)
+	hasSetFields := false
 	for _, f := range fields {
 		if q.omitZero && f.NullZero() && f.HasZeroValue(strct) {
 			continue
 		}
+		hasSetFields = true
 
 		if len(b) != pos {
 			b = append(b, ", "...)
@@ -229,6 +232,11 @@ func (q *UpdateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct refl
 		} else {
 			b = f.AppendValue(b, strct, 1)
 		}
+	}
+
+	if !hasSetFields {
+		// a non-update has occurred
+		return b, internal.ErrNonUpdate
 	}
 
 	for i, v := range q.q.extraValues {

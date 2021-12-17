@@ -14,6 +14,10 @@ var ErrNoRows = internal.ErrNoRows
 // multiple rows but exactly one row is expected.
 var ErrMultiRows = internal.ErrMultiRows
 
+// ErrNonUpdate is returned by UpdateQuery when omit-zero is enabled
+// and all fields are zero
+var ErrNonUpdate = internal.ErrNonUpdate
+
 // Error represents an error returned by PostgreSQL server
 // using PostgreSQL ErrorResponse protocol.
 //

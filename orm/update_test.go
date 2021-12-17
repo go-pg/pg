@@ -2,6 +2,7 @@ package orm
 
 import (
 	"database/sql"
+	"github.com/go-pg/pg/v10/internal"
 	"time"
 
 	. "github.com/onsi/ginkgo"
@@ -13,6 +14,12 @@ import (
 type UpdateTest struct {
 	Id    int
 	Value string `pg:"type:mytype"`
+}
+
+type UpdateTest2 struct {
+	Id     int
+	Value  string `pg:"type:mytype"`
+	Value2 string
 }
 
 type SerialUpdateTest struct {
@@ -53,10 +60,18 @@ var _ = Describe("Update", func() {
 	})
 
 	It("omits zero", func() {
-		q := NewQuery(nil, &UpdateTest{}).WherePK()
+		q := NewQuery(nil, &UpdateTest2{Value2: "hello"}).WherePK()
 
 		s := queryString(&UpdateQuery{q: q, omitZero: true})
-		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET  WHERE "update_test"."id" = NULL`))
+		Expect(s).To(Equal(`UPDATE "update_test2" SET "value2" = 'hello' WHERE "update_test2"."id" = NULL`))
+	})
+
+	It("non update", func() {
+		q := NewQuery(nil, &UpdateTest{}).WherePK()
+		model := &UpdateQuery{q: q, omitZero: true}
+		fmter := NewFormatter().WithModel(model)
+		_, err := model.AppendQuery(fmter, nil)
+		Expect(err).To(Equal(internal.ErrNonUpdate))
 	})
 
 	It("bulk updates", func() {
@@ -142,14 +157,14 @@ var _ = Describe("Update", func() {
 	It("allows disabling an alias", func() {
 		type Model struct {
 			tableName struct{} `pg:"alias:models"`
-
-			Id int
+			Value     string
+			Id        int
 		}
 
-		q := NewQuery(nil, &Model{}).WherePK()
+		q := NewQuery(nil, &Model{Value: "hello"}).WherePK()
 
 		s := updateQueryString(q)
-		Expect(s).To(Equal(`UPDATE "models" SET  WHERE "models"."id" = NULL`))
+		Expect(s).To(Equal(`UPDATE "models" SET "value" = 'hello' WHERE "models"."id" = NULL`))
 	})
 
 	It("omits zero values", func() {

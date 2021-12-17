@@ -7,6 +7,7 @@ import (
 var (
 	ErrNoRows    = Errorf("pg: no rows in result set")
 	ErrMultiRows = Errorf("pg: multiple rows in result set")
+	ErrNonUpdate = Errorf("pg: nothing to update")
 )
 
 type Error struct {
