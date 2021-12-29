@@ -19,7 +19,6 @@ but works with PostgreSQL, MySQL, MariaDB, and SQLite.
 [![Documentation](https://img.shields.io/badge/pg-documentation-informational)](https://pg.uptrace.dev/)
 [![Chat](https://discordapp.com/api/guilds/752070105847955518/widget.png)](https://discord.gg/rWtp5Aj)
 
-- Join [Discord](https://discord.gg/rWtp5Aj) to ask questions.
 - [Documentation](https://pg.uptrace.dev)
 - [Reference](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
 - [Examples](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#pkg-examples)
