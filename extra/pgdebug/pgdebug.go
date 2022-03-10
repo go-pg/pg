@@ -23,7 +23,7 @@ func NewDebugHook() *DebugHook {
 
 var _ pg.QueryHook = (*DebugHook)(nil)
 
-func (h *DebugHook) BeforeQuery(ctx context.Context, evt *pg.QueryEvent) (context.Context, error) {
+func (h DebugHook) BeforeQuery(ctx context.Context, evt *pg.QueryEvent) (context.Context, error) {
 	q, err := evt.FormattedQuery()
 	if err != nil {
 		return nil, err

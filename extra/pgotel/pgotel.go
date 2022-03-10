@@ -29,7 +29,7 @@ func NewTracingHook() *TracingHook {
 
 var _ pg.QueryHook = (*TracingHook)(nil)
 
-func (h *TracingHook) BeforeQuery(ctx context.Context, _ *pg.QueryEvent) (context.Context, error) {
+func (h TracingHook) BeforeQuery(ctx context.Context, _ *pg.QueryEvent) (context.Context, error) {
 	if !trace.SpanFromContext(ctx).IsRecording() {
 		return ctx, nil
 	}
@@ -38,7 +38,7 @@ func (h *TracingHook) BeforeQuery(ctx context.Context, _ *pg.QueryEvent) (contex
 	return ctx, nil
 }
 
-func (h *TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
+func (h TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error {
 	const (
 		softQueryLimit = 5000
 		hardQueryLimit = 10000
