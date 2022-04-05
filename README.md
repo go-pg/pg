@@ -4,7 +4,7 @@ go-pg is in a maintenance mode and only critical issues are addressed. New devel
 [**Bun**](https://bun.uptrace.dev/guide/pg-migration.html) repo which offers similar functionality
 but works with PostgreSQL, MySQL, MariaDB, and SQLite.
 
-## [https://github.com/uptrace/bun](https://github.com/uptrace/bun)
+## [Golang ORM](https://github.com/uptrace/bun)
 
 ---
 
@@ -239,6 +239,8 @@ func createSchema(db *pg.DB) error {
 
 ## See also
 
-- [Fast and flexible HTTP router](https://github.com/vmihailenco/treemux)
+- [Golang PostgreSQL](https://bun.uptrace.dev/postgres/)
+- [Golang HTTP router](https://github.com/uptrace/bunrouter)
+- [Golang ClickHouse ORM](https://github.com/uptrace/go-clickhouse)
 - [Golang msgpack](https://github.com/vmihailenco/msgpack)
-- [Golang message task queue](https://github.com/vmihailenco/taskq)
+- [Distributed tracing tools](https://get.uptrace.dev/compare/distributed-tracing-tools.html)
