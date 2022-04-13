@@ -336,6 +336,44 @@ var _ = Describe("With", func() {
 		Expect(s).To(Equal(`WITH "wrapper" AS (SELECT "select_model"."id", "select_model"."name", "select_model"."has_one_id" FROM "select_models" AS "select_model" WHERE (cond1)) SELECT * FROM "wrapper" WHERE (cond2)`))
 	})
 
+	It("generates CTE", func() {
+		q1 := NewQuery(nil).Table("q1")
+		q2 := NewQuery(nil).With("q1", q1).Table("q2", "q1")
+
+		s := selectQueryString(q2)
+		Expect(s).To(Equal(`WITH "q1" AS (SELECT * FROM "q1") SELECT * FROM "q2", "q1"`))
+	})
+
+	It("generates materialized CTE", func() {
+		q1 := NewQuery(nil).Table("q1")
+		q2 := NewQuery(nil).WithMaterialized("q1", q1).Table("q2", "q1")
+
+		s := selectQueryString(q2)
+		Expect(s).To(Equal(`WITH "q1" AS MATERIALIZED (SELECT * FROM "q1") SELECT * FROM "q2", "q1"`))
+	})
+
+	It("generates not materialized CTE", func() {
+		q1 := NewQuery(nil).Table("q1")
+		q2 := NewQuery(nil).WithNotMaterialized("q1", q1).Table("q2", "q1")
+
+		s := selectQueryString(q2)
+		Expect(s).To(Equal(`WITH "q1" AS NOT MATERIALIZED (SELECT * FROM "q1") SELECT * FROM "q2", "q1"`))
+	})
+
+	It("generates mixed materialization modes in CTE", func() {
+		q1 := NewQuery(nil).Table("q1")
+		q2 := NewQuery(nil).Table("q2")
+		q3 := NewQuery(nil).Table("q3")
+		q4 := NewQuery(nil).
+			With("q1", q1).
+			WithMaterialized("q2", q2).
+			WithNotMaterialized("q3", q3).
+			Table("q4", "q3", "q2", "q1")
+
+		s := selectQueryString(q4)
+		Expect(s).To(Equal(`WITH "q1" AS (SELECT * FROM "q1"), "q2" AS MATERIALIZED (SELECT * FROM "q2"), "q3" AS NOT MATERIALIZED (SELECT * FROM "q3") SELECT * FROM "q4", "q3", "q2", "q1"`))
+	})
+
 	It("generates nested CTE", func() {
 		q1 := NewQuery(nil).Table("q1")
 		q2 := NewQuery(nil).With("q1", q1).Table("q2", "q1")

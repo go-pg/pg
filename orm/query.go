@@ -36,9 +36,18 @@ const (
 	allWithDeletedFlag
 )
 
+type materializationMode uint8
+
+const (
+	autoMaterializationMode materializationMode = iota
+	asMaterializedMode
+	asNotMaterializedMode
+)
+
 type withQuery struct {
-	name  string
-	query QueryAppender
+	name                string
+	query               QueryAppender
+	materializationMode materializationMode
 }
 
 type columnValue struct {
@@ -262,25 +271,34 @@ func (q *Query) AllWithDeleted() *Query {
 
 // With adds subq as common table expression with the given name.
 func (q *Query) With(name string, subq *Query) *Query {
-	return q._with(name, NewSelectQuery(subq))
+	return q._with(name, NewSelectQuery(subq), autoMaterializationMode)
+}
+
+func (q *Query) WithMaterialized(name string, subq *Query) *Query {
+	return q._with(name, NewSelectQuery(subq), asMaterializedMode)
+}
+
+func (q *Query) WithNotMaterialized(name string, subq *Query) *Query {
+	return q._with(name, NewSelectQuery(subq), asNotMaterializedMode)
 }
 
 func (q *Query) WithInsert(name string, subq *Query) *Query {
-	return q._with(name, NewInsertQuery(subq))
+	return q._with(name, NewInsertQuery(subq), autoMaterializationMode)
 }
 
 func (q *Query) WithUpdate(name string, subq *Query) *Query {
-	return q._with(name, NewUpdateQuery(subq, false))
+	return q._with(name, NewUpdateQuery(subq, false), autoMaterializationMode)
 }
 
 func (q *Query) WithDelete(name string, subq *Query) *Query {
-	return q._with(name, NewDeleteQuery(subq))
+	return q._with(name, NewDeleteQuery(subq), autoMaterializationMode)
 }
 
-func (q *Query) _with(name string, subq QueryAppender) *Query {
+func (q *Query) _with(name string, subq QueryAppender, mm materializationMode) *Query {
 	q.with = append(q.with, withQuery{
-		name:  name,
-		query: subq,
+		name:                name,
+		query:               subq,
+		materializationMode: mm,
 	})
 	return q
 }
@@ -1533,7 +1551,14 @@ func (q *Query) appendWith(fmter QueryFormatter, b []byte) (_ []byte, err error)
 			b = append(b, ", "...)
 		}
 		b = types.AppendIdent(b, with.name, 1)
-		b = append(b, " AS ("...)
+		b = append(b, " AS"...)
+		switch with.materializationMode {
+		case asMaterializedMode:
+			b = append(b, " MATERIALIZED"...)
+		case asNotMaterializedMode:
+			b = append(b, " NOT MATERIALIZED"...)
+		}
+		b = append(b, " ("...)
 
 		b, err = with.query.AppendQuery(fmter, b)
 		if err != nil {
