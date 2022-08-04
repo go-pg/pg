@@ -58,7 +58,7 @@ type Options struct {
 	// Default is to not retry failed queries.
 	MaxRetries int
 	// Whether to retry queries cancelled because of statement_timeout or cancel request.
-	RetryCancelledQuery bool
+	RetryStatementTimeout bool
 	// Minimum backoff between each retry.
 	// Default is 250 milliseconds; -1 disables backoff.
 	MinRetryBackoff time.Duration

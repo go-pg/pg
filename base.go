@@ -195,7 +195,7 @@ func (db *baseDB) shouldRetry(err error) bool {
 			"55000": // attempted to delete invisible tuple
 			return true
 		case "57014": // query_canceled
-			return db.opt.RetryCancelledQuery
+			return db.opt.RetryStatementTimeout
 		default:
 			return false
 		}
