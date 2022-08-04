@@ -124,6 +124,10 @@ func (db *baseDB) initConn(ctx context.Context, cn *pool.Conn) error {
 
 func (db *baseDB) releaseConn(ctx context.Context, cn *pool.Conn, err error) {
 	if isBadConn(err, false) {
+		err := db.cancelRequest(cn.ProcessID, cn.SecretKey)
+		if err != nil {
+			internal.Logger.Printf(ctx, "cancelRequest failed: %s", err)
+		}
 		db.pool.Remove(ctx, cn, err)
 	} else {
 		db.pool.Put(ctx, cn)
