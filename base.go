@@ -146,17 +146,15 @@ func (db *baseDB) withConn(
 	if ctx != nil && ctx.Done() != nil {
 		fnDone = make(chan struct{})
 		go func() {
-			for {
-				select {
-				case <-fnDone: // fn has finished, skip cancel
-				case <-ctx.Done():
-					err := db.cancelRequest(cn.ProcessID, cn.SecretKey)
-					if err != nil {
-						internal.Logger.Printf(ctx, "cancelRequest failed: %s", err)
-					}
-					// Signal end of conn use.
-					fnDone <- struct{}{}
+			select {
+			case <-fnDone: // fn has finished, skip cancel
+			case <-ctx.Done():
+				err := db.cancelRequest(cn.ProcessID, cn.SecretKey)
+				if err != nil {
+					internal.Logger.Printf(ctx, "cancelRequest failed: %s", err)
 				}
+				// Signal end of conn use.
+				fnDone <- struct{}{}
 			}
 		}()
 	}
