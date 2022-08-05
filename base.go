@@ -192,7 +192,7 @@ func (db *baseDB) shouldRetry(err error) bool {
 			"53300", // too_many_connections
 			"55000": // attempted to delete invisible tuple
 			return true
-		case "57014": // query_canceled
+		case "57014": // statement_timeout
 			return db.opt.RetryStatementTimeout
 		default:
 			return false
