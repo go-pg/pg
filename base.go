@@ -124,7 +124,7 @@ func (db *baseDB) initConn(ctx context.Context, cn *pool.Conn) error {
 
 func (db *baseDB) releaseConn(ctx context.Context, cn *pool.Conn, err error) {
 	if bad, code := isBadConn(err, false); bad {
-		if code == "57014" { // canceling statement due to user request
+		if code != "25P02" { // canceling statement if it is a bad conn expect 25P02 (current transaction is aborted)
 			err := db.cancelRequest(cn.ProcessID, cn.SecretKey)
 			if err != nil {
 				internal.Logger.Printf(ctx, "cancelRequest failed: %s", err)
