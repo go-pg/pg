@@ -110,7 +110,7 @@ func (ln *Listener) conn(ctx context.Context) (*pool.Conn, error) {
 func (ln *Listener) releaseConn(ctx context.Context, cn *pool.Conn, err error, allowTimeout bool) {
 	ln.mu.Lock()
 	if ln.cn == cn {
-		if isBadConn(err, allowTimeout) {
+		if bad, _ := isBadConn(err, allowTimeout); bad {
 			ln.reconnect(ctx, err)
 		}
 	}
