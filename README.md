@@ -35,7 +35,9 @@ but works with PostgreSQL, MySQL, MariaDB, and SQLite.
 - [Reference](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc)
 - [Examples](https://pkg.go.dev/github.com/go-pg/pg/v10?tab=doc#pkg-examples)
 - Example projects:
-  - [treemux](https://github.com/uptrace/go-treemux-realworld-example-app)
+  - [monetr](https://github.com/monetr/monetr) - budgeting application focused on planning for
+    recurring expenses
+  - [bunrouter](https://github.com/go-bun/bun-realworld-app)
   - [gin](https://github.com/gogjango/gjango)
   - [go-kit](https://github.com/Tsovak/rest-api-demo)
   - [aah framework](https://github.com/kieusonlam/golamapi)
