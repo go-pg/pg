@@ -570,6 +570,11 @@ func (q *Query) WhereIn(where string, slice interface{}) *Query {
 	return q.Where(where, types.In(slice))
 }
 
+// WhereInOr is a shortcut for WhereOr and pg.In.
+func (q *Query) WhereInOr(where string, slice interface{}) *Query {
+	return q.WhereOr(where, types.In(slice))
+}
+
 // WhereInMulti is a shortcut for Where and pg.InMulti.
 func (q *Query) WhereInMulti(where string, values ...interface{}) *Query {
 	return q.Where(where, types.InMulti(values...))

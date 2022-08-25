@@ -239,6 +239,15 @@ var _ = Describe("Select", func() {
 		Expect(s).To(Equal(`SELECT * WHERE (id IN ('foo','bar'))`))
 	})
 
+	It("supports WhereInOr", func() {
+		q := NewQuery(nil).
+			WhereIn("id IN (?)", []string{"foo", "bar"}).
+			WhereInOr("name IN (?)", []string{"foo", "bar"})
+
+		s := selectQueryString(q)
+		Expect(s).To(Equal(`SELECT * WHERE (id IN ('foo','bar')) OR (name IN ('foo','bar'))`))
+	})
+
 	It("supports Where & pg.In", func() {
 		q := NewQuery(nil).
 			Where("id IN (?)", types.In([]string{"foo", "bar"}))
