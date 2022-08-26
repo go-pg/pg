@@ -1,17 +1,5 @@
 # PostgreSQL client and ORM for Golang
 
-Hello fellow developers :wave:
-
-We (@vmihailenco and @anmic) are launching Uptrace at ProductHunt and need your support.
-
-Uptrace is an open source distributed tracing tool. We help developers pinpoint failures and find
-performance bottlenecks. Uptrace can process billions of spans on a single server and allows to
-monitor your software at 10x lower cost.
-
-[**Discuss on ProductHunt**](https://www.producthunt.com/posts/uptrace)
-
----
-
 ## Maintenance mode
 
 go-pg is in a maintenance mode and only critical issues are addressed. New development happens in
