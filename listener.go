@@ -185,9 +185,11 @@ func (ln *Listener) listen(ctx context.Context, cn *pool.Conn, channels ...strin
 func (ln *Listener) Unlisten(ctx context.Context, channels ...string) error {
 	ln.mu.Lock()
 	ln.channels = removeIfExists(ln.channels, channels...)
-	ln.mu.Unlock()
 
 	cn, err := ln.conn(ctx)
+	// I don't want to defer this unlock as the mutex is re-acquired in the `.releaseConn` function. But it is safe to
+	// unlock here regardless of an error.
+	ln.mu.Unlock()
 	if err != nil {
 		return err
 	}
