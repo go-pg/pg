@@ -8,6 +8,12 @@ but works with PostgreSQL, MySQL, and SQLite.
 
 # Changelog
 
+## v10.10.7
+
+- Fixed race condition in notify listener.
+- Add shortcut `WhereInOr`.
+- Fixed bug in sending cancel request to terminate long running query.
+
 ## v10.10.6
 
 - Updated OpenTelemetry to v1.0.0.
