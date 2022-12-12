@@ -29,7 +29,7 @@ but works with PostgreSQL, MySQL, MariaDB, and SQLite.
 ## Tutorials
 
 - [GraphQL Tutorial on YouTube](https://www.youtube.com/playlist?list=PLzQWIQOqeUSNwXcneWYJHUREAIucJ5UZn).
-- [https://bognov.tech/modern-api-design-with-golang-postgresql-and-docker](https://bognov.tech/modern-api-design-with-golang-postgresql-and-docker)
+- [Modern API design with Golang, PostgreSQL and Docker](https://bognov.tech/modern-api-design-with-golang-postgresql-and-docker)
 
 ## Ecosystem
 
