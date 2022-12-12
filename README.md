@@ -10,10 +10,6 @@ but works with PostgreSQL, MySQL, MariaDB, and SQLite.
 
 ---
 
----
-
----
-
 [![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=v10)](https://travis-ci.org/go-pg/pg)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/go-pg/pg/v10)](https://pkg.go.dev/github.com/go-pg/pg/v10)
 [![Documentation](https://img.shields.io/badge/pg-documentation-informational)](https://pg.uptrace.dev/)
@@ -29,7 +25,11 @@ but works with PostgreSQL, MySQL, MariaDB, and SQLite.
   - [gin](https://github.com/gogjango/gjango)
   - [go-kit](https://github.com/Tsovak/rest-api-demo)
   - [aah framework](https://github.com/kieusonlam/golamapi)
+
+## Tutorials
+
 - [GraphQL Tutorial on YouTube](https://www.youtube.com/playlist?list=PLzQWIQOqeUSNwXcneWYJHUREAIucJ5UZn).
+- [https://bognov.tech/modern-api-design-with-golang-postgresql-and-docker](https://bognov.tech/modern-api-design-with-golang-postgresql-and-docker)
 
 ## Ecosystem
 
