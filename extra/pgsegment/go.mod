@@ -5,7 +5,7 @@ go 1.15
 replace github.com/go-pg/pg/v10 => ../..
 
 require (
-	github.com/go-pg/pg/v10 v10.10.7
+	github.com/go-pg/pg/v10 v10.11.0
 	github.com/klauspost/cpuid/v2 v2.0.9 // indirect
 	github.com/segmentio/encoding v0.2.21
 )

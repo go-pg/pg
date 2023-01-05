@@ -8,6 +8,10 @@ but works with PostgreSQL, MySQL, and SQLite.
 
 # Changelog
 
+## v10.11.0
+
+- Updated dependency `mellium.im/sasl` from 0.2.1 to 0.3.1. ([#1969](https://github.com/go-pg/pg/pull/1969))
+
 ## v10.10.7
 
 - Fixed race condition in notify listener.
