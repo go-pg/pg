@@ -2,6 +2,9 @@
 
 set -e
 
+# Fixes a dumb issue where Mac's don't come with GNU sed out of the box.
+sed=$(which {gsed,sed} | head -n1)
+
 help() {
     cat <<- EOF
 Usage: TAG=tag $0
@@ -42,12 +45,12 @@ fi
 git checkout v10
 
 PACKAGE_DIRS=$(find . -mindepth 2 -type f -name 'go.mod' -exec dirname {} \; \
-  | sed 's/^\.\///' \
+  | $sed 's/^\.\///' \
   | sort)
 
 for dir in $PACKAGE_DIRS
 do
-    sed --in-place \
+    $sed --in-place \
       "s/go-pg\/pg\([^ ]*\) v.*/go-pg\/pg\1 ${TAG}/" "${dir}/go.mod"
 done
 
@@ -57,7 +60,7 @@ do
     (cd ./${dir} && go get -d && go mod tidy)
 done
 
-sed --in-place "s/\(return \)\"[^\"]*\"/\1\"${TAG#v}\"/" ./version.go
+$sed --in-place "s/\(return \)\"[^\"]*\"/\1\"${TAG#v}\"/" ./version.go
 
 git checkout -b release/${TAG} v10
 git add -u
