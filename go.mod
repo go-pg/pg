@@ -1,6 +1,6 @@
 module github.com/go-pg/pg/v10
 
-go 1.11
+go 1.18
 
 require (
 	github.com/go-pg/zerochecker v0.2.0
