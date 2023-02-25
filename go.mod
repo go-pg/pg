@@ -17,7 +17,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.4
 	github.com/vmihailenco/tagparser v0.1.2
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
-	golang.org/x/sys v0.0.0-20210923061019-b8560ed6a9b7 // indirect
+	golang.org/x/sys v0.1.0 // indirect
 	google.golang.org/protobuf v1.25.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20200227125254-8fa46927fb4f
 	mellium.im/sasl v0.3.1
