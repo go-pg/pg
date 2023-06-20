@@ -37,6 +37,8 @@ func (p *SingleConnPool) Put(ctx context.Context, cn *Conn) {}
 func (p *SingleConnPool) Remove(ctx context.Context, cn *Conn, reason error) {
 	p.cn = nil
 	p.stickyErr = reason
+	// If ctx is cancelled without a reason(error) value,
+	// then the ctx.Error is used as the reason for why the p.cn is assigned nil.
 	if reason == nil && ctx != nil {
 		p.stickyErr = ctx.Err()
 	}
