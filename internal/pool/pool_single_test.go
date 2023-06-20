@@ -9,13 +9,8 @@ import (
 )
 
 var _ = Describe("SingleConnPool", func() {
-	var p *pool.SingleConnPool
-
-	BeforeEach(func() {
-		p = pool.NewSingleConnPool(nil, &pool.Conn{})
-	})
-
 	It("remove a conn due to context is cancelled", func() {
+		p := pool.NewSingleConnPool(nil, &pool.Conn{})
 		ctx, cl := context.WithCancel(context.TODO())
 		cn, err := p.Get(nil)
 		Expect(err).To(BeNil())
@@ -27,5 +22,4 @@ var _ = Describe("SingleConnPool", func() {
 		Expect(cn).To(BeNil())
 		Expect(err).ToNot(BeNil())
 	})
-
 })
