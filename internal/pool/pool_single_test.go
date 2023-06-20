@@ -11,12 +11,12 @@ import (
 var _ = Describe("SingleConnPool", func() {
 	It("remove a conn due to context is cancelled", func() {
 		p := pool.NewSingleConnPool(nil, &pool.Conn{})
-		ctx, cl := context.WithCancel(context.TODO())
+		ctx, cancel := context.WithCancel(context.TODO())
 		cn, err := p.Get(nil)
 		Expect(err).To(BeNil())
 		Expect(cn).ToNot(BeNil())
 
-		cl()
+		cancel()
 		p.Remove(ctx, cn, nil)
 		cn, err = p.Get(nil)
 		Expect(cn).To(BeNil())
