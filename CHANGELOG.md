@@ -8,6 +8,12 @@ but works with PostgreSQL, MySQL, and SQLite.
 
 # Changelog
 
+## v10.11.1
+
+- Fixed bug with how cancelled contexts are handled in SingleConnPool connections ([#1981](https://github.com/go-pg/pg/pull/1981))
+
+Thank you @xin-tsla!
+
 ## v10.11.0
 
 - Updated dependency `mellium.im/sasl` from 0.2.1 to 0.3.1. ([#1969](https://github.com/go-pg/pg/pull/1969))
