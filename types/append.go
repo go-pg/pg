@@ -160,7 +160,9 @@ func appendRune(b []byte, r rune) []byte {
 	}
 	l := len(b)
 	if cap(b)-l < utf8.UTFMax {
-		b = append(b, make([]byte, utf8.UTFMax)...)
+		nb := make([]byte, l, 2*l+utf8.UTFMax)
+		copy(nb, b)
+		b = nb
 	}
 	n := utf8.EncodeRune(b[l:l+utf8.UTFMax], r)
 	return b[:l+n]
