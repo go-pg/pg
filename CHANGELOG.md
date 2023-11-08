@@ -8,6 +8,13 @@ but works with PostgreSQL, MySQL, and SQLite.
 
 # Changelog
 
+## v10.11.2
+
+- Improved memory allocation when working with multi-byte characters in `appendRune` ([#1988](https://github.com/go-pg/pg/pull/1988))
+- Added `ToURL` to `*Options` ([#1934](https://github.com/go-pg/pg/pull/1934))
+
+Thank you @dillonstreator and @MateusVeloso!
+
 ## v10.11.1
 
 - Fixed bug with how cancelled contexts are handled in SingleConnPool connections ([#1981](https://github.com/go-pg/pg/pull/1981))
