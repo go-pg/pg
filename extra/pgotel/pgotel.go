@@ -126,7 +126,7 @@ func (h *TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error 
 			span.RecordError(evt.Err)
 			span.SetStatus(codes.Error, evt.Err.Error())
 		}
-	} else if evt.Result != nil && (reflect.ValueOf(evt.Result).Kind() != reflect.Ptr || !reflect.ValueOf(evt.Result).IsNil()) {
+	} else if hasResults(evt) {
 		numRow := evt.Result.RowsAffected()
 		if numRow == 0 {
 			numRow = evt.Result.RowsReturned()
@@ -137,6 +137,10 @@ func (h *TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error 
 	span.SetAttributes(attrs...)
 
 	return nil
+}
+
+func hasResults(evt *pg.QueryEvent) bool {
+	return evt.Result != nil && (reflect.ValueOf(evt.Result).Kind() != reflect.Ptr || !reflect.ValueOf(evt.Result).IsNil())
 }
 
 func funcFileLine(pkg string) (string, string, int) {
