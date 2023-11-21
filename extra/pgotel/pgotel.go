@@ -2,6 +2,7 @@ package pgotel
 
 import (
 	"context"
+	"reflect"
 	"runtime"
 	"strings"
 
@@ -125,7 +126,7 @@ func (h *TracingHook) AfterQuery(ctx context.Context, evt *pg.QueryEvent) error 
 			span.RecordError(evt.Err)
 			span.SetStatus(codes.Error, evt.Err.Error())
 		}
-	} else if evt.Result != nil {
+	} else if evt.Result != nil && (reflect.ValueOf(evt.Result).Kind() != reflect.Ptr || !reflect.ValueOf(evt.Result).IsNil()) {
 		numRow := evt.Result.RowsAffected()
 		if numRow == 0 {
 			numRow = evt.Result.RowsReturned()
