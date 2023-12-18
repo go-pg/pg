@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-pg/pg/v10/internal/pool"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 

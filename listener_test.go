@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
