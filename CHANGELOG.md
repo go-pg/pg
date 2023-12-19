@@ -8,6 +8,15 @@ but works with PostgreSQL, MySQL, and SQLite.
 
 # Changelog
 
+## v10.12.0
+
+- Fixed invalid pointer dereference when accessing results ([#1990](https://github.com/go-pg/pg/pull/1990))
+- Updated minimum Golang version to v1.19.0 + go.mod cleanup ([#1992](https://github.com/go-pg/pg/pull/1992))
+- Bumped golang.org/x/net from 0.10.0 to 0.17.0 ([#1993](https://github.com/go-pg/pg/pull/1993))
+- Bumped gopkg.in/yaml.v3 from 3.0.0-20200313102051-9f266ea9e77c to 3.0.0 ([#1994](https://github.com/go-pg/pg/pull/1994))
+
+Thank you [@fernandez14](https://github.com/fernandez14)
+
 ## v10.11.2
 
 - Improved memory allocation when working with multi-byte characters in `appendRune` ([#1988](https://github.com/go-pg/pg/pull/1988))
