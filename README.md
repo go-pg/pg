@@ -10,7 +10,7 @@ but works with PostgreSQL, MySQL, MariaDB, and SQLite.
 
 ---
 
-[![Build Status](https://travis-ci.org/go-pg/pg.svg?branch=v10)](https://travis-ci.org/go-pg/pg)
+[![Go](https://github.com/go-pg/pg/actions/workflows/build.yml/badge.svg?branch=v10)](https://github.com/go-pg/pg/actions/workflows/build.yml)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/go-pg/pg/v10)](https://pkg.go.dev/github.com/go-pg/pg/v10)
 [![Documentation](https://img.shields.io/badge/pg-documentation-informational)](https://pg.uptrace.dev/)
 [![Chat](https://discordapp.com/api/guilds/752070105847955518/widget.png)](https://discord.gg/rWtp5Aj)
