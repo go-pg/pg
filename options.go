@@ -125,6 +125,10 @@ func (opt *Options) init() {
 		opt.User = env("PGUSER", "postgres")
 	}
 
+	if opt.Password == "" {
+		opt.Password = env("PGPASSWORD", "postgres")
+	}
+
 	if opt.Database == "" {
 		opt.Database = env("PGDATABASE", "postgres")
 	}

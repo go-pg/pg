@@ -14,12 +14,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v10/orm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/stretchr/testify/require"
-
-	"github.com/go-pg/pg/v10"
-	"github.com/go-pg/pg/v10/orm"
 )
 
 func init() {
@@ -34,8 +33,6 @@ func TestGinkgo(t *testing.T) {
 
 func pgOptions() *pg.Options {
 	return &pg.Options{
-		User:      "postgres",
-		Password:  "postgres",
 		TLSConfig: getTLSConfig(),
 
 		MaxRetries:      1,
