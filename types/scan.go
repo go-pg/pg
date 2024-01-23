@@ -107,8 +107,8 @@ func ReadBytes(rd Reader, b []byte) error {
 	}
 	tmp = tmp[2:] // Trim off "\\x".
 
-	if len(b) != hex.DecodedLen(len(tmp)) {
-		return fmt.Errorf("pg: too small buf to decode hex")
+	if len(b) < hex.DecodedLen(len(tmp)) {
+		return fmt.Errorf("pg: too small buf to decode hex, src: %d, dest %d", hex.DecodedLen(len(tmp)), len(b))
 	}
 
 	if _, err := hex.Decode(b, tmp); err != nil {
