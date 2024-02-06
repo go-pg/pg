@@ -13,6 +13,7 @@ import (
 
 	"github.com/go-pg/pg/v10/internal"
 	"github.com/go-pg/pg/v10/types"
+	"github.com/google/uuid"
 )
 
 type QueryOp string
@@ -615,6 +616,19 @@ func (q *Query) WherePK() *Query {
 	}
 
 	panic("not reached")
+}
+
+func (q *Query) WhereOrg() *Query {
+	orgId, ok := q.ctx.Value("orgId").(*uuid.UUID)
+	if !ok {
+		q.err(errors.New("orgId not found in context for WhereOrg"))
+		return q
+	}
+	return q.Where("organization_id = ?", orgId)
+}
+
+func (q *Query) WhereOrgAndPK() *Query {
+	return q.WhereOrg().WherePK()
 }
 
 func (q *Query) Join(join string, params ...interface{}) *Query {
