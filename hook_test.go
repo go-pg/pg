@@ -2,7 +2,7 @@ package pg_test
 
 import (
 	"context"
-	"io/ioutil"
+	"io"
 	"strings"
 
 	. "github.com/onsi/ginkgo"
@@ -422,7 +422,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			}
 			db.AddQueryHook(hookImpl)
 
-			_, err := db.Model((*HookTest)(nil)).CopyTo(ioutil.Discard, `COPY ?TableName TO STDOUT CSV`)
+			_, err := db.Model((*HookTest)(nil)).CopyTo(io.Discard, `COPY ?TableName TO STDOUT CSV`)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -469,7 +469,7 @@ var _ = Describe("BeforeQuery and AfterQuery", func() {
 			}
 			db.AddQueryHook(hookImpl)
 
-			_, err := db.CopyTo(ioutil.Discard, `COPY (SELECT 1) TO STDOUT CSV`)
+			_, err := db.CopyTo(io.Discard, `COPY (SELECT 1) TO STDOUT CSV`)
 			Expect(err).NotTo(HaveOccurred())
 		})
 	})
