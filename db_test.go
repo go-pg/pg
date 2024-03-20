@@ -6,7 +6,7 @@ import (
 	"crypto/tls"
 	"database/sql"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"net"
 	"os"
@@ -227,7 +227,7 @@ func TestBigColumn(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	_, err = db.CopyTo(ioutil.Discard, "COPY (SELECT * FROM tests) TO STDOUT WITH CSV")
+	_, err = db.CopyTo(io.Discard, "COPY (SELECT * FROM tests) TO STDOUT WITH CSV")
 	if err != nil {
 		t.Fatal(err)
 	}
