@@ -102,21 +102,30 @@ func (db *baseDB) initConn(ctx context.Context, cn *pool.Conn) error {
 	}
 	cn.Inited = true
 
-	if db.opt.TLSConfig != nil {
-		err := db.enableSSL(ctx, cn, db.opt.TLSConfig)
+	opt := db.opt.clone()
+
+	if opt.TLSConfig != nil {
+		err := db.enableSSL(ctx, cn, opt.TLSConfig)
 		if err != nil {
 			return err
 		}
 	}
 
-	err := db.startup(ctx, cn, db.opt.User, db.opt.Password, db.opt.Database, db.opt.ApplicationName)
+
+	if opt.BeforeConnect != nil {
+		if err := opt.BeforeConnect(ctx, opt); err != nil {
+			return err
+		}
+	}
+
+	err := db.startup(ctx, cn, opt.User, opt.Password, opt.Database, opt.ApplicationName)
 	if err != nil {
 		return err
 	}
 
-	if db.opt.OnConnect != nil {
+	if opt.OnConnect != nil {
 		p := pool.NewSingleConnPool(db.pool, cn)
-		return db.opt.OnConnect(ctx, newConn(ctx, db.withPool(p)))
+		return opt.OnConnect(ctx, newConn(ctx, db.withPool(p)))
 	}
 
 	return nil
