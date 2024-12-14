@@ -150,8 +150,8 @@ func (tx *Tx) ExecContext(c context.Context, query interface{}, params ...interf
 }
 
 func (tx *Tx) exec(ctx context.Context, query interface{}, params ...interface{}) (Result, error) {
-	wb := pool.GetWriteBuffer()
-	defer pool.PutWriteBuffer(wb)
+	wb := tx.db.pool.GetWriteBuffer()
+	defer tx.db.pool.PutWriteBuffer(wb)
 
 	if err := writeQueryMsg(wb, tx.db.fmter, query, params...); err != nil {
 		return nil, err
@@ -217,8 +217,8 @@ func (tx *Tx) query(
 	query interface{},
 	params ...interface{},
 ) (Result, error) {
-	wb := pool.GetWriteBuffer()
-	defer pool.PutWriteBuffer(wb)
+	wb := tx.db.pool.GetWriteBuffer()
+	defer tx.db.pool.PutWriteBuffer(wb)
 
 	if err := writeQueryMsg(wb, tx.db.fmter, query, params...); err != nil {
 		return nil, err

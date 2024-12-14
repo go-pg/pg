@@ -13,6 +13,7 @@ var noDeadline = time.Time{}
 type Conn struct {
 	netConn net.Conn
 	rd      *ReaderContext
+	pool    *ConnPool
 
 	ProcessID int32
 	SecretKey int32
@@ -24,9 +25,10 @@ type Conn struct {
 	Inited    bool
 }
 
-func NewConn(netConn net.Conn) *Conn {
+func NewConn(netConn net.Conn, pool *ConnPool) *Conn {
 	cn := &Conn{
 		createdAt: time.Now(),
+		pool:      pool,
 	}
 	cn.SetNetConn(netConn)
 	cn.SetUsedAt(time.Now())
@@ -57,7 +59,7 @@ func (cn *Conn) LockReader() {
 	if cn.rd != nil {
 		panic("not reached")
 	}
-	cn.rd = NewReaderContext()
+	cn.rd = NewReaderContext(cn.pool.opt.ReadBufferInitialSize)
 	cn.rd.Reset(cn.netConn)
 }
 
@@ -79,8 +81,8 @@ func (cn *Conn) WithReader(
 
 	rd := cn.rd
 	if rd == nil {
-		rd = GetReaderContext()
-		defer PutReaderContext(rd)
+		rd = cn.pool.GetReaderContext()
+		defer cn.pool.PutReaderContext(rd)
 
 		rd.Reset(cn.netConn)
 	}
@@ -97,8 +99,8 @@ func (cn *Conn) WithReader(
 func (cn *Conn) WithWriter(
 	ctx context.Context, timeout time.Duration, fn func(wb *WriteBuffer) error,
 ) error {
-	wb := GetWriteBuffer()
-	defer PutWriteBuffer(wb)
+	wb := cn.pool.GetWriteBuffer()
+	defer cn.pool.PutWriteBuffer(wb)
 
 	if err := fn(wb); err != nil {
 		return err

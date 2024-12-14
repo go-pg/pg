@@ -3,26 +3,7 @@ package pool
 import (
 	"encoding/binary"
 	"io"
-	"sync"
 )
-
-const defaultBufSize = 65 << 10 // 65kb
-
-var wbPool = sync.Pool{
-	New: func() interface{} {
-		return NewWriteBuffer()
-	},
-}
-
-func GetWriteBuffer() *WriteBuffer {
-	wb := wbPool.Get().(*WriteBuffer)
-	return wb
-}
-
-func PutWriteBuffer(wb *WriteBuffer) {
-	wb.Reset()
-	wbPool.Put(wb)
-}
 
 type WriteBuffer struct {
 	Bytes []byte
@@ -31,9 +12,9 @@ type WriteBuffer struct {
 	paramStart int
 }
 
-func NewWriteBuffer() *WriteBuffer {
+func NewWriteBuffer(bufSize int) *WriteBuffer {
 	return &WriteBuffer{
-		Bytes: make([]byte, 0, defaultBufSize),
+		Bytes: make([]byte, 0, bufSize),
 	}
 }
 

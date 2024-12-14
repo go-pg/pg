@@ -42,6 +42,10 @@ type Pooler interface {
 	Get(context.Context) (*Conn, error)
 	Put(context.Context, *Conn)
 	Remove(context.Context, *Conn, error)
+	GetWriteBuffer() *WriteBuffer
+	PutWriteBuffer(*WriteBuffer)
+	GetReaderContext() *ReaderContext
+	PutReaderContext(*ReaderContext)
 
 	Len() int
 	IdleLen() int
@@ -54,12 +58,14 @@ type Options struct {
 	Dialer  func(context.Context) (net.Conn, error)
 	OnClose func(*Conn) error
 
-	PoolSize           int
-	MinIdleConns       int
-	MaxConnAge         time.Duration
-	PoolTimeout        time.Duration
-	IdleTimeout        time.Duration
-	IdleCheckFrequency time.Duration
+	PoolSize               int
+	MinIdleConns           int
+	ReadBufferInitialSize  int
+	WriteBufferInitialSize int
+	MaxConnAge             time.Duration
+	PoolTimeout            time.Duration
+	IdleTimeout            time.Duration
+	IdleCheckFrequency     time.Duration
 }
 
 type ConnPool struct {
@@ -82,6 +88,9 @@ type ConnPool struct {
 
 	poolSize     int
 	idleConnsLen int
+
+	wbPool sync.Pool
+	rbPool sync.Pool
 }
 
 var _ Pooler = (*ConnPool)(nil)
@@ -93,6 +102,16 @@ func NewConnPool(opt *Options) *ConnPool {
 		queue:     make(chan struct{}, opt.PoolSize),
 		conns:     make([]*Conn, 0, opt.PoolSize),
 		idleConns: make([]*Conn, 0, opt.PoolSize),
+		wbPool: sync.Pool{
+			New: func() interface{} {
+				return NewWriteBuffer(opt.WriteBufferInitialSize)
+			},
+		},
+		rbPool: sync.Pool{
+			New: func() interface{} {
+				return NewReaderContext(opt.ReadBufferInitialSize)
+			},
+		},
 	}
 
 	p.connsMu.Lock()
@@ -182,7 +201,7 @@ func (p *ConnPool) dialConn(c context.Context, pooled bool) (*Conn, error) {
 		return nil, err
 	}
 
-	cn := NewConn(netConn)
+	cn := NewConn(netConn, p)
 	cn.pooled = pooled
 	return cn, nil
 }
@@ -503,4 +522,24 @@ func (p *ConnPool) isStaleConn(cn *Conn) bool {
 	}
 
 	return false
+}
+
+func (p *ConnPool) GetWriteBuffer() *WriteBuffer {
+	wb := p.wbPool.Get().(*WriteBuffer)
+	return wb
+}
+
+func (p *ConnPool) PutWriteBuffer(wb *WriteBuffer) {
+	wb.Reset()
+	p.wbPool.Put(wb)
+}
+
+func (p *ConnPool) GetReaderContext() *ReaderContext {
+	rd := p.rbPool.Get().(*ReaderContext)
+	return rd
+}
+
+func (p *ConnPool) PutReaderContext(rd *ReaderContext) {
+	rd.ColumnAlloc.Reset()
+	p.rbPool.Put(rd)
 }

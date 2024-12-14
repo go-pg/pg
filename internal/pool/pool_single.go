@@ -61,3 +61,19 @@ func (p *SingleConnPool) IdleLen() int {
 func (p *SingleConnPool) Stats() *Stats {
 	return &Stats{}
 }
+
+func (p *SingleConnPool) GetWriteBuffer() *WriteBuffer {
+	return p.pool.GetWriteBuffer()
+}
+
+func (p *SingleConnPool) PutWriteBuffer(wb *WriteBuffer) {
+	p.pool.PutWriteBuffer(wb)
+}
+
+func (p *SingleConnPool) GetReaderContext() *ReaderContext {
+	return p.pool.GetReaderContext()
+}
+
+func (p *SingleConnPool) PutReaderContext(rd *ReaderContext) {
+	p.pool.PutReaderContext(rd)
+}

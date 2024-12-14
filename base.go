@@ -227,8 +227,8 @@ func (db *baseDB) ExecContext(c context.Context, query interface{}, params ...in
 }
 
 func (db *baseDB) exec(ctx context.Context, query interface{}, params ...interface{}) (Result, error) {
-	wb := pool.GetWriteBuffer()
-	defer pool.PutWriteBuffer(wb)
+	wb := db.pool.GetWriteBuffer()
+	defer db.pool.PutWriteBuffer(wb)
 
 	if err := writeQueryMsg(wb, db.fmter, query, params...); err != nil {
 		return nil, err
@@ -297,8 +297,8 @@ func (db *baseDB) QueryContext(c context.Context, model, query interface{}, para
 }
 
 func (db *baseDB) query(ctx context.Context, model, query interface{}, params ...interface{}) (Result, error) {
-	wb := pool.GetWriteBuffer()
-	defer pool.PutWriteBuffer(wb)
+	wb := db.pool.GetWriteBuffer()
+	defer db.pool.PutWriteBuffer(wb)
 
 	if err := writeQueryMsg(wb, db.fmter, query, params...); err != nil {
 		return nil, err
@@ -374,8 +374,8 @@ func (db *baseDB) copyFrom(
 ) (res Result, err error) {
 	var evt *QueryEvent
 
-	wb := pool.GetWriteBuffer()
-	defer pool.PutWriteBuffer(wb)
+	wb := db.pool.GetWriteBuffer()
+	defer db.pool.PutWriteBuffer(wb)
 
 	if err := writeQueryMsg(wb, db.fmter, query, params...); err != nil {
 		return nil, err
@@ -456,8 +456,8 @@ func (db *baseDB) copyTo(
 ) (res Result, err error) {
 	var evt *QueryEvent
 
-	wb := pool.GetWriteBuffer()
-	defer pool.PutWriteBuffer(wb)
+	wb := db.pool.GetWriteBuffer()
+	defer db.pool.PutWriteBuffer(wb)
 
 	if err := writeQueryMsg(wb, db.fmter, query, params...); err != nil {
 		return nil, err
