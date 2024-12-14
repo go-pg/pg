@@ -8,6 +8,14 @@ but works with PostgreSQL, MySQL, and SQLite.
 
 # Changelog
 
+## v10.14.0
+
+- Added support for comments on ORM generated queries ([#2011](https://github.com/go-pg/pg/pull/2011))
+- Make reader and writer buffers configurable ([#2014](https://github.com/go-pg/pg/pull/2014))
+- Bumped golang.org/x/crypto from 0.21.0 to 0.31.0 ([#2013](https://github.com/go-pg/pg/pull/2013), [#2015](https://github.com/go-pg/pg/pull/2015))
+
+Thank you [@wwoytenko](https://github.com/wwoytenko) and [@tony2001](https://github.com/tony2001)
+
 ## v10.13.0
 
 - Removed references to deprecated `io/ioutil` ([#2001](https://github.com/go-pg/pg/pull/2001))
