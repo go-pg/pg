@@ -45,6 +45,8 @@ var (
 	nullBoolType       = reflect.TypeOf((*sql.NullBool)(nil)).Elem()
 	nullFloatType      = reflect.TypeOf((*sql.NullFloat64)(nil)).Elem()
 	nullIntType        = reflect.TypeOf((*sql.NullInt64)(nil)).Elem()
+	nullInt32Type      = reflect.TypeOf((*sql.NullInt32)(nil)).Elem()
+	nullInt16Type      = reflect.TypeOf((*sql.NullInt16)(nil)).Elem()
 	nullStringType     = reflect.TypeOf((*sql.NullString)(nil)).Elem()
 	jsonRawMessageType = reflect.TypeOf((*json.RawMessage)(nil)).Elem()
 )
@@ -1243,6 +1245,10 @@ func sqlType(typ reflect.Type) string {
 		return pgTypeDoublePrecision
 	case nullIntType:
 		return pgTypeBigint
+	case nullInt32Type:
+		return pgTypeInteger
+	case nullInt16Type:
+		return pgTypeSmallint
 	case nullStringType:
 		return pgTypeText
 	case jsonRawMessageType:
