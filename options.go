@@ -90,6 +90,14 @@ type Options struct {
 	// but idle connections are still discarded by the client
 	// if IdleTimeout is set.
 	IdleCheckFrequency time.Duration
+	// Connections read buffers stored in a sync.Pool to reduce allocations.
+	// Using this option you can adjust the initial size of the buffer.
+	// Default is 1 Mb.
+	ReadBufferInitialSize int
+	// Connections write buffers stored in a sync.Pool to reduce allocations.
+	// Using this option you can adjust the initial size of the buffer.
+	// Default is 64 Kb.
+	WriteBufferInitialSize int
 }
 
 func (opt *Options) init() {
@@ -163,6 +171,14 @@ func (opt *Options) init() {
 		opt.MaxRetryBackoff = 0
 	case 0:
 		opt.MaxRetryBackoff = 4 * time.Second
+	}
+
+	if opt.ReadBufferInitialSize == 0 {
+		opt.ReadBufferInitialSize = 1048576 // 1Mb
+	}
+
+	if opt.WriteBufferInitialSize == 0 {
+		opt.WriteBufferInitialSize = 65536 // 64Kb
 	}
 }
 
@@ -318,11 +334,13 @@ func newConnPool(opt *Options) *pool.ConnPool {
 		Dialer:  opt.getDialer(),
 		OnClose: terminateConn,
 
-		PoolSize:           opt.PoolSize,
-		MinIdleConns:       opt.MinIdleConns,
-		MaxConnAge:         opt.MaxConnAge,
-		PoolTimeout:        opt.PoolTimeout,
-		IdleTimeout:        opt.IdleTimeout,
-		IdleCheckFrequency: opt.IdleCheckFrequency,
+		PoolSize:               opt.PoolSize,
+		MinIdleConns:           opt.MinIdleConns,
+		MaxConnAge:             opt.MaxConnAge,
+		PoolTimeout:            opt.PoolTimeout,
+		IdleTimeout:            opt.IdleTimeout,
+		IdleCheckFrequency:     opt.IdleCheckFrequency,
+		ReadBufferInitialSize:  opt.ReadBufferInitialSize,
+		WriteBufferInitialSize: opt.WriteBufferInitialSize,
 	})
 }

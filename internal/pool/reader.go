@@ -1,9 +1,5 @@
 package pool
 
-import (
-	"sync"
-)
-
 type Reader interface {
 	Buffered() int
 
@@ -55,26 +51,9 @@ type ReaderContext struct {
 	ColumnAlloc *ColumnAlloc
 }
 
-func NewReaderContext() *ReaderContext {
-	const bufSize = 1 << 20 // 1mb
+func NewReaderContext(bufSize int) *ReaderContext {
 	return &ReaderContext{
 		BufReader:   NewBufReader(bufSize),
 		ColumnAlloc: NewColumnAlloc(),
 	}
-}
-
-var readerPool = sync.Pool{
-	New: func() interface{} {
-		return NewReaderContext()
-	},
-}
-
-func GetReaderContext() *ReaderContext {
-	rd := readerPool.Get().(*ReaderContext)
-	return rd
-}
-
-func PutReaderContext(rd *ReaderContext) {
-	rd.ColumnAlloc.Reset()
-	readerPool.Put(rd)
 }

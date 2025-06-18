@@ -81,6 +81,7 @@ type Query struct {
 
 	onConflict *SafeQueryAppender
 	returning  []*SafeQueryAppender
+	comment string
 }
 
 func NewQuery(db DB, model ...interface{}) *Query {
@@ -777,6 +778,12 @@ func (q *Query) Apply(fn func(*Query) (*Query, error)) *Query {
 		return q
 	}
 	return qq
+}
+
+// Comment adds a comment to the query, wrapped by /* ... */.
+func (q *Query) Comment(c string) *Query {
+	q.comment = c
+	return q
 }
 
 // Count returns number of rows matching the query using count aggregate function.

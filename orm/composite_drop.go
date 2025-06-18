@@ -50,6 +50,7 @@ func (q *DropCompositeQuery) AppendTemplate(b []byte) ([]byte, error) {
 }
 
 func (q *DropCompositeQuery) AppendQuery(fmter QueryFormatter, b []byte) ([]byte, error) {
+	b = appendComment(b, q.q.comment)
 	if q.q.stickyErr != nil {
 		return nil, q.q.stickyErr
 	}

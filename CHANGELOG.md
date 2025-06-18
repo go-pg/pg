@@ -8,6 +8,23 @@ but works with PostgreSQL, MySQL, and SQLite.
 
 # Changelog
 
+## v10.14.0
+
+- Added support for comments on ORM generated queries ([#2011](https://github.com/go-pg/pg/pull/2011))
+- Make reader and writer buffers configurable ([#2014](https://github.com/go-pg/pg/pull/2014))
+- Bumped golang.org/x/crypto from 0.21.0 to 0.31.0 ([#2013](https://github.com/go-pg/pg/pull/2013), [#2015](https://github.com/go-pg/pg/pull/2015))
+
+Thank you [@wwoytenko](https://github.com/wwoytenko) and [@tony2001](https://github.com/tony2001)
+
+## v10.13.0
+
+- Removed references to deprecated `io/ioutil` ([#2001](https://github.com/go-pg/pg/pull/2001))
+- Added password environment variable for easier testing ([#1996](https://github.com/go-pg/pg/pull/1996))
+- Bumped google.golang.org/protobuf from 1.25.0 to 1.33.0 ([#2000](https://github.com/go-pg/pg/pull/2000))
+- Bumped golang.org/x/net from 0.17.0 to 0.23.0 ([#2002](https://github.com/go-pg/pg/pull/2002))
+
+Thank you [@DarrylWong](https://github.com/DarrylWong) and [@testwill](https://github.com/testwill)
+
 ## v10.12.0
 
 - Fixed invalid pointer dereference when accessing results ([#1990](https://github.com/go-pg/pg/pull/1990))

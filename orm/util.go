@@ -1,7 +1,9 @@
 package orm
 
 import (
+	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/go-pg/pg/v10/types"
 )
@@ -148,4 +150,14 @@ func appendColumns(b []byte, table types.Safe, fields []*Field) []byte {
 		b = append(b, f.Column...)
 	}
 	return b
+}
+
+// appendComment adds comment in the header of the query into buffer
+func appendComment(b []byte, name string) []byte {
+	if name == "" {
+		return b
+	}
+	name = strings.ReplaceAll(name, `/*`, `/\*`)
+	name = strings.ReplaceAll(name, `*/`, `*\/`)
+	return append(b, fmt.Sprintf("/* %s */ ", name)...)
 }

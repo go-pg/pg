@@ -200,3 +200,19 @@ func (p *StickyConnPool) IdleLen() int {
 func (p *StickyConnPool) Stats() *Stats {
 	return &Stats{}
 }
+
+func (p *StickyConnPool) GetWriteBuffer() *WriteBuffer {
+	return p.pool.GetWriteBuffer()
+}
+
+func (p *StickyConnPool) PutWriteBuffer(wb *WriteBuffer) {
+	p.pool.PutWriteBuffer(wb)
+}
+
+func (p *StickyConnPool) GetReaderContext() *ReaderContext {
+	return p.pool.GetReaderContext()
+}
+
+func (p *StickyConnPool) PutReaderContext(rd *ReaderContext) {
+	p.pool.PutReaderContext(rd)
+}
