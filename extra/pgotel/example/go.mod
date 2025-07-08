@@ -1,6 +1,6 @@
 module example
 
-go 1.19
+go 1.23.0
 
 replace github.com/go-pg/pg/v10 => ../../..
 
@@ -23,7 +23,7 @@ require (
 	github.com/vmihailenco/tagparser v0.1.2 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
 	go.opentelemetry.io/otel/trace v1.0.0 // indirect
-	golang.org/x/crypto v0.31.0 // indirect
-	golang.org/x/sys v0.28.0 // indirect
+	golang.org/x/crypto v0.35.0 // indirect
+	golang.org/x/sys v0.30.0 // indirect
 	mellium.im/sasl v0.3.1 // indirect
 )
