@@ -463,6 +463,21 @@ func (q *Query) Value(column string, value string, params ...interface{}) *Query
 	return q
 }
 
+// ExtraValue added for the column in INSERT and UPDATE queries.
+func (q *Query) ExtraValue(column string, value string, params ...interface{}) *Query {
+	if !q.hasTableModel() {
+		q.err(errModelNil)
+		return q
+	}
+
+	q.extraValues = append(q.extraValues, &columnValue{
+		column: column,
+		value:  SafeQuery(value, params...),
+	})
+
+	return q
+}
+
 func (q *Query) Where(condition string, params ...interface{}) *Query {
 	q.addWhere(&condAppender{
 		sep:    " AND ",
