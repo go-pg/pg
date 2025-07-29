@@ -148,11 +148,24 @@ func appendBoolValue(b []byte, v reflect.Value, _ int) []byte {
 }
 
 func appendIntValue(b []byte, v reflect.Value, _ int) []byte {
-	return strconv.AppendInt(b, v.Int(), 10)
+   i := v.Int()
+   if i < 0 {
+	   b = append(b, '(')
+	   b = strconv.AppendInt(b, i, 10)
+	   b = append(b, ')')
+	   return b
+   }
+   return strconv.AppendInt(b, i, 10)
 }
 
 func appendUintValue(b []byte, v reflect.Value, _ int) []byte {
-	return strconv.AppendUint(b, v.Uint(), 10)
+   if f < 0 {
+       b = append(b, '(')
+       b = strconv.AppendFloat(b, f, 'g', -1, bitSize)
+       b = append(b, ')')
+       return b
+   }
+   return strconv.AppendFloat(b, f, 'g', -1, bitSize)
 }
 
 func appendFloat32Value(b []byte, v reflect.Value, flags int) []byte {
