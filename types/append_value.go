@@ -149,12 +149,15 @@ func appendBoolValue(b []byte, v reflect.Value, _ int) []byte {
 
 func appendIntValue(b []byte, v reflect.Value, _ int) []byte {
 	i := v.Int()
+	fmt.Println("appendIntValue", i)
 	if i < 0 {
 		b = append(b, '(')
 		b = strconv.AppendInt(b, i, 10)
 		b = append(b, ')')
+		fmt.Println("appendIntValue negative", string(b))
 		return b
 	}
+	fmt.Println("appendIntValue positive", i)
 	return strconv.AppendInt(b, i, 10)
 }
 
