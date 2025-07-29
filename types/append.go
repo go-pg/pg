@@ -77,12 +77,20 @@ func appendFloat(dst []byte, v float64, flags int, bitSize int) []byte {
 		}
 		return append(dst, "Infinity"...)
 	case math.IsInf(v, -1):
-		if hasFlag(flags, quoteFlag) {
-			return append(dst, "'-Infinity'"...)
-		}
-		return append(dst, "-Infinity"...)
+		// Wrap negative infinity in arrays too
+		dst = append(dst, '(')
+		dst = append(dst, "-Infinity"...)
+		dst = append(dst, ')')
+		return dst
 	default:
-		return strconv.AppendFloat(dst, v, 'f', -1, bitSize)
+		// Wrap any other negative float to avoid `--` injection
+		if v < 0 {
+			dst = append(dst, '(')
+			dst = strconv.AppendFloat(dst, v, 'f', -1, 64)
+			dst = append(dst, ')')
+			return dst
+		}
+		return strconv.AppendFloat(dst, v, 'f', -1, 64)
 	}
 }
 
@@ -93,8 +101,19 @@ func appendFloat2(dst []byte, v float64, _ int) []byte {
 	case math.IsInf(v, 1):
 		return append(dst, "Infinity"...)
 	case math.IsInf(v, -1):
-		return append(dst, "-Infinity"...)
+		// Wrap negative infinity in arrays too
+		dst = append(dst, '(')
+		dst = append(dst, "-Infinity"...)
+		dst = append(dst, ')')
+		return dst
 	default:
+		// Wrap any other negative float to avoid `--` injection
+		if v < 0 {
+			dst = append(dst, '(')
+			dst = strconv.AppendFloat(dst, v, 'f', -1, 64)
+			dst = append(dst, ')')
+			return dst
+		}
 		return strconv.AppendFloat(dst, v, 'f', -1, 64)
 	}
 }

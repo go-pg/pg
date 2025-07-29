@@ -24,7 +24,7 @@ type AppenderFunc func([]byte, reflect.Value, int) []byte
 
 var appenders []AppenderFunc
 
-//nolint
+// nolint
 func init() {
 	appenders = []AppenderFunc{
 		reflect.Bool:          appendBoolValue,
@@ -148,24 +148,18 @@ func appendBoolValue(b []byte, v reflect.Value, _ int) []byte {
 }
 
 func appendIntValue(b []byte, v reflect.Value, _ int) []byte {
-   i := v.Int()
-   if i < 0 {
-	   b = append(b, '(')
-	   b = strconv.AppendInt(b, i, 10)
-	   b = append(b, ')')
-	   return b
-   }
-   return strconv.AppendInt(b, i, 10)
+	i := v.Int()
+	if i < 0 {
+		b = append(b, '(')
+		b = strconv.AppendInt(b, i, 10)
+		b = append(b, ')')
+		return b
+	}
+	return strconv.AppendInt(b, i, 10)
 }
 
 func appendUintValue(b []byte, v reflect.Value, _ int) []byte {
-   if f < 0 {
-       b = append(b, '(')
-       b = strconv.AppendFloat(b, f, 'g', -1, bitSize)
-       b = append(b, ')')
-       return b
-   }
-   return strconv.AppendFloat(b, f, 'g', -1, bitSize)
+	return strconv.AppendUint(b, v.Uint(), 10)
 }
 
 func appendFloat32Value(b []byte, v reflect.Value, flags int) []byte {
