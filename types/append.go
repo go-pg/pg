@@ -17,11 +17,11 @@ func Append(b []byte, v interface{}, flags int) []byte {
 	case bool:
 		return appendBool(b, v)
 	case int32:
-		return strconv.AppendInt(b, int64(v), 10)
+		return appendInt(b, int64(v))
 	case int64:
-		return strconv.AppendInt(b, v, 10)
+		return appendInt(b, v)
 	case int:
-		return strconv.AppendInt(b, int64(v), 10)
+		return appendInt(b, int64(v))
 	case float32:
 		return appendFloat(b, float64(v), flags, 32)
 	case float64:
@@ -60,6 +60,15 @@ func appendBool(dst []byte, v bool) []byte {
 	return append(dst, "FALSE"...)
 }
 
+func appendInt(dst []byte, v int64) []byte {
+	// To avoid accidental comments which can lead to SQL injection, put a space before
+	// negative numbers immediately following a minus sign.
+	if v < 0 && len(dst) > 0 && dst[len(dst)-1] == '-' {
+		dst = append(dst, ' ')
+	}
+	return strconv.AppendInt(dst, v, 10)
+}
+
 func appendFloat(dst []byte, v float64, flags int, bitSize int) []byte {
 	if hasFlag(flags, arrayFlag) {
 		return appendFloat2(dst, v, flags)
@@ -80,8 +89,18 @@ func appendFloat(dst []byte, v float64, flags int, bitSize int) []byte {
 		if hasFlag(flags, quoteFlag) {
 			return append(dst, "'-Infinity'"...)
 		}
+		// To avoid accidental comments which can lead to SQL injection, put a space before
+		// negative numbers immediately following a minus sign.
+		if v < 0 && len(dst) > 0 && dst[len(dst)-1] == '-' {
+			dst = append(dst, ' ')
+		}
 		return append(dst, "-Infinity"...)
 	default:
+		// To avoid accidental comments which can lead to SQL injection, put a space before
+		// negative numbers immediately following a minus sign.
+		if v < 0 && len(dst) > 0 && dst[len(dst)-1] == '-' {
+			dst = append(dst, ' ')
+		}
 		return strconv.AppendFloat(dst, v, 'f', -1, bitSize)
 	}
 }
