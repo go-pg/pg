@@ -17,11 +17,12 @@ func Append(b []byte, v interface{}, flags int) []byte {
 	case bool:
 		return appendBool(b, v)
 	case int32:
-		return strconv.AppendInt(b, int64(v), 10)
+		// route signed ints through our safe negative‑wrapping logic
+		return appendIntValue(b, reflect.ValueOf(int64(v)), flags)
 	case int64:
-		return strconv.AppendInt(b, v, 10)
+		return appendIntValue(b, reflect.ValueOf(v), flags)
 	case int:
-		return strconv.AppendInt(b, int64(v), 10)
+		return appendIntValue(b, reflect.ValueOf(int64(v)), flags)
 	case float32:
 		return appendFloat(b, float64(v), flags, 32)
 	case float64:

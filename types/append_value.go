@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"net"
+	"os"
 	"reflect"
 	"strconv"
 	"sync"
@@ -149,7 +150,8 @@ func appendBoolValue(b []byte, v reflect.Value, _ int) []byte {
 
 func appendIntValue(b []byte, v reflect.Value, _ int) []byte {
 	i := v.Int()
-	fmt.Println("appendIntValue", i)
+	// panic("🔥 appendIntValue hit")
+	fmt.Fprintf(os.Stderr, ">>> appendIntValue got: %d\n", i)
 	if i < 0 {
 		b = append(b, '(')
 		b = strconv.AppendInt(b, i, 10)
