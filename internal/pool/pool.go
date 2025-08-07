@@ -71,9 +71,9 @@ type Options struct {
 type ConnPool struct {
 	opt *Options
 
-	dialErrorsNum uint32 // atomic
+	dialErrorsNum atomic.Uint32
 
-	_closed uint32 // atomic
+	_closed atomic.Bool
 
 	lastDialErrorMu sync.RWMutex
 	lastDialError   error
@@ -188,14 +188,14 @@ func (p *ConnPool) dialConn(c context.Context, pooled bool) (*Conn, error) {
 		return nil, ErrClosed
 	}
 
-	if atomic.LoadUint32(&p.dialErrorsNum) >= uint32(p.opt.PoolSize) {
+	if p.dialErrorsNum.Load() >= uint32(p.opt.PoolSize) {
 		return nil, p.getLastDialError()
 	}
 
 	netConn, err := p.opt.Dialer(c)
 	if err != nil {
 		p.setLastDialError(err)
-		if atomic.AddUint32(&p.dialErrorsNum, 1) == uint32(p.opt.PoolSize) {
+		if p.dialErrorsNum.Add(1) == uint32(p.opt.PoolSize) {
 			go p.tryDial()
 		}
 		return nil, err
@@ -219,7 +219,7 @@ func (p *ConnPool) tryDial() {
 			continue
 		}
 
-		atomic.StoreUint32(&p.dialErrorsNum, 0)
+		p.dialErrorsNum.Store(0)
 		_ = conn.Close()
 		return
 	}
@@ -415,7 +415,7 @@ func (p *ConnPool) Stats() *Stats {
 }
 
 func (p *ConnPool) closed() bool {
-	return atomic.LoadUint32(&p._closed) == 1
+	return p._closed.Load()
 }
 
 func (p *ConnPool) Filter(fn func(*Conn) bool) error {
@@ -433,7 +433,7 @@ func (p *ConnPool) Filter(fn func(*Conn) bool) error {
 }
 
 func (p *ConnPool) Close() error {
-	if !atomic.CompareAndSwapUint32(&p._closed, 0, 1) {
+	if !p._closed.CompareAndSwap(false, true) {
 		return ErrClosed
 	}
 
