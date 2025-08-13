@@ -4,7 +4,7 @@ go 1.23.0
 
 replace github.com/go-pg/pg/v10 => ../..
 
-require github.com/go-pg/pg/v10 v10.14.0
+require github.com/go-pg/pg/v10 v10.15.0
 
 require (
 	github.com/go-pg/zerochecker v0.2.0 // indirect

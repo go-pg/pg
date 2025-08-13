@@ -8,6 +8,19 @@ but works with PostgreSQL, MySQL, and SQLite.
 
 # Changelog
 
+## v10.15.0
+
+**Important Security Update**
+
+This update includes a fix for a security issue, please update to this release as soon as possible.
+
+- Fixed [CVE-2024-44905](https://github.com/advisories/GHSA-6xp3-p59p-q4fj) ([#2029](https://github.com/go-pg/pg/pull/2029))
+- Bumped golang.org/x/crypto from v0.31.0 to v0.36.0 ([#2030](https://github.com/go-pg/pg/pull/2030))
+- Bumped golang.org/x/net from v0.23.0 to v0.38.0 ([#2021](https://github.com/go-pg/pg/pull/2021))
+- Bumped golang.org/x/crypto from v0.31.0 to v0.35.0 ([#2020](https://github.com/go-pg/pg/pull/2020))
+
+Thank you [@martoche](https://github.com/martoche)!
+
 ## v10.14.0
 
 - Added support for comments on ORM generated queries ([#2011](https://github.com/go-pg/pg/pull/2011))
