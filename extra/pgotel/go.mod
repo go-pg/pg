@@ -1,11 +1,13 @@
 module github.com/go-pg/pg/extra/pgotel/v10
 
-go 1.19
+go 1.23.0
+
+toolchain go1.23.2
 
 replace github.com/go-pg/pg/v10 => ../..
 
 require (
-	github.com/go-pg/pg/v10 v10.14.0
+	github.com/go-pg/pg/v10 v10.15.0
 	go.opentelemetry.io/otel v1.0.0
 	go.opentelemetry.io/otel/trace v1.0.0
 )
@@ -18,7 +20,7 @@ require (
 	github.com/vmihailenco/msgpack/v5 v5.3.4 // indirect
 	github.com/vmihailenco/tagparser v0.1.2 // indirect
 	github.com/vmihailenco/tagparser/v2 v2.0.0 // indirect
-	golang.org/x/crypto v0.35.0 // indirect
-	golang.org/x/sys v0.30.0 // indirect
+	golang.org/x/crypto v0.36.0 // indirect
+	golang.org/x/sys v0.31.0 // indirect
 	mellium.im/sasl v0.3.1 // indirect
 )
