@@ -39,3 +39,9 @@ require (
 )
 
 replace golang.org/x/crypto => golang.org/x/crypto v0.45.0
+
+replace golang.org/x/net => golang.org/x/net v0.47.0
+
+replace golang.org/x/sys => golang.org/x/sys v0.38.0
+
+replace golang.org/x/text => golang.org/x/text v0.31.0
