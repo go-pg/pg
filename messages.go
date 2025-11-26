@@ -869,7 +869,7 @@ func readDataRow(
 
 		column := columns[colIdx]
 		if err := scanner.ScanColumn(column, colRd, int(n)); err != nil && firstErr == nil {
-			firstErr = internal.Errorf(err.Error())
+			firstErr = internal.Errorf("%s", err.Error())
 		}
 
 		if rd == colRd {
