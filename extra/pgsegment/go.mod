@@ -1,13 +1,11 @@
 module github.com/go-pg/pg/extra/pgsegment/v10
 
-go 1.23.0
-
-toolchain go1.23.2
+go 1.24.0
 
 replace github.com/go-pg/pg/v10 => ../..
 
 require (
-	github.com/go-pg/pg/v10 v10.15.0
+	github.com/go-pg/pg/v10 v10.15.1
 	github.com/segmentio/encoding v0.2.21
 )
 
