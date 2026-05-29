@@ -237,7 +237,7 @@ func (q *UpdateQuery) appendSetStruct(fmter QueryFormatter, b []byte, strct refl
 			b = append(b, ", "...)
 		}
 
-		b = append(b, v.column...)
+		b = types.AppendIdent(b, v.column, 1)
 		b = append(b, " = "...)
 
 		b, err = v.value.AppendQuery(fmter, b)

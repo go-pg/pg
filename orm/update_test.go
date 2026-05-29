@@ -52,6 +52,37 @@ var _ = Describe("Update", func() {
 		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = upper('hello') WHERE "update_test"."id" = 1`))
 	})
 
+	It("escapes extra column names passed to Value (SQL injection)", func() {
+		model := &UpdateTest{
+			Id:    1,
+			Value: "hello",
+		}
+		// The column is not a field of the model, so it goes through the
+		// extraValues path. This argument is attacker-controlled in the reported
+		// CVE (e.g. a JSON key from an HTTP PATCH body).
+		malicious := `role = 'admin' WHERE true; -- `
+		q := NewQuery(nil, model).
+			Value(malicious, "?", "x").
+			WherePK()
+
+		s := updateQueryString(q)
+		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = 'hello', "role = 'admin' WHERE true; -- " = 'x' WHERE "update_test"."id" = 1`))
+	})
+
+	It("escapes double quotes in extra column names passed to Value", func() {
+		model := &UpdateTest{
+			Id:    1,
+			Value: "hello",
+		}
+		malicious := `note"; DROP TABLE users; --`
+		q := NewQuery(nil, model).
+			Value(malicious, "?", "x").
+			WherePK()
+
+		s := updateQueryString(q)
+		Expect(s).To(Equal(`UPDATE "update_tests" AS "update_test" SET "value" = 'hello', "note""; DROP TABLE users; --" = 'x' WHERE "update_test"."id" = 1`))
+	})
+
 	It("omits zero", func() {
 		q := NewQuery(nil, &UpdateTest{}).WherePK()
 
