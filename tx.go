@@ -33,7 +33,7 @@ type Tx struct {
 	stmtsMu sync.Mutex
 	stmts   []*Stmt
 
-	_closed int32
+	_closed atomic.Bool
 }
 
 var _ orm.DB = (*Tx)(nil)
@@ -368,7 +368,7 @@ func (tx *Tx) CloseContext(ctx context.Context) error {
 }
 
 func (tx *Tx) close() {
-	if !atomic.CompareAndSwapInt32(&tx._closed, 0, 1) {
+	if !tx._closed.CompareAndSwap(false, true) {
 		return
 	}
 
@@ -384,5 +384,5 @@ func (tx *Tx) close() {
 }
 
 func (tx *Tx) closed() bool {
-	return atomic.LoadInt32(&tx._closed) == 1
+	return tx._closed.Load()
 }

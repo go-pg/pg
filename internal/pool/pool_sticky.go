@@ -35,9 +35,9 @@ func (e BadConnError) Unwrap() error {
 
 type StickyConnPool struct {
 	pool   Pooler
-	shared int32 // atomic
+	shared atomic.Int32
 
-	state uint32 // atomic
+	state atomic.Uint32
 	ch    chan *Conn
 
 	_badConnError atomic.Value
@@ -53,7 +53,7 @@ func NewStickyConnPool(pool Pooler) *StickyConnPool {
 			ch:   make(chan *Conn, 1),
 		}
 	}
-	atomic.AddInt32(&p.shared, 1)
+	p.shared.Add(1)
 	return p
 }
 
@@ -68,13 +68,13 @@ func (p *StickyConnPool) CloseConn(cn *Conn) error {
 func (p *StickyConnPool) Get(ctx context.Context) (*Conn, error) {
 	// In worst case this races with Close which is not a very common operation.
 	for i := 0; i < 1000; i++ {
-		switch atomic.LoadUint32(&p.state) {
+		switch p.state.Load() {
 		case stateDefault:
 			cn, err := p.pool.Get(ctx)
 			if err != nil {
 				return nil, err
 			}
-			if atomic.CompareAndSwapUint32(&p.state, stateDefault, stateInited) {
+			if p.state.CompareAndSwap(stateDefault, stateInited) {
 				return cn, nil
 			}
 			p.pool.Remove(ctx, cn, ErrClosed)
@@ -124,16 +124,16 @@ func (p *StickyConnPool) Remove(ctx context.Context, cn *Conn, reason error) {
 }
 
 func (p *StickyConnPool) Close() error {
-	if shared := atomic.AddInt32(&p.shared, -1); shared > 0 {
+	if shared := p.shared.Add(-1); shared > 0 {
 		return nil
 	}
 
 	for i := 0; i < 1000; i++ {
-		state := atomic.LoadUint32(&p.state)
+		state := p.state.Load()
 		if state == stateClosed {
 			return ErrClosed
 		}
-		if atomic.CompareAndSwapUint32(&p.state, state, stateClosed) {
+		if p.state.CompareAndSwap(state, stateClosed) {
 			close(p.ch)
 			cn, ok := <-p.ch
 			if ok {
@@ -162,8 +162,8 @@ func (p *StickyConnPool) Reset(ctx context.Context) error {
 		return errors.New("pg: StickyConnPool does not have a Conn")
 	}
 
-	if !atomic.CompareAndSwapUint32(&p.state, stateInited, stateDefault) {
-		state := atomic.LoadUint32(&p.state)
+	if !p.state.CompareAndSwap(stateInited, stateDefault) {
+		state := p.state.Load()
 		return fmt.Errorf("pg: invalid StickyConnPool state: %d", state)
 	}
 
@@ -181,7 +181,7 @@ func (p *StickyConnPool) badConnError() error {
 }
 
 func (p *StickyConnPool) Len() int {
-	switch atomic.LoadUint32(&p.state) {
+	switch p.state.Load() {
 	case stateDefault:
 		return 0
 	case stateInited:
