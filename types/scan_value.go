@@ -249,16 +249,24 @@ func scanStringValue(v reflect.Value, rd Reader, n int) error {
 }
 
 func scanJSONValue(v reflect.Value, rd Reader, n int) error {
-	// Zero value so it works with SelectOrInsert.
-	// TODO: better handle slices
-	v.Set(reflect.New(v.Type()).Elem())
-
+	// If n is -1, there is no data to scan, so return early.
 	if n == -1 {
 		return nil
 	}
 
+	// Create a new instance of the struct type that v represents.
+	newStruct := reflect.New(v.Type().Elem()).Interface()
+
+	// Decode the JSON data from the reader into the new struct instance.
 	dec := pgjson.NewDecoder(rd)
-	return dec.Decode(v.Addr().Interface())
+	if err := dec.Decode(newStruct); err != nil {
+		return err
+	}
+
+	// Set the scanned data to the provided reflect.Value v.
+	v.Set(reflect.ValueOf(newStruct).Elem())
+
+	return nil
 }
 
 func scanTimeValue(v reflect.Value, rd Reader, n int) error {
