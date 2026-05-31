@@ -262,6 +262,23 @@ var _ = Describe("embedding with ignored field", func() {
 	})
 })
 
+type P[T any] struct {
+	Data T
+}
+
+var _ = Describe("generics model", func() {
+	var table *orm.Table
+
+	BeforeEach(func() {
+		strct := reflect.ValueOf(P[string]{})
+		table = orm.GetTable(strct.Type())
+	})
+	It("TypeName and ModelName", func() {
+		Expect(table.TypeName).To(BeEquivalentTo("P"))
+		Expect(table.ModelName).To(BeEquivalentTo("p"))
+	})
+})
+
 type Nameless struct {
 	tableName struct{} `pg:"_"`
 
