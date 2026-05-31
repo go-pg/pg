@@ -747,6 +747,27 @@ var _ = Describe("CopyFrom/CopyTo", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(count).To(Equal(0))
 	})
+
+	// Without the related fix the test is flaky with ~80% failure rate
+	It("copyTo after error copyTo", func() {
+		conn := db.Conn()
+		defer conn.Close()
+
+		_, err := conn.Exec("CREATE TEMP TABLE copy_overflow(n bigint)")
+		Expect(err).NotTo(HaveOccurred())
+
+		_, err = conn.Exec("INSERT INTO copy_overflow VALUES (1), (9223372036854775807), (3)")
+		Expect(err).NotTo(HaveOccurred())
+
+		var buf1 bytes.Buffer
+		_, err = conn.CopyTo(&buf1, "COPY (SELECT n::int FROM copy_overflow) TO STDOUT")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("out of range"))
+
+		var buf2 bytes.Buffer
+		_, err = conn.CopyTo(&buf2, "COPY (SELECT 1) TO STDOUT")
+		Expect(err).NotTo(HaveOccurred())
+	})
 })
 
 var _ = Describe("CountEstimate", func() {

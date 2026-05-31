@@ -1195,7 +1195,9 @@ func readCopyData(rd *pool.ReaderContext, w io.Writer) (*result, error) {
 			if err != nil {
 				return nil, err
 			}
-			return nil, e
+			if firstErr == nil {
+				firstErr = e
+			}
 		case noticeResponseMsg:
 			if err := logNotice(rd, msgLen); err != nil {
 				return nil, err
